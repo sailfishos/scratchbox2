@@ -1,5 +1,7 @@
 CC = gcc-4.1.1
 LD = ld
+PACKAGE_VERSION = "1.99b"
+PACKAGE = "SB2"
 CFLAGS = -I$(TOPDIR)/include
 TOPDIR = $(CURDIR)
 

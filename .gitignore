@@ -1,4 +1,10 @@
 *.o
 .*.d
 *.so
+.*.swp
+config.log
+include/config.h
+include/config.h.in
+configure
+config.status
 

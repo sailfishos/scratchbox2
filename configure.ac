@@ -1,12 +1,12 @@
 # $Id: /trunk/configure.ac 191 2005-10-24T10:09:41.420717Z dexter  $
 
 AC_PREREQ(2.59)
-AC_INIT([fakechroot], [2.5], [dexter@debian.org])
+AC_INIT([sb2], [1.99b], [lle@rahina.org])
 #AC_CANONICAL_TARGET
 #AM_INIT_AUTOMAKE
 #AM_MAINTAINER_MODE
 #AC_CONFIG_SRCDIR([src/libfakechroot.c])
-AC_CONFIG_HEADER([config.h])
+AC_CONFIG_HEADER([include/config.h])
 AC_LANG_C
 
 # Checks for programs.

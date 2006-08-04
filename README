@@ -1,0 +1,37 @@
+pre-alpha.
+
+no guarentees.
+
+some instructions.
+
+
+You need scons and darcs to work with sbox2, get them.
+
+
+
+Build using:
+
+$ scons
+
+Clean using
+
+$ scons -c
+
+
+To setup the environment for both variants:
+
+$ export SBOX_REDIR_SCRIPTS=/path/to/your/source/sbox2/redir_scripts
+
+
+run the LD_PRELOAD variant with: 
+
+$ LD_PRELOAD=/path/to/your/source/sbox2/preload/libsb2.so /bin/csh
+
+or the FUSE variant with:
+
+TODO!!!
+
+
+
+that's all folks, enjoy!
+

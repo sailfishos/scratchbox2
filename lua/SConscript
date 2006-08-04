@@ -1,0 +1,22 @@
+import glob
+
+Import('env')
+
+lualib_env = env.Copy()
+
+lualib_src = glob.glob("lua-5.1/src/*.c")
+
+# remove unwanted compiler and interpreter files
+lualib_src.remove("lua-5.1/src/lua.c")
+lualib_src.remove("lua-5.1/src/luac.c")
+lualib_src.remove("lua-5.1/src/print.c")
+
+lualib_env.StaticLibrary("liblua", lualib_src)
+
+lua_env = env.Copy()
+
+lua_env.Append(LIBS = "lua")
+lua_env.Append(LIBPATH = ".")
+lua_env.Append(CCFLAGS = " -I./lua/lua-5.1/src")
+lua_env.StaticLibrary("lua_bindings", ["lua_bindings.c"])
+

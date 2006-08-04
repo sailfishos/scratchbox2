@@ -1,0 +1,19 @@
+#!/bin/sh -x
+
+SBOXDIRNAME=scratchbox
+
+# login to host env to install more stuff
+
+if [ x$1 == x ]
+then
+	echo "Usage: $0 target"
+	exit
+fi
+
+target=$1
+
+cp -f /usr/lib/scratchbox2/fakechroot/* $target/scratchbox/fakechroot/
+cp -af /usr/lib/scratchbox2/redir_scripts $target/scratchbox/
+
+chroot $target/scratchbox/ /bin/bash
+

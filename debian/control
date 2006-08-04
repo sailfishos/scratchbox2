@@ -1,0 +1,17 @@
+Source: scratchbox2
+Maintainer: Riku Voipio <riku@debian.org>
+Section: utils
+Priority: optional
+Standards-Version: 3.6.2
+Build-Depends: debhelper (>=5), liblua5.1-0-dev, pkg-config, scons
+
+Package: scratchbox2
+Architecture: any
+Depends: debootstrap, ${shlibs:Depends}
+Description: gives a fake chroot environment
+ This package provides a library which overrides libc functions, so
+ it is possible to use root-specific tools without root priviliges.
+ .
+ In fake chroot you can install i.e. Debian bootstrap, create developer's
+ environment and build packages inside chroot'ed system using standard
+ non-root user account.

@@ -1,0 +1,97 @@
+#!/usr/bin/make -f
+
+DEB_BUILD_GNU_TYPE = $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+DEB_HOST_GNU_TYPE = $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+
+ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
+CFLAGS += -O0
+else
+CFLAGS += -O2
+endif
+
+ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
+INSTALL_PROGRAM += -s
+endif
+
+ifeq (x86_64-linux-gnu,$(DEB_HOST_GNU_TYPE))
+BIARCH_LIB_DIR=emul/ia32-linux/usr/lib
+else
+ifeq (ppc64-linux-gnu,$(DEB_HOST_GNU_TYPE))
+BIARCH_LIB_DIR=usr/lib32
+else
+BIARCH_LIB_DIR=usr/lib64
+endif
+endif
+
+
+build: build-stamp
+build-stamp:
+	dh_testdir
+	scons
+
+#ifeq ($(DEB_BUILD_GNU_TYPE),$(DEB_HOST_GNU_TYPE))
+#ifeq (,$(findstring nocheck,$(DEB_BUILD_OPTIONS)))
+#	cd obj-build && $(MAKE) check
+#endif
+#endif
+
+	touch build-stamp
+
+# this is really not part of debian package build, but just for convinience
+
+clean: checkroot
+	$(checkdir)
+	rm -f build-stamp 
+	rm -rf .deps
+	rm -f debian/substvars debian/files
+	rm -rf debian/tmp obj obj-build obj64 objfake
+	find -name '*.o'  | xargs rm -f
+	find -name '*.a'  | xargs rm -f
+	find -name '*.so' | xargs rm -f
+	dh_clean
+
+# Build architecture-independent files here.
+binary-indep: build
+# We have nothing to do by default.
+
+# Build architecture-dependent files here.
+install: build 
+	dh_testdir
+	dh_testroot
+	dh_installdirs
+#	cd obj-build && $(MAKE) DESTDIR="$(CURDIR)/debian/scratchbox2" install
+
+binary-arch: install
+	dh_testdir -a
+	dh_testroot -a
+	cp preload/chroot-uid fuse/sb2fs $(CURDIR)/debian/scratchbox2/usr/bin/
+	cp */*.so $(CURDIR)/debian/scratchbox2/usr/lib/scratchbox2/
+	cp scripts/scratchbox2 $(CURDIR)/debian/scratchbox2/usr/bin/
+	cp -a redir_scripts/ $(CURDIR)/debian/scratchbox2/usr/lib/scratchbox2/
+	cp scripts/scratchbox2-* $(CURDIR)/debian/scratchbox2/usr/lib/scratchbox2/
+	cp scripts/fakechroot $(CURDIR)/debian/scratchbox2/usr/lib/scratchbox2/fakechroot/
+	dh_installdocs -a README
+	dh_installchangelogs -a
+	dh_strip -a
+	dh_compress -a
+	dh_fixperms -a
+	# FIXME, do in postinst
+	chown root:sbox $(CURDIR)/debian/scratchbox2/usr/bin/chroot-uid
+	chmod 4754 $(CURDIR)/debian/scratchbox2/usr/bin/chroot-uid
+	dh_installdeb -a
+	dh_shlibdeps -a
+	dh_gencontrol -a
+	dh_md5sums -a
+	dh_builddeb -a
+
+binary: binary-arch
+
+.PHONY: build clean binary-indep binary-arch binary checkroot prebuild
+
+define checkdir
+	dh_testdir
+endef
+
+checkroot:
+	$(checkdir)
+	dh_testroot

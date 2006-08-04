@@ -1,0 +1,9 @@
+Import("env")
+
+preload_env = env.Copy()
+
+preload_env.Append(CCFLAGS = ["-Wall", "-W"])
+preload_env.Append(LIBPATH = "../lua")
+preload_env.Append(LIBS = ["m", "dl", "lua_bindings", "lua"])
+preload_env.SharedLibrary("sb2", ["libsb2.c", "libsb_env.c", "sb_alien.c"])
+

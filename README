@@ -5,17 +5,17 @@ no guarentees.
 some instructions.
 
 
-You need scons and darcs to work with sbox2, get them.
+You need git to work with sbox2, get it from http://git.or.cz/.
 
 
 
 Build using:
 
-$ scons
+$ ./autogen.sh && ./configure && make
 
 Clean using
 
-$ scons -c
+$ make clean
 
 
 To setup the environment for both variants:

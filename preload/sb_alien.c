@@ -6,7 +6,7 @@
 
 
 #define LD_LIB_PATH	"/lib/:/lib/tls"
-#define LD_SO		"/lib/ld-2.3.6.so"
+#define LD_SO		"/lib/ld-2.4.so"
 extern int     (*next_execve) (const char *filename, char *const argv [], char *const envp[]);
 
 

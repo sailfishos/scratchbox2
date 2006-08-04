@@ -645,7 +645,6 @@ void fakechroot_init (void)
 #endif
     nextsym(utime, "utime");
     nextsym(utimes, "utimes");
-
 	scratchbox_init();
 }
 

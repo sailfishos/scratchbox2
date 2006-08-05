@@ -21,6 +21,7 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <errno.h>
 #include <string.h>
 
@@ -28,7 +29,6 @@
 #include "lualib.h"
 #include "lauxlib.h"
 #include "lua_bindings.h"
-
 
 pidfunction *sb_getpid=getpid;
 
@@ -46,6 +46,58 @@ char *rsdir = NULL;
 char *main_lua = NULL;
 
 
+/*
+ * check if the path is a symlink, if yes then return it resolved,
+ * if not, return the path intact
+ */
+
+static int sb_followsymlink(lua_State *l)
+{
+	char *path;
+	struct stat64 s;
+	char link_path[PATH_MAX + 1];
+	int n;
+
+	/* printf("in sb_followsymlink\n"); */
+	memset(&s, '\0', sizeof(struct stat64));
+	memset(link_path, '\0', PATH_MAX + 1);
+
+	n = lua_gettop(l);
+	if (n != 1) {
+		lua_pushstring(l, "sb_followsymlink(path) - invalid number of parameters");
+		return 1;
+	}
+
+	path = strdup(lua_tostring(l, 1));
+
+	//printf("C thinks path is: %s\n", path);
+	
+	if (syscall(__NR_lstat64, path, &s) < 0) {
+		/* didn't work
+		 * TODO: error handling 
+		 */
+		//perror("stat failed\n");
+		lua_pushstring(l, path);
+		goto getout;
+	}
+	//printf("about to test for symlink: %i\n", s.st_mode);
+	if (S_ISLNK(s.st_mode)) {
+		/* we have a symlink, read it and return */
+		//printf("WE HAVE A SYMLINK!!!\n");
+		syscall(__NR_readlink, path, link_path, PATH_MAX);
+		lua_pushstring(l, link_path);
+
+	} else {
+		//printf("not a symlink! %s\n", path);
+		/* not a symlink, return path */
+		lua_pushstring(l, path);
+		//printf("after pushing\n");
+	}
+getout:	
+	//printf("about to free!\n");
+	free(path);
+	return 1;
+}
 
 /*
  * This function should ONLY look at things from rsdir
@@ -90,6 +142,7 @@ static int sb_getdirlisting(lua_State *l)
 	lua_pushliteral(l, "n");
 	lua_pushnumber(l, count - 1);
 	lua_rawset(l, -3);
+	free(path);
 	return 1;
 }
 
@@ -97,6 +150,7 @@ static int sb_getdirlisting(lua_State *l)
 char *scratchbox_path(const char *func_name, const char *path)
 {	
 	char binary_name[PATH_MAX+1];
+	char work_dir[PATH_MAX+1];
 	char *tmp;
 	char pidlink[17]; /* /proc/2^8/exe */
 	
@@ -115,8 +169,10 @@ char *scratchbox_path(const char *func_name, const char *path)
 	}
 	
 	memset(binary_name, '\0', PATH_MAX+1);
+	memset(work_dir, '\0', PATH_MAX+1);
 	snprintf(pidlink,16,"/proc/%i/exe",sb_getpid());
 	syscall(__NR_readlink, pidlink, binary_name, PATH_MAX);
+	syscall(__NR_getcwd, work_dir, PATH_MAX);
 
 
 	/* RECURSIVE CALL BREAK */
@@ -151,8 +207,9 @@ char *scratchbox_path(const char *func_name, const char *path)
 	lua_getfield(l, LUA_GLOBALSINDEX, "sbox_translate_path");
 	lua_pushstring(l, binary_name);
 	lua_pushstring(l, func_name);
+	lua_pushstring(l, work_dir);
 	lua_pushstring(l, path);
-	lua_call(l, 3, 1); /* three arguments, one result */
+	lua_call(l, 4, 1); /* four arguments, one result */
 	tmp = strdup(lua_tostring(l, -1));
 	lua_pop(l, 1);
 	
@@ -164,6 +221,7 @@ char *scratchbox_path(const char *func_name, const char *path)
 static const luaL_reg reg[] =
 {
 	{"sb_getdirlisting",		sb_getdirlisting},
+	{"sb_followsymlink",		sb_followsymlink},
 	{NULL,				NULL}
 };
 

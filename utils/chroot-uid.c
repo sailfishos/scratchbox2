@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
     return -1;
   }
 
-  putenv("LD_PRELOAD=/scratchbox/fakechroot/libsb2.so");
+  //putenv("LD_PRELOAD=/scratchbox/lib/libsb2.so");
 
   /* run the given program */
   if (execve(prog, args, environ) < 0) {

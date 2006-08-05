@@ -29,7 +29,8 @@ builtin_files = $(patsubst %,%/built-in.o,$(subdirs))
 ll_subdir:
 	@set -e; \
 	for f in $(subdirs); do $(MAKE) -C $$f ll_subdir; done; \
-	if [ -n "$(strip $(obj-default) $(builtin_files))" ]; then $(MAKE) --no-print-directory build obj="$(obj-default) $(builtin_files)" $(extra_targets); fi
+	if [ -n "$(strip $(obj-default) $(builtin_files))" ]; then $(MAKE) --no-print-directory build obj="$(obj-default) $(builtin_files)"; fi; \
+	if [ -n "$(strip $(extra_targets))" ]; then $(MAKE) --no-print-directory $(extra_targets); fi
 
 $(built_in_target): $(obj)
 	$(LD) -r -nostartfiles $(LDFLAGS) -o $@ $(obj)

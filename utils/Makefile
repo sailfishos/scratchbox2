@@ -1,7 +1,8 @@
-obj-default = chroot-uid.o
+extra_targets = chroot-uid sb2init
 
-extra_targets = chroot-uid
+chroot-uid: chroot-uid.c
+	$(CC) -o chroot-uid chroot-uid.c
 
-chroot-uid: built-in.o
-	$(CC) -o chroot-uid built-in.o
+sb2init: sb2init.c
+	$(CC) -static -o sb2init sb2init.c
 

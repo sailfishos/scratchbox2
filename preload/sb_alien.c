@@ -5,8 +5,8 @@
 #include <libgen.h>
 
 
-#define LD_LIB_PATH	"/lib/:/lib/tls"
-#define LD_SO		"/lib/ld-2.4.so"
+#define LD_LIB_PATH	"/scratchbox/sarge/lib/:/scratchbox/sarge/lib/tls:/scratchbox/sarge/usr/lib"
+#define LD_SO		"/scratchbox/sarge/lib/ld-linux.so.2"
 extern int     (*next_execve) (const char *filename, char *const argv [], char *const envp[]);
 
 

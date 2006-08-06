@@ -36,18 +36,25 @@ end
 
 
 function basename(path)
-	return string.match(path, "[^/]*$")
+	if (path == "/") then
+		return "/"
+	else
+		return string.match(path, "[^/]*$")
+	end
 end
 
 function dirname(path)
-	dir = string.match(path, ".*/")
-
-	-- root ('/') needs to be special
-	if (string.len(dir) == 1) then 
-		return dir
+	if (path == "/") then
+		return "/"
 	end
+	dir = string.match(path, ".*/")
+	if (dir == nil) then
+		return "."
+	end
+
+	if (dir == "/") then return dir end
+
 	-- chop off the trailing /
-	
 	if (string.sub(dir, string.len(dir)) == "/") then
 		dir = string.sub(dir, 1, string.len(dir) - 1)
 	end
@@ -64,58 +71,43 @@ function sbox_translate_path(binary_name, func_name, work_dir, path)
 --	print("debug: [" .. binary_name .. "][" .. func_name .. "][" .. work_dir .. "][" .. path .. "]")
 
 	ret = path
-	if (string.sub(path, 1, 1) == "/") then
-		-- print("absolute path")
-		dir = dirname(path)
-	else
-		-- print("relative path")
-		dir = dirname(work_dir .. path)
+	rp = sb.sb_realpath(path)
+
+	if (rp == "no such file") then
+--		print("no such file, path= " .. path )
+		if (string.match(func_name, "^exec") or
+			string.match(path, "^/bin") or
+			string.match(path, "^/usr/bin") or
+			string.match(path, "^/usr/local/bin") or
+			string.match(path, "^/usr/lib/gcc%-lib/")) then
+--			print("no such file and mapping!")
+			return tools_root .. "/" .. path
+		end
+--		print("no such file and not mapping")
+		return path
 	end
 
-	file = basename(path)
-	if (string.len(dir) > 1) then
-		full_path = dir .. "/" .. file
-	else
-		full_path = dir .. file
-	end
+--	print("rp: [" .. rp .. "]")
+	dir = dirname(rp)
+	file = basename(rp)
 
---	print("full_path: " .. full_path)
 --	print("dir: " .. dir)
 --	print("file: " .. file)
 
 	-- /scratchbox is special of course
-	if (string.match(full_path, "^/scratchbox") or
-		string.match(full_path, "^/home") or
-		string.match(full_path, "^/tmp") or
-		string.match(full_path, "^/var") or
-		string.match(full_path, "^/proc") or
+	if (string.match(rp, "^/scratchbox") or
+		string.match(rp, "^/home") or
+		string.match(rp, "^/tmp") or
+		string.match(rp, "^/var") or
+		string.match(rp, "^/proc") or
 --		string.match(full_path, "^/usr/include") or
 --		string.match(file, "*.so$") or
 		string.match(dir, "^/$")) then
---		print("not translating...")
+--		print("not translating..." .. path)
 		ret = path
 	else
-		ret = tools_root .. full_path
+		ret = tools_root .. rp
 	end
-	
-	-- only follow symlinks for exec family of functions
-	if (not string.match(func_name, "^exec*")) then
-		-- print("returning early: " .. ret)
-		return ret
-	end
-	tmp = sb.sb_followsymlink(ret)
---	print(ret .. " -> " .. tmp)
-	if (string.find(tmp, ret, 1, true) == 1) then
---		print("complete: " .. tmp)
-		return ret
-	else
-		if (string.find(tmp, "/") ~= 1) then
-			-- relative symlink, track from dir
-			tmp = dir .. "/" .. tmp
-		end
---		print("recurse! " .. tmp)
-		-- tail recurse until no more symlinks
-		return sbox_translate_path(binary_name, func_name, work_dir, tmp)
-	end
+	return ret	
 end
 

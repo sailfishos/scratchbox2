@@ -11,7 +11,7 @@ MAKEFILES = $(TOPDIR)/Makefile.include
 export CC CFLAGS MAKEFILES
 
 subdirs = lua preload utils
-
+targets = utils/sb2init utils/chroot-uid
 
 submodules:
 	@set -e; \
@@ -19,8 +19,15 @@ submodules:
 
 
 install: submodules
-	install -c -m 755 preload/libsb2.so $(prefix)/lib/libsb2.so
-	install -c -m 755 utils/sb2init $(prefix)/bin/sb2init
+	install -d -m 755 $(prefix)/scratchbox/bin
+	install -d -m 755 $(prefix)/scratchbox/lib
+	install -d -m 755 $(prefix)/scratchbox/redir_scripts
+	install -c -m 755 preload/libsb2.so $(prefix)/scratchbox/lib/libsb2.so
+	install -c -m 755 utils/sb2init $(prefix)/scratchbox/bin/sb2init
+	install -c -m 755 utils/chroot-uid $(prefix)/scratchbox/bin/chroot-uid
+	install -c -m 755 scripts/login.sh $(prefix)/login.sh
+	install -c -m 755 scripts/sb2rc $(prefix)/scratchbox/sb2rc
+
 
 CLEAN_FILES = $(targets)
 

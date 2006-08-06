@@ -8,4 +8,5 @@ include/config.h.in
 configure
 config.status
 utils/chroot-uid
-
+utils/sb2init
+.config

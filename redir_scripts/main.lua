@@ -57,7 +57,7 @@ end
 -- translating
 
 function sbox_translate_path(binary_name, func_name, work_dir, path)
---	print("debug: " .. binary_name .. " " .. func_name .. " " .. work_dir .. " " .. path)
+--	print("debug: [" .. binary_name .. "][" .. func_name .. "][" .. work_dir .. "][" .. path .. "]")
 	ret = path
 	if (string.sub(path, 1, 1) == "/") then
 		-- print("absolute path")
@@ -82,6 +82,8 @@ function sbox_translate_path(binary_name, func_name, work_dir, path)
 	if (string.match(full_path, "^/scratchbox") or
 		string.match(full_path, "^/home") or
 		string.match(full_path, "^/tmp") or
+		string.match(full_path, "^/var") or
+		string.match(full_path, "^/proc") or
 --		string.match(full_path, "^/usr/include") or
 --		string.match(file, "*.so$") or
 		string.match(dir, "^/$")) then
@@ -92,7 +94,7 @@ function sbox_translate_path(binary_name, func_name, work_dir, path)
 	end
 
 	tmp = sb.sb_followsymlink(ret)
---	print("tmp vs. ret: " .. tmp .. " vs. " .. ret)
+--	print(ret .. " -> " .. tmp)
 	if (string.find(tmp, ret, 1, true) == 1) then
 --		print("complete: " .. tmp)
 		return ret

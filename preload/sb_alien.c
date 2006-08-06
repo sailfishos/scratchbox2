@@ -3,10 +3,14 @@
 #include <stdio.h>
 #include <errno.h>
 #include <libgen.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <limits.h>
 
 
 #define LD_LIB_PATH	"/scratchbox/sarge/lib/:/scratchbox/sarge/lib/tls:/scratchbox/sarge/usr/lib"
 #define LD_SO		"/scratchbox/sarge/lib/ld-linux.so.2"
+
 extern int     (*next_execve) (const char *filename, char *const argv [], char *const envp[]);
 
 
@@ -117,10 +121,38 @@ int run_app(char *file, char **argv, char *const *envp)
 	char **pre,**post;
 	char **p;
 	char *tmp;
+	char ld_so_buf[PATH_MAX + 1];
+	char ld_so_basename[PATH_MAX + 1];
 	int argc;
 	int i = 0;
 
+	memset(ld_so_buf, '\0', PATH_MAX + 1);
+	memset(ld_so_basename, '\0', PATH_MAX + 1);
+	if (readlink(LD_SO, ld_so_buf, PATH_MAX) < 0) {
+		if (errno == EINVAL) {
+			printf("buu!\n");
+			/* it's not a symbolic link, so use it directly */
+			strcpy(ld_so_basename, basename(LD_SO));
+
+		} else {
+			/* something strange, bail out */
+			perror("readlink(LD_SO) failed badly. aborting\n");
+			return -1;
+		}
+	} else {
+		strcpy(ld_so_basename, basename(ld_so_buf));
+	}
 	binaryname = basename(strdup(file));
+
+	/* if the file to be run is the dynamic loader itself, 
+	 * run it straight
+	 */
+
+	if (strcmp(binaryname, ld_so_basename) == 0) {
+		next_execve(file, argv, envp);
+		perror("failed to run the dynamic linker!\n");
+		return -1;
+	}
 
 	tmp = getenv("REDIR_LD_LIBRARY_PATH");
 

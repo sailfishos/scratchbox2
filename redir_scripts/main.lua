@@ -57,7 +57,9 @@ end
 -- translating
 
 function sbox_translate_path(binary_name, func_name, work_dir, path)
+
 --	print("debug: [" .. binary_name .. "][" .. func_name .. "][" .. work_dir .. "][" .. path .. "]")
+
 	ret = path
 	if (string.sub(path, 1, 1) == "/") then
 		-- print("absolute path")
@@ -92,7 +94,12 @@ function sbox_translate_path(binary_name, func_name, work_dir, path)
 	else
 		ret = tools_root .. full_path
 	end
-
+	
+	-- only follow symlinks for exec family of functions
+	if (not string.match(func_name, "^exec*")) then
+		-- print("returning early: " .. ret)
+		return ret
+	end
 	tmp = sb.sb_followsymlink(ret)
 --	print(ret .. " -> " .. tmp)
 	if (string.find(tmp, ret, 1, true) == 1) then

@@ -2135,33 +2135,22 @@ long pathconf (const char *path, int name)
 /* XXX: add proc pid/exe wrapper from libsb to here */
 int readlink (const char *path, char *buf, READLINK_TYPE_ARG3)
 {
-    int status;
-    char tmp[FAKECHROOT_MAXPATH], *tmpptr;
-    char *fakechroot_path, *fakechroot_ptr;
+	int status;
+	char tmp[FAKECHROOT_MAXPATH];
+	char *fakechroot_path;
 
-    expand_chroot_path(path, fakechroot_path);
+	expand_chroot_path(path, fakechroot_path);
 
-    if (next_readlink == NULL) fakechroot_init();
+	if (next_readlink == NULL) fakechroot_init();
 
-    if ((status = next_readlink(path, tmp, bufsiz)) == -1) {
-        return status;
-    }
-    /* TODO: shouldn't end with \000 */
-    tmp[status] = '\0';
-	
-    fakechroot_path = scratchbox_path(__FUNCTION__, tmp);
-    if (fakechroot_path != NULL) {
-        fakechroot_ptr = strstr(tmp, fakechroot_path);
-        if (fakechroot_ptr != tmp) {
-            tmpptr = tmp;
-        } else {
-            tmpptr = tmp + strlen(fakechroot_path);
-        }
-        strcpy(buf, tmpptr);
-    } else {
-        strcpy(buf, tmp);
-    }
-    return strlen(buf);
+	if ((status = next_readlink(path, tmp, bufsiz)) == -1) {
+		return status;
+	}
+	/* TODO: shouldn't end with \000 */
+	tmp[status] = '\0';
+
+	strcpy(buf, tmp);
+	return strlen(tmp);
 }
 
 

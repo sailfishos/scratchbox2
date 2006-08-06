@@ -1350,69 +1350,81 @@ int execv (const char *path, char *const argv [])
 /* #include <unistd.h> */
 int execve (const char *filename, char *const argv [], char *const envp[])
 {
-    int file;
-    char hashbang[FAKECHROOT_MAXPATH];
-    size_t argv_max = 1024;
-    const char **newargv = alloca (argv_max * sizeof (const char *));
-    char tmp[FAKECHROOT_MAXPATH], newfilename[FAKECHROOT_MAXPATH], argv0[FAKECHROOT_MAXPATH];
-    char *ptr;
-    int k;
-    unsigned int i, j, n;
-    char c;
-    char *fakechroot_path;
+	int file;
+	char hashbang[FAKECHROOT_MAXPATH];
+	size_t argv_max = 1024;
+	const char **newargv = alloca (argv_max * sizeof (const char *));
+	char tmp[FAKECHROOT_MAXPATH], 
+	     newfilename[FAKECHROOT_MAXPATH], 
+	     argv0[FAKECHROOT_MAXPATH];
+	char *ptr;
+	int k;
+	unsigned int i, j, n;
+	char c;
+	char *fakechroot_path;
 
-    expand_chroot_path(filename, fakechroot_path);
-    strcpy(tmp, filename);
-    filename = tmp;
+	expand_chroot_path(filename, fakechroot_path);
+	strcpy(tmp, filename);
+	filename = tmp;
 
-    if ((file = open(filename, O_RDONLY)) == -1) {
-        errno = ENOENT;
-        return -1;
-    }
+	if ((file = open(filename, O_RDONLY)) == -1) {
+		errno = ENOENT;
+		return -1;
+	}
 
-    k = read(file, hashbang, FAKECHROOT_MAXPATH-2);
-    close(file);
-    if (k == -1) {
-        errno = ENOENT;
-        return -1;
-    }
+	k = read(file, hashbang, FAKECHROOT_MAXPATH-2);
+	close(file);
+	if (k == -1) {
+		errno = ENOENT;
+		return -1;
+	}
 
-    if (hashbang[0] != '#' || hashbang[1] != '!')
-        return do_exec(filename, argv, envp);
+	if (hashbang[0] != '#' || hashbang[1] != '!')
+		return do_exec(filename, argv, envp);
 
-    hashbang[i] = hashbang[i+1] = 0;
-    for (i = j = 2; (hashbang[i] == ' ' || hashbang[i] == '\t') && i < FAKECHROOT_MAXPATH; i++, j++);
-    for (n = 0; i < FAKECHROOT_MAXPATH; i++) {
-        c = hashbang[i];
-        if (hashbang[i] == 0 || hashbang[i] == ' ' || hashbang[i] == '\t' || hashbang[i] == '\n') {
-            hashbang[i] = 0;
-            if (i > j) {
-                if (n == 0) {
-                    ptr = &hashbang[j];
-                    expand_chroot_path(ptr, fakechroot_path);
-                    strcpy(newfilename, ptr);
-                    strcpy(argv0, &hashbang[j]);
-                    newargv[n++] = argv0;
-                } else {
-                    newargv[n++] = &hashbang[j];
-                }
-            }
-            j = i + 1;
-        }
-        if (c == '\n' || c == 0)
-            break;
-    }
+	/* if we're here we have a script */
 
-    expand_chroot_path(filename, fakechroot_path);
-    newargv[n++] = filename;
+	//printf("hashbang: %s\n", hashbang);
+	for (i = j = 2; (hashbang[i] == ' ' || hashbang[i] == '\t') && i < FAKECHROOT_MAXPATH; i++, j++) {
+		//printf("looping\n");
+	}
 
-    for (i = 1; argv[i] != NULL && i < argv_max; ) {
-        newargv[n++] = argv[i++];
-    }
+	//printf("hashbanging: i=%u\n",i);
+	//hashbang[i] = hashbang[i+1] = 0;
 
-    newargv[n] = 0;
+	for (n = 0; i < FAKECHROOT_MAXPATH; i++) {
+		c = hashbang[i];
+		if (hashbang[i] == 0 || hashbang[i] == ' ' || hashbang[i] == '\t' || hashbang[i] == '\n') {
+			hashbang[i] = 0;
+			if (i > j) {
+				if (n == 0) {
+					ptr = &hashbang[j];
+					//printf("hashbanging ptr, fakechroot_path: %s, %s\n", ptr, fakechroot_path);
+					expand_chroot_path(ptr, fakechroot_path);
+					strcpy(newfilename, ptr);
+					strcpy(argv0, &hashbang[j]);
+					newargv[n++] = argv0;
+				} else {
+					newargv[n++] = &hashbang[j];
+				}
+			}
+			j = i + 1;
+		}
+		if (c == '\n' || c == 0)
+			break;
+	}
 
-    return do_exec(newfilename, (char *const *)newargv, envp);
+	//printf("hashbanging: %s, %s\n", filename, fakechroot_path);
+	expand_chroot_path(filename, fakechroot_path);
+	newargv[n++] = filename;
+
+	for (i = 1; argv[i] != NULL && i < argv_max; ) {
+		newargv[n++] = argv[i++];
+	}
+
+	newargv[n] = 0;
+
+	return do_exec(newfilename, (char *const *)newargv, envp);
 }
 
 

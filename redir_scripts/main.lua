@@ -92,16 +92,16 @@ function sbox_translate_path(binary_name, func_name, work_dir, path)
 	end
 
 	tmp = sb.sb_followsymlink(ret)
-	print("tmp vs. ret: " .. tmp .. " vs. " .. ret)
+--	print("tmp vs. ret: " .. tmp .. " vs. " .. ret)
 	if (string.find(tmp, ret, 1, true) == 1) then
-		print("complete: " .. tmp)
+--		print("complete: " .. tmp)
 		return ret
 	else
 		if (string.find(tmp, "/") ~= 1) then
 			-- relative symlink, track from dir
 			tmp = dir .. "/" .. tmp
 		end
-		print("recurse! " .. tmp)
+--		print("recurse! " .. tmp)
 		-- tail recurse until no more symlinks
 		return sbox_translate_path(binary_name, func_name, work_dir, tmp)
 	end

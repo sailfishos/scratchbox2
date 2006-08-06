@@ -27,6 +27,7 @@ install: submodules
 	install -c -m 755 utils/chroot-uid $(prefix)/scratchbox/bin/chroot-uid
 	install -c -m 755 scripts/login.sh $(prefix)/login.sh
 	install -c -m 755 scripts/sb2rc $(prefix)/scratchbox/sb2rc
+	install -c -m 644 redir_scripts/main.lua $(prefix)/scratchbox/redir_scripts/main.lua
 
 
 CLEAN_FILES = $(targets)

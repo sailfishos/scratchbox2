@@ -3,7 +3,10 @@
 
 -- print "hello!\n"
 
-tools_root = "/scratchbox/sarge"
+tools_root = os.getenv("SBOX_TOOLS_ROOT")
+if (tools_root == nil) then
+	tools_root = "/scratchbox/sarge"
+end
 
 -- SBOX_REDIR_SCRIPTS environment variable controls where
 -- we look for the scriptlets defining the path mappings

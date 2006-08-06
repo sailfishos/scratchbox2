@@ -126,34 +126,6 @@ int run_app(char *file, char **argv, char *const *envp)
 	int argc;
 	int i = 0;
 
-	memset(ld_so_buf, '\0', PATH_MAX + 1);
-	memset(ld_so_basename, '\0', PATH_MAX + 1);
-	if (readlink(LD_SO, ld_so_buf, PATH_MAX) < 0) {
-		if (errno == EINVAL) {
-			printf("buu!\n");
-			/* it's not a symbolic link, so use it directly */
-			strcpy(ld_so_basename, basename(LD_SO));
-
-		} else {
-			/* something strange, bail out */
-			perror("readlink(LD_SO) failed badly. aborting\n");
-			return -1;
-		}
-	} else {
-		strcpy(ld_so_basename, basename(ld_so_buf));
-	}
-	binaryname = basename(strdup(file));
-
-	/* if the file to be run is the dynamic loader itself, 
-	 * run it straight
-	 */
-
-	if (strcmp(binaryname, ld_so_basename) == 0) {
-		next_execve(file, argv, envp);
-		perror("failed to run the dynamic linker!\n");
-		return -1;
-	}
-
 	tmp = getenv("REDIR_LD_LIBRARY_PATH");
 
 	if (!tmp) {
@@ -168,6 +140,36 @@ int run_app(char *file, char **argv, char *const *envp)
 	} else {
 		ld_so = strdup(tmp);
 	}
+
+	memset(ld_so_buf, '\0', PATH_MAX + 1);
+	memset(ld_so_basename, '\0', PATH_MAX + 1);
+
+	if (readlink(ld_so, ld_so_buf, PATH_MAX) < 0) {
+		if (errno == EINVAL) {
+			/* it's not a symbolic link, so use it directly */
+			strcpy(ld_so_basename, basename(ld_so));
+
+		} else {
+			/* something strange, bail out */
+			perror("readlink(ld_so) failed badly. aborting\n");
+			return -1;
+		}
+	} else {
+		strcpy(ld_so_basename, basename(ld_so_buf));
+	}
+
+	binaryname = basename(strdup(file));
+
+	/* if the file to be run is the dynamic loader itself, 
+	 * run it straight
+	 */
+
+	if (strcmp(binaryname, ld_so_basename) == 0) {
+		next_execve(file, argv, envp);
+		perror("failed to directly run the dynamic linker!\n");
+		return -1;
+	}
+
 
 	argc = elem_count(argv);
 

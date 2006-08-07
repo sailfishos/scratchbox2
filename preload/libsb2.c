@@ -62,7 +62,7 @@
 #endif
 
 #include <elf.h>
-#include <asm/elf.h>
+#include <sys/user.h>
 #include <sys/mman.h>
 
 #include "sb_env.h"

@@ -20,16 +20,18 @@ end
 -- it returns a table listing all files in a directory
 t = sb.sb_getdirlisting(rsdir .. "/parts")
 
--- load the individual parts ($SBOX_REDIR_SCRIPTS/parts/*.lua)
-for n = 0,table.maxn(t) do
-	if (string.match(t[n], "%a*%.lua$")) then
-		-- print("loading part: " .. t[n])
-		filename = rsdir .. "/parts/" .. t[n]
-		f, err = loadfile(filename)
-		if (f == nil) then
-			error("\nError while loading " .. filename .. ": \n" .. err .. "\n")
-		else
-			f() -- execute the loaded chunk
+if (t ~= nil) then
+	-- load the individual parts ($SBOX_REDIR_SCRIPTS/parts/*.lua)
+	for n = 0,table.maxn(t) do
+		if (string.match(t[n], "%a*%.lua$")) then
+			-- print("loading part: " .. t[n])
+			filename = rsdir .. "/parts/" .. t[n]
+			f, err = loadfile(filename)
+			if (f == nil) then
+				error("\nError while loading " .. filename .. ": \n" .. err .. "\n")
+			else
+				f() -- execute the loaded chunk
+			end
 		end
 	end
 end

@@ -139,4 +139,14 @@ utime \
 utimes \
 ])
 
+
+AC_EGREP_CPP(EM_386,
+[
+#include <asm/elf.h>
+ELF_ARCH
+], elf_arch=EM_386, elf_arch=EM_X86_64
+)
+AC_DEFINE([ELF_ARCH], [], [elf architecture])
+AC_DEFINE_UNQUOTED(ELF_ARCH, ${elf_arch})
+
 AC_OUTPUT

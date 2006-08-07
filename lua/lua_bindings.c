@@ -156,18 +156,20 @@ static int sb_getdirlisting(lua_State *l)
 	int n = lua_gettop(l);
 	
 	if (n != 1) {
-		lua_pushstring(l, "sb_getdirlisting(path) - invalid number of parameters");
+		lua_pushstring(l, NULL);
 		return 1;
 	}
 
 	path = strdup(lua_tostring(l, 1));
 	if (strncmp(path, rsdir, strlen(rsdir)) != 0) {
 		/* invalid path used */
-		lua_pushstring(l, "sb_getdirlisting - invalid path");
+		lua_pushstring(l, NULL);
 		return 1;
 	}
 	
 	if ( (d = opendir(path)) == NULL ) {
+		lua_pushstring(l, NULL);
+		return 1;
 	}
 	count = 0;
 	lua_newtable(l); /* create a new table on the stack */

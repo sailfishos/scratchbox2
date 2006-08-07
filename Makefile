@@ -11,7 +11,7 @@ MAKEFILES = $(TOPDIR)/Makefile.include
 export CC CFLAGS MAKEFILES
 
 subdirs = lua preload utils
-targets = utils/sb2init utils/chroot-uid
+targets = utils/sb2init
 
 submodules:
 	@set -e; \

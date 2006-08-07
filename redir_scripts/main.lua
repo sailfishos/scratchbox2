@@ -79,6 +79,7 @@ function sbox_translate_path(binary_name, func_name, work_dir, path)
 			string.match(path, "^/bin") or
 			string.match(path, "^/usr/bin") or
 			string.match(path, "^/usr/local/bin") or
+			string.match(path, "^/etc") or
 			string.match(path, "^/usr/lib/gcc%-lib/")) then
 --			print("no such file and mapping!")
 			return tools_root .. "/" .. path

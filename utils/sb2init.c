@@ -10,6 +10,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/mount.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 /*
  * The sole purpose of this binary is to serve as a static executable
@@ -44,7 +46,10 @@ int mount_proc(void)
 
 	//printf("in mount_proc()\n");
 
-	proc_path = realpath("./proc", NULL);
+	if ( (proc_path = realpath("./proc", NULL)) == NULL) {
+		fprintf(stderr, "sb2init: unable to mount proc\n");
+		return -1;
+	}
 	tmp = malloc(strlen("proc ") + strlen(proc_path) + strlen(" proc ") + 1);
 	strcpy(tmp, "proc ");
 	strcat(tmp, proc_path);
@@ -102,8 +107,14 @@ int main(int argc, char *argv[])
 	 * preparatory work
 	 */
 
-	mount_proc();
-	register_binfmt_misc();
+	if (mount_proc() < 0) {
+		fprintf(stderr, "sb2init: mount_proc() failed\n");
+		return -1;
+	}
+	if (register_binfmt_misc() < 0) {
+		fprintf(stderr, "sb2init: register_binfmt_misc() failed\n");
+		return -1;
+	}
 
 
 	/* now chroot and drop the privileges */

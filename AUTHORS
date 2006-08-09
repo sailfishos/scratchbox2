@@ -1,0 +1,10 @@
+This is a complete list of authors and the modules they are responsible.
+
+Lauri Leukkunen <lle@rahina.org>:
+	lua/*
+	preload/*
+	redir_scripts/*
+	utils/*
+	include/*
+	scripts/*
+

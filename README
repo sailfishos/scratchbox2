@@ -11,25 +11,26 @@ You need git to work with sbox2, get it from http://git.or.cz/.
 
 Build using:
 
-$ ./autogen.sh && ./configure && make
+$ ./autogen.sh && ./configure && make && make install prefix=$HOME/buildroot
 
-Clean using
+At this point you should setup debian/sarge in $HOME/buildroot/scratchbox/sarge
+Use debootstrap to get the job done. After completing that step you can do:
+
+$ cd $HOME/buildroot
+$ mkdir proc
+$./login.sh
+
+
+Clean using:
 
 $ make clean
 
 
-To setup the environment for both variants:
 
-$ export SBOX_REDIR_SCRIPTS=/path/to/your/source/sbox2/redir_scripts
+To test the libsb2.so without a chroot:
 
-
-run the LD_PRELOAD variant with: 
-
-$ LD_PRELOAD=/path/to/your/source/sbox2/preload/libsb2.so /bin/csh
-
-or the FUSE variant with:
-
-TODO!!!
+$ export SBOX_REDIR_SCRIPTS=$(PWD)/redir_scripts
+$ LD_PRELOAD=$(PWD)/preload/libsb2.so /bin/csh
 
 
 

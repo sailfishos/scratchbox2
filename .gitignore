@@ -10,3 +10,6 @@ config.status
 utils/chroot-uid
 utils/sb2init
 .config
+*.lock
+*.d
+

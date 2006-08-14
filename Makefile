@@ -6,16 +6,18 @@ CFLAGS = -Wall -W -I$(TOPDIR)/include -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
 
 TOPDIR = $(CURDIR)
 
-MAKEFILES = $(TOPDIR)/Makefile.include
+MAKEFILES = Makefile $(TOPDIR)/Makefile.include
 
-export CC CFLAGS MAKEFILES
+export CC CFLAGS MAKEFILES TOPDIR
 
 subdirs = lua preload utils
 targets = utils/sb2init
 
-submodules:
-	@set -e; \
-	for d in $(subdirs); do $(MAKE) -C $$d ll_subdir; done
+
+all: submodules
+
+submodules: ll_mainlevel
+	@echo Build completed successfully!
 
 
 install: submodules
@@ -33,7 +35,7 @@ CLEAN_FILES = $(targets)
 
 clean:
 	rm -rf $(CLEAN_FILES)
-	find . -name "*.[oasd]" -o -name ".*.d" -o -name "*.*~" -o -name "*~" | xargs rm -rf
+	find . -name "*.[oasd]" -o -name ".*.d" -o -name "*.*~" -o -name "*~" -o -name "*.lock"| xargs rm -rf
 
 -include .config
 include Makefile.include

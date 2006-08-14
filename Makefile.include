@@ -21,25 +21,28 @@
 # SOFTWARE.
 
 #$(warning including Makefile.include from $(CURDIR))
+#$(warning obj-default=$(obj-default))
+#$(warning subdirs=$(subdirs))
 
-built_in_target = built-in.o
+built_in_target := built-in.o
 
-builtin_files = $(patsubst %,%/built-in.o,$(subdirs))
+builtin_files := $(patsubst %,%/built-in.o,$(subdirs))
 
-ll_subdir:
-	@set -e; \
-	for f in $(subdirs); do $(MAKE) -C $$f ll_subdir; done; \
-	if [ -n "$(strip $(obj-default) $(builtin_files))" ]; then $(MAKE) --no-print-directory build obj="$(obj-default) $(builtin_files)"; fi; \
-	if [ -n "$(strip $(extra_targets))" ]; then $(MAKE) --no-print-directory $(extra_targets); fi
+clean_subdirs := $(foreach dir,$(subdirs),$(CURDIR)/$(dir))
+subdir_deps := $(patsubst %,%.subdir.d,$(clean_subdirs))
 
-$(built_in_target): $(obj)
-	$(LD) -r -nostartfiles $(LDFLAGS) -o $@ $(obj)
+%.subdir.d:
+	if [ ! -e $@.lock ]; then touch $@.lock; fi
+	flock $@.lock /bin/sh -c "if [ ! -e $@ ]; then $(MAKE) --no-print-directory -C $(patsubst %.subdir.d,%,$@) -f $(TOPDIR)/Makefile.build ll_subdir && touch $@; fi;"
 
-ifneq ("$(obj)", "")
-build: $(built_in_target);
-else
-build: $(built_in_target);
-endif
+
+ll_mainlevel: $(subdir_deps)
+
+ll_subdir: $(subdir_deps) 
+	$(MAKE) --no-print-directory -f $(TOPDIR)/Makefile.build $(built_in_target) $(extra_targets)
+
+$(built_in_target): $(obj-default)
+	$(LD) -r -nostartfiles $(LDFLAGS) -o $@ $^
 
 OPT_CURDIR = $(patsubst /%,%,$(strip $(subst $(TOPDIR), , $(CURDIR))))
 
@@ -56,5 +59,5 @@ ifneq ("$(dep_files)", "")
 	include $(dep_files)
 endif
 
-.PHONY: build
+.PHONY: build $(subdirs)
 

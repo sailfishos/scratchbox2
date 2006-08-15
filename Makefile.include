@@ -20,9 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-#$(warning including Makefile.include from $(CURDIR))
-#$(warning obj-default=$(obj-default))
-#$(warning subdirs=$(subdirs))
 
 built_in_target := built-in.o
 
@@ -39,7 +36,7 @@ subdir_deps := $(patsubst %,%.subdir.d,$(clean_subdirs))
 
 ll_mainlevel:
 	@find $(TOPDIR) -name "*.subdir.d.lock" -o -name "*.subdir.d" | xargs rm -f
-	@$(MAKE) -f $(TOPDIR)/Makefile.build $(subdir_deps)
+	@$(MAKE) --no-print-directory -f $(TOPDIR)/Makefile.build $(subdir_deps)
 
 
 ll_subdir: $(subdir_deps) 
@@ -81,7 +78,6 @@ endef
 
 %.o: %.c
 	@$(pretty_build_c)
-#$(CC) $(CFLAGS) -Wp,-MD,$(dir $(@))/.$(notdir $(@)).d -o $@ -c $<
 
 
 dep_files = $(wildcard .*.d)

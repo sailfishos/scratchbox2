@@ -58,6 +58,8 @@ define pretty_build_c
 		false; \
 	else \
 		echo [CC] $(OPT_CURDIR)/$(@:.o=.c); \
+		echo "$$build_output" | grep " warning: "; \
+		true ; \
 	fi
 endef
 
@@ -69,6 +71,8 @@ define pretty_link
 		false; \
 	else \
 		echo [LD] $(OPT_CURDIR)/$@; \
+		echo "$$link_output" | grep " warning: "; \
+		true; \
 	fi
 endef
 

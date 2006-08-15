@@ -2,8 +2,7 @@
 
 automake_version=1.9
 
-rm -f configure
-
+rm -rf configure autom4te.cache
 autoheader
 autoconf
 

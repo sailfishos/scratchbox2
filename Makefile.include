@@ -32,10 +32,11 @@ builtin_files := $(patsubst %,%/built-in.o,$(subdirs))
 clean_subdirs := $(foreach dir,$(subdirs),$(CURDIR)/$(dir))
 subdir_deps := $(patsubst %,%.subdir.d,$(clean_subdirs))
 
+LOCK=flock $@.lock
 
 %.subdir.d:
 	@if [ ! -e $@.lock ]; then touch $@.lock; fi
-	@flock $@.lock /bin/sh -c "if [ ! -e $@ ]; then $(MAKE) --no-print-directory -C $(patsubst %.subdir.d,%,$@) -f $(TOPDIR)/Makefile.build ll_subdir && touch $@; fi;"
+	@$(LOCK) /bin/sh -c "if [ ! -e $@ ]; then $(MAKE) --no-print-directory -C $(patsubst %.subdir.d,%,$@) -f $(TOPDIR)/Makefile.build ll_subdir && touch $@; fi;"
 
 
 ll_mainlevel:
@@ -109,7 +110,7 @@ define ll_clean
 endef
 
 define ll_toplevel_build
-	+$(MAKE) --no-print-directory -f Makefile.build ll_mainlevel
+	+@$(MAKE) --no-print-directory -f Makefile.build ll_mainlevel
 endef
 
 endif

@@ -7,5 +7,3 @@ rm -f configure
 autoheader
 autoconf
 
-rm -rf autom4te.cache
-

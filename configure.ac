@@ -1,4 +1,6 @@
-# $Id: /trunk/configure.ac 191 2005-10-24T10:09:41.420717Z dexter  $
+# Copyright (C) 2006 Lauri Leukkunen
+# Based on the configure.ac script from fakechroot package
+
 
 AC_PREREQ(2.59)
 AC_INIT([sb2], [1.99b], [lle@rahina.org])

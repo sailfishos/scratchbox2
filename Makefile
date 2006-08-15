@@ -14,13 +14,17 @@ subdirs = lua preload utils
 targets = utils/sb2init
 
 
-all: submodules
+all: build
 
-submodules: ll_mainlevel
+configure: configure.ac
+	./autogen.sh
+	./configure
+
+build: configure
+	@$(MAKE) -f Makefile.build ll_mainlevel
 	@echo Build completed successfully!
 
-
-install: submodules
+install: build
 	install -d -m 755 $(prefix)/scratchbox/bin
 	install -d -m 755 $(prefix)/scratchbox/lib
 	install -d -m 755 $(prefix)/scratchbox/redir_scripts
@@ -38,6 +42,8 @@ clean:
 	find . -name "*.[oasd]" -o -name ".*.d" -o -name "*.*~" -o -name "*~" -o -name "*.lock"| xargs rm -rf
 
 -include .config
+
+# this chicanery prevents Makefile.include from being included twice
 ifndef _TOP_LEVEL_MAKEFILE
 _TOP_LEVEL_MAKEFILE=1
 export _TOP_LEVEL_MAKEFILE

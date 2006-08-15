@@ -21,7 +21,7 @@ configure: configure.ac
 	./configure
 
 build: configure
-	@$(MAKE) -f Makefile.build ll_mainlevel
+	$(ll_toplevel_build)
 	@echo Build completed successfully!
 
 install: build
@@ -38,16 +38,9 @@ install: build
 CLEAN_FILES = $(targets)
 
 clean:
-	rm -rf $(CLEAN_FILES)
-	find . -name "*.[oasd]" -o -name ".*.d" -o -name "*.*~" -o -name "*~" -o -name "*.lock"| xargs rm -rf
+	$(ll_clean)
 
 -include .config
-
-# this chicanery prevents Makefile.include from being included twice
-ifndef _TOP_LEVEL_MAKEFILE
-_TOP_LEVEL_MAKEFILE=1
-export _TOP_LEVEL_MAKEFILE
 include Makefile.include
-endif
 
 

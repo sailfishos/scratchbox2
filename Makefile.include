@@ -21,6 +21,10 @@
 # SOFTWARE.
 
 
+# Make sure this file is only included once per make invocation
+ifndef _LL_BUILD_MAKEFILE_INCLUDE
+_LL_BUILD_MAKEFILE_INCLUDE=1
+
 built_in_target := built-in.o
 
 builtin_files := $(patsubst %,%/built-in.o,$(subdirs))
@@ -43,12 +47,12 @@ ll_subdir: $(subdir_deps)
 	@$(MAKE) --no-print-directory -f $(TOPDIR)/Makefile.build $(built_in_target) $(extra_targets)
 
 $(built_in_target): $(obj-default)
-	$(pretty_link_builtin)
+	$(ll_pretty_link_builtin)
 
 OPT_CURDIR = $(patsubst /%,%,$(strip $(subst $(TOPDIR), , $(CURDIR))))
 
 
-define pretty_run
+define ll_pretty_run
 	run_output=$$($$run_cmd 2>&1); \
 	if [ $$? -ne 0 ]; then \
 		echo $$run_cmd; echo $(OPT_CURDIR)/$$run_output; \
@@ -60,35 +64,35 @@ define pretty_run
 	fi
 endef
 
-define pretty_build_c
+define ll_pretty_build_c
 	@run_cmd="$(CC) $(CFLAGS) -Wp,-MD,$(dir $(@))/.$(notdir $(@)).d -o $@ -c $<"; \
 	run_alias="CC"; \
-	$(pretty_run)
+	$(ll_pretty_run)
 endef
 
-define pretty_link_builtin
+define ll_pretty_link_builtin
 	@run_cmd="$(LD) -r -nostartfiles $(LDFLAGS) -o $@ $^"; \
 	run_alias="LD"; \
-	$(pretty_run)
+	$(ll_pretty_run)
 endef
 
-define pretty_link_shared_library
+define ll_pretty_link_shared_library
 	@run_cmd="$(CC) -shared -o $@ $^ $(LIBS)"; \
 	run_alias="LD SHARED LIB"; \
-	$(pretty_run)
+	$(ll_pretty_run)
 endef
 
-define pretty_link_shared_binary
+define ll_pretty_link_shared_binary
 	@run_cmd="$(CC) -o $@ $^ $(LIBS)"; \
 	run_alias="LD SHARED BIN";\
-	$(pretty_run)
+	$(ll_pretty_run)
 endef
 
 %.o: %.S
-	$(pretty_build_c)
+	$(ll_pretty_build_c)
 
 %.o: %.c
-	$(pretty_build_c)
+	$(ll_pretty_build_c)
 
 
 dep_files = $(wildcard .*.d)
@@ -98,4 +102,15 @@ ifneq ("$(dep_files)", "")
 endif
 
 .PHONY: build $(subdirs)
+
+define ll_clean
+	rm -rf $(CLEAN_FILES)
+	find . -name "*.[oasd]" -o -name ".*.d" -o -name "*.*~" -o -name "*~" -o -name "*.lock"| xargs rm -rf
+endef
+
+define ll_toplevel_build
+	+$(MAKE) --no-print-directory -f Makefile.build ll_mainlevel
+endef
+
+endif
 

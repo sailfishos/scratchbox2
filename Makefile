@@ -38,6 +38,10 @@ clean:
 	find . -name "*.[oasd]" -o -name ".*.d" -o -name "*.*~" -o -name "*~" -o -name "*.lock"| xargs rm -rf
 
 -include .config
+ifndef _TOP_LEVEL_MAKEFILE
+_TOP_LEVEL_MAKEFILE=1
+export _TOP_LEVEL_MAKEFILE
 include Makefile.include
+endif
 
 

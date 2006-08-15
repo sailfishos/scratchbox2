@@ -31,26 +31,53 @@ builtin_files := $(patsubst %,%/built-in.o,$(subdirs))
 clean_subdirs := $(foreach dir,$(subdirs),$(CURDIR)/$(dir))
 subdir_deps := $(patsubst %,%.subdir.d,$(clean_subdirs))
 
+
 %.subdir.d:
-	if [ ! -e $@.lock ]; then touch $@.lock; fi
-	flock $@.lock /bin/sh -c "if [ ! -e $@ ]; then $(MAKE) --no-print-directory -C $(patsubst %.subdir.d,%,$@) -f $(TOPDIR)/Makefile.build ll_subdir && touch $@; fi;"
+	@if [ ! -e $@.lock ]; then touch $@.lock; fi
+	@flock $@.lock /bin/sh -c "if [ ! -e $@ ]; then $(MAKE) --no-print-directory -C $(patsubst %.subdir.d,%,$@) -f $(TOPDIR)/Makefile.build ll_subdir && touch $@; fi;"
 
 
-ll_mainlevel: $(subdir_deps)
+ll_mainlevel:
+	@find $(TOPDIR) -name "*.subdir.d.lock" -o -name "*.subdir.d" | xargs rm -f
+	@$(MAKE) -f $(TOPDIR)/Makefile.build $(subdir_deps)
+
 
 ll_subdir: $(subdir_deps) 
-	$(MAKE) --no-print-directory -f $(TOPDIR)/Makefile.build $(built_in_target) $(extra_targets)
+	@$(MAKE) --no-print-directory -f $(TOPDIR)/Makefile.build $(built_in_target) $(extra_targets)
 
 $(built_in_target): $(obj-default)
-	$(LD) -r -nostartfiles $(LDFLAGS) -o $@ $^
+	@$(pretty_link)
 
 OPT_CURDIR = $(patsubst /%,%,$(strip $(subst $(TOPDIR), , $(CURDIR))))
 
+define pretty_build_c
+	build_cmd="$(CC) $(CFLAGS) -Wp,-MD,$(dir $(@))/.$(notdir $(@)).d -o $@ -c $<"; \
+	build_output=$$($$build_cmd 2>&1); \
+	if [ $$? -ne 0 ]; then \
+		echo $$build_cmd; echo $(OPT_CURDIR)/$$build_output; \
+		false; \
+	else \
+		echo [CC] $(OPT_CURDIR)/$(@:.o=.c); \
+	fi
+endef
+
+define pretty_link
+	link_cmd="$(LD) -r -nostartfiles $(LDFLAGS) -o $@ $^"; \
+	link_output=$$($$link_cmd 2>&1); \
+	if [ $$? -ne 0 ]; then \
+		echo $$link_cmd; echo $(OPT_CURDIR)/$$link_output; \
+		false; \
+	else \
+		echo [LD] $(OPT_CURDIR)/$@; \
+	fi
+endef
+
 %.o: %.S
-	$(CC) $(CFLAGS) -Wp,-MD,$(dir $(@))/.$(notdir $(@)).d -o $@ -c $<
+	@$(pretty_build_c)
 
 %.o: %.c
-	$(CC) $(CFLAGS) -Wp,-MD,$(dir $(@))/.$(notdir $(@)).d -o $@ -c $<
+	@$(pretty_build_c)
+#$(CC) $(CFLAGS) -Wp,-MD,$(dir $(@))/.$(notdir $(@)).d -o $@ -c $<
 
 
 dep_files = $(wildcard .*.d)

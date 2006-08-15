@@ -32,7 +32,7 @@ builtin_files := $(patsubst %,%/built-in.o,$(subdirs))
 clean_subdirs := $(foreach dir,$(subdirs),$(CURDIR)/$(dir))
 subdir_deps := $(patsubst %,%.subdir.d,$(clean_subdirs))
 
-LOCK=flock $@.lock
+LOCK ?= flock $@.lock
 
 %.subdir.d:
 	@if [ ! -e $@.lock ]; then touch $@.lock; fi

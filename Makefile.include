@@ -71,19 +71,19 @@ define ll_pretty_build_c
 endef
 
 define ll_pretty_link_builtin
-	@run_cmd="$(LD) -r -nostartfiles $(LDFLAGS) -o $@ $^"; \
+	@run_cmd="$(LD) -r -nostartfiles -o $@ $^"; \
 	run_alias="LD"; \
 	$(ll_pretty_run)
 endef
 
 define ll_pretty_link_shared_library
-	@run_cmd="$(CC) -shared -o $@ $^ $(LIBS)"; \
+	@run_cmd="$(CC) $(LDFLAGS) -shared -o $@ $^ $(LIBS)"; \
 	run_alias="LD SHARED LIB"; \
 	$(ll_pretty_run)
 endef
 
 define ll_pretty_link_shared_binary
-	@run_cmd="$(CC) -o $@ $^ $(LIBS)"; \
+	@run_cmd="$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)"; \
 	run_alias="LD SHARED BIN";\
 	$(ll_pretty_run)
 endef

@@ -25,6 +25,8 @@
 ifndef _LL_BUILD_MAKEFILE_INCLUDE
 _LL_BUILD_MAKEFILE_INCLUDE=1
 
+-include $(TOPDIR)/.config
+
 built_in_target := built-in.o
 
 builtin_files := $(patsubst %,%/built-in.o,$(subdirs))
@@ -47,23 +49,34 @@ ll_mainlevel:
 ll_subdir: $(subdir_deps) 
 	@$(MAKE) --no-print-directory -f $(TOPDIR)/Makefile.build $(built_in_target) $(extra_targets)
 
-$(built_in_target): $(obj-default)
+ifeq ("$(strip $(builtin_files) $(obj-default))", "")
+$(built_in_target):
+	@true
+else
+$(built_in_target): $(builtin_files) $(obj-default)
 	$(ll_pretty_link_builtin)
+endif
 
 OPT_CURDIR = $(patsubst /%,%,$(strip $(subst $(TOPDIR), , $(CURDIR))))
 
-
+ifndef ll_verbose
 define ll_pretty_run
 	run_output=$$($$run_cmd 2>&1); \
 	if [ $$? -ne 0 ]; then \
 		echo $$run_cmd; echo $(OPT_CURDIR)/$$run_output; \
 		false; \
 	else \
-		echo [$$run_alias] [$@] $(OPT_CURDIR)/$^; \
+		echo [$$run_alias] [$(OPT_CURDIR)/$@] $^; \
 		echo "$$run_output" | grep " warning: "; \
 		true ; \
 	fi
 endef
+else
+define ll_pretty_run
+	echo $$run_cmd; \
+	$$run_cmd;
+endef
+endif
 
 define ll_pretty_build_c
 	@run_cmd="$(CC) $(CFLAGS) -Wp,-MD,$(dir $(@))/.$(notdir $(@)).d -o $@ -c $<"; \
@@ -79,13 +92,13 @@ endef
 
 define ll_pretty_link_shared_library
 	@run_cmd="$(CC) $(LDFLAGS) -shared -o $@ $^ $(LIBS)"; \
-	run_alias="LD SHARED LIB"; \
+	run_alias="SHLIB"; \
 	$(ll_pretty_run)
 endef
 
 define ll_pretty_link_shared_binary
 	@run_cmd="$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)"; \
-	run_alias="LD SHARED BIN";\
+	run_alias="BIN";\
 	$(ll_pretty_run)
 endef
 

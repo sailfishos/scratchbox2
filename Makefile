@@ -10,7 +10,7 @@ MAKEFILES = Makefile $(TOPDIR)/Makefile.include
 
 export CC CFLAGS MAKEFILES TOPDIR
 
-subdirs = lua preload utils
+obj-default = lua preload utils
 targets = utils/sb2init
 
 

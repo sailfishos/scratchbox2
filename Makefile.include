@@ -29,9 +29,10 @@ _LL_BUILD_MAKEFILE_INCLUDE=1
 
 built_in_target := built-in.o
 
-builtin_files := $(patsubst %,%/built-in.o,$(subdirs))
+filter_subdirs := $(shell for d in $(obj-default) ; do if [ -d $$d ]; then echo $$d; fi; done)
+filter_objects := $(shell for f in $(obj-default) ; do if [ -d $$f ]; then echo $$f/built-in.o; else echo $$f; fi; done)
 
-clean_subdirs := $(foreach dir,$(subdirs),$(CURDIR)/$(dir))
+clean_subdirs := $(foreach dir,$(filter_subdirs),$(CURDIR)/$(dir))
 subdir_deps := $(patsubst %,%.subdir.d,$(clean_subdirs))
 
 LOCK ?= flock $@.lock
@@ -49,11 +50,11 @@ ll_mainlevel:
 ll_subdir: $(subdir_deps) 
 	@$(MAKE) --no-print-directory -f $(TOPDIR)/Makefile.build $(built_in_target) $(extra_targets)
 
-ifeq ("$(strip $(builtin_files) $(obj-default))", "")
+ifeq ("$(strip $(filter_objects))", "")
 $(built_in_target):
 	@true
 else
-$(built_in_target): $(builtin_files) $(obj-default)
+$(built_in_target): $(filter_objects)
 	$(ll_pretty_link_builtin)
 endif
 

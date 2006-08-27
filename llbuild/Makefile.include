@@ -20,12 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
 # Make sure this file is only included once per make invocation
 ifndef _LL_BUILD_MAKEFILE_INCLUDE
 _LL_BUILD_MAKEFILE_INCLUDE=1
 
+#$(warning Hello!)
 -include $(TOPDIR)/.config
+
+LLBUILD ?= $(TOPDIR)/llbuild
 
 built_in_target := built-in.o
 
@@ -35,20 +37,20 @@ filter_objects := $(shell for f in $(obj-default) ; do if [ -d $$f ]; then echo 
 clean_subdirs := $(foreach dir,$(filter_subdirs),$(CURDIR)/$(dir))
 subdir_deps := $(patsubst %,%.subdir.d,$(clean_subdirs))
 
-LOCK ?= $(TOPDIR)/llbuild/llflock $@.lock
+LOCK ?= $(LLBUILD)/llflock $@.lock
 
 %.subdir.d:
 	@if [ ! -e $@.lock ]; then touch $@.lock; fi
-	@$(LOCK) /bin/sh -c "if [ ! -e $@ ]; then $(MAKE) --no-print-directory -C $(patsubst %.subdir.d,%,$@) -f $(TOPDIR)/llbuild/Makefile.build ll_subdir && touch $@; fi;"
+	@$(LOCK) /bin/sh -c "if [ ! -e $@ ]; then $(MAKE) --no-print-directory -C $(patsubst %.subdir.d,%,$@) -f $(LLBUILD)/Makefile.build ll_subdir && touch $@; fi;"
 
 
 ll_mainlevel:
 	@find $(TOPDIR) -name "*.subdir.d.lock" -o -name "*.subdir.d" | xargs rm -f
-	@$(MAKE) --no-print-directory -f $(TOPDIR)/llbuild/Makefile.build $(subdir_deps)
+	@$(MAKE) --no-print-directory -f $(LLBUILD)/Makefile.build $(subdir_deps)
 
 
 ll_subdir: $(subdir_deps) 
-	@$(MAKE) --no-print-directory -f $(TOPDIR)/llbuild/Makefile.build $(built_in_target) $(extra_targets)
+	@$(MAKE) --no-print-directory -f $(LLBUILD)/Makefile.build $(built_in_target) $(extra_targets)
 
 ifeq ("$(strip $(filter_objects))", "")
 $(built_in_target):
@@ -67,7 +69,7 @@ define ll_pretty_run
 		echo $$run_cmd; echo $(OPT_CURDIR)/$$run_output; \
 		false; \
 	else \
-		echo [$$run_alias] [$(OPT_CURDIR)/$@] $^; \
+		echo "[$$run_alias] [$(OPT_CURDIR)/$@] $$run_sources"; \
 		echo "$$run_output" | grep " warning: "; \
 		true ; \
 	fi
@@ -80,25 +82,29 @@ endef
 endif
 
 define ll_pretty_build_c
-	@run_cmd="$(CC) $(CFLAGS) -Wp,-MD,$(dir $(@))/.$(notdir $(@)).d -o $@ -c $<"; \
+	@run_sources="$<"; \
+	run_cmd="$(CC) $(CFLAGS) -Wp,-MD,$(dir $(@))/.$(notdir $(@)).d -o $@ -c $<"; \
 	run_alias="CC"; \
 	$(ll_pretty_run)
 endef
 
 define ll_pretty_link_builtin
-	@run_cmd="$(LD) -r -nostartfiles -o $@ $^"; \
+	@run_sources="$^"; \
+	run_cmd="$(LD) -r -nostartfiles -o $@ $^"; \
 	run_alias="LD"; \
 	$(ll_pretty_run)
 endef
 
 define ll_pretty_link_shared_library
-	@run_cmd="$(CC) $(LDFLAGS) -shared -o $@ $^ $(LIBS)"; \
+	@run_sources="$^"; \
+	run_cmd="$(CC) $(LDFLAGS) -shared -o $@ $^ $(LIBS)"; \
 	run_alias="SHLIB"; \
 	$(ll_pretty_run)
 endef
 
 define ll_pretty_link_shared_binary
-	@run_cmd="$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)"; \
+	@run_sources="$^"; \
+	run_cmd="$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)"; \
 	run_alias="BIN";\
 	$(ll_pretty_run)
 endef
@@ -119,14 +125,14 @@ endif
 .PHONY: build $(subdirs)
 
 define ll_clean
-	+@$(MAKE) --no-print-directory -C $(TOPDIR)/llbuild MAKEFLAGS= MAKEFILES= clean
+	+@$(MAKE) --no-print-directory -C $(LLBUILD) MAKEFLAGS= MAKEFILES= clean
 	rm -rf $(CLEAN_FILES)
 	find . -name "*.[oasd]" -o -name ".*.d" -o -name "*.*~" -o -name "*~" -o -name "*.lock" | xargs rm -rf
 endef
 
 define ll_toplevel_build
-	+@$(MAKE) --no-print-directory -C $(TOPDIR)/llbuild MAKEFLAGS= MAKEFILES=
-	+@$(MAKE) --no-print-directory -f $(TOPDIR)/llbuild/Makefile.build ll_mainlevel
+	+@$(MAKE) --no-print-directory -C $(LLBUILD) MAKEFLAGS= MAKEFILES=
+	+@$(MAKE) --no-print-directory -f $(LLBUILD)/Makefile.build ll_mainlevel
 endef
 
 endif

@@ -35,20 +35,20 @@ filter_objects := $(shell for f in $(obj-default) ; do if [ -d $$f ]; then echo 
 clean_subdirs := $(foreach dir,$(filter_subdirs),$(CURDIR)/$(dir))
 subdir_deps := $(patsubst %,%.subdir.d,$(clean_subdirs))
 
-LOCK ?= flock $@.lock
+LOCK ?= $(TOPDIR)/llbuild/llflock $@.lock
 
 %.subdir.d:
 	@if [ ! -e $@.lock ]; then touch $@.lock; fi
-	@$(LOCK) /bin/sh -c "if [ ! -e $@ ]; then $(MAKE) --no-print-directory -C $(patsubst %.subdir.d,%,$@) -f $(TOPDIR)/Makefile.build ll_subdir && touch $@; fi;"
+	@$(LOCK) /bin/sh -c "if [ ! -e $@ ]; then $(MAKE) --no-print-directory -C $(patsubst %.subdir.d,%,$@) -f $(TOPDIR)/llbuild/Makefile.build ll_subdir && touch $@; fi;"
 
 
 ll_mainlevel:
 	@find $(TOPDIR) -name "*.subdir.d.lock" -o -name "*.subdir.d" | xargs rm -f
-	@$(MAKE) --no-print-directory -f $(TOPDIR)/Makefile.build $(subdir_deps)
+	@$(MAKE) --no-print-directory -f $(TOPDIR)/llbuild/Makefile.build $(subdir_deps)
 
 
 ll_subdir: $(subdir_deps) 
-	@$(MAKE) --no-print-directory -f $(TOPDIR)/Makefile.build $(built_in_target) $(extra_targets)
+	@$(MAKE) --no-print-directory -f $(TOPDIR)/llbuild/Makefile.build $(built_in_target) $(extra_targets)
 
 ifeq ("$(strip $(filter_objects))", "")
 $(built_in_target):
@@ -119,12 +119,14 @@ endif
 .PHONY: build $(subdirs)
 
 define ll_clean
+	+@$(MAKE) --no-print-directory -C $(TOPDIR)/llbuild MAKEFLAGS= MAKEFILES= clean
 	rm -rf $(CLEAN_FILES)
-	find . -name "*.[oasd]" -o -name ".*.d" -o -name "*.*~" -o -name "*~" -o -name "*.lock"| xargs rm -rf
+	find . -name "*.[oasd]" -o -name ".*.d" -o -name "*.*~" -o -name "*~" -o -name "*.lock" | xargs rm -rf
 endef
 
 define ll_toplevel_build
-	+@$(MAKE) --no-print-directory -f Makefile.build ll_mainlevel
+	+@$(MAKE) --no-print-directory -C $(TOPDIR)/llbuild MAKEFLAGS= MAKEFILES=
+	+@$(MAKE) --no-print-directory -f $(TOPDIR)/llbuild/Makefile.build ll_mainlevel
 endef
 
 endif

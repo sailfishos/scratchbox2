@@ -13,3 +13,4 @@ utils/sb2init
 *.lock
 *.d
 autom4te.cache
+llbuild/llflock

@@ -34,14 +34,18 @@ built_in_target := built-in.o
 filter_subdirs := $(shell for d in $(obj-default) ; do if [ -d $$d ]; then echo $$d; fi; done)
 filter_objects := $(shell for f in $(obj-default) ; do if [ -d $$f ]; then echo $$f/built-in.o; else echo $$f; fi; done)
 
-clean_subdirs := $(foreach dir,$(filter_subdirs),$(CURDIR)/$(dir))
-subdir_deps := $(patsubst %,%.subdir.d,$(clean_subdirs))
+real_subdirs := $(foreach dir,$(filter_subdirs),$(shell readlink -f $(CURDIR)/$(dir)))
+subdir_deps := $(foreach path,$(real_subdirs),$(dir $(path)).$(notdir $(path).subdir.d))
+
+#$(warning at $(CURDIR))
+#$(warning real_subdirs=$(real_subdirs))
+#$(warning subdir_deps=$(subdir_deps))
 
 LOCK ?= $(LLBUILD)/llflock $@.lock
 
 %.subdir.d:
 	@if [ ! -e $@.lock ]; then touch $@.lock; fi
-	@$(LOCK) /bin/sh -c "if [ ! -e $@ ]; then $(MAKE) --no-print-directory -C $(patsubst %.subdir.d,%,$@) -f $(LLBUILD)/Makefile.build ll_subdir && touch $@; fi;"
+	@$(LOCK) /bin/sh -c "if [ ! -e $@ ]; then $(MAKE) --no-print-directory -C $(dir $@)$(patsubst .%,%,$(patsubst %.subdir.d,%,$(notdir $@))) -f $(LLBUILD)/Makefile.build ll_subdir && touch $@; fi;"
 
 
 ll_mainlevel:

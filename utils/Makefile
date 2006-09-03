@@ -1,6 +1,5 @@
-obj-default = sb2init.o
-extra_targets = sb2init
+bin-sb2init = sb2init.o
+cxxbin-sb_gcc_wrapper = sb_gcc_wrapper.o sb_config.o
 
-sb2init: sb2init.o
-	$(ll_pretty_link_shared_binary)
+extra_targets = bin-sb2init cxxbin-sb_gcc_wrapper
 

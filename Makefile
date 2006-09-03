@@ -11,7 +11,7 @@ MAKEFILES = Makefile $(LLBUILD)/Makefile.include
 
 export CC CFLAGS MAKEFILES TOPDIR LLBUILD
 
-obj-default = lua preload utils
+obj-builtin = lua preload utils
 targets = utils/sb2init
 
 

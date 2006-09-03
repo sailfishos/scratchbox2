@@ -2,7 +2,7 @@ CFLAGS += -Wall -W -fPIC
 LIBS = -ldl -lm
 export CFLAGS
 
-obj-default = ../lua libsb2.o libsb_env.o sb_alien.o
+obj-builtin = ../lua libsb2.o libsb_env.o sb_alien.o
 
 extra_targets = libsb2.so
 

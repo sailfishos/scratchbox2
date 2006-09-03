@@ -24,22 +24,27 @@
 ifndef _LL_BUILD_MAKEFILE_INCLUDE
 _LL_BUILD_MAKEFILE_INCLUDE=1
 
-#$(warning Hello!)
+#$(warning Hello, from $(CURDIR))
 -include $(TOPDIR)/.config
 
 LLBUILD ?= $(TOPDIR)/llbuild
 
 built_in_target := built-in.o
 
-filter_subdirs := $(shell for d in $(obj-default) ; do if [ -d $$d ]; then echo $$d; fi; done)
-filter_objects := $(shell for f in $(obj-default) ; do if [ -d $$f ]; then echo $$f/built-in.o; else echo $$f; fi; done)
+define expand_objects
+endef
+
+all_objects := $(obj-builtin)
+all_objects += $(foreach t,$(extra_targets),$($(t)))
+
+filter_subdirs := $(shell for d in $(all_objects) ; do if [ -d $$d ]; then echo $$d; fi; done)
+
+
+filter_objects := $(shell for f in $(all_objects) ; do if [ -d $$f ]; then echo $$f/built-in.o; else echo $$f; fi; done)
+builtin_filter_objects := $(shell for f in $(obj-builtin) ; do if [ -d $$f ]; then echo $$f/built-in.o; else echo $$f; fi; done)
 
 real_subdirs := $(foreach dir,$(filter_subdirs),$(shell readlink -f $(CURDIR)/$(dir)))
 subdir_deps := $(foreach path,$(real_subdirs),$(dir $(path)).$(notdir $(path).subdir.d))
-
-#$(warning at $(CURDIR))
-#$(warning real_subdirs=$(real_subdirs))
-#$(warning subdir_deps=$(subdir_deps))
 
 LOCK ?= $(LLBUILD)/llflock $@.lock
 
@@ -47,6 +52,22 @@ LOCK ?= $(LLBUILD)/llflock $@.lock
 	@if [ ! -e $@.lock ]; then touch $@.lock; fi
 	@$(LOCK) /bin/sh -c "if [ ! -e $@ ]; then $(MAKE) --no-print-directory -C $(dir $@)$(patsubst .%,%,$(patsubst %.subdir.d,%,$(notdir $@))) -f $(LLBUILD)/Makefile.build ll_subdir && touch $@; fi;"
 
+
+# these are for handling extra_targets
+
+bin-%: _build_objects
+	@run_sources="$($@)"; \
+	run_target="$(patsubst bin-%,%,$@)"; \
+	run_cmd="$(CC) $(LDFLAGS) -o $(patsubst bin-%,%,$@) $($@) $(LIBS)"; \
+	run_alias="BIN"; \
+	$(ll_pretty_run)
+
+cxxbin-%: _build_objects
+	@run_sources="$($@)"; \
+	run_target="$(patsubst cxxbin-%,%,$@)"; \
+	run_cmd="$(CXX) $(LDFLAGS) -o $(patsubst cxxbin-%,%,$@) $($@) $(LIBS)"; \
+	run_alias="CXXBIN"; \
+	$(ll_pretty_run)
 
 ll_mainlevel:
 	@find $(TOPDIR) -name "*.subdir.d.lock" -o -name "*.subdir.d" | xargs rm -f
@@ -56,11 +77,19 @@ ll_mainlevel:
 ll_subdir: $(subdir_deps) 
 	@$(MAKE) --no-print-directory -f $(LLBUILD)/Makefile.build $(built_in_target) $(extra_targets)
 
+# build all objects for all targets before linking them
 ifeq ("$(strip $(filter_objects))", "")
+_build_objects: 
+	@true
+else
+_build_objects: $(filter_objects)
+endif
+
+ifeq ("$(strip $(builtin_filter_objects))", "")
 $(built_in_target):
 	@true
 else
-$(built_in_target): $(filter_objects)
+$(built_in_target): $(builtin_filter_objects)
 	$(ll_pretty_link_builtin)
 endif
 
@@ -73,7 +102,7 @@ define ll_pretty_run
 		echo $$run_cmd; echo $(OPT_CURDIR)/$$run_output; \
 		false; \
 	else \
-		echo "[$$run_alias] [$(OPT_CURDIR)/$@] $$run_sources"; \
+		echo "[$$run_alias] [$(OPT_CURDIR)/$$run_target] $$run_sources"; \
 		echo "$$run_output" | grep " warning: "; \
 		true ; \
 	fi
@@ -87,13 +116,23 @@ endif
 
 define ll_pretty_build_c
 	@run_sources="$<"; \
+	run_target="$@"; \
 	run_cmd="$(CC) $(CFLAGS) -Wp,-MD,$(dir $(@))/.$(notdir $(@)).d -o $@ -c $<"; \
 	run_alias="CC"; \
 	$(ll_pretty_run)
 endef
 
+define ll_pretty_build_cc
+	@run_sources="$<"; \
+	run_target="$@"; \
+	run_cmd="$(CXX) $(CFLAGS) -Wp,-MD,$(dir $(@))/.$(notdir $(@)).d -o $@ -c $<"; \
+	run_alias="CXX"; \
+	$(ll_pretty_run)
+endef
+
 define ll_pretty_link_builtin
 	@run_sources="$^"; \
+	run_target="$@"; \
 	run_cmd="$(LD) -r -nostartfiles -o $@ $^"; \
 	run_alias="LD"; \
 	$(ll_pretty_run)
@@ -101,6 +140,7 @@ endef
 
 define ll_pretty_link_shared_library
 	@run_sources="$^"; \
+	run_target="$@"; \
 	run_cmd="$(CC) $(LDFLAGS) -shared -o $@ $^ $(LIBS)"; \
 	run_alias="SHLIB"; \
 	$(ll_pretty_run)
@@ -108,6 +148,7 @@ endef
 
 define ll_pretty_link_shared_binary
 	@run_sources="$^"; \
+	run_target="$@"; \
 	run_cmd="$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)"; \
 	run_alias="BIN";\
 	$(ll_pretty_run)
@@ -118,6 +159,12 @@ endef
 
 %.o: %.c
 	$(ll_pretty_build_c)
+
+%.o: %.cc
+	$(ll_pretty_build_cc)
+
+%.o: %.cpp
+	$(ll_pretty_build_cc)
 
 
 dep_files = $(wildcard .*.d)

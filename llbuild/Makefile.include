@@ -58,14 +58,14 @@ LOCK ?= $(LLBUILD)/llflock $@.lock
 bin-%: _build_objects
 	@run_sources="$($@)"; \
 	run_target="$(patsubst bin-%,%,$@)"; \
-	run_cmd="$(CC) $(LDFLAGS) -o $(patsubst bin-%,%,$@) $($@) $(LIBS)"; \
+	run_cmd="$(CC) $(LDFLAGS) -o $(patsubst bin-%,%,$@) $(shell for f in $($@) ; do if [ -d $$f ]; then echo $$f/built-in.o; else echo $$f; fi; done) $(LIBS)"; \
 	run_alias="BIN"; \
 	$(ll_pretty_run)
 
 cxxbin-%: _build_objects
 	@run_sources="$($@)"; \
 	run_target="$(patsubst cxxbin-%,%,$@)"; \
-	run_cmd="$(CXX) $(LDFLAGS) -o $(patsubst cxxbin-%,%,$@) $($@) $(LIBS)"; \
+	run_cmd="$(CXX) $(LDFLAGS) -o $(patsubst cxxbin-%,%,$@) $(shell for f in $($@) ; do if [ -d $$f ]; then echo $$f/built-in.o; else echo $$f; fi; done) $(LIBS)"; \
 	run_alias="CXXBIN"; \
 	$(ll_pretty_run)
 

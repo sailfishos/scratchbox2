@@ -69,6 +69,13 @@ cxxbin-%: _build_objects
 	run_alias="CXXBIN"; \
 	$(ll_pretty_run)
 
+shlib-%: _build_objects
+	@run_sources="$($@)"; \
+	run_target="$(patsubst shlib-%,%,$@)"; \
+	run_cmd="$(CC) $(LDFLAGS) -shared -o $(patsubst shlib-%,%,$@) $(shell for f in $($@) ; do if [ -d $$f ]; then echo $$f/built-in.o; else echo $$f; fi; done) $(LIBS)"; \
+	run_alias="SHLIB"; \
+	$(ll_pretty_run)
+
 ll_mainlevel:
 	@find $(TOPDIR) -name "*.subdir.d.lock" -o -name "*.subdir.d" | xargs rm -f
 	@$(MAKE) --no-print-directory -f $(LLBUILD)/Makefile.build $(subdir_deps)

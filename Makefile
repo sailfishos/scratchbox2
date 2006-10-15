@@ -1,4 +1,5 @@
 CC = gcc
+CXX = g++
 LD = ld
 PACKAGE_VERSION = "1.99b"
 PACKAGE = "SB2"
@@ -11,8 +12,8 @@ MAKEFILES = Makefile $(LLBUILD)/Makefile.include
 
 export CC CFLAGS MAKEFILES TOPDIR LLBUILD
 
-obj-builtin = lua preload utils
-targets = utils/sb2init
+subdirs = lua preload utils
+targets = utils/sb2init utils/sb_gcc_wrapper
 
 
 all: build

@@ -5,6 +5,7 @@
 
 tools_root = os.getenv("SBOX_TOOLS_ROOT")
 if (tools_root == nil) then
+	print("SBOX_TOOLS_ROOT not set")
 	tools_root = "/scratchbox/sarge"
 end
 

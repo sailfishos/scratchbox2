@@ -24,12 +24,40 @@ extern char **environ;
 
 int run_sb2rc(void)
 {
+	char *ld_so, *lib_path, *tools_root, *bash;
+	int i;
+
 	putenv("LD_PRELOAD=/scratchbox/lib/libsb2.so");
-	execl("/scratchbox/sarge/lib/ld-linux.so.2",
+
+	ld_so = getenv("REDIR_LD_SO");
+	if (!ld_so) {
+		ld_so = "/scratchbox/sarge/lib/ld-linux.so.2";
+	} else {
+		ld_so = strdup(ld_so);
+	}
+
+	lib_path = getenv("REDIR_LD_LIBRARY_PATH");
+	if (!lib_path) {
+		lib_path = "/scratchbox/sarge/lib";
+	} else {
+		lib_path = strdup(lib_path);
+	}
+
+	tools_root = getenv("SBOX_TOOLS_ROOT");
+	if (!tools_root) {
+		tools_root = "/scratchbox/sarge";
+	} else {
+		tools_root = strdup(tools_root);
+	}
+	i = strlen(tools_root) + strlen("/bin/bash") + 1;
+	bash = malloc(i * sizeof(char *));
+	strcpy(bash, tools_root);
+	strcat(bash, "/bin/bash");
+	execl(ld_so,
 		"/bin/bash",
 		"--library-path",
-		"/scratchbox/sarge/lib",
-		"/scratchbox/sarge/bin/bash",
+		lib_path,
+		bash,
 		"/scratchbox/sb2rc",
 		NULL);
 	return -1;

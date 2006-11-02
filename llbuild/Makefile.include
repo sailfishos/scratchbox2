@@ -31,11 +31,10 @@ LLBUILD ?= $(TOPDIR)/llbuild
 
 built_in_target := built-in.o
 
-all_objects := $(subdirs)
-all_objects += $(obj-builtin)
+all_objects := $(obj-builtin)
 all_objects += $(foreach t,$(extra_targets),$($(t)))
 
-filter_subdirs := $(shell for d in $(all_objects) ; do if [ -d $$d ]; then echo $$d; fi; done)
+filter_subdirs := $(shell for d in $(subdirs) $(all_objects) ; do if [ -d $$d ]; then echo $$d; fi; done)
 
 
 filter_objects := $(shell for f in $(all_objects) ; do if [ -d $$f ]; then echo $$f/built-in.o; else echo $$f; fi; done)
@@ -99,9 +98,9 @@ endif
 
 ifndef ll_verbose
 define ll_pretty_run
-	run_output=$$($$run_cmd 2>&1); \
+	run_output="$$($$run_cmd 2>&1)"; \
 	if [ $$? -ne 0 ]; then \
-		echo $$run_cmd; echo $(OPT_CURDIR)/$$run_output; \
+		echo "$$run_cmd"; echo $(OPT_CURDIR)/"$$run_output"; \
 		false; \
 	else \
 		echo "[$$run_alias] [$(OPT_CURDIR)/$$run_target] $$run_sources"; \

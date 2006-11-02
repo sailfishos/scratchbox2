@@ -1,12 +1,10 @@
 All files are licensed under GNU LGPL version 2.1 unless specifically 
 stated otherwise in the file itself.
 
-pre-alpha.
+This is development code, it is broken. Don't expect to use it for
+anything resembling production use any time soon.
 
-no guarentees.
-
-some instructions.
-
+Here are some instructions:
 
 You need git to work with sbox2, get it from http://git.or.cz/.
 
@@ -21,7 +19,7 @@ Use debootstrap to get the job done. After completing that step you can do:
 
 $ cd $HOME/buildroot
 $ mkdir proc
-$./login.sh
+$ ./login.sh
 
 
 Clean using:

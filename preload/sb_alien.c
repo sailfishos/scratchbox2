@@ -116,14 +116,14 @@ char **post_args(char *fname)
 
 int run_app(char *file, char **argv, char *const *envp)
 {
-	char *binaryname, **my_argv;
+	char *binaryname, **my_argv, **my_envp;
 	char *host_libs, *ld_so;
 	char **pre,**post;
 	char **p;
 	char *tmp;
 	char ld_so_buf[PATH_MAX + 1];
 	char ld_so_basename[PATH_MAX + 1];
-	int argc;
+	int argc, envc;
 	int i = 0;
 
 	tmp = getenv("REDIR_LD_LIBRARY_PATH");
@@ -159,7 +159,7 @@ int run_app(char *file, char **argv, char *const *envp)
 	}
 
 	binaryname = basename(strdup(file));
-
+	
 	/* if the file to be run is the dynamic loader itself, 
 	 * run it straight
 	 */
@@ -170,6 +170,28 @@ int run_app(char *file, char **argv, char *const *envp)
 		return -1;
 	}
 
+	envc = elem_count(envp);
+	printf("envc: %i\n", envc);
+
+	my_envp = (char **)calloc(envc + 2, sizeof(char *));
+	i = strlen(binaryname) + strlen("__SB2_BINARYNAME") + 1;
+	tmp = malloc(i * sizeof(char *));
+	strcpy(tmp, "__SB2_BINARYNAME=");
+	strcat(tmp, binaryname);
+
+	i = 0;
+	for (p=envp; *p; p++) {
+		if (strncmp(*p, "__SB2_BINARYNAME=", strlen("__SB2_BINARYNAME=")) == 0) {
+			/* already set, skip it */
+			continue;
+		}
+		my_envp[i++] = *p;
+	}
+
+	my_envp[i++] = strdup(tmp);
+	free(tmp);
+
+	i = 0; p = NULL; tmp = NULL; /* reset temp variables */
 
 	argc = elem_count(argv);
 
@@ -191,8 +213,8 @@ int run_app(char *file, char **argv, char *const *envp)
 	for (p=post; *p; p++)
 		my_argv[i++]=*p;
 
-	//printf("seuraavaksi ajetaan... %s, %s, %s, %s\n", my_argv[0], my_argv[1], my_argv[2], my_argv[3]);
-	next_execve(my_argv[0], my_argv, envp);
+	printf("about to execute: %s, %s, %s, %s\n", my_argv[0], my_argv[1], my_argv[2], my_argv[3]);
+	next_execve(my_argv[0], my_argv, my_envp);
 
 	fprintf(stderr, "sb_alien (running %s): %s\n", file, strerror(errno));
 	return -11;

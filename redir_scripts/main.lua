@@ -70,13 +70,13 @@ end
 
 function sbox_translate_path(binary_name, func_name, work_dir, path)
 
---	print("debug: [" .. binary_name .. "][" .. func_name .. "][" .. work_dir .. "][" .. path .. "]")
+	print(string.format("debug: [%s][%s][%s][%s]", binary_name, func_name, work_dir, path))
 
 	ret = path
 	rp = sb.sb_realpath(path)
 
 	if (rp == "no such file") then
---		print("no such file, path= " .. path )
+		print(string.format("no such file, path=[%s]", path))
 		if (string.match(func_name, "^exec") or
 			string.match(path, "^/bin") or
 			string.match(path, "^/usr/bin") or

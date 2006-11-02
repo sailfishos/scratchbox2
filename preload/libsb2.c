@@ -844,6 +844,7 @@ static int do_exec(const char *file, char *const *argv, char *const *envp)
 
 	enum binary_type type = inspect_binary(file);
 	// envp is an array having constant pointers to varying strings.
+	
 	char const* const* new_env=(char const* const*)envp;
 
 	switch (type) {

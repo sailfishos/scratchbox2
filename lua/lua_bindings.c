@@ -213,11 +213,17 @@ char *scratchbox_path(const char *func_name, const char *path)
 	}
 	
 	memset(binary_name, '\0', PATH_MAX+1);
+	tmp = getenv("__SB2_BINARYNAME");
+	if (tmp) {
+		strcpy(binary_name, tmp);
+	} else {
+		strcpy(binary_name, "DUMMY");
+	}
 	memset(work_dir, '\0', PATH_MAX+1);
 	snprintf(pidlink,16,"/proc/%i/exe",sb_getpid());
-	if (syscall(__NR_readlink, pidlink, binary_name, PATH_MAX) < 0) {
-		perror("__NR_readlink() error, check that /proc is mounted!");
-	}
+//	if (syscall(__NR_readlink, pidlink, binary_name, PATH_MAX) < 0) {
+//		perror("__NR_readlink() error, check that /proc is mounted!");
+//	}
 	syscall(__NR_getcwd, work_dir, PATH_MAX);
 
 

@@ -171,7 +171,7 @@ int run_app(char *file, char **argv, char *const *envp)
 	}
 
 	envc = elem_count(envp);
-	printf("envc: %i\n", envc);
+	//printf("envc: %i\n", envc);
 
 	my_envp = (char **)calloc(envc + 2, sizeof(char *));
 	i = strlen(binaryname) + strlen("__SB2_BINARYNAME") + 1;
@@ -213,7 +213,7 @@ int run_app(char *file, char **argv, char *const *envp)
 	for (p=post; *p; p++)
 		my_argv[i++]=*p;
 
-	printf("about to execute: %s, %s, %s, %s\n", my_argv[0], my_argv[1], my_argv[2], my_argv[3]);
+	//printf("about to execute: %s, %s, %s, %s\n", my_argv[0], my_argv[1], my_argv[2], my_argv[3]);
 	next_execve(my_argv[0], my_argv, my_envp);
 
 	fprintf(stderr, "sb_alien (running %s): %s\n", file, strerror(errno));

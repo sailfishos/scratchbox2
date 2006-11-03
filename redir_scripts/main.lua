@@ -16,6 +16,8 @@ if (rsdir == nil) then
 	rsdir = "/scratchbox/redir_scripts"
 end
 
+rules = {}
+
 -- sb.sb_getdirlisting is provided by lua_bindings.c
 -- it returns a table listing all files in a directory
 t = sb.sb_getdirlisting(rsdir .. "/parts")
@@ -31,6 +33,12 @@ if (t ~= nil) then
 				error("\nError while loading " .. filename .. ": \n" .. err .. "\n")
 			else
 				f() -- execute the loaded chunk
+				-- export_rules variable contains now the rules
+				-- from the chunk
+				for i = 1,table.maxn(export_rules) do
+					-- print("loading rule:" .. export_rules[i].binary)
+					table.insert(rules, export_rules[i])
+				end
 			end
 		end
 	end
@@ -64,53 +72,52 @@ function dirname(path)
 end
 
 
+function sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
+	ret = ""
+
+	if (rule.map_to ~= nil) then
+		if (string.sub(rule.map_to, 1, 1) == "=") then
+			ret = tools_root .. string.sub(rule.map_to, 2)
+		else
+			ret = tools_root .. rule.map_to
+		end
+	end
+
+	-- print("mapping to: " .. ret .. path)
+	return ret .. path
+end
+
+
 -- sbox_translate_path is the function called from libsb2.so
 -- preload library and the FUSE system for each path that needs 
 -- translating
 
 function sbox_translate_path(binary_name, func_name, work_dir, path)
 
-	print(string.format("debug: [%s][%s][%s][%s]", binary_name, func_name, work_dir, path))
+	-- print(string.format("debug: [%s][%s][%s][%s]", binary_name, func_name, work_dir, path))
 
 	ret = path
 	rp = sb.sb_realpath(path)
 
 	if (rp == "no such file") then
-		print(string.format("no such file, path=[%s]", path))
-		if (string.match(func_name, "^exec") or
-			string.match(path, "^/bin") or
-			string.match(path, "^/usr/bin") or
-			string.match(path, "^/usr/local/bin") or
-			string.match(path, "^/etc") or
-			string.match(path, "^/usr/lib/gcc%-lib/")) then
---			print("no such file and mapping!")
-			return tools_root .. "/" .. path
+		rp = path
+	end
+
+	-- loop through the rules, first match is used
+	for n=1,table.maxn(rules) do
+		-- print(string.format("looping through rules: %s, %s, %s", rules[n].binary, rules[n].func_name, rules[n].path))
+		if (string.match(binary_name, rules[n].binary) and
+			string.match(func_name, rules[n].func_name) and
+			string.match(rp, rules[n].path)) then
+			if (rules[n].custom_map_func ~= nil) then
+				return rules[n].custom_map_func(binary_name, func_name, work_dir, rp, path, rules[n])
+			else
+				return sbox_map_to(binary_name, func_name, work_dir, rp, path, rules[n])
+			end
 		end
---		print("no such file and not mapping")
-		return path
 	end
 
---	print("rp: [" .. rp .. "]")
-	dir = dirname(rp)
-	file = basename(rp)
-
---	print("dir: " .. dir)
---	print("file: " .. file)
-
-	-- /scratchbox is special of course
-	if (string.match(rp, "^/scratchbox") or
-		string.match(rp, "^/home") or
-		string.match(rp, "^/tmp") or
-		string.match(rp, "^/var") or
-		string.match(rp, "^/proc") or
---		string.match(full_path, "^/usr/include") or
---		string.match(file, "*.so$") or
-		string.match(dir, "^/$")) then
---		print("not translating..." .. path)
-		ret = path
-	else
-		ret = tools_root .. rp
-	end
-	return ret	
+	-- fail safe, if none matched, map
+	return tools_root .. rp
 end
 

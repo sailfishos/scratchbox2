@@ -23,6 +23,7 @@ rules = {}
 t = sb.sb_getdirlisting(rsdir .. "/parts")
 
 if (t ~= nil) then
+	table.sort(t)
 	-- load the individual parts ($SBOX_REDIR_SCRIPTS/parts/*.lua)
 	for n = 0,table.maxn(t) do
 		if (string.match(t[n], "%a*%.lua$")) then

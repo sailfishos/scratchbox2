@@ -52,7 +52,16 @@ default_rule3 = {
 	custom_map_func = nil
 }
 
-default_rule4 = {
+default_home = {
+	binary = ".*",
+	func_name = ".*",
+	func_param = nil,
+	path = "^/home",
+	map_to = nil,
+	custom_map_func = nil
+}
+
+default_rootdir = {
 	binary = ".*",
 	func_name = ".*",
 	func_param = nil,
@@ -65,6 +74,7 @@ export_rules = {
 	default_rule1,
 	default_rule2,
 	default_rule3,
-	default_rule4
+	default_rootdir,
+	default_home
 }
 

@@ -7,8 +7,8 @@
 -- except the map_to and custom_map_func fields.
 -- In map_to these have special meaning:
 --
--- "="			map to tools_root .. "/" .. path
--- "=/some/path"	map to tools_root .. "/some/path" .. "/" .. path
+-- "="			map to TARGETDIR .. "/" .. path
+-- "=/some/path"	map to TARGETDIR .. "/some/path" .. "/" .. path
 -- nil			no mapping, use straight
 --
 -- Any other value is prepended to path (map_to .. "/" .. path).
@@ -25,29 +25,31 @@
 -- and is expected to return the mapped path. rule argument contains
 -- the rule which triggered the function invocation.
 
-default_rule1 = {
+
+-- three exec rules for running binaries
+default_bin = {
 	binary = ".*",
 	func_name = ".*",
 	func_param = nil,
 	path = "^/bin",
-	map_to = "=",
+	map_to = nil,
 	custom_map_func = nil
 }
 
-default_rule2 = {
-	binary = ".*",
-	func_name = "^exec",
-	func_param = nil,
-	path = "^/usr/bin",
-	map_to = "=",
-	custom_map_func = nil
-}
-
-default_rule3 = {
+default_usrbin = {
 	binary = ".*",
 	func_name = ".*",
 	func_param = nil,
-	path = "^/scratchbox",
+	path = "^/usr/bin",
+	map_to = nil,
+	custom_map_func = nil
+}
+
+default_usrlocalbin = {
+	binary = ".*",
+	func_name = ".*",
+	func_param = nil,
+	path = "^/usr/local/bin",
 	map_to = nil,
 	custom_map_func = nil
 }
@@ -61,20 +63,71 @@ default_home = {
 	custom_map_func = nil
 }
 
-default_rootdir = {
+default_proc = {
 	binary = ".*",
 	func_name = ".*",
 	func_param = nil,
-	path = "^/[^/]*$",
+	path = "^/proc",
 	map_to = nil,
 	custom_map_func = nil
 }
 
+default_tmp = {
+	binary = ".*",
+	func_name = ".*",
+	func_param = nil,
+	path = "^/tmp",
+	map_to = nil,
+	custom_map_func = nil
+}
+
+default_etc = {
+	binary = ".*",
+	func_name = ".*",
+	func_param = nil,
+	path = "^/etc",
+	map_to = nil,
+	custom_map_func = nil
+}
+
+default_scratchbox = {
+	binary = ".*",
+	func_name = ".*",
+	func_param = nil,
+	path = "^/scratchbox",
+	map_to = nil,
+	custom_map_func = nil
+}
+
+default_root = {
+	binary = ".*",
+	func_name = ".*",
+	func_param = nil,
+	path = "/",
+	map_to = nil,
+	custom_map_func = nil
+}
+
+-- catch all rule to map everything else to TARGETDIR/
+default_rootdir = {
+	binary = ".*",
+	func_name = ".*",
+	func_param = nil,
+	path = "^/",
+	map_to = "=",
+	custom_map_func = nil
+}
+
 export_rules = {
-	default_rule1,
-	default_rule2,
-	default_rule3,
-	default_rootdir,
-	default_home
+	default_bin,
+	default_usrbin,
+	default_usrlocalbin,
+	default_scratchbox,
+	default_home,
+	default_proc,
+	default_tmp,
+	default_etc,
+	default_root,
+	default_rootdir
 }
 

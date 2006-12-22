@@ -8,7 +8,6 @@ include/config.h.in
 configure
 config.status
 utils/chroot-uid
-utils/sb2init
 utils/sb_gcc_wrapper
 .config
 *.lock

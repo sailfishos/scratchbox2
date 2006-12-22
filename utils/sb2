@@ -1,0 +1,42 @@
+#!/bin/sh
+
+if [ -n "$SBOX_DIR" ]; then
+	SBOX_LIBSB2="$SBOX_DIR/lib/libsb2.so"
+	SBOX_REDIR_SCRIPTS="$SBOX_DIR/share/scratchbox2/redir_scripts"
+	SBOX_GCCWRAPPER="$SBOX_DIR/bin/sb_gcc_wrapper"
+else
+	SBOX_LIBSB2="/usr/lib/libsb2.so"
+	SBOX_REDIR_SCRIPTS="/usr/share/scratchbox2/redir_scripts"
+	SBOX_GCCWRAPPER="/usr/bin/sb_gcc_wrapper"
+fi
+
+if [ -n "$SBOX_TOOLS_ROOT" ]; then
+	REDIR_LD_SO="$SBOX_TOOLS_DIR/lib/ld-linux.so.2"
+	REDIR_LD_LIBRARY_PATH="$SBOX_TOOLS_DIR/lib:$SBOX_TOOLS_DIR/usr/lib:$SBOX_TOOLS_DIR/usr/local/lib"
+
+	export REDIR_LD_SO REDIR_LD_LIBRARY_PATH SBOX_TOOLS_ROOT
+fi
+
+if [ -n "$1" ]; then
+	SBOX_TARGET_ROOT="$(readlink -f -n $1)"
+else
+	SBOX_TARGET_ROOT="$(readlink -f -n $PWD)"
+fi
+
+export SBOX_LIBSB2 SBOX_REDIR_SCRIPTS SBOX_TARGET_ROOT SBOX_GCCWRAPPER SBOX_TARGET_COMPILER
+
+cd $SBOX_TARGET_ROOT
+
+export LD_PRELOAD=$SBOX_LIBSB2
+export SBOX_SCRATCHBOX_CONFIG=$SBOX_TARGET_ROOT/sb2.config
+
+echo "Running scratchbox with these settings:"
+echo "SBOX_LIBSB2 = $SBOX_LIBSB2"
+echo "SBOX_REDIR_SCRIPTS = $SBOX_REDIR_SCRIPTS"
+echo "SBOX_GCCWRAPPER = $SBOX_GCCWRAPPER"
+echo "REDIR_LD_SO = $REDIR_LD_SO"
+echo "REDIR_LD_LIBRARY_PATH = $REDIR_LD_LIBRARY_PATH"
+echo "SBOX_TARGET_ROOT = $SBOX_TARGET_ROOT"
+
+exec /bin/bash
+

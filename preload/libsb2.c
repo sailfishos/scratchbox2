@@ -1,7 +1,7 @@
 /*
  * libsb2 -- scratchbox2 preload library
  *
- * Copyright (C) 2006 Lauri Leukkunen <lleukkun@cc.hut.fi>
+ * Copyright (C) 2006 Lauri Leukkunen <lle@rahina.org>
  * parts contributed by 
  * 	Riku Voipio <riku.voipio@movial.com>
  *	Toni Timonen <toni.timonen@movial.com>
@@ -67,6 +67,7 @@
 
 #include "sb_env.h"
 #include "lua_bindings.h"
+#include "sb2.h"
 
 #if defined(PATH_MAX)
 #define FAKECHROOT_MAXPATH PATH_MAX
@@ -87,17 +88,7 @@
     { \
         if ((path) != NULL && *((char *)(path)) != '\0') { \
             fakechroot_path = scratchbox_path(__FUNCTION__, path); \
-            if (fakechroot_path != NULL) { \
-                fakechroot_ptr = strstr((path), fakechroot_path); \
-                if (fakechroot_ptr == (path)) { \
-                    if (strlen((path)) == strlen(fakechroot_path)) { \
-                        ((char *)(path))[0] = '/'; \
-                        ((char *)(path))[1] = '\0'; \
-                    } else { \
-                        (path) = ((path) + strlen(fakechroot_path)); \
-                    } \
-                } \
-            } \
+	    (path) = fakechroot_path; \
         } \
     }
 
@@ -130,8 +121,8 @@
 
 /* some useful prototypes */
 
+int ld_so_run_app(char *file, char **argv, char *const *envp);
 int run_app(char *file, char **argv, char *const *envp);
-
 
 #ifndef __GLIBC__
 extern char **environ;
@@ -675,7 +666,7 @@ static enum binary_type inspect_binary(const char *filename)
 
     retval = BIN_NONE;
 
-    fd = open(filename, O_RDONLY, 0);
+    fd = syscall(__NR_open, filename, O_RDONLY, 0);
     if (fd < 0) {
         goto _out;
     }
@@ -783,36 +774,46 @@ _out:
     return retval;
 }
 
-#if 0
-static char **update_args(char *const *old_argv, char *bin, char *opt, const char *script)
+static int is_gcc_tool(char *fname)
 {
-    int argc, old_argc, offset, index;
-    char **argv;
+	char *gcc_tools[] = {
+		"addr2line",
+		"ar",
+		"as",
+		"cc",
+		"c++",
+		"c++filt",
+		"cpp",
+		"g++",
+		"gcc",
+		"gcov",
+		"gdb",
+		"gdbtui",
+		"gprof",
+		"ld",
+		"nm",
+		"objcopy",
+		"objdump",
+		"ranlib",
+		"rdi-stub",
+		"readelf",
+		"run",
+		"size",
+		"strings",
+		"strip",
+		NULL
+	};
+	char **tmp;
 
-    offset = 0;
-    if (opt)
-        ++offset;
-    if (script)
-        ++offset;
-
-    for (old_argc = 0; old_argv[old_argc]; ++old_argc)
-        ;
-
-    argc = offset + old_argc;
-    argv = calloc(sizeof (char *), argc + 1);
-
-    memcpy(&argv[offset], old_argv, sizeof (char *) * old_argc);
-
-    index = 0;
-    argv[index++] = bin;
-    if (opt)
-        argv[index++] = opt;
-    if (script)
-        argv[index++] = (char *)script;
-
-    return argv;
+	for (tmp = gcc_tools; *tmp; tmp++) {
+		if (strlen(*tmp) > strlen(fname)) continue;
+		if (!strcmp(&fname[strlen(fname) - strlen(*tmp)], *tmp)) {
+			return 1;
+		}
+	}
+	return 0;
 }
-#endif
+
 
 static char const* const*drop_preload(char *const oldenv[])
 {
@@ -840,27 +841,88 @@ static char const* const*drop_preload(char *const oldenv[])
 
 static int do_exec(const char *file, char *const *argv, char *const *envp)
 {
+	char **my_envp, **my_argv, **p;
+	char *binaryname, *tmp, *my_file;
+	int envc=0, argc=0, i;
+
 	if (next_execve == NULL) fakechroot_init();
 
 	enum binary_type type = inspect_binary(file);
-	// envp is an array having constant pointers to varying strings.
-	
-	char const* const* new_env=(char const* const*)envp;
 
+	binaryname = strdup(basename(file));
+
+	//printf("before counting\n");
+	/* count the environment variables and arguments */
+	for (p=(char **)envp; *p; p++, envc++)
+		;
+
+	for (p=(char **)argv; *p; p++, argc++)
+		;
+	
+	//printf("envc: %i\n", envc);
+
+	my_envp = (char **)calloc(envc + 2, sizeof(char *));
+	i = strlen(file) + strlen("__SB2_BINARYNAME") + 1;
+	tmp = malloc(i * sizeof(char *));
+	strcpy(tmp, "__SB2_BINARYNAME=");
+	strcat(tmp, binaryname);
+
+	i = 0;
+	for (p=(char **)envp; *p; p++) {
+		/* DBGOUT("ENV: [%s]\n", *p); */
+		if (strncmp(*p, "__SB2_BINARYNAME=", strlen("__SB2_BINARYNAME=")) == 0) {
+			/* already set, skip it */
+			continue;
+		}
+
+		if (strncmp(*p, "__SBOX_GCCWRAPPER_RUN=", strlen("__SBOX_GCCWRAPPER_RUN")) == 0) {
+			/* don't pass this onwards */
+			continue;
+		}
+		my_envp[i++] = *p;
+	}
+
+	my_envp[i++] = strdup(tmp);
+	free(tmp);
+
+	char const* const* new_env=(char const* const*)my_envp;
+
+	my_argv = (char **)calloc(argc + 1, sizeof(char *));
+	i = 0;
+
+	my_file = strdup(file);
+
+	if (!getenv("__SBOX_GCCWRAPPER_RUN") && is_gcc_tool(binaryname)) {
+		/* unset the env variable */
+		unsetenv("__SBOX_GCCWRAPPER_RUN");
+		char *sb_gcc_wrapper;
+		sb_gcc_wrapper = getenv("SBOX_GCCWRAPPER");
+		if (!sb_gcc_wrapper) {
+			my_file = "/usr/bin/sb_gcc_wrapper";
+		} else {
+			my_file = strdup(sb_gcc_wrapper);
+		}
+		DBGOUT("we've a gcc tool!\n");
+		my_argv[i++] = strdup(binaryname);
+	}
+
+	/* printf("type: %i\n", type);*/ 
 	switch (type) {
 		case BIN_FOREIGN:
-			new_env = drop_preload(envp);
+			new_env = drop_preload(my_envp);
 			break;
 
 		case BIN_STATIC:
-			new_env = override_sbox_env(drop_preload(envp));
+			new_env = override_sbox_env(drop_preload(my_envp));
 			break;
 
 		case BIN_DYNAMIC:
 			{
-				//char **my_argv = update_args(argv, (char *)file, NULL, NULL);
-				//printf("starting: %s,%s,%s\n",my_argv[0],my_argv[1],file);
-				return run_app((char *)file, (char **)argv, envp);
+				if (getenv("SBOX_TOOLS_ROOT")) {
+					return ld_so_run_app((char *)my_file, (char **)argv, my_envp);
+				} else {
+					return run_app((char *)my_file, (char **)argv, my_envp);
+				}
 			}
 
 		case BIN_NONE:
@@ -870,7 +932,7 @@ static int do_exec(const char *file, char *const *argv, char *const *envp)
 			break;
 	}
 
-	return next_execve(file, argv, (char *const*)new_env);
+	return next_execve(my_file, argv, (char *const*)new_env);
 }
 
 

@@ -329,6 +329,10 @@ static void exec_program(const Program &prog, const int old_argc, char **const o
 	cerr << endl;
 #endif
 
+	/* tell libsb2.so that we're running this binary to avoid
+	 * re-running sb_gcc_wrapper instead of the intended gcc tool
+	 */
+	setenv("__SBOX_GCCWRAPPER_RUN", "1", 1);
 	execv(path, new_argv);
 	throw sb::error(path, ": ", strerror(errno));
 }

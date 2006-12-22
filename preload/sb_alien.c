@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <limits.h>
 
+#include <sb2.h>
+
 
 #define LD_LIB_PATH	"/scratchbox/sarge/lib/:/scratchbox/sarge/lib/tls:/scratchbox/sarge/usr/lib"
 #define LD_SO		"/scratchbox/sarge/lib/ld-linux.so.2"
@@ -74,7 +76,7 @@ static char **padded_list(char **list)
 char *envs[] = {"LD_LIBRARY_PATH", "LD_RUN_PATH"};
 #define LINK_FLAG "-rpath-link"
 
-char **pre_args(char *fname,char **args)
+char **pre_args(char *fname, char **args)
 {
 	char **ret = NULL;
 
@@ -114,18 +116,76 @@ char **post_args(char *fname)
 	return padded_list(ret);
 }
 
+
 int run_app(char *file, char **argv, char *const *envp)
 {
-	char *binaryname, **my_argv, **my_envp;
+	char *binaryname, **my_argv;
+	char **pre,**post;
+	char **p;
+	int argc=0, i=0;
+	
+	binaryname = basename(strdup(file));
+
+	DBGOUT("[%s][%s]\n", file, argv[0]);
+	/* printf("in run_app(%s)\n", file); */
+	argc = elem_count(argv);
+
+	/* printf("before pre_args()\n"); */
+	pre = pre_args(binaryname, &argv[1]);
+	/* printf("before post_args()\n"); */
+	post = post_args(binaryname);
+	/* printf("after post_args()\n"); */
+
+	/* DBGOUT("allocating: %i\n", elem_count(pre) + argc + elem_count(post) + 1); */
+	my_argv = (char **)calloc(elem_count(pre) + argc + elem_count(post) + 1, sizeof (char *));
+	my_argv[i++] = argv[0];
+
+	for (p=pre; *p; p++)
+		my_argv[i++]=*p;
+	
+	/* printf("after pre\n"); */
+
+	for (p=argv+1; *p; p++)
+		my_argv[i++]=*p;
+	
+	/* printf("after argv\n"); */
+
+	for (p=post; *p; p++)
+		my_argv[i++]=*p;
+
+	my_argv[i] = NULL;
+
+	/* printf("after post\n"); */
+
+	/* DBGOUT("about to execute: %s\n", my_argv[0]); */
+
+#if 1
+	DBGOUT("**** CRAP starts here ****\n");
+	for (p=my_argv; *p; p++) {
+		DBGOUT("[%s]\n", *p);
+	}
+	DBGOUT("**** CRAP ENDS HERE *****\n");
+#endif
+	
+	next_execve(file, my_argv, envp);
+
+	fprintf(stderr, "libsb2.so failed running (%s): %s\n", file, strerror(errno));
+	return -12;
+}
+
+int ld_so_run_app(char *file, char **argv, char *const *envp)
+{
+	char *binaryname, **my_argv;
 	char *host_libs, *ld_so;
 	char **pre,**post;
 	char **p;
 	char *tmp;
 	char ld_so_buf[PATH_MAX + 1];
 	char ld_so_basename[PATH_MAX + 1];
-	int argc, envc;
+	int argc;
 	int i = 0;
-
+	
+	DBGOUT("__YAYYYY___\n");
 	tmp = getenv("REDIR_LD_LIBRARY_PATH");
 
 	if (!tmp) {
@@ -170,29 +230,6 @@ int run_app(char *file, char **argv, char *const *envp)
 		return -1;
 	}
 
-	envc = elem_count(envp);
-	//printf("envc: %i\n", envc);
-
-	my_envp = (char **)calloc(envc + 2, sizeof(char *));
-	i = strlen(binaryname) + strlen("__SB2_BINARYNAME") + 1;
-	tmp = malloc(i * sizeof(char *));
-	strcpy(tmp, "__SB2_BINARYNAME=");
-	strcat(tmp, binaryname);
-
-	i = 0;
-	for (p=envp; *p; p++) {
-		if (strncmp(*p, "__SB2_BINARYNAME=", strlen("__SB2_BINARYNAME=")) == 0) {
-			/* already set, skip it */
-			continue;
-		}
-		my_envp[i++] = *p;
-	}
-
-	my_envp[i++] = strdup(tmp);
-	free(tmp);
-
-	i = 0; p = NULL; tmp = NULL; /* reset temp variables */
-
 	argc = elem_count(argv);
 
 	pre = pre_args(binaryname, &argv[1]);
@@ -214,7 +251,8 @@ int run_app(char *file, char **argv, char *const *envp)
 		my_argv[i++]=*p;
 
 	//printf("about to execute: %s, %s, %s, %s\n", my_argv[0], my_argv[1], my_argv[2], my_argv[3]);
-	next_execve(my_argv[0], my_argv, my_envp);
+	
+	next_execve(my_argv[0], my_argv, envp);
 
 	fprintf(stderr, "sb_alien (running %s): %s\n", file, strerror(errno));
 	return -11;

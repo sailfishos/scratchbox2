@@ -148,7 +148,7 @@ AC_EGREP_CPP(EM_386,
 ELF_ARCH
 ], elf_arch=EM_386, elf_arch=EM_X86_64
 )
-AH_TEMPLATE([ELF_ARCH], [elf architecture])
+AH_TEMPLATE([ELF_ARCH], [ELF architecture])
 AC_DEFINE_UNQUOTED(ELF_ARCH, ${elf_arch})
 
 AC_OUTPUT

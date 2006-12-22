@@ -5,9 +5,14 @@
 
 tools_root = os.getenv("SBOX_TOOLS_ROOT")
 if (tools_root == nil) then
-	print("SBOX_TOOLS_ROOT not set")
 	tools_root = "/scratchbox/sarge"
 end
+
+target_root = os.getenv("SBOX_TARGET_ROOT")
+if (target_root == nil) then
+	target_root = "/"
+end
+
 
 -- SBOX_REDIR_SCRIPTS environment variable controls where
 -- we look for the scriptlets defining the path mappings
@@ -77,15 +82,15 @@ end
 function sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
 	ret = ""
 
-	if (rule.map_to ~= nil) then
+	if (rule.map_to) then
 		if (string.sub(rule.map_to, 1, 1) == "=") then
-			ret = tools_root .. string.sub(rule.map_to, 2)
+			ret = target_root .. string.sub(rule.map_to, 2)
 		else
-			ret = tools_root .. rule.map_to
+			ret = target_root .. rule.map_to
 		end
 	end
 
-	-- print("mapping to: " .. ret .. path)
+	--print("mapping to: " .. ret .. path)
 	return ret .. path
 end
 
@@ -95,8 +100,8 @@ end
 -- translating
 
 function sbox_translate_path(binary_name, func_name, work_dir, path)
-
-	-- print(string.format("debug: [%s][%s][%s][%s]", binary_name, func_name, work_dir, path))
+	--print(string.format("[%s]:", binary_name))
+	--print(string.format("debug: [%s][%s][%s][%s]", binary_name, func_name, work_dir, path))
 
 	ret = path
 	rp = sb.sb_realpath(path)
@@ -114,12 +119,14 @@ function sbox_translate_path(binary_name, func_name, work_dir, path)
 			if (rules[n].custom_map_func ~= nil) then
 				return rules[n].custom_map_func(binary_name, func_name, work_dir, rp, path, rules[n])
 			else
-				return sbox_map_to(binary_name, func_name, work_dir, rp, path, rules[n])
+				ret = sbox_map_to(binary_name, func_name, work_dir, rp, path, rules[n])
+				--print(string.format("%s(%s) -> [%s]", func_name, path, ret))
+				return ret
 			end
 		end
 	end
 
 	-- fail safe, if none matched, map
-	return tools_root .. rp
+	return target_root .. rp
 end
 

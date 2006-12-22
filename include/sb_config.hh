@@ -32,7 +32,7 @@ namespace sb {
 	std::list<std::string> split(const std::string &);
 
 	/**
-	 * @return true if scratchbox.ocnfig exists (read: we are inside Scratchbox)
+	 * @return true if scratchbox.config exists (read: we are inside Scratchbox)
 	 */
 	bool read_config(std::map<std::string, std::string> &) throw (error);
 

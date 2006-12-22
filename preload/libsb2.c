@@ -902,7 +902,7 @@ static int do_exec(const char *file, char *const *argv, char *const *envp)
 		} else {
 			my_file = strdup(sb_gcc_wrapper);
 		}
-		DBGOUT("we've a gcc tool!\n");
+		/* DBGOUT("we've a gcc tool!\n"); */
 		my_argv[i++] = strdup(binaryname);
 	}
 
@@ -2136,6 +2136,7 @@ int nftw64 (const char *dir, int (*fn)(const char *file, const struct stat64 *sb
 int open (const char *pathname, int flags, ...) {
     int mode = 0;
     char *fakechroot_path;
+
     expand_chroot_path(pathname, fakechroot_path);
 
     if (flags & O_CREAT) {

@@ -126,15 +126,11 @@ int run_app(char *file, char **argv, char *const *envp)
 	
 	binaryname = basename(strdup(file));
 
-	DBGOUT("[%s][%s]\n", file, argv[0]);
-	/* printf("in run_app(%s)\n", file); */
+	/* DBGOUT("[%s][%s]\n", file, argv[0]); */
 	argc = elem_count(argv);
 
-	/* printf("before pre_args()\n"); */
 	pre = pre_args(binaryname, &argv[1]);
-	/* printf("before post_args()\n"); */
 	post = post_args(binaryname);
-	/* printf("after post_args()\n"); */
 
 	/* DBGOUT("allocating: %i\n", elem_count(pre) + argc + elem_count(post) + 1); */
 	my_argv = (char **)calloc(elem_count(pre) + argc + elem_count(post) + 1, sizeof (char *));
@@ -143,23 +139,17 @@ int run_app(char *file, char **argv, char *const *envp)
 	for (p=pre; *p; p++)
 		my_argv[i++]=*p;
 	
-	/* printf("after pre\n"); */
-
 	for (p=argv+1; *p; p++)
 		my_argv[i++]=*p;
 	
-	/* printf("after argv\n"); */
-
 	for (p=post; *p; p++)
 		my_argv[i++]=*p;
 
 	my_argv[i] = NULL;
 
-	/* printf("after post\n"); */
-
 	/* DBGOUT("about to execute: %s\n", my_argv[0]); */
 
-#if 1
+#if 0
 	DBGOUT("**** CRAP starts here ****\n");
 	for (p=my_argv; *p; p++) {
 		DBGOUT("[%s]\n", *p);

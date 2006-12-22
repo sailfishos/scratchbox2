@@ -99,15 +99,6 @@ default_scratchbox = {
 	custom_map_func = nil
 }
 
-default_root = {
-	binary = ".*",
-	func_name = ".*",
-	func_param = nil,
-	path = "/",
-	map_to = nil,
-	custom_map_func = nil
-}
-
 -- catch all rule to map everything else to TARGETDIR/
 default_rootdir = {
 	binary = ".*",
@@ -127,7 +118,6 @@ export_rules = {
 	default_proc,
 	default_tmp,
 	default_etc,
-	default_root,
 	default_rootdir
 }
 

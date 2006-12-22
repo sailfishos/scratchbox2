@@ -110,6 +110,11 @@ function sbox_translate_path(binary_name, func_name, work_dir, path)
 		rp = path
 	end
 
+	if (string.sub(rp, 1, 1) ~= "/") then
+		-- relative path, convert to absolute
+		rp = work_dir .. "/" .. rp
+	end
+
 	-- loop through the rules, first match is used
 	for n=1,table.maxn(rules) do
 		-- print(string.format("looping through rules: %s, %s, %s", rules[n].binary, rules[n].func_name, rules[n].path))

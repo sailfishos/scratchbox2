@@ -37,6 +37,7 @@ install: build
 	install -c -m 755 scripts/sb2rc $(prefix)/share/scratchbox2/sb2rc
 	install -c -m 644 redir_scripts/main.lua $(prefix)/share/scratchbox2/redir_scripts/main.lua
 	install -c -m 644 redir_scripts/parts/default.lua $(prefix)/share/scratchbox2/redir_scripts/parts/default.lua
+	install -c -m 644 etc/sb2.config.sample $(prefix)/share/scratchbox2/sb2.config.sample
 
 
 CLEAN_FILES = $(targets)

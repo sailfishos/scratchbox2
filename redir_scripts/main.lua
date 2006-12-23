@@ -1,16 +1,21 @@
 -- Scratchbox2 universal redirector dynamic path translation scripts
 -- Copyright (C) 2006 Lauri Leukkunen
 
--- print "hello!\n"
+--print "hello!\n"
 
 tools_root = os.getenv("SBOX_TOOLS_ROOT")
-if (tools_root == nil) then
+if (not tools_root) then
 	tools_root = "/scratchbox/sarge"
 end
 
 target_root = os.getenv("SBOX_TARGET_ROOT")
-if (target_root == nil) then
+if (not target_root) then
 	target_root = "/"
+end
+
+compiler_root = os.getenv("SBOX_COMPILER_ROOT")
+if (not compiler_root) then
+	compiler_root = "/usr"
 end
 
 
@@ -80,18 +85,26 @@ end
 
 
 function sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
-	ret = ""
-
+	local ret = ""
 	if (rule.map_to) then
 		if (string.sub(rule.map_to, 1, 1) == "=") then
-			ret = target_root .. string.sub(rule.map_to, 2)
+			--print(string.format("rp: %s\ntarget_root: %s", rp, target_root))
+			s = string.find(rp, target_root, 1, true)
+			if (s) then
+				-- the file's already within target_root
+				return path
+			end
+			return target_root .. rp
+		elseif (string.sub(rule.map_to, 1, 1) == "+") then
+			ret = compiler_root .. string.sub(rule.map_to, 2) .. "/" .. basename(path)
+			return ret
 		else
 			ret = target_root .. rule.map_to
+			return ret .. path
 		end
 	end
 
-	--print("mapping to: " .. ret .. path)
-	return ret .. path
+	return path
 end
 
 
@@ -104,7 +117,7 @@ function sbox_translate_path(binary_name, func_name, work_dir, path)
 	--print(string.format("debug: [%s][%s][%s][%s]", binary_name, func_name, work_dir, path))
 
 	ret = path
-	rp = sb.sb_realpath(path)
+	rp = path
 
 	if (rp == "no such file") then
 		rp = path

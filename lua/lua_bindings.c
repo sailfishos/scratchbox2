@@ -28,11 +28,14 @@
 #include <limits.h>
 #include <sys/param.h>
 #include <assert.h>
+#include <pthread.h>
 
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
 #include "lua_bindings.h"
+
+#include <sb2.h>
 
 #define __set_errno(e) errno = e
 
@@ -52,7 +55,7 @@ lua_State *l;
 char *rsdir = NULL;
 char *main_lua = NULL;
 
-
+pthread_mutex_t lua_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 
 static int sb_realpath(lua_State *l)
 {
@@ -197,7 +200,12 @@ char *scratchbox_path(const char *func_name, const char *path)
 	char work_dir[PATH_MAX+1];
 	char *tmp;
 	char pidlink[17]; /* /proc/2^8/exe */
-	
+#if 1
+	if (pthread_mutex_trylock(&lua_lock) < 0) {
+		pthread_mutex_lock(&lua_lock);
+	}
+#endif
+
 	if (!rsdir) {
 		rsdir = getenv("SBOX_REDIR_SCRIPTS");
 		if (!rsdir) {
@@ -226,14 +234,13 @@ char *scratchbox_path(const char *func_name, const char *path)
 //	}
 	syscall(__NR_getcwd, work_dir, PATH_MAX);
 
-
 	/* RECURSIVE CALL BREAK */
 	if (strncmp(path, rsdir, strlen(rsdir)) == 0) {
+		//pthread_mutex_unlock(&lua_lock);
 		return (char *)path;
 	}
 	
 	if (!l) {
-				
 		l = luaL_newstate();
 		
 		luaL_openlibs(l);
@@ -251,10 +258,8 @@ char *scratchbox_path(const char *func_name, const char *path)
 		default:
 			;
 		}
-		
 		lua_call(l, 0, 0);
 	}
-
 
 	lua_getfield(l, LUA_GLOBALSINDEX, "sbox_translate_path");
 	lua_pushstring(l, binary_name);
@@ -262,9 +267,13 @@ char *scratchbox_path(const char *func_name, const char *path)
 	lua_pushstring(l, work_dir);
 	lua_pushstring(l, path);
 	lua_call(l, 4, 1); /* four arguments, one result */
-	tmp = strdup(lua_tostring(l, -1));
+	tmp = lua_tostring(l, -1);
+	if (tmp) {
+		tmp = strdup(tmp);
+	}
 	lua_pop(l, 1);
-	
+
+	pthread_mutex_unlock(&lua_lock);
 	return tmp;
 }
 

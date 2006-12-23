@@ -79,7 +79,6 @@ char *envs[] = {"LD_LIBRARY_PATH", "LD_RUN_PATH"};
 char **pre_args(char *fname, char **args)
 {
 	char **ret = NULL;
-
 	if (is_linker(fname) && !one_startswith(args,"-rpath")) {
 		int n = 0;
 		int i = 0,j = 0;
@@ -116,6 +115,47 @@ char **post_args(char *fname)
 	return padded_list(ret);
 }
 
+
+int run_cputransparency(char *file, char **argv, char *const *envp)
+{
+	char **my_argv, **p;
+	char **my_envp;
+	char *tmp = NULL;
+	int i = 0;
+	
+	my_argv = (char **)calloc(elem_count(argv) + 4 + 1, sizeof(char *));
+	my_envp = (char **)calloc(elem_count(envp) + 1, sizeof(char *));
+
+	tmp = getenv("SBOX_CPUTRANSPARENCY_METHOD");
+	if (!tmp) {
+		fprintf(stderr, "SBOX_CPUTRANSPARENCY_METHOD not set, unable to execute the target binary\n");
+		return -1;
+	}
+	my_argv[i++] = strdup(tmp);
+	my_argv[i++] = "-L";
+
+	tmp = getenv("SBOX_TARGET_ROOT");
+	if (!tmp) {
+		fprintf(stderr, "SBOX_TARGET_ROOT not set, unable to execute the target binary\n");
+		return -1;
+	}
+	my_argv[i++] = strdup(tmp);
+	my_argv[i++] = file;
+	for (p=&argv[1]; *p; p++) {
+		my_argv[i++] = *p;
+	}
+
+	my_argv[i] = NULL;
+	i = 0;
+	for (p=(char **)envp; *p; p++) {
+		/* DBGOUT("ENV: [%s]\n", *p); */
+		my_envp[i++] = *p;
+	}
+	my_envp[i] = NULL;
+
+
+	return next_execve(my_argv[0], my_argv, envp);
+}
 
 int run_app(char *file, char **argv, char *const *envp)
 {

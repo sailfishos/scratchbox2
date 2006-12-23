@@ -1,13 +1,15 @@
 #!/bin/sh
+# Copyright (C) 2006 Lauri Leukkunen <lle@rahina.org>
+
+export SBOX_DIR=$(readlink -f $(dirname $_)/..)
 
 if [ -n "$SBOX_DIR" ]; then
 	SBOX_LIBSB2="$SBOX_DIR/lib/libsb2.so"
 	SBOX_REDIR_SCRIPTS="$SBOX_DIR/share/scratchbox2/redir_scripts"
 	SBOX_GCCWRAPPER="$SBOX_DIR/bin/sb_gcc_wrapper"
 else
-	SBOX_LIBSB2="/usr/lib/libsb2.so"
-	SBOX_REDIR_SCRIPTS="/usr/share/scratchbox2/redir_scripts"
-	SBOX_GCCWRAPPER="/usr/bin/sb_gcc_wrapper"
+	echo Something foul happeninged...
+	exit 1
 fi
 
 if [ -n "$SBOX_TOOLS_ROOT" ]; then
@@ -17,9 +19,7 @@ if [ -n "$SBOX_TOOLS_ROOT" ]; then
 	export REDIR_LD_SO REDIR_LD_LIBRARY_PATH SBOX_TOOLS_ROOT
 fi
 
-if [ -n "$1" ]; then
-	SBOX_TARGET_ROOT="$(readlink -f -n $1)"
-else
+if [ -z "$SBOX_TARGET_ROOT" ]; then
 	SBOX_TARGET_ROOT="$(readlink -f -n $PWD)"
 fi
 
@@ -29,6 +29,7 @@ cd $SBOX_TARGET_ROOT
 
 export LD_PRELOAD=$SBOX_LIBSB2
 export SBOX_SCRATCHBOX_CONFIG=$SBOX_TARGET_ROOT/sb2.config
+export PS1="[SB2] \u@\h \w \$ "
 
 echo "Running scratchbox with these settings:"
 echo "SBOX_LIBSB2 = $SBOX_LIBSB2"
@@ -38,5 +39,16 @@ echo "REDIR_LD_SO = $REDIR_LD_SO"
 echo "REDIR_LD_LIBRARY_PATH = $REDIR_LD_LIBRARY_PATH"
 echo "SBOX_TARGET_ROOT = $SBOX_TARGET_ROOT"
 
-exec /bin/bash
+. $SBOX_SCRATCHBOX_CONFIG
+
+export SBOX_COMPILER_ROOT=$(readlink -f $SBOX_CROSS_GCC_DIR/..)
+export SBOX_CPUTRANSPARENCY_METHOD
+export SBOX_CROSS_GCC_PREFIX_LIST
+export SBOX_UNAME_MACHINE=$SBOX_CPU
+
+if [ -z "$*" ]; then
+	exec /bin/bash --noprofile --norc
+else
+	exec /bin/bash --noprofile --norc -c "$*"
+fi
 

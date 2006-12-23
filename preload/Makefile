@@ -1,5 +1,5 @@
 CFLAGS += -Wall -W -fPIC
-LIBS = -ldl -lm
+LIBS = -ldl -lm -lpthread -lrt
 export CFLAGS
 
 obj-builtin = ../lua libsb2.o libsb_env.o sb_alien.o

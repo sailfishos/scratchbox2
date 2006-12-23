@@ -9,6 +9,7 @@
 --
 -- "="			map to TARGETDIR .. "/" .. path
 -- "=/some/path"	map to TARGETDIR .. "/some/path" .. "/" .. path
+-- "+/some/path"	map to COMPILERDIR .. "/some/path"
 -- nil			no mapping, use straight
 --
 -- Any other value is prepended to path (map_to .. "/" .. path).
@@ -99,6 +100,29 @@ default_scratchbox = {
 	custom_map_func = nil
 }
 
+default_dev = {
+	binary = ".*",
+	func_name = ".*",
+	func_param = nil,
+	path = "^/dev",
+	map_to = nil,
+	custom_map_func = nil
+}
+
+libtool = {
+	binary = ".*",
+	func_name = "exec.*",
+	path = ".*libtool",
+	map_to = "+/arch_tools/bin"
+}
+
+qemu = {
+	binary = ".*qemu.*",
+	func_name = ".*",
+	path = "^/",
+	map_to = "="
+}
+
 -- catch all rule to map everything else to TARGETDIR/
 default_rootdir = {
 	binary = ".*",
@@ -110,10 +134,13 @@ default_rootdir = {
 }
 
 export_rules = {
+	libtool,
+	qemu,
 	default_bin,
 	default_usrbin,
 	default_usrlocalbin,
 	default_scratchbox,
+	default_dev,
 	default_home,
 	default_proc,
 	default_tmp,

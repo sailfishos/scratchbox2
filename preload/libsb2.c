@@ -40,6 +40,7 @@
 #include <sys/stat.h>
 #include <sys/times.h>
 #include <sys/syscall.h>
+#include <sys/utsname.h>
 #include <asm/unistd.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -123,6 +124,7 @@
 
 int ld_so_run_app(char *file, char **argv, char *const *envp);
 int run_app(char *file, char **argv, char *const *envp);
+int run_cputransparency(char *file, char **argv, char *const *envp);
 
 #ifndef __GLIBC__
 extern char **environ;
@@ -453,11 +455,16 @@ static int     (*next_unlink) (const char *pathname) = NULL;
 static int     (*next_utime) (const char *filename, const struct utimbuf *buf) = NULL;
 static int     (*next_utimes) (const char *filename, const struct timeval tv[2]) = NULL;
 
+static int     (*next_uname) (struct utsname *buf) = NULL;
 
-void scratchbox_init (void) __attribute((constructor));
+
+
+
+
 void fakechroot_init (void) __attribute((constructor));
 void fakechroot_init (void)
 {
+	//DBGOUT("fakechroot init start: %i\n", getpid());
 #ifdef HAVE___LXSTAT
     nextsym(__lxstat, "__lxstat");
 #endif
@@ -636,7 +643,8 @@ void fakechroot_init (void)
 #endif
     nextsym(utime, "utime");
     nextsym(utimes, "utimes");
-	scratchbox_init();
+
+    nextsym(uname, "uname");
 }
 
 #define RPATH_PREFIX "/scratchbox/"
@@ -651,7 +659,7 @@ void fakechroot_init (void)
 # error Invalid __BYTE_ORDER
 #endif
 
-enum binary_type { BIN_NONE, BIN_UNKNOWN, BIN_FOREIGN, BIN_STATIC, BIN_DYNAMIC,BIN_SCRATCHBOX };
+enum binary_type { BIN_NONE, BIN_UNKNOWN, BIN_FOREIGN, BIN_STATIC, BIN_DYNAMIC, BIN_SCRATCHBOX, BIN_TARGET };
 
 static enum binary_type inspect_binary(const char *filename)
 {
@@ -687,6 +695,13 @@ static enum binary_type inspect_binary(const char *filename)
     }
 
     ehdr = (Elf32_Ehdr *) region;
+
+    switch (ehdr->e_machine) {
+    case EM_ARM:
+    case EM_PPC:
+	retval = BIN_TARGET;
+	goto _out_munmap;
+    }
 
     if (strncmp((char *) ehdr, ELFMAG, SELFMAG) != 0) {
         goto _out_munmap;
@@ -776,6 +791,10 @@ _out:
 
 static int is_gcc_tool(char *fname)
 {
+	unsigned int i, index, start, c;
+	char *t;
+	char **gcc_prefixes;
+	char **p;
 	char *gcc_tools[] = {
 		"addr2line",
 		"ar",
@@ -804,11 +823,40 @@ static int is_gcc_tool(char *fname)
 		NULL
 	};
 	char **tmp;
+	t = getenv("SBOX_CROSS_GCC_PREFIX_LIST");
+	if (!t) {
+		return 0;
+	}
+	t = strdup(t);
+
+	for (i = 0, c = 0; i < strlen(t); i++) {
+		if (t[i] == ':') {
+			c++;
+		}
+	}
+
+	gcc_prefixes = (char **)calloc(c + 2, sizeof(char *));
+	p = gcc_prefixes;
+
+	for (start = 0, index = 0; index < strlen(t); index++) {
+		if (t[index] == ':') {
+			*p = malloc((index - start + 1) * sizeof(char));
+			strncpy(*p, &t[start], index - start);
+			(*p)[index - start] = '\0';
+			p++;
+			start = index + 1;
+		}
+	}
+	p = NULL;
 
 	for (tmp = gcc_tools; *tmp; tmp++) {
-		if (strlen(*tmp) > strlen(fname)) continue;
-		if (!strcmp(&fname[strlen(fname) - strlen(*tmp)], *tmp)) {
-			return 1;
+		for (p = gcc_prefixes; *p; p++) {
+			char s[PATH_MAX];
+			strcpy(s, *p);
+			strcat(s, *tmp);
+			if (!strcmp(*tmp, fname) || (!strcmp(s, fname))) {
+				return 1;
+			}
 		}
 	}
 	return 0;
@@ -851,7 +899,6 @@ static int do_exec(const char *file, char *const *argv, char *const *envp)
 
 	binaryname = strdup(basename(file));
 
-	//printf("before counting\n");
 	/* count the environment variables and arguments */
 	for (p=(char **)envp; *p; p++, envc++)
 		;
@@ -894,7 +941,6 @@ static int do_exec(const char *file, char *const *argv, char *const *envp)
 
 	if (!getenv("__SBOX_GCCWRAPPER_RUN") && is_gcc_tool(binaryname)) {
 		/* unset the env variable */
-		unsetenv("__SBOX_GCCWRAPPER_RUN");
 		char *sb_gcc_wrapper;
 		sb_gcc_wrapper = getenv("SBOX_GCCWRAPPER");
 		if (!sb_gcc_wrapper) {
@@ -902,7 +948,7 @@ static int do_exec(const char *file, char *const *argv, char *const *envp)
 		} else {
 			my_file = strdup(sb_gcc_wrapper);
 		}
-		/* DBGOUT("we've a gcc tool!\n"); */
+		/*DBGOUT("we've a gcc tool!\n");*/
 		my_argv[i++] = strdup(binaryname);
 	}
 
@@ -924,11 +970,14 @@ static int do_exec(const char *file, char *const *argv, char *const *envp)
 					return run_app((char *)my_file, (char **)argv, my_envp);
 				}
 			}
+		case BIN_TARGET:
+			/* DBGOUT("cpu transparency needed\n"); */
+			return run_cputransparency(my_file, (char **)argv, my_envp);
 
 		case BIN_NONE:
 		case BIN_UNKNOWN:
 		case BIN_SCRATCHBOX:
-			printf("unknown\n");
+			DBGOUT("unknown\n");
 			break;
 	}
 
@@ -936,12 +985,14 @@ static int do_exec(const char *file, char *const *argv, char *const *envp)
 }
 
 
-
+#if 0
+void scratchbox_init (void) __attribute((constructor));
 void scratchbox_init (void)
 {
 	/* currently doing nothing */
+	DBGOUT("in scratchbox_init\n");
 }
-
+#endif
 
 
 #ifdef HAVE___LXSTAT
@@ -962,10 +1013,12 @@ int __lxstat (int ver, const char *filename, struct stat *buf)
 /* #include <unistd.h> */
 int __lxstat64 (int ver, const char *filename, struct stat64 *buf)
 {
+	int r;
     char *fakechroot_path;
     expand_chroot_path(filename, fakechroot_path);
     if (next___lxstat64 == NULL) fakechroot_init();
-    return next___lxstat64(ver, filename, buf);
+    r = next___lxstat64(ver, filename, buf);
+    return r;
 }
 #endif
 
@@ -1514,6 +1567,7 @@ int execvp (const char *file, char *const argv [])
       size_t pathlen;
 
       path = getenv ("PATH");
+      if (path) path = strdup(path);
       if (path == NULL)
         {
           /* There is no `PATH' in the environment.
@@ -1774,15 +1828,7 @@ int glob (const char *pattern, int flags, int (*errfunc) (const char *, int), gl
     for(i = 0; i < pglob->gl_pathc; i++) {
         strcpy(tmp,pglob->gl_pathv[i]);
         fakechroot_path = scratchbox_path(__FUNCTION__, tmp);
-        if (fakechroot_path != NULL) {
-            fakechroot_ptr = strstr(tmp, fakechroot_path);
-            if (fakechroot_ptr != tmp) {
-                tmpptr = tmp;
-            } else {
-                tmpptr = tmp + strlen(fakechroot_path);
-            }
-            strcpy(pglob->gl_pathv[i], tmpptr);
-        }
+        strcpy(pglob->gl_pathv[i], fakechroot_path);
     }
     return rc;
 }
@@ -1797,26 +1843,16 @@ int glob64 (const char *pattern, int flags, int (*errfunc) (const char *, int), 
     char tmp[FAKECHROOT_MAXPATH], *tmpptr;
     char *fakechroot_path, *fakechroot_ptr;
 
-    expand_chroot_path(pattern, fakechroot_path);
-
     if (next_glob64 == NULL) fakechroot_init();
+    expand_chroot_path(pattern, fakechroot_path);
 
     rc = next_glob64(pattern, flags, errfunc, pglob);
     if (rc < 0)
         return rc;
-
     for(i = 0; i < pglob->gl_pathc; i++) {
         strcpy(tmp,pglob->gl_pathv[i]);
         fakechroot_path = scratchbox_path(__FUNCTION__, tmp);
-        if (fakechroot_path != NULL) {
-            fakechroot_ptr = strstr(tmp, fakechroot_path);
-            if (fakechroot_ptr != tmp) {
-                tmpptr = tmp;
-            } else {
-                tmpptr = tmp + strlen(fakechroot_path);
-            }
-            strcpy(pglob->gl_pathv[i], tmpptr);
-        }
+	strcpy(pglob->gl_pathv[i], fakechroot_path);
     }
     return rc;
 }
@@ -2459,5 +2495,18 @@ int utimes (const char *filename, const struct timeval tv[2])
 }
 
 
+int uname(struct utsname *buf)
+{
+	char **t;
+	if (next_uname == NULL) fakechroot_init();
 
+	if (next_uname(buf) < 0) {
+		return -1;
+	}
+	/* this may be called before environ is properly setup */
+	if (environ) {
+		strncpy(buf->machine, getenv("SBOX_UNAME_MACHINE"), sizeof(buf->machine));
+	}
+	return 0;
+}
 

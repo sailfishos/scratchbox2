@@ -2,7 +2,8 @@ All files are licensed under GNU LGPL version 2.1 unless specifically
 stated otherwise in the file itself.
 
 This is development code, it is broken. Don't expect to use it for
-anything resembling production use any time soon.
+anything resembling production use. However, I firmly believe this is
+infinitely more functional than Scratchbox 1.x can ever be.
 
 Here are some instructions:
 
@@ -12,35 +13,25 @@ You need git to work with sbox2, get it from http://git.or.cz/.
 
 Build using:
 
-$ ./autogen.sh && ./configure && make && make install prefix=$HOME/buildroot
+$ ./autogen.sh
+$ ./configure
+$ make
+$ make install prefix=$HOME/scratchbox
 
-At this point you should setup debian/sarge in $HOME/buildroot/scratchbox/sarge
-Use debootstrap to get the job done. After completing that step you can do:
+
+Fire it up:
+
+$ mkdir $HOME/buildroot
+$ cp $HOME/scratchbox/share/scratchbox2/sb2.config.sample \
+$HOME/buildroot/sb2.config
+
+(at this point you _really_ should go through that file and make sure
+it applies to your host system and intended target toolchain)
 
 $ cd $HOME/buildroot
-$ mkdir proc
-$ ./login.sh
-
-
-Clean using:
-
-$ make clean
+$ ../scratchbox/bin/sb2
 
 
 
-To test the libsb2.so without a chroot:
-
-$ export SBOX_REDIR_SCRIPTS=$(PWD)/redir_scripts
-$ LD_PRELOAD=$(PWD)/preload/libsb2.so /bin/csh
-
-
-Some additional environment variables:
-
-$ export SBOX_TOOLS_ROOT=/scratchbox/yourdistro
-$ export REDIR_LD_LIBRARY_PATH=$SBOX_TOOLS_ROOT/usr/lib:$SBOX_TOOLS_ROOT/lib:$SBOX_TOOLS_ROOT/usr/local/lib
-$ export REDIR_LD_SO=$SBOX_TOOLS_ROOT/lib/ld-linux.so.2
-
-
-
-that's all folks, enjoy!
+That's all folks, enjoy!
 

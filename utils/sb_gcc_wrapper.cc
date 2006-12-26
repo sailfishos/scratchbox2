@@ -28,13 +28,25 @@ using namespace std;
  * Compilers
  */
 
+enum CompilerStereotype {
+	NO_STEREOTYPE = 0,
+	CROSS_STEREOTYPE,
+	HOST_STEREOTYPE
+};
+
 struct Compiler {
+	CompilerStereotype stereotype;
 	string name;
 	list<string> prefix_list;
 	string subst_prefix;
 	string dir;
 	string specs_file;
 	string ld_args;
+
+	Compiler() :
+		stereotype(NO_STEREOTYPE)
+	{
+	}
 
 	bool ok() const
 	{
@@ -58,6 +70,7 @@ static void init_compilers()
 	if (!sb::read_config(config))
 		throw sb::error("unable to open scratchbox.config");
 
+	cross_gcc.stereotype   = CROSS_STEREOTYPE;
 	cross_gcc.name         = config["SBOX_CROSS_GCC_NAME"];
 	cross_gcc.prefix_list  = sb::split(config["SBOX_CROSS_GCC_PREFIX_LIST"]);
 	cross_gcc.subst_prefix = config["SBOX_CROSS_GCC_SUBST_PREFIX"];
@@ -65,6 +78,7 @@ static void init_compilers()
 	cross_gcc.dir          = config["SBOX_CROSS_GCC_DIR"];
 	cross_gcc.ld_args      = config["SBOX_CROSS_GCC_LD_ARGS"];
 
+	host_gcc.stereotype    = HOST_STEREOTYPE;
 	host_gcc.name          = config["SBOX_HOST_GCC_NAME"];
 	host_gcc.prefix_list   = sb::split(config["SBOX_HOST_GCC_PREFIX_LIST"]);
 	host_gcc.subst_prefix  = config["SBOX_HOST_GCC_SUBST_PREFIX"];
@@ -253,22 +267,17 @@ static void block_args(list<string> &args, const string &str)
 	args = list<string>(beg, end);
 }
 
-static char *getenv(const char *const strong, const char *const fair, const char *const weak)
+static char *getenv(const list<const char *> &keys)
 {
-	char *str = 0;
+	list<const char *>::const_iterator i;
 
-	if (strong)
-		str = getenv(strong);
-
-	if (!str) {
-		if (fair)
-			str = getenv(fair);
-
-		if (!str && weak)
-			str = getenv(weak);
+	for (i = keys.begin(); i != keys.end(); ++i) {
+		char *s = getenv(*i);
+		if (s)
+			return s;
 	}
 
-	return str;
+	return 0;
 }
 
 static const char *build_var(const char *const type, const Program &prog)
@@ -305,17 +314,41 @@ static void exec_program(const Program &prog, const int old_argc, char **const o
 	if (prog.group == linkers && !prog.compiler.ld_args.empty())
 		extra_args(args, prog.compiler.ld_args);
 
-	const char *extra_group = 0;
-	const char *block_group = 0;
-	if (prog.group == compilers) {
-		extra_group = "SBOX_EXTRA_COMPILER_ARGS";
-		block_group = "SBOX_BLOCK_COMPILER_ARGS";
+	list<const char *> extra_vars, block_vars;
+
+	if (prog.compiler.stereotype == HOST_STEREOTYPE) {
+		extra_vars.push_back(build_var("EXTRA_HOST", prog));
+		block_vars.push_back(build_var("BLOCK_HOST", prog));
+	}
+	else if (prog.compiler.stereotype == CROSS_STEREOTYPE) {
+		extra_vars.push_back(build_var("EXTRA_CROSS", prog));
+		block_vars.push_back(build_var("BLOCK_CROSS", prog));
 	}
 
-	if (char *s = getenv(build_var("EXTRA", prog), extra_group, "SBOX_EXTRA_ARGS"))
+	extra_vars.push_back(build_var("EXTRA", prog));
+	block_vars.push_back(build_var("BLOCK", prog));
+
+	if (prog.group == compilers) {
+		if (prog.compiler.stereotype == HOST_STEREOTYPE) {
+			extra_vars.push_back("SBOX_EXTRA_HOST_COMPILER_ARGS");
+			block_vars.push_back("SBOX_BLOCK_HOST_COMPILER_ARGS");
+		}
+		else if (prog.compiler.stereotype == CROSS_STEREOTYPE) {
+			extra_vars.push_back("SBOX_EXTRA_CROSS_COMPILER_ARGS");
+			block_vars.push_back("SBOX_BLOCK_CROSS_COMPILER_ARGS");
+		}
+
+		extra_vars.push_back("SBOX_EXTRA_COMPILER_ARGS");
+		block_vars.push_back("SBOX_BLOCK_COMPILER_ARGS");
+	}
+
+	extra_vars.push_back("SBOX_EXTRA_ARGS");
+	block_vars.push_back("SBOX_BLOCK_ARGS");
+
+	if (char *s = getenv(extra_vars))
 		extra_args(args, s);
 
-	if (char *s = getenv(build_var("BLOCK", prog), block_group, "SBOX_BLOCK_ARGS"))
+	if (char *s = getenv(block_vars))
 		block_args(args, s);
 
 	const char *path = progpath.c_str();

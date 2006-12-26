@@ -1,4 +1,0 @@
-%rename cpp old_cpp
-
-*cpp:
--isystem /home/lleukkun/buildroot/host_usr/include -isystem /home/lleukkun/buildroot/host_usr/lib/gcc/i686-pc-linux-gnu/4.1.1/include %(old_cpp)

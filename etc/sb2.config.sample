@@ -19,7 +19,7 @@ SBOX_CROSS_GCC_LD_ARGS=
 
 SBOX_HOST_GCC_NAME=host-gcc
 SBOX_HOST_GCC_PREFIX_LIST=host-
-SBOX_HOST_GCC_SUBST_PREFIX=host-
-SBOX_HOST_GCC_SPECS_FILE=/scratchbox/compilers/host-gcc/host-gcc.specs
-SBOX_HOST_GCC_DIR=/scratchbox/compilers/host-gcc/bin
-SBOX_HOST_GCC_LD_ARGS="-rpath /scratchbox/compilers/host-gcc/lib/ -L/scratchbox/compilers/host-gcc/lib"
+SBOX_HOST_GCC_SUBST_PREFIX=
+SBOX_HOST_GCC_SPECS_FILE=
+SBOX_HOST_GCC_DIR=/usr/bin
+SBOX_HOST_GCC_LD_ARGS=

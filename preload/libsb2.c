@@ -904,6 +904,7 @@ static int do_exec(const char *file, char *const *argv, char *const *envp)
 
 	if (getenv("SBOX_DISABLE_MAPPING")) {
 		/* just run it, don't worry, be happy! */
+		//DBGOUT("mapping disabled\n");
 		return next_execve(file, argv, envp);
 	}
 	enum binary_type type = inspect_binary(file);

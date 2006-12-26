@@ -154,6 +154,7 @@ proceed:
 }
 
 
+#ifndef DISABLE_CACHE
 
 static char *create_sb2cache_path(const char *binary_name, const char *func_name, const char *path)
 {
@@ -243,6 +244,7 @@ static int insert_sb2cache(const char *binary_name, const char *func_name, const
 	return 0;
 }
 
+#endif /* DISABLE_CACHE */
 
 static int sb_realpath(lua_State *l)
 {
@@ -413,6 +415,7 @@ char *scratchbox_path(const char *func_name, const char *path)
 
 	/* first try from the cache */
 
+#ifndef DISABLE_CACHE
 	tmp = read_sb2cache(binary_name, func_name, decolon_path);
 
 	if (tmp) {
@@ -423,6 +426,7 @@ char *scratchbox_path(const char *func_name, const char *path)
 			return tmp;
 		}
 	}
+#endif
 
 #if 1
 	if (pthread_mutex_trylock(&lua_lock) < 0) {
@@ -492,7 +496,9 @@ char *scratchbox_path(const char *func_name, const char *path)
 	lua_pop(l, 1);
 
 	pthread_mutex_unlock(&lua_lock);
+#ifndef DISABLE_CACHE
 	insert_sb2cache(binary_name, func_name, decolon_path, tmp);
+#endif
 	//DBGOUT("returning path: [%s]\n", tmp);
 	if (strcmp(tmp, decolon_path) == 0) {
 		free(decolon_path);

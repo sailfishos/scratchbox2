@@ -10,6 +10,8 @@
 -- "="			map to TARGETDIR .. "/" .. path
 -- "=/some/path"	map to TARGETDIR .. "/some/path" .. "/" .. path
 -- "+/some/path"	map to COMPILERDIR .. "/some/path"
+-- "-/some/path"	remove rule.path from the path to map, prepend the remainder 
+-- 			with /some/path
 -- nil			no mapping, use straight
 --
 -- Any other value is prepended to path (map_to .. "/" .. path).
@@ -123,6 +125,11 @@ perl = {
 	path = "^/usr/lib/perl.*"
 }
 
+hostgcc = {
+	path = "^/host_usr",
+	map_to = "="
+}
+
 -- catch all rule to map everything else to TARGETDIR/
 default_rootdir = {
 	path = "^/",
@@ -150,6 +157,7 @@ export_rules = {
 	default_proc,
 	default_tmp,
 	default_etc,
+	hostgcc,
 	default_rootdir
 }
 

@@ -97,22 +97,20 @@ end
 
 
 function sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
-	local ret = ""
+	local ret = nil
 	if (rule.map_to) then
 		if (string.sub(rule.map_to, 1, 1) == "=") then
 			--print(string.format("rp: %s\ntarget_root: %s", rp, target_root))
-			s = string.find(rp, target_root, 1, true)
-			if (s) then
-				-- the file's already within target_root
-				return path
-			end
-			return target_root .. rp
+			return target_root .. string.sub(rule.map_to, 2) .. path
 		elseif (string.sub(rule.map_to, 1, 1) == "+") then
 			ret = compiler_root .. string.sub(rule.map_to, 2) .. "/" .. basename(path)
 			return ret
+		elseif (string.sub(rule.map_to, 1, 1) == "-") then
+			ret = string.match(path, rule.path .. "(.*)")
+			ret = string.sub(rule.map_to, 2) .. ret
+			return ret
 		else
-			ret = target_root .. rule.map_to
-			return ret .. path
+			return rule.map_to .. path
 		end
 	end
 
@@ -131,14 +129,14 @@ function sbox_translate_path(binary_name, func_name, work_dir, path)
 	ret = path
 	rp = path
 
-	if (rp == "no such file") then
-		rp = path
-	end
+--	if (rp == "no such file") then
+--		rp = path
+--	end
 
-	if (string.sub(rp, 1, 1) ~= "/") then
-		-- relative path, convert to absolute
-		rp = work_dir .. "/" .. rp
-	end
+--	if (string.sub(rp, 1, 1) ~= "/") then
+--		-- relative path, convert to absolute
+--		rp = work_dir .. "/" .. rp
+--	end
 
 	-- loop through the rules, first match is used
 	for n=1,table.maxn(rules) do
@@ -150,7 +148,7 @@ function sbox_translate_path(binary_name, func_name, work_dir, path)
 				return rules[n].custom_map_func(binary_name, func_name, work_dir, rp, path, rules[n])
 			else
 				ret = sbox_map_to(binary_name, func_name, work_dir, rp, path, rules[n])
-				--print(string.format("%s(%s) -> [%s]", func_name, path, ret))
+				--print(string.format("[%i]%s: %s(%s) -> [%s]", n, binary_name, func_name, path, ret))
 				return ret
 			end
 		end

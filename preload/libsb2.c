@@ -786,7 +786,7 @@ _out:
 
 static int is_gcc_tool(char *fname)
 {
-	unsigned int i, index, start, c;
+	unsigned int i, index, start, c, len;
 	char *t;
 	char **gcc_prefixes;
 	char **p;
@@ -818,7 +818,19 @@ static int is_gcc_tool(char *fname)
 		NULL
 	};
 	char **tmp;
-	t = getenv("SBOX_CROSS_GCC_PREFIX_LIST");
+	if (!getenv("SBOX_CROSS_GCC_PREFIX_LIST")
+		||!getenv("SBOX_HOST_GCC_PREFIX_LIST")) {
+		return 0;
+	}
+
+	len = strlen(getenv("SBOX_CROSS_GCC_PREFIX_LIST"));
+	len += 1 + strlen(getenv("SBOX_HOST_GCC_PREFIX_LIST"));
+	t = malloc((len + 1) * sizeof(char));
+
+	strcpy(t, getenv("SBOX_CROSS_GCC_PREFIX_LIST"));
+	strcat(t, ":");
+	strcat(t, getenv("SBOX_HOST_GCC_PREFIX_LIST"));
+	//DBGOUT("here we are: [%s]\n", t);
 	if (!t) {
 		return 0;
 	}
@@ -890,6 +902,10 @@ static int do_exec(const char *file, char *const *argv, char *const *envp)
 
 	if (next_execve == NULL) fakechroot_init();
 
+	if (getenv("SBOX_DISABLE_MAPPING")) {
+		/* just run it, don't worry, be happy! */
+		return next_execve(file, argv, envp);
+	}
 	enum binary_type type = inspect_binary(file);
 
 	binaryname = strdup(basename(file));

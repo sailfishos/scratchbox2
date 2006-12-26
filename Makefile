@@ -26,6 +26,8 @@ build: configure
 	$(ll_toplevel_build)
 	@echo Build completed successfully!
 
+gcc_bins = addr2line,ar,as,cc,c++,c++filt,cpp,g++,gcc,gcov,gdb,gdbtui,gprof,ld,nm,objcopy,objdump,ranlib,rdi-stub,readelf,run,size,strings,strip
+
 install: build
 	install -d -m 755 $(prefix)/bin
 	install -d -m 755 $(prefix)/lib
@@ -38,7 +40,9 @@ install: build
 	install -c -m 644 redir_scripts/main.lua $(prefix)/share/scratchbox2/redir_scripts/main.lua
 	install -c -m 644 redir_scripts/parts/default.lua $(prefix)/share/scratchbox2/redir_scripts/parts/default.lua
 	install -c -m 644 etc/sb2.config.sample $(prefix)/share/scratchbox2/sb2.config.sample
-
+	@for f in $(prefix)/bin/host-{$(gcc_bins)}; do \
+		ln -sf sb_gcc_wrapper $$f; \
+	done
 
 CLEAN_FILES = $(targets)
 

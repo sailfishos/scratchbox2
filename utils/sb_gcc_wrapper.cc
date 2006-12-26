@@ -68,7 +68,6 @@ static void init_compilers()
 	host_gcc.name          = config["SBOX_HOST_GCC_NAME"];
 	host_gcc.prefix_list   = sb::split(config["SBOX_HOST_GCC_PREFIX_LIST"]);
 	host_gcc.subst_prefix  = config["SBOX_HOST_GCC_SUBST_PREFIX"];
-	host_gcc.specs_file    = config["SBOX_HOST_GCC_SPECS_FILE"];
 	host_gcc.dir           = config["SBOX_HOST_GCC_DIR"];
 	host_gcc.ld_args       = config["SBOX_HOST_GCC_LD_ARGS"];
 
@@ -171,10 +170,14 @@ static Program *detect_program(const char *const name, const Group group)
 			prog = new Program(group[i], default_gcc);
 			break;
 		}
-
-		if ((prog = detect_program(name, group[i], cross_gcc)) ||
-		    (prog = detect_program(name, group[i], host_gcc )))
+		
+		if ((prog = detect_program(name, group[i], cross_gcc))) {
 			break;
+		}
+		if ((prog = detect_program(name, group[i], host_gcc ))) {
+			setenv("SBOX_DISABLE_MAPPING", "1", 1);
+			break;
+		}
 	}
 
 	if (prog)

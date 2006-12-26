@@ -389,13 +389,15 @@ char *scratchbox_path(const char *func_name, const char *path)
 	char pidlink[17]; /* /proc/2^8/exe */
 
 	if (!path) return NULL;
+	if (getenv("SBOX_DISABLE_MAPPING")) {
+		return strdup(path);
+	}
 
 	decolon_path = decolonize_path(path);
 
-	if (strstr(decolon_path, getenv("SBOX_TARGET_ROOT"))
-		|| strstr(decolon_path, getenv("HOME"))) {
+	if (strstr(decolon_path, getenv("SBOX_TARGET_ROOT"))) {
 		/* short circuit a direct reference to a file inside the sbox 
-		 * target dir, or to $HOME dir */
+		 * target dir */
 		//DBGOUT("about to short circuit: %s\n", func_name);
 		free(decolon_path);
 		return strdup(path);

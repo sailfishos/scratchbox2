@@ -66,6 +66,24 @@ default_dev = {
 	path = "^/dev",
 }
 
+install = {
+	binary = "^install$",
+	path = ".*",
+	map_to = "="
+}
+
+cp = {
+	binary = "^cp$",
+	path = ".*",
+	map_to = "="
+}
+
+rm = {
+	binary = "^rm$",
+	path = ".*",
+	map_to = "="
+}
+
 libtool = {
 	func_name = "exec.*",
 	path = ".*libtool",
@@ -112,6 +130,9 @@ default_rootdir = {
 }
 
 export_rules = {
+	install,
+	cp,
+	rm,
 	libtool,
 	libtoolm4,
 	ltdlm4,

@@ -57,6 +57,193 @@ char *main_lua = NULL;
 
 pthread_mutex_t lua_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 
+struct path_entry {
+	struct path_entry *prev;
+	struct path_entry *next;
+	char name[PATH_MAX];
+};
+
+static char *decolonize_path(const char *path)
+{
+	char *cpath, *index, *start;
+	char cwd[PATH_MAX];
+	struct path_entry list;
+	struct path_entry *work;
+	struct path_entry *new;
+	char *buf = NULL;
+	
+	if (!path) {
+		DBGOUT("PATH IS CRAP\n");
+		return NULL;
+	}
+	
+	buf = malloc((PATH_MAX + 1) * sizeof(char));
+	memset(buf, '\0', PATH_MAX + 1);
+
+	list.next = NULL;
+	list.prev = NULL;
+	work = &list;
+
+	if (path[0] != '/') {
+		/* not an absolute path */
+		memset(cwd, '\0', PATH_MAX);
+		if (syscall(__NR_getcwd, cwd, PATH_MAX) < 0) {
+			perror("error getting current work dir\n");
+			return NULL;
+		}
+		unsigned int l = (strlen(cwd) + 1 + strlen(path) + 1);
+		cpath = malloc((strlen(cwd) + 1 + strlen(path) + 1) * sizeof(char));
+		memset(cpath, '\0', l);
+		strcpy(cpath, cwd);
+		strcat(cpath, "/");
+		strcat(cpath, path);
+	} else {
+		cpath = strdup(path);
+	}
+	start = cpath + 1; /* ignore leading '/' */
+	while (1) {
+		index = strstr(start, "/");
+		if (!index) {
+			/* add the last item */
+			new = malloc(sizeof(struct path_entry));
+			memset(new->name, '\0', PATH_MAX);
+			new->prev = work;
+			work->next = new;
+			new->next = NULL;
+			strcpy(new->name, start);
+			work = new;
+			break;
+		}
+		*index = '\0';
+		if (strcmp(start, "..") == 0) {
+			/* travel up one */
+			if (!work->prev) goto proceed;
+			work = work->prev;
+			free(work->next);
+			work->next = NULL;
+		} else if (strcmp(start, ".") == 0) {
+			/* ignore */
+			goto proceed;
+		} else {
+			/* add an entry to our path_entry list */
+			new = malloc(sizeof(struct path_entry));
+			memset(new->name, '\0', PATH_MAX);
+			new->prev = work;
+			work->next = new;
+			new->next = NULL;
+			strcpy(new->name, start);
+			work = new;
+		}
+
+proceed:
+		*index = '/';
+		start = index + 1;
+	}
+
+	work = list.next;
+	while (work) {
+		struct path_entry *tmp;
+		strcat(buf, "/");
+		strcat(buf, work->name);
+		//printf("entry name: %s\n", work->name);
+		tmp = work;
+		work = work->next;
+		free(tmp);
+	}
+	return buf;
+}
+
+
+
+static char *create_sb2cache_path(const char *binary_name, const char *func_name, const char *path)
+{
+	char *target_dir = getenv("SBOX_TARGET_ROOT");
+	char *cache_path;
+	unsigned int length;
+
+	length = strlen(target_dir) + strlen(".sb2cache") + strlen(path) + 1 + strlen(binary_name) + 1 + strlen(func_name) + 4 + 1;
+	cache_path = malloc(length * sizeof(char));
+	memset(cache_path, '\0', length);
+	strcpy(cache_path, target_dir);
+	strcat(cache_path, ".sb2cache");
+	strcat(cache_path, path);
+	strcat(cache_path, ".");
+	strcat(cache_path, binary_name);
+	strcat(cache_path, ".");
+	strcat(cache_path, func_name);
+	strcat(cache_path, ".map");
+	return cache_path;
+}
+
+/*
+ * return NULL if not found from cache, or if cache doesn't exist
+ */
+static char *read_sb2cache(const char *binary_name, const char *func_name, const char *path)
+{
+	char *cache_path = create_sb2cache_path(binary_name, func_name, path);
+	char *link_path;
+
+	link_path = malloc((PATH_MAX + 1) * sizeof(char));
+	memset(link_path, '\0', PATH_MAX + 1);
+
+	if (syscall(__NR_readlink, cache_path, link_path, PATH_MAX) < 0) {
+		//DBGOUT("read_sb2cache before free()\n");
+		free(link_path);
+		//DBGOUT("read_sb2cache after free()\n");
+		return NULL;
+	}
+	return link_path;
+}
+
+/*
+ * if the cache dir doesn't exist, this will create it
+ */
+static int insert_sb2cache(const char *binary_name, const char *func_name, const char *path, const char *map_to)
+{
+	char *cache_path;
+	char *dcopy;
+	char *wrk;
+	struct stat64 s;
+
+	cache_path = create_sb2cache_path(binary_name, func_name, path);
+
+	dcopy = strdup(cache_path);
+
+	/* make sure all the directory elements exist, 
+	 * this does nasty stuff in place to dcopy */
+	wrk = dcopy;
+	while (*wrk != '\0') {
+		wrk = strstr(wrk + 1, "/");
+		
+		if (!wrk) break;
+
+		*wrk = '\0';
+		//DBGOUT("checking path: %s\n", dcopy);
+		if (syscall(__NR_stat64, dcopy, &s) < 0) {
+			if (errno == ENOENT || errno == ENOTDIR) {
+				/* create the dir */
+				if (syscall(__NR_mkdir, dcopy, ~0) < 0) {
+					perror("Unable to create dir in sb2cache\n");
+					exit(1);
+				}
+			} else {
+				perror("Big trouble working the sb2cache\n");
+				exit(1);
+			}
+		}
+
+		*wrk = '/';
+		wrk++;
+	}
+
+	if (syscall(__NR_symlink, map_to, cache_path) < 0) {
+		perror("Error while creating symlink in sb2cache\n");
+		exit(1);
+	}
+	return 0;
+}
+
+
 static int sb_realpath(lua_State *l)
 {
 	char *path;
@@ -198,8 +385,43 @@ char *scratchbox_path(const char *func_name, const char *path)
 {	
 	char binary_name[PATH_MAX+1];
 	char work_dir[PATH_MAX+1];
-	char *tmp;
+	char *tmp, *decolon_path;
 	char pidlink[17]; /* /proc/2^8/exe */
+
+	if (!path) return NULL;
+
+	decolon_path = decolonize_path(path);
+
+	if (strstr(decolon_path, getenv("SBOX_TARGET_ROOT"))
+		|| strstr(decolon_path, getenv("HOME"))) {
+		/* short circuit a direct reference to a file inside the sbox 
+		 * target dir, or to $HOME dir */
+		//DBGOUT("about to short circuit: %s\n", func_name);
+		free(decolon_path);
+		return strdup(path);
+	}
+
+	memset(binary_name, '\0', PATH_MAX+1);
+	tmp = getenv("__SB2_BINARYNAME");
+	if (tmp) {
+		strcpy(binary_name, tmp);
+	} else {
+		strcpy(binary_name, "DUMMY");
+	}
+
+	/* first try from the cache */
+
+	tmp = read_sb2cache(binary_name, func_name, decolon_path);
+
+	if (tmp) {
+		if (strcmp(tmp, decolon_path) == 0) {
+			free(decolon_path);
+			return strdup(path);
+		} else {
+			return tmp;
+		}
+	}
+
 #if 1
 	if (pthread_mutex_trylock(&lua_lock) < 0) {
 		pthread_mutex_lock(&lua_lock);
@@ -220,13 +442,6 @@ char *scratchbox_path(const char *func_name, const char *path)
 		strcat(main_lua, "/main.lua");
 	}
 	
-	memset(binary_name, '\0', PATH_MAX+1);
-	tmp = getenv("__SB2_BINARYNAME");
-	if (tmp) {
-		strcpy(binary_name, tmp);
-	} else {
-		strcpy(binary_name, "DUMMY");
-	}
 	memset(work_dir, '\0', PATH_MAX+1);
 	snprintf(pidlink,16,"/proc/%i/exe",sb_getpid());
 //	if (syscall(__NR_readlink, pidlink, binary_name, PATH_MAX) < 0) {
@@ -234,10 +449,11 @@ char *scratchbox_path(const char *func_name, const char *path)
 //	}
 	syscall(__NR_getcwd, work_dir, PATH_MAX);
 
-	/* RECURSIVE CALL BREAK */
-	if (strncmp(path, rsdir, strlen(rsdir)) == 0) {
+	/* redir_scripts RECURSIVE CALL BREAK */
+	if (strncmp(decolon_path, rsdir, strlen(rsdir)) == 0) {
 		//pthread_mutex_unlock(&lua_lock);
-		return (char *)path;
+		//DBGOUT("cutting recursive call\n");
+		return (char *)decolon_path;
 	}
 	
 	if (!l) {
@@ -265,16 +481,25 @@ char *scratchbox_path(const char *func_name, const char *path)
 	lua_pushstring(l, binary_name);
 	lua_pushstring(l, func_name);
 	lua_pushstring(l, work_dir);
-	lua_pushstring(l, path);
+	lua_pushstring(l, decolon_path);
 	lua_call(l, 4, 1); /* four arguments, one result */
-	tmp = lua_tostring(l, -1);
+	tmp = (char *)lua_tostring(l, -1);
 	if (tmp) {
 		tmp = strdup(tmp);
 	}
 	lua_pop(l, 1);
 
 	pthread_mutex_unlock(&lua_lock);
-	return tmp;
+	insert_sb2cache(binary_name, func_name, decolon_path, tmp);
+	//DBGOUT("returning path: [%s]\n", tmp);
+	if (strcmp(tmp, decolon_path) == 0) {
+		free(decolon_path);
+		free(tmp);
+		return strdup(path);
+	} else {
+		free(decolon_path);
+		return tmp;
+	}
 }
 
 

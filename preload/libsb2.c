@@ -85,7 +85,7 @@
  *      if ( amount /../ > amount /other/ ) ) remove extra /../
  */
 
-#define narrow_chroot_path(path, fakechroot_path, fakechroot_ptr) \
+#define narrow_chroot_path(path, fakechroot_path) \
     { \
         if ((path) != NULL && *((char *)(path)) != '\0') { \
             fakechroot_path = scratchbox_path(__FUNCTION__, path); \
@@ -120,11 +120,6 @@
 	} \
     }
 
-/* some useful prototypes */
-
-int ld_so_run_app(char *file, char **argv, char *const *envp);
-int run_app(char *file, char **argv, char *const *envp);
-int run_cputransparency(char *file, char **argv, char *const *envp);
 
 #ifndef __GLIBC__
 extern char **environ;
@@ -1742,7 +1737,7 @@ int ftw64 (const char *dir, int (*fn)(const char *file, const struct stat64 *sb,
 /* #include <unistd.h> */
 char * get_current_dir_name (void) {
     char *cwd, *oldptr, *newptr;
-    char *fakechroot_path, *fakechroot_ptr;
+    char *fakechroot_path;
 
     if (next_get_current_dir_name == NULL) fakechroot_init();
 
@@ -1750,7 +1745,7 @@ char * get_current_dir_name (void) {
         return NULL;
     }
     oldptr = cwd;
-    narrow_chroot_path(cwd, fakechroot_path, fakechroot_ptr);
+    narrow_chroot_path(cwd, fakechroot_path);
     if (cwd == NULL) {
         return NULL;
     }
@@ -1769,14 +1764,14 @@ char * get_current_dir_name (void) {
 char * getcwd (char *buf, size_t size)
 {
     char *cwd;
-    char *fakechroot_path, *fakechroot_ptr;
+    char *fakechroot_path;
 
     if (next_getcwd == NULL) fakechroot_init();
 
     if ((cwd = next_getcwd(buf, size)) == NULL) {
         return NULL;
     }
-    narrow_chroot_path(cwd, fakechroot_path, fakechroot_ptr);
+    narrow_chroot_path(cwd, fakechroot_path);
     return cwd;
 }
 
@@ -1785,14 +1780,14 @@ char * getcwd (char *buf, size_t size)
 char * getwd (char *buf)
 {
     char *cwd;
-    char *fakechroot_path, *fakechroot_ptr;
+    char *fakechroot_path;
 
     if (next_getwd == NULL) fakechroot_init();
 
     if ((cwd = next_getwd(buf)) == NULL) {
         return NULL;
     }
-    narrow_chroot_path(cwd, fakechroot_path, fakechroot_ptr);
+    narrow_chroot_path(cwd, fakechroot_path);
     return cwd;
 }
 
@@ -1814,8 +1809,8 @@ int glob (const char *pattern, int flags, int (*errfunc) (const char *, int), gl
 {
     int rc;
     unsigned int i;
-    char tmp[FAKECHROOT_MAXPATH], *tmpptr;
-    char *fakechroot_path, *fakechroot_ptr;
+    char tmp[FAKECHROOT_MAXPATH];
+    char *fakechroot_path;
 
     expand_chroot_path(pattern, fakechroot_path);
 
@@ -1840,8 +1835,8 @@ int glob64 (const char *pattern, int flags, int (*errfunc) (const char *, int), 
 {
     int rc;
     unsigned int i;
-    char tmp[FAKECHROOT_MAXPATH], *tmpptr;
-    char *fakechroot_path, *fakechroot_ptr;
+    char tmp[FAKECHROOT_MAXPATH];
+    char *fakechroot_path;
 
     if (next_glob64 == NULL) fakechroot_init();
     expand_chroot_path(pattern, fakechroot_path);
@@ -2033,25 +2028,26 @@ int mkdir (const char *pathname, mode_t mode)
 char *mkdtemp (char *template)
 {
     char tmp[FAKECHROOT_MAXPATH], *oldtemplate, *ptr;
-    char *fakechroot_path, *fakechroot_ptr;
+    char *fakechroot_path;
 
-    oldtemplate = template;
+//    oldtemplate = template;
 
-    expand_chroot_path(template, fakechroot_path);
+//    expand_chroot_path(template, fakechroot_path);
 
     if (next_mkdtemp == NULL) fakechroot_init();
 
     if (next_mkdtemp(template) == NULL) {
         return NULL;
     }
-    ptr = tmp;
-    strcpy(ptr, template);
-    narrow_chroot_path(ptr, fakechroot_path, fakechroot_ptr);
-    if (ptr == NULL) {
-        return NULL;
-    }
-    strcpy(oldtemplate, ptr);
-    return oldtemplate;
+//    ptr = tmp;
+//    strcpy(ptr, template);
+//    narrow_chroot_path(ptr, fakechroot_path);
+//    if (ptr == NULL) {
+//        return NULL;
+//    }
+//    strcpy(oldtemplate, ptr);
+//    DBGOUT("before returning from mkdtemp\n");
+    return template;
 }
 #endif
 
@@ -2085,7 +2081,7 @@ int mkstemp (char *template)
 {
     char tmp[FAKECHROOT_MAXPATH], *oldtemplate, *ptr;
     int fd;
-    char *fakechroot_path, *fakechroot_ptr;
+    char *fakechroot_path;
 
     oldtemplate = template;
 
@@ -2098,7 +2094,7 @@ int mkstemp (char *template)
     }
     ptr = tmp;
     strcpy(ptr, template);
-    narrow_chroot_path(ptr, fakechroot_path, fakechroot_ptr);
+    narrow_chroot_path(ptr, fakechroot_path);
     if (ptr != NULL) {
         strcpy(oldtemplate, ptr);
     }
@@ -2111,7 +2107,7 @@ int mkstemp64 (char *template)
 {
     char tmp[FAKECHROOT_MAXPATH], *oldtemplate, *ptr;
     int fd;
-    char *fakechroot_path, *fakechroot_ptr;
+    char *fakechroot_path;
 
     oldtemplate = template;
 
@@ -2124,7 +2120,7 @@ int mkstemp64 (char *template)
     }
     ptr = tmp;
     strcpy(ptr, template);
-    narrow_chroot_path(ptr, fakechroot_path, fakechroot_ptr);
+    narrow_chroot_path(ptr, fakechroot_path);
     if (ptr != NULL) {
         strcpy(oldtemplate, ptr);
     }
@@ -2258,12 +2254,12 @@ int readlink (const char *path, char *buf, READLINK_TYPE_ARG3)
 char *realpath (const char *name, char *resolved)
 {
     char *ptr;
-    char *fakechroot_path, *fakechroot_ptr;
+    char *fakechroot_path;
 
     if (next_realpath == NULL) fakechroot_init();
 
     if ((ptr = next_realpath(name, resolved)) != NULL) {
-        narrow_chroot_path(ptr, fakechroot_path, fakechroot_ptr);
+        narrow_chroot_path(ptr, fakechroot_path);
     }
     return ptr;
 }
@@ -2497,7 +2493,6 @@ int utimes (const char *filename, const struct timeval tv[2])
 
 int uname(struct utsname *buf)
 {
-	char **t;
 	if (next_uname == NULL) fakechroot_init();
 
 	if (next_uname(buf) < 0) {

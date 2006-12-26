@@ -25,117 +25,101 @@
 -- function(binary_name, func_name, work_dir, real_path, path, rule) 
 -- and is expected to return the mapped path. rule argument contains
 -- the rule which triggered the function invocation.
+-- Any undefined values are equivalent to nil values, except for 
+-- binary and func_name, in which case it means ".*"
 
 
 -- three exec rules for running binaries
 default_bin = {
-	binary = ".*",
-	func_name = ".*",
-	func_param = nil,
 	path = "^/bin",
-	map_to = nil,
-	custom_map_func = nil
 }
 
 default_usrbin = {
-	binary = ".*",
-	func_name = ".*",
-	func_param = nil,
 	path = "^/usr/bin",
-	map_to = nil,
-	custom_map_func = nil
 }
 
 default_usrlocalbin = {
-	binary = ".*",
-	func_name = ".*",
-	func_param = nil,
 	path = "^/usr/local/bin",
-	map_to = nil,
-	custom_map_func = nil
 }
 
 default_home = {
-	binary = ".*",
-	func_name = ".*",
-	func_param = nil,
 	path = "^/home",
-	map_to = nil,
-	custom_map_func = nil
 }
 
 default_proc = {
-	binary = ".*",
-	func_name = ".*",
-	func_param = nil,
 	path = "^/proc",
-	map_to = nil,
-	custom_map_func = nil
 }
 
 default_tmp = {
-	binary = ".*",
-	func_name = ".*",
-	func_param = nil,
 	path = "^/tmp",
-	map_to = nil,
-	custom_map_func = nil
 }
 
 default_etc = {
-	binary = ".*",
-	func_name = ".*",
-	func_param = nil,
 	path = "^/etc",
-	map_to = nil,
-	custom_map_func = nil
 }
 
 default_scratchbox = {
-	binary = ".*",
-	func_name = ".*",
-	func_param = nil,
 	path = "^/scratchbox",
-	map_to = nil,
-	custom_map_func = nil
 }
 
 default_dev = {
-	binary = ".*",
-	func_name = ".*",
-	func_param = nil,
 	path = "^/dev",
-	map_to = nil,
-	custom_map_func = nil
 }
 
 libtool = {
-	binary = ".*",
 	func_name = "exec.*",
 	path = ".*libtool",
 	map_to = "+/arch_tools/bin"
 }
 
+libtoolm4 = {
+	path = ".*libtool.m4",
+	map_to = "+/arch_tools/share/aclocal"
+}
+
+ltdlm4 = {
+	path = ".*ltdlm4",
+	map_to = "+/arch_tools/share/aclocal"
+}
+
 qemu = {
 	binary = ".*qemu.*",
-	func_name = ".*",
 	path = "^/",
 	map_to = "="
 }
 
+autoconf = {
+	path = "^/usr/share/autoconf.*"
+}
+
+automake = {
+	path = "^/usr/share/automake.*"
+}
+
+aclocal = {
+	path = "^/usr/share/aclocal.*"
+}
+
+perl = {
+	binary = ".*perl.*",
+	path = "^/usr/lib/perl.*"
+}
+
 -- catch all rule to map everything else to TARGETDIR/
 default_rootdir = {
-	binary = ".*",
-	func_name = ".*",
-	func_param = nil,
 	path = "^/",
 	map_to = "=",
-	custom_map_func = nil
 }
 
 export_rules = {
 	libtool,
+	libtoolm4,
+	ltdlm4,
 	qemu,
+	autoconf,
+	automake,
+	aclocal,
+	perl,
 	default_bin,
 	default_usrbin,
 	default_usrlocalbin,

@@ -49,6 +49,18 @@ if (t ~= nil) then
 				-- from the chunk
 				for i = 1,table.maxn(export_rules) do
 					-- print("loading rule:" .. export_rules[i].binary)
+					-- fill in the default values
+					if (not export_rules[i].binary) then
+						export_rules[i].binary = ".*"
+					end
+					if (not export_rules[i].func_name) then
+						export_rules[i].func_name = ".*"
+					end
+					if (not export_rules[i].path) then
+						-- this is an error, report and exit
+						print("path not specified for a rule in " .. filename)
+						os.exit(1)
+					end
 					table.insert(rules, export_rules[i])
 				end
 			end

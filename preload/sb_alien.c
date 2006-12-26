@@ -13,9 +13,6 @@
 #define LD_LIB_PATH	"/scratchbox/sarge/lib/:/scratchbox/sarge/lib/tls:/scratchbox/sarge/usr/lib"
 #define LD_SO		"/scratchbox/sarge/lib/ld-linux.so.2"
 
-extern int     (*next_execve) (const char *filename, char *const argv [], char *const envp[]);
-
-
 static int endswith(char *haystack, char *needle)
 {
 	return strcmp(&haystack[strlen(haystack)-strlen(needle)], needle)==0;
@@ -115,46 +112,75 @@ char **post_args(char *fname)
 	return padded_list(ret);
 }
 
-
 int run_cputransparency(char *file, char **argv, char *const *envp)
 {
-	char **my_argv, **p;
-	char **my_envp;
-	char *tmp = NULL;
-	int i = 0;
-	
-	my_argv = (char **)calloc(elem_count(argv) + 4 + 1, sizeof(char *));
-	my_envp = (char **)calloc(elem_count(envp) + 1, sizeof(char *));
+	char *cputransp_bin, *target_root;
+	char *basec, *bname;
 
-	tmp = getenv("SBOX_CPUTRANSPARENCY_METHOD");
-	if (!tmp) {
+	cputransp_bin = getenv("SBOX_CPUTRANSPARENCY_METHOD");
+	if (!cputransp_bin) {
 		fprintf(stderr, "SBOX_CPUTRANSPARENCY_METHOD not set, unable to execute the target binary\n");
 		return -1;
 	}
-	my_argv[i++] = strdup(tmp);
-	my_argv[i++] = "-L";
 
-	tmp = getenv("SBOX_TARGET_ROOT");
-	if (!tmp) {
+	target_root = getenv("SBOX_TARGET_ROOT");
+	if (!target_root) {
 		fprintf(stderr, "SBOX_TARGET_ROOT not set, unable to execute the target binary\n");
 		return -1;
 	}
-	my_argv[i++] = strdup(tmp);
+
+	basec = strdup(cputransp_bin);
+	bname = basename(basec);
+
+	if (strstr(bname, "qemu")) {
+		free(basec);
+		return run_qemu(cputransp_bin, target_root, file, argv, envp);
+	} else if (strstr(bname, "sbrsh")) {
+		free(basec);
+		return run_sbrsh(cputransp_bin, target_root, file, argv, envp);
+	}
+
+	free(basec);
+	fprintf(stderr, "run_cputransparency() error: Unknown cputransparency method: [%s]\n", cputransp_bin);
+	return -1;
+}
+
+int run_sbrsh(char *sbrsh_bin, char *target_root, char *file, char **argv, char *const *envp)
+{
+	return -1;
+}
+
+int run_qemu(char *qemu_bin, char *target_root, char *file, char **argv, char *const *envp)
+{
+	char **my_argv, **p;
+	char **my_envp;
+	int i = 0;
+	//DBGOUT("about to run qemu: %s %s %s %s\n", qemu_bin, target_root, file, argv[0]);
+	my_argv = (char **)calloc(elem_count(argv) + 4 + 1, sizeof(char *));
+	my_envp = (char **)calloc(elem_count((char **)envp) + 1, sizeof(char *));
+
+	my_argv[i++] = qemu_bin;
+	my_argv[i++] = "-L";
+
+	my_argv[i++] = target_root;
 	my_argv[i++] = file;
 	for (p=&argv[1]; *p; p++) {
+		//DBGOUT("processing args: [%s]\n", *p);
 		my_argv[i++] = *p;
 	}
 
 	my_argv[i] = NULL;
 	i = 0;
 	for (p=(char **)envp; *p; p++) {
-		/* DBGOUT("ENV: [%s]\n", *p); */
+		//DBGOUT("ENV: [%s]\n", *p);
 		my_envp[i++] = *p;
 	}
 	my_envp[i] = NULL;
 
-
+	//DBGOUT("just before running it [%s][%s]\n", my_argv[0], my_argv[1]);
 	return next_execve(my_argv[0], my_argv, envp);
+	//DBGOUT("after running it\n");
+	return -1;
 }
 
 int run_app(char *file, char **argv, char *const *envp)

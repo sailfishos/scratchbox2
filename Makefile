@@ -44,6 +44,7 @@ install: build
 	@for f in $(gcc_bins_expanded); do \
 		ln -sf sb_gcc_wrapper $$f; \
 	done
+	ln -sf /usr $(prefix)/share/scratchbox2/host_usr
 
 CLEAN_FILES = $(targets)
 

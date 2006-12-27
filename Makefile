@@ -47,7 +47,7 @@ install: build
 	@rm -f $(prefix)/share/scratchbox2/host_usr
 	ln -sf /usr $(prefix)/share/scratchbox2/host_usr
 
-CLEAN_FILES = $(targets)
+CLEAN_FILES = $(targets) config.status config.log
 
 clean:
 	$(ll_clean)

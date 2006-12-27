@@ -27,11 +27,11 @@ export SBOX_LIBSB2 SBOX_REDIR_SCRIPTS SBOX_TARGET_ROOT SBOX_GCCWRAPPER SBOX_TARG
 
 cd $SBOX_TARGET_ROOT
 
-HOST_GCC_INC_DIR=$(gcc --verbose 2>&1 | perl -e 'while(<STDIN>){ print m/--includedir=\/usr\/([^[:space:]]*)/;}')
+HOST_GCC_INC_DIR=$(echo "#include <stdio.h>" | gcc -M -E - | perl -e 'while(<STDIN>) { $foo{$1} = 1 if m/\/usr([^[:space:]]*\/include)/;}; foreach my $k (keys %foo) {print " -isystem $ENV{SBOX_DIR}/share/scratchbox2/host_usr$k"};')
 
 export PATH=$PATH:$SBOX_DIR/bin
 export LD_PRELOAD=$SBOX_LIBSB2
-export SBOX_EXTRA_HOST_COMPILER_ARGS="-isystem $SBOX_DIR/share/scratchbox2/host_usr/include -isystem $SBOX_DIR/share/scratchbox2/host_usr/$HOST_GCC_INC_DIR"
+export SBOX_EXTRA_HOST_COMPILER_ARGS="$HOST_GCC_INC_DIR"
 export SBOX_SCRATCHBOX_CONFIG=$SBOX_TARGET_ROOT/sb2.config
 export PS1="[SB2] \u@\h \w \$ "
 

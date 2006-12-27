@@ -173,12 +173,16 @@ int run_qemu(char *qemu_bin, char *target_root, char *file, char **argv, char *c
 	i = 0;
 	for (p=(char **)envp; *p; p++) {
 		//DBGOUT("ENV: [%s]\n", *p);
+		if (strncmp(*p, "LD_PRELOAD=", strlen("LD_PRELOAD="))==0) {
+			//DBGOUT("skipping LD_PRELOAD\n");
+			continue;
+		}
 		my_envp[i++] = *p;
 	}
 	my_envp[i] = NULL;
 
 	//DBGOUT("just before running it [%s][%s]\n", my_argv[0], my_argv[1]);
-	return next_execve(my_argv[0], my_argv, envp);
+	return next_execve(my_argv[0], my_argv, my_envp);
 	//DBGOUT("after running it\n");
 	return -1;
 }

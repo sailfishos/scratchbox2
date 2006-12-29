@@ -662,11 +662,16 @@ static enum binary_type inspect_binary(const char *filename)
     int fd, phnum, j;
     struct stat status;
     char *region;
-    int reloc0;
     unsigned int ph_base, ph_frag;
+#ifdef __x86_64__
+    uint64_t reloc0;
+    Elf64_Ehdr *ehdr;
+    Elf64_Phdr *phdr;
+#else
+    int reloc0;
     Elf32_Ehdr *ehdr;
     Elf32_Phdr *phdr;
-
+#endif
     retval = BIN_NONE;
 
     fd = syscall(__NR_open, filename, O_RDONLY, 0);
@@ -689,7 +694,11 @@ static enum binary_type inspect_binary(const char *filename)
         goto _out_close;
     }
 
+#ifdef __x86_64__
+    ehdr = (Elf64_Ehdr *) region;
+#else
     ehdr = (Elf32_Ehdr *) region;
+#endif
 
     switch (ehdr->e_machine) {
     case EM_ARM:
@@ -717,7 +726,11 @@ static enum binary_type inspect_binary(const char *filename)
     ph_base = ehdr->e_phoff & PAGE_MASK;
     ph_frag = ehdr->e_phoff - ph_base;
 
+#ifdef __x86_64__
+    phdr = (Elf64_Phdr *) (region + ph_base + ph_frag);
+#else
     phdr = (Elf32_Phdr *) (region + ph_base + ph_frag);
+#endif
 
     for (j = phnum; --j >= 0; ++phdr) {
         if (PT_LOAD == phdr->p_type && ~0 == reloc0) {
@@ -730,7 +743,11 @@ static enum binary_type inspect_binary(const char *filename)
     for (j = phnum; --j >= 0; ++phdr) {
         int szDyn;
         unsigned int pt_base, pt_frag;
+#ifdef __x86_64__
+        Elf64_Dyn *dp_rpath, *dp_strsz, *dp_strtab, *dp;
+#else
         Elf32_Dyn *dp_rpath, *dp_strsz, *dp_strtab, *dp;
+#endif
 
         if (PT_DYNAMIC != phdr->p_type) {
             continue;
@@ -746,7 +763,11 @@ static enum binary_type inspect_binary(const char *filename)
         dp_strsz = NULL;
         dp_strtab = NULL;
 
+#ifdef __x86_64__
+        dp = (Elf64_Dyn *) ((char *) region + pt_base + pt_frag);
+#else
         dp = (Elf32_Dyn *) ((char *) region + pt_base + pt_frag);
+#endif
 
         for (; 0 <= (szDyn -= sizeof (*dp)); ++dp) {
             if (DT_RPATH == dp->d_tag) {

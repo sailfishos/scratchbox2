@@ -269,7 +269,11 @@ static int insert_sb2cache(const char *binary_name, const char *func_name, const
 
 		*wrk = '\0';
 		//DBGOUT("checking path: %s\n", dcopy);
+#ifdef __x86_64__
+		if (syscall(__NR_stat, dcopy, &s) < 0) {
+#else
 		if (syscall(__NR_stat64, dcopy, &s) < 0) {
+#endif
 			if (errno == ENOENT || errno == ENOTDIR) {
 				/* create the dir */
 				if (syscall(__NR_mkdir, dcopy, S_IRWXU) < 0) {
@@ -361,8 +365,11 @@ static int sb_followsymlink(lua_State *l)
 	path = strdup(lua_tostring(l, 1));
 
 	//printf("C thinks path is: %s\n", path);
-	
+#ifdef __x86_64__
+	if (syscall(__NR_lstat, path, &s) < 0) {
+#else
 	if (syscall(__NR_lstat64, path, &s) < 0) {
+#endif
 		/* didn't work
 		 * TODO: error handling 
 		 */
@@ -734,8 +741,11 @@ __sb2_realpath (const char *name, char *resolved)
 
 	  dest = mempcpy (dest, start, end - start);
 	  *dest = '\0';
-
+#ifdef __x86_64__
+	  if (syscall(__NR_lstat, rpath, &st) < 0)
+#else
 	  if (syscall(__NR_lstat64, rpath, &st) < 0)
+#endif
 	    goto error;
 
 	  if (S_ISLNK (st.st_mode))

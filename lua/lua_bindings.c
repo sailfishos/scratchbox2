@@ -37,6 +37,9 @@
 
 #include <sb2.h>
 
+#define enable_mapping() mapping_disabled--;
+#define disable_mapping() mapping_disabled++;
+
 #define __set_errno(e) errno = e
 
 pidfunction *sb_getpid=getpid;
@@ -50,12 +53,14 @@ static int lua_bind_sb_functions(lua_State *l);
 char *__sb2_realpath (const char *name, char *resolved);
 
 /* Lua interpreter */
-lua_State *l;
+__thread lua_State *l = NULL;
 
-char *rsdir = NULL;
-char *main_lua = NULL;
+__thread char *rsdir = NULL;
+__thread char *main_lua = NULL;
+__thread int mapping_disabled = 0;
+__thread time_t sb2_timestamp = 0;
 
-pthread_mutex_t lua_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+__thread pthread_mutex_t lua_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 
 struct path_entry {
 	struct path_entry *prev;
@@ -177,23 +182,61 @@ static char *create_sb2cache_path(const char *binary_name, const char *func_name
 }
 
 /*
- * return NULL if not found from cache, or if cache doesn't exist
+ * return NULL if not found from cache, or if the cache is outdated compared to sb2_timestamp
  */
 static char *read_sb2cache(const char *binary_name, const char *func_name, const char *path)
 {
+	char *link_path = NULL;
+	struct stat64 s;
 	char *cache_path = create_sb2cache_path(binary_name, func_name, path);
-	char *link_path;
+
+	if (lstat64(cache_path, &s) < 0 ||
+		(s.st_mtime < get_sb2_timestamp())) {
+		goto exit;
+	}
 
 	link_path = malloc((PATH_MAX + 1) * sizeof(char));
 	memset(link_path, '\0', PATH_MAX + 1);
 
+
 	if (syscall(__NR_readlink, cache_path, link_path, PATH_MAX) < 0) {
-		//DBGOUT("read_sb2cache before free()\n");
 		free(link_path);
-		//DBGOUT("read_sb2cache after free()\n");
-		return NULL;
+		link_path = NULL;
 	}
+exit:
+	free(cache_path);
 	return link_path;
+}
+
+time_t get_sb2_timestamp(void)
+{
+	DIR *d = NULL;
+	struct dirent *de = NULL;
+	struct stat64 s;
+	time_t t;
+	char *libsb2 = getenv("SBOX_LIBSB2");
+
+	if (sb2_timestamp) return sb2_timestamp;
+	disable_mapping();
+	
+	t = 0;
+	if (stat64(libsb2, &s) < 0) goto exit;
+	t = s.st_mtime;
+
+	if (stat64(main_lua, &s) < 0) goto exit;
+	if (t < s.st_mtime) t = s.st_mtime;
+
+	if ((d = opendir(rsdir)) == NULL) goto exit;
+	while ((de = readdir(d)) != NULL) {
+		if (stat64(de->d_name, &s) < 0) continue;
+		if (t < s.st_mtime) t = s.st_mtime;
+	}
+	closedir(d);
+
+exit:
+	enable_mapping();
+	sb2_timestamp = t;
+	return sb2_timestamp;
 }
 
 /*
@@ -205,6 +248,8 @@ static int insert_sb2cache(const char *binary_name, const char *func_name, const
 	char *dcopy;
 	char *wrk;
 	struct stat64 s;
+
+	disable_mapping();
 
 	cache_path = create_sb2cache_path(binary_name, func_name, path);
 
@@ -223,7 +268,7 @@ static int insert_sb2cache(const char *binary_name, const char *func_name, const
 		if (syscall(__NR_stat64, dcopy, &s) < 0) {
 			if (errno == ENOENT || errno == ENOTDIR) {
 				/* create the dir */
-				if (syscall(__NR_mkdir, dcopy, ~0) < 0) {
+				if (syscall(__NR_mkdir, dcopy, S_IRWXU) < 0) {
 					perror("Unable to create dir in sb2cache\n");
 					exit(1);
 				}
@@ -236,11 +281,18 @@ static int insert_sb2cache(const char *binary_name, const char *func_name, const
 		*wrk = '/';
 		wrk++;
 	}
-
-	if (syscall(__NR_symlink, map_to, cache_path) < 0) {
+	if (lstat64(cache_path, &s) == 0) {
+		/* link exists, remove it */
+		if (unlink(cache_path) < 0) {
+			perror("Error while removing symlink in sb2cache");
+			exit(1);
+		}
+	}
+	if (symlink(map_to, cache_path) < 0) {
 		perror("Error while creating symlink in sb2cache\n");
 		exit(1);
 	}
+	enable_mapping();
 	return 0;
 }
 
@@ -344,7 +396,7 @@ static int sb_getdirlisting(lua_State *l)
 	struct dirent *de;
 	char *path;
 	int count;
-	
+
 	int n = lua_gettop(l);
 	
 	if (n != 1) {
@@ -358,9 +410,12 @@ static int sb_getdirlisting(lua_State *l)
 		lua_pushstring(l, NULL);
 		return 1;
 	}
-	
+
+	disable_mapping();
+
 	if ( (d = opendir(path)) == NULL ) {
 		lua_pushstring(l, NULL);
+		enable_mapping();
 		return 1;
 	}
 	count = 0;
@@ -379,6 +434,7 @@ static int sb_getdirlisting(lua_State *l)
 	lua_pushnumber(l, count - 1);
 	lua_rawset(l, -3);
 	free(path);
+	enable_mapping();
 	return 1;
 }
 
@@ -391,7 +447,7 @@ char *scratchbox_path(const char *func_name, const char *path)
 	char pidlink[17]; /* /proc/2^8/exe */
 
 	if (!path) return NULL;
-	if (getenv("SBOX_DISABLE_MAPPING")) {
+	if (mapping_disabled || getenv("SBOX_DISABLE_MAPPING")) {
 		return strdup(path);
 	}
 

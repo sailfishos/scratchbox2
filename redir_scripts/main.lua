@@ -36,7 +36,7 @@ t = sb.sb_getdirlisting(rsdir .. "/parts")
 if (t ~= nil) then
 	table.sort(t)
 	-- load the individual parts ($SBOX_REDIR_SCRIPTS/parts/*.lua)
-	for n = 0,table.maxn(t) do
+	for n = 1,table.maxn(t) do
 		if (string.match(t[n], "%a*%.lua$")) then
 			-- print("loading part: " .. t[n])
 			filename = rsdir .. "/parts/" .. t[n]

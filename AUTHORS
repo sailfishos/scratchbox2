@@ -1,4 +1,4 @@
-This is a complete list of authors and the modules they are responsible.
+Complete list of authors and their modules:
 
 Lauri Leukkunen <lle@rahina.org>:
 	lua/*
@@ -7,4 +7,10 @@ Lauri Leukkunen <lle@rahina.org>:
 	utils/*
 	include/*
 	scripts/*
+
+Valtteri Rahkonen <valtteri@rahkonen.fi>:
+	x86_64 port
+
+Riku Voipio <riku.voipio@movial.fi>:
+	debian/*
 

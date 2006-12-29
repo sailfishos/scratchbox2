@@ -8,6 +8,8 @@
 #define LUA_BINDINGS_H
 
 char *scratchbox_path(const char *func_name, const char *path);
+char *scratchbox_path2(const char *binary_name, const char *func_name, const char *path);
+
 #include <sys/types.h>
 
 typedef pid_t pidfunction(void);

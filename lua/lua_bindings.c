@@ -120,6 +120,10 @@ static char *decolonize_path(const char *path)
 			break;
 		}
 		*index = '\0';
+		if (index == (start)) {
+			goto proceed; /* skip over empty strings resulting from // */
+		}
+
 		if (strcmp(start, "..") == 0) {
 			/* travel up one */
 			if (!work->prev) goto proceed;
@@ -438,12 +442,25 @@ static int sb_getdirlisting(lua_State *l)
 	return 1;
 }
 
-
 char *scratchbox_path(const char *func_name, const char *path)
-{	
+{
 	char binary_name[PATH_MAX+1];
+	char *tmp;
+
+	memset(binary_name, '\0', PATH_MAX+1);
+	tmp = getenv("__SB2_BINARYNAME");
+	if (tmp) {
+		strcpy(binary_name, tmp);
+	} else {
+		strcpy(binary_name, "DUMMY");
+	}
+	return scratchbox_path2(binary_name, func_name, path);
+}
+
+char *scratchbox_path2(const char *binary_name, const char *func_name, const char *path)
+{	
 	char work_dir[PATH_MAX+1];
-	char *tmp, *decolon_path;
+	char *tmp = NULL, *decolon_path = NULL;
 	char pidlink[17]; /* /proc/2^8/exe */
 
 	if (!path) return NULL;
@@ -461,18 +478,12 @@ char *scratchbox_path(const char *func_name, const char *path)
 		return strdup(path);
 	}
 
-	memset(binary_name, '\0', PATH_MAX+1);
-	tmp = getenv("__SB2_BINARYNAME");
-	if (tmp) {
-		strcpy(binary_name, tmp);
-	} else {
-		strcpy(binary_name, "DUMMY");
-	}
 
 	/* first try from the cache */
 
 #ifndef DISABLE_CACHE
-	tmp = read_sb2cache(binary_name, func_name, decolon_path);
+	tmp = NULL;
+	if (rsdir && main_lua) tmp = read_sb2cache(binary_name, func_name, decolon_path);
 
 	if (tmp) {
 		if (strcmp(tmp, decolon_path) == 0) {

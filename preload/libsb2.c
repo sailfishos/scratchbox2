@@ -943,6 +943,7 @@ static int do_exec(const char *file, char *const *argv, char *const *envp)
 
 	my_envp[i++] = strdup(tmp);
 	free(tmp);
+	my_envp[i] = NULL;
 
 	char const* const* new_env=(char const* const*)my_envp;
 
@@ -961,8 +962,20 @@ static int do_exec(const char *file, char *const *argv, char *const *envp)
 			my_file = strdup(sb_gcc_wrapper);
 		}
 		/*DBGOUT("we've a gcc tool!\n");*/
-		my_argv[i++] = strdup(binaryname);
+		//my_argv[i++] = strdup(binaryname);
 	}
+
+	for (p = (char **)argv; *p; p++) {
+		if (*p[0] == '/' && (
+			strcmp(binaryname, "rm") == 0
+			|| strcmp(binaryname, "ln") == 0)) {
+			my_argv[i++] = scratchbox_path2(binaryname, "execve", *p);
+			//my_argv[i++] = *p;
+		} else {
+			my_argv[i++] = *p;
+		}
+	}
+	my_argv[i] = NULL;
 
 	/* printf("type: %i\n", type);*/ 
 	switch (type) {
@@ -977,14 +990,14 @@ static int do_exec(const char *file, char *const *argv, char *const *envp)
 		case BIN_DYNAMIC:
 			{
 				if (getenv("SBOX_TOOLS_ROOT")) {
-					return ld_so_run_app((char *)my_file, (char **)argv, my_envp);
+					return ld_so_run_app((char *)my_file, (char **)my_argv, my_envp);
 				} else {
-					return run_app((char *)my_file, (char **)argv, my_envp);
+					return run_app((char *)my_file, (char **)my_argv, my_envp);
 				}
 			}
 		case BIN_TARGET:
 			/* DBGOUT("cpu transparency needed\n"); */
-			return run_cputransparency(my_file, (char **)argv, my_envp);
+			return run_cputransparency(my_file, (char **)my_argv, my_envp);
 
 		case BIN_NONE:
 		case BIN_UNKNOWN:
@@ -993,7 +1006,7 @@ static int do_exec(const char *file, char *const *argv, char *const *envp)
 			break;
 	}
 
-	return next_execve(my_file, argv, (char *const*)new_env);
+	return next_execve(my_file, my_argv, (char *const*)new_env);
 }
 
 
@@ -1338,10 +1351,16 @@ void *dlopen (const char *filename, int flag)
 /* #include <unistd.h> */
 int euidaccess (const char *pathname, int mode)
 {
-    char *fakechroot_path;
-    expand_chroot_path(pathname, fakechroot_path);
-    if (next_euidaccess == NULL) fakechroot_init();
-    return next_euidaccess(pathname, mode);
+	char *fakechroot_path;
+	int ret;
+	expand_chroot_path(pathname, fakechroot_path);
+	if (next_euidaccess == NULL) fakechroot_init();
+	ret = next_euidaccess(pathname, mode);
+	if (ret < 0) {
+		DBGOUT("ret: %i\n", ret);
+		perror("joo");
+	}
+	return ret;
 }
 #endif
 

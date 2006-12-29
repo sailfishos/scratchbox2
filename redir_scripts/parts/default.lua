@@ -74,6 +74,12 @@ install = {
 	map_to = "="
 }
 
+ln = {
+	binary = "^ln$",
+	path = ".*",
+	map_to = "="
+}
+
 cp = {
 	binary = "^cp$",
 	path = ".*",
@@ -130,6 +136,7 @@ hostgcc = {
 	map_to = "="
 }
 
+
 -- catch all rule to map everything else to TARGETDIR/
 default_rootdir = {
 	path = "^/",
@@ -137,6 +144,7 @@ default_rootdir = {
 }
 
 export_rules = {
+	ln,
 	install,
 	cp,
 	rm,

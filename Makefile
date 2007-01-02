@@ -1,35 +1,33 @@
 CC = gcc
 CXX = g++
 LD = ld
-PACKAGE_VERSION = "1.99b"
+PACKAGE_VERSION = "1.99.0.1"
 PACKAGE = "SB2"
-CFLAGS = -Wall -W -I$(TOPDIR)/include -D_LARGEFILE_SOURCE=1 -D_LARGEFILE64_SOURCE=1
+CFLAGS = -Wall -W -I./include -D_LARGEFILE_SOURCE=1 -D_LARGEFILE64_SOURCE=1
 CFLAGS += -DSCRATCHBOX_ROOT="$(prefix)"
+CXXFLAGS = 
+
 TOPDIR = $(CURDIR)
-LLBUILD = $(TOPDIR)/llbuild
 
-MAKEFILES = Makefile $(LLBUILD)/Makefile.include
+export CC CFLAGS CXX CXXFLAGS TOPDIR LLBUILD
 
-export CC CFLAGS MAKEFILES TOPDIR LLBUILD
-
+# all-targets variable will be filled by llbuild
+all-targets = 
 subdirs = lua preload utils
-targets = utils/sb_gcc_wrapper
 
+-include .config
+include $(LLBUILD)/Makefile.include
 
-all: build
+all: $(all-targets)
 
 configure: configure.ac
 	./autogen.sh
 	./configure
 
-build: configure
-	$(ll_toplevel_build)
-	@echo Build completed successfully!
-
 gcc_bins = addr2line ar as cc c++ c++filt cpp g++ gcc gcov gdb gdbtui gprof ld nm objcopy objdump ranlib rdi-stub readelf run size strings strip
 gcc_bins_expanded = $(foreach v,$(gcc_bins),$(prefix)/bin/host-$(v))
 
-install: build
+install: $(all-targets)
 	install -d -m 755 $(prefix)/bin
 	install -d -m 755 $(prefix)/lib
 	install -d -m 755 $(prefix)/share/scratchbox2/redir_scripts
@@ -47,12 +45,8 @@ install: build
 	@rm -f $(prefix)/share/scratchbox2/host_usr
 	ln -sf /usr $(prefix)/share/scratchbox2/host_usr
 
-CLEAN_FILES = $(targets) config.status config.log
+CLEAN_FILES = $(all-targets) config.status config.log
 
 clean:
 	$(ll_clean)
-
--include .config
-include $(LLBUILD)/Makefile.include
-
 

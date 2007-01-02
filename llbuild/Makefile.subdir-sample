@@ -1,10 +1,11 @@
 CFLAGS += -Wall -W -fPIC
 LIBS = -ldl -lm
 
-obj-default = ../lua libsb2.o libsb_env.o sb_alien.o
+export CFLAGS LIBS
 
-extra_targets = libsb2.so
+obj-builtin = ../lua libsb2.o libsb_env.o sb_alien.o
+shlib-libsb2.so = built-in.o
 
-libsb2.so: built-in.o
-	$(ll_pretty_link_shared_library)
+extra_targets = shlib-libsb2.so
+
 

@@ -1,17 +1,24 @@
-CC = gcc
-LD = ld
-PACKAGE_VERSION = "1.99b"
-PACKAGE = "SB2"
-CFLAGS = -Wall -W -I$(TOPDIR)/include -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
+# mandatory llbuild variables
 
 TOPDIR = $(CURDIR)
+LLBUILD = $(TOPDIR)/llbuild
+MAKEFILES = Makefile $(LLBUILD)/Makefile.include
 
-MAKEFILES = Makefile $(TOPDIR)/llbuild/Makefile.include
+export TOPDIR LLBUILD MAKEFILES
 
-export CC CFLAGS MAKEFILES TOPDIR
+# user customizable variables
 
-obj-default = lua preload utils
-targets = utils/sb2init
+CC = gcc
+LD = ld
+CFLAGS = -Wall -W -I$(TOPDIR)/include -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
+
+
+export CC CFLAGS LD
+
+# define a shared C language binary target
+
+bin-sample = main.o sample.o
+extra_targets = bin-sample
 
 
 all: build
@@ -25,22 +32,16 @@ build: configure
 	@echo Build completed successfully!
 
 install: build
-	install -d -m 755 $(prefix)/scratchbox/bin
-	install -d -m 755 $(prefix)/scratchbox/lib
-	install -d -m 755 $(prefix)/scratchbox/redir_scripts
-	install -c -m 755 preload/libsb2.so $(prefix)/scratchbox/lib/libsb2.so
-	install -c -m 755 utils/sb2init $(prefix)/scratchbox/bin/sb2init
-	install -c -m 755 scripts/login.sh $(prefix)/login.sh
-	install -c -m 755 scripts/sb2rc $(prefix)/scratchbox/sb2rc
-	install -c -m 644 redir_scripts/main.lua $(prefix)/scratchbox/redir_scripts/main.lua
+	install -d -m 755 $(prefix)/bin
+	install -c -m 755 sample $(prefix)/bin/
 
 
-CLEAN_FILES = $(targets)
+CLEAN_FILES = $(extra_targets)
 
 clean:
 	$(ll_clean)
 
 -include .config
-include $(TOPDIR)/llbuild/Makefile.include
+include $(LLBUILD)/Makefile.include
 
 

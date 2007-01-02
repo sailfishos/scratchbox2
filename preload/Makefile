@@ -1,9 +1,13 @@
-CFLAGS += -Wall -W -fPIC
-LIBS = -ldl -lm -lpthread -lrt
-export CFLAGS
+objs := libsb2.o libsb_env.o sb_alien.o
 
-obj-builtin = ../lua libsb2.o libsb_env.o sb_alien.o
-shlib-libsb2.so = built-in.o
+preload/libsb2.so: $(patsubst %,$(LLPWD)/%,$(objs))
+	$(llbuild_link_shlib)
 
-extra_targets = shlib-libsb2.so
+preload/libsb2.so: lua/liblua_bindings.a
+
+preload/libsb2.so: CFLAGS := $(CFLAGS) -fPIC -Wall -W -I$(TOPDIR)/lua/lua-5.1.1/src
+preload/libsb2.so: LDFLAGS := $(LDFLAGS)
+preload/libsb2.so: LIBS := -ldl -lm -lpthread -lrt 
+
+targets = preload/libsb2.so
 

@@ -1,10 +1,13 @@
-CFLAGS += -fPIC -Wall -W
-CFLAGS += -I./lua-5.1.1/src
+source_list := $(shell find $(LLPWD)/lua-5.1.1/src -name "*.c" -not -name "lua.c" -not -name "luac.c" -not -name "print.c")
 
-export CFLAGS
+objs := $(source_list:.c=.o) $(LLPWD)/lua_bindings.o
 
-source_list := $(shell find ./lua-5.1.1/src -name "*.c" -not -name "lua.c" -not -name "luac.c" -not -name "print.c")
+lua/liblua_bindings.a: $(objs)
+	$(llbuild_link_archive)
 
-#$(warning in lua/Makefile, before defining obj-default)
-obj-builtin := $(source_list:.c=.o) lua_bindings.o
+lua/liblua_bindings.a: override CFLAGS := -fPIC -Wall -W -I./lua/lua-5.1.1/src $(CFLAGS)
+lua/liblua_bindings.a: override LDFLAGS := $(LDFLAGS)
+lua/liblua_bindings.a: override LIBS := 
+
+targets = lua/liblua_bindings.a
 

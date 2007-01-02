@@ -1,4 +1,5 @@
-cxxbin-sb_gcc_wrapper = sb_gcc_wrapper.o sb_config.o
+utils/sb_gcc_wrapper: utils/sb_gcc_wrapper.o utils/sb_config.o
+	$(llbuild_link_shcxxbin)
 
-extra_targets = cxxbin-sb_gcc_wrapper
+targets = utils/sb_gcc_wrapper
 

@@ -1,0 +1,38 @@
+llbuild guide
+*************
+
+Let's assume you have following directory structure:
+
+project/
+	include/
+	src/
+	src/subsystem1
+	src/sybsystem2
+
+
+* install the llbuild directory to project/llbuild
+* copy project/llbuild/Makefile.toplevel-sample to project/Makefile
+* create subdir Makefiles like this:
+
+project/src/Makefile:
+
+obj-builtin = subsystem1 subsystem2
+
+
+project/src/subsystem1/Makefile:
+
+obj-builtin = file1.o file2.o file3.o
+
+
+project/src/subsystem2/Makefile:
+
+obj-builtin = file3.o file4.o
+
+
+* Edit the target name in the toplevel Makefile to suit your needs, for example:
+
+project/Makefile:
+
+bin-project = src
+extra_targets = bin-project
+

@@ -33,12 +33,12 @@
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
-#include "lua_bindings.h"
 
+#include <mapping.h>
 #include <sb2.h>
 
-#define enable_mapping() mapping_disabled--;
-#define disable_mapping() mapping_disabled++;
+#define enable_mapping() mapping_disabled--
+#define disable_mapping() mapping_disabled++
 
 #define __set_errno(e) errno = e
 

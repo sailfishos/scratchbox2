@@ -66,9 +66,10 @@
 #include <sys/user.h>
 #include <sys/mman.h>
 
+#include <mapping.h>
+#include <sb2.h>
+
 #include "sb_env.h"
-#include "lua_bindings.h"
-#include "sb2.h"
 
 #if defined(PATH_MAX)
 #define FAKECHROOT_MAXPATH PATH_MAX

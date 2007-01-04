@@ -13,5 +13,5 @@ utils/sb_gcc_wrapper
 *.lock
 *.d
 autom4te.cache
-lua/liblua_bindings.a
+mapping/libmapping.a
 

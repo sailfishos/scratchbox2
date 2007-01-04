@@ -13,7 +13,7 @@ export CC CFLAGS CXX CXXFLAGS TOPDIR LLBUILD
 
 # targets variable will be filled by llbuild
 targets = 
-subdirs = lua preload utils
+subdirs = mapping preload utils
 
 -include .config
 include $(LLBUILD)/Makefile.include

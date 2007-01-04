@@ -2084,8 +2084,8 @@ int mkdir (const char *pathname, mode_t mode)
 /* #include <stdlib.h> */
 char *mkdtemp (char *template)
 {
-    char tmp[FAKECHROOT_MAXPATH], *oldtemplate, *ptr;
-    char *fakechroot_path;
+//    char tmp[FAKECHROOT_MAXPATH], *oldtemplate, *ptr;
+//    char *fakechroot_path;
 
 //    oldtemplate = template;
 

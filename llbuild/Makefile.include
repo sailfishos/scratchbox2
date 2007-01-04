@@ -30,19 +30,24 @@ __kicker_target: all
 
 TOPDIR := $(CURDIR)
 
+# a useful function to expand paths
+
+define llep
+$(patsubst %,$(LLPWD)/%,$(1))
+endef
+
+
 # import all the subdir Makefiles recursively
 
 define import_dir
 	subdirs := 
 	objects :=
-	targets :=
 	LLPWD := $(1)
 	include $(1)/Makefile
 	dep_files := $$(wildcard $(1)/.*.d)
-ifneq ($$(dep_files),) 
-	include $$(dep_files)
+ifneq ($(dep_files),)
+	include $(dep_files)
 endif
-	all-targets := $$(all-targets) $$(targets)
 	all-objects := $$(all-objects) $$(patsubst %,$(1)/%,$$(objects))
 	tmp := $$(patsubst %,$(1)/%,$$(subdirs))
 	perkele := $$(foreach dir,$$(tmp),$$(eval $$(call import_dir,$$(dir))))
@@ -112,7 +117,7 @@ endif
 define ll_pretty_build_c
 	@run_sources="$<"; \
 	run_target="$@"; \
-	run_cmd="$(CC) $(CFLAGS) -Wp,-MD,$(dir $(@))/.$(notdir $(@)).d -o $@ -c $<"; \
+	run_cmd="$(CC) $(CFLAGS) -Wp,-MT,$@ -Wp,-MMD,$(dir $@).$(notdir $@).d -o $@ -c $<"; \
 	run_alias="CC"; \
 	$(ll_pretty_run)
 endef
@@ -120,7 +125,7 @@ endef
 define ll_pretty_build_cc
 	@run_sources="$<"; \
 	run_target="$@"; \
-	run_cmd="$(CXX) $(CFLAGS) $(CXXFLAGS) -Wp,-MD,$(dir $(@))/.$(notdir $(@)).d -o $@ -c $<"; \
+	run_cmd="$(CXX) $(CFLAGS) $(CXXFLAGS) -Wp,-MT,$@ -Wp,-MMD,$(dir $@)/.$(notdir $@).d -o $@ -c $<"; \
 	run_alias="CXX"; \
 	$(ll_pretty_run)
 endef

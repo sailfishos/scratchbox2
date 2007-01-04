@@ -9,5 +9,5 @@ lua/liblua_bindings.a: override CFLAGS := -fPIC -Wall -W -I./lua/lua-5.1.1/src $
 lua/liblua_bindings.a: override LDFLAGS := $(LDFLAGS)
 lua/liblua_bindings.a: override LIBS := 
 
-targets = lua/liblua_bindings.a
+targets += lua/liblua_bindings.a
 

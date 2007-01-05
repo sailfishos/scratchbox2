@@ -2,14 +2,10 @@
  * Copyright (C) 2006 Lauri Leukkunen <lleukkun@cc.hut.fi>
  *
  * Licensed under LGPL version 2, see top level LICENSE file for details.
- */
-
-
-
-
-/*
- * In the path translation functions we must use syscalls directly to 
- * avoid creating recursive loops of function calls due to wrapping
+ *
+ * In the path translation functions we must either use syscalls directly,
+ * or disable_mapping(); to avoid creating recursive loops of function calls 
+ * due to wrapping.
  */
 
 #define _GNU_SOURCE

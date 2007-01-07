@@ -3,8 +3,9 @@
 
 #define DBGOUT(fmt...) fprintf(stderr, fmt)
 
-extern int (*next_execve) (const char *filename, char *const argv [], char *const envp[]);
+int __next_execve(const char *filename, char *const argv [], char *const envp[]);
 
+int do_exec(const char *file, char *const *argv, char *const *envp);
 int ld_so_run_app(char *file, char **argv, char *const *envp);
 int run_app(char *file, char **argv, char *const *envp);
 int run_cputransparency(char *file, char **argv, char *const *envp);

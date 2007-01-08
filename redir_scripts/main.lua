@@ -31,7 +31,7 @@ rules = {}
 
 -- sb.sb_getdirlisting is provided by lua_bindings.c
 -- it returns a table listing all files in a directory
-t = sb.sb_getdirlisting(rsdir .. "/parts")
+t = sb.sb_getdirlisting(rsdir .. "/preload")
 
 if (t ~= nil) then
 	table.sort(t)

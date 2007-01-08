@@ -217,7 +217,7 @@ int run_qemu(char *qemu_bin, char *target_root, char *file, char **argv, char *c
 	my_envp[i] = NULL;
 
 	//DBGOUT("just before running it [%s][%s]\n", my_argv[0], my_argv[1]);
-	return __next_execve(my_argv[0], my_argv, my_envp);
+	return sb_next_execve(my_argv[0], my_argv, my_envp);
 	//DBGOUT("after running it\n");
 	return -1;
 }
@@ -262,7 +262,7 @@ int run_app(char *file, char **argv, char *const *envp)
 	DBGOUT("**** CRAP ENDS HERE *****\n");
 #endif
 	
-	__next_execve(file, my_argv, envp);
+	sb_next_execve(file, my_argv, envp);
 
 	fprintf(stderr, "libsb2.so failed running (%s): %s\n", file, strerror(errno));
 	return -12;
@@ -320,7 +320,7 @@ int ld_so_run_app(char *file, char **argv, char *const *envp)
 	 */
 
 	if (strcmp(binaryname, ld_so_basename) == 0) {
-		__next_execve(file, argv, envp);
+		sb_next_execve(file, argv, envp);
 		perror("failed to directly run the dynamic linker!\n");
 		return -1;
 	}
@@ -347,7 +347,7 @@ int ld_so_run_app(char *file, char **argv, char *const *envp)
 
 	//printf("about to execute: %s, %s, %s, %s\n", my_argv[0], my_argv[1], my_argv[2], my_argv[3]);
 	
-	__next_execve(my_argv[0], my_argv, envp);
+	sb_next_execve(my_argv[0], my_argv, envp);
 
 	fprintf(stderr, "sb_alien (running %s): %s\n", file, strerror(errno));
 	return -11;
@@ -622,7 +622,7 @@ int do_exec(const char *file, char *const *argv, char *const *envp)
 	if (getenv("SBOX_DISABLE_MAPPING")) {
 		/* just run it, don't worry, be happy! */
 		//DBGOUT("mapping disabled\n");
-		return __next_execve(file, argv, envp);
+		return sb_next_execve(file, argv, envp);
 	}
 	enum binary_type type = inspect_binary(file);
 
@@ -686,8 +686,8 @@ int do_exec(const char *file, char *const *argv, char *const *envp)
 		if (*p[0] == '/' && (
 					strcmp(binaryname, "rm") == 0
 					|| strcmp(binaryname, "ln") == 0)) {
-			my_argv[i++] = scratchbox_path2(binaryname, "execve", *p);
-			//my_argv[i++] = *p;
+			//my_argv[i++] = scratchbox_path2(binaryname, "execve", *p);
+			my_argv[i++] = *p;
 		} else {
 			my_argv[i++] = *p;
 		}
@@ -723,7 +723,7 @@ int do_exec(const char *file, char *const *argv, char *const *envp)
 			break;
 	}
 
-	return __next_execve(my_file, my_argv, (char *const*)new_env);
+	return sb_next_execve(my_file, my_argv, (char *const*)new_env);
 }
 
 

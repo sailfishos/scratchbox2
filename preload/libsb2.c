@@ -70,13 +70,13 @@
 #include <sb2.h>
 
 #if defined(PATH_MAX)
-#define FAKECHROOT_MAXPATH PATH_MAX
+#define SBOX_MAXPATH PATH_MAX
 #elif defined(_POSIX_PATH_MAX)
-#define FAKECHROOT_MAXPATH _POSIX_PATH_MAX
+#define SBOX_MAXPATH _POSIX_PATH_MAX
 #elif defined(MAXPATHLEN)
-#define FAKECHROOT_MAXPATH MAXPATHLEN
+#define SBOX_MAXPATH MAXPATHLEN
 #else
-#define FAKECHROOT_MAXPATH 2048
+#define SBOX_MAXPATH 2048
 #endif
 
 /* XXX: current code allows ./usr/bin/../../../../../ style escaping 
@@ -84,29 +84,39 @@
  *      if ( amount /../ > amount /other/ ) ) remove extra /../
  */
 
-#define narrow_chroot_path(path, fakechroot_path) \
+#define SBOX_MAP_PROLOGUE() \
+	char *sbox_path;
+
+#define SBOX_MAP_AT_PROLOGUE() \
+	char *sbox_path;
+
+#define SBOX_MAP_PATH_NARROW(path, sbox_path) \
 { \
 	if ((path) != NULL && *((char *)(path)) != '\0') { \
-		fakechroot_path = scratchbox_path(__FUNCTION__, path); \
-		(path) = fakechroot_path; \
+		sbox_path = scratchbox_path(__FUNCTION__, path); \
+		(path) = sbox_path; \
 	} \
 }
 
-#define expand_chroot_path(path, fakechroot_path) \
+#define SBOX_MAP_PATH(path, sbox_path) \
 { \
 	if ((path) != NULL) { \
-		fakechroot_path = scratchbox_path(__FUNCTION__, path); \
-		(path) = fakechroot_path; \
+		sbox_path = scratchbox_path(__FUNCTION__, path); \
+		(path) = sbox_path; \
 	} \
 }
 
-#define expand_chroot_path_malloc(path, fakechroot_path) \
+#define SBOX_MAP_PATH_AT(dirfd, path, sbox_path) \
 { \
 	if ((path) != NULL) { \
-		fakechroot_path = scratchbox_path(__FUNCTION__, path); \
-		(path) = fakechroot_path; \
+		if (path[0] == '/') { \
+			/* absolute path */ \
+			sbox_path = scratchbox_path(__FUNCTION__, path); \
+			(path) = sbox_path; \
+		} \
 	} \
 }
+
 
 #define nextsym(function, name) \
 { \
@@ -321,10 +331,22 @@ static int     (*next_euidaccess) (const char *pathname, int mode) = NULL;
 /* static int     (*next_execv) (const char *path, char *const argv []) = NULL; */
 int     (*next_execve) (const char *filename, char *const argv [], char *const envp[]) = NULL;
 static int     (*next_execvp) (const char *file, char *const argv []) = NULL;
+#ifdef HAVE_FACCESSAT
+static int (*next_faccessat) (int dirfd, const char *pathname, int mode, int flags) = NULL;
+#endif
+#ifdef HAVE_FCHMODAT
+static int (*next_fchmodat) (int dirfd, const char *pathname, mode_t mode, int flags) = NULL;
+#endif
+#ifdef HAVE_FCHOWNAT
+static int (*next_fchownat) (int dirfd, const char *pathname, uid_t owner, gid_t group, int flags) = NULL;
+#endif
 static FILE *  (*next_fopen) (const char *path, const char *mode) = NULL;
 static FILE *  (*next_fopen64) (const char *path, const char *mode) = NULL;
 static FILE *  (*next_freopen) (const char *path, const char *mode, FILE *stream) = NULL;
 static FILE *  (*next_freopen64) (const char *path, const char *mode, FILE *stream) = NULL;
+#ifdef HAVE_FSTATAT
+static int (*next_fstatat) (int dirfd, const char *pathname, struct stat *buf, int flags) = NULL;
+#endif
 #ifdef HAVE_FTS_OPEN
 #if !defined(HAVE___OPENDIR2)
 static FTS *   (*next_fts_open) (char * const *path_argv, int options, int (*compar)(const FTSENT **, const FTSENT **)) = NULL;
@@ -339,6 +361,9 @@ static int     (*next_ftw) (const char *dir, int (*fn)(const char *file, const s
 #if !defined(HAVE___OPENDIR2) && !defined(HAVE__XFTW)
 static int     (*next_ftw64) (const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag), int nopenfd) = NULL;
 #endif
+#endif
+#ifdef HAVE_FUTIMESAT
+static int (*next_futimesat) (int dirfd, const char *pathname, const struct timeval times[2]) = NULL;
 #endif
 #ifdef HAVE_GET_CURRENT_DIR_NAME
 static char *  (*next_get_current_dir_name) (void) = NULL;
@@ -366,6 +391,9 @@ static int     (*next_lchown) (const char *path, uid_t owner, gid_t group) = NUL
 static ssize_t (*next_lgetxattr) (const char *path, const char *name, void *value, size_t size) = NULL;
 #endif
 static int     (*next_link) (const char *oldpath, const char *newpath) = NULL;
+#ifdef HAVE_LINKAT
+static int     (*next_linkat) (int olddirfd, const char *oldpath, int newdirfd, const char *newpath, int flags) = NULL;
+#endif
 #ifdef HAVE_LISTXATTR
 static ssize_t (*next_listxattr) (const char *path, char *list, size_t size) = NULL;
 #endif
@@ -390,11 +418,20 @@ static int     (*next_lstat64) (const char *file_name, struct stat64 *buf) = NUL
 static int     (*next_lutimes) (const char *filename, const struct timeval tv[2]) = NULL;
 #endif
 static int     (*next_mkdir) (const char *pathname, mode_t mode) = NULL;
+#ifdef HAVE_MKDIRAT
+static int (*next_mkdirat) (int dirfd, const char *pathname, mode_t mode) = NULL;
+#endif
 #ifdef HAVE_MKDTEMP
 static char *  (*next_mkdtemp) (char *template) = NULL;
 #endif
 static int     (*next_mknod) (const char *pathname, mode_t mode, dev_t dev) = NULL;
+#ifdef HAVE_MKNODAT
+static int     (*next_mknodat) (int dirfd, const char *pathname, mode_t mode, dev_t dev) = NULL;
+#endif
 static int     (*next_mkfifo) (const char *pathname, mode_t mode) = NULL;
+#ifdef HAVE_MKFIFOAT
+static int     (*next_mkfifoat) (int dirfd, const char *pathname, mode_t mode) = NULL;
+#endif
 static int     (*next_mkstemp) (char *template) = NULL;
 static int     (*next_mkstemp64) (char *template) = NULL;
 static char *  (*next_mktemp) (char *template) = NULL;
@@ -406,17 +443,29 @@ static int     (*next_nftw64) (const char *dir, int (*fn)(const char *file, cons
 #endif
 static int     (*next_open) (const char *pathname, int flags, ...) = NULL;
 static int     (*next_open64) (const char *pathname, int flags, ...) = NULL;
+#ifdef HAVE_OPENAT
+static int     (*next_openat) (int dirfd, const char *pathname, int flags, ...) = NULL;
+#endif
+#ifdef HAVE_OPENAT64
+static int     (*next_openat64) (int dirfd, const char *pathname, int flags, ...) = NULL;
+#endif
 #if !defined(HAVE___OPENDIR2)
 static DIR *   (*next_opendir) (const char *name) = NULL;
 #endif
 static long    (*next_pathconf) (const char *path, int name) = NULL;
 static int     (*next_readlink) (const char *path, char *buf, READLINK_TYPE_ARG3) = NULL;
+#ifdef HAVE_READLINKAT
+static int     (*next_readlinkat) (int dirfd, const char *pathname, char *buf, size_t bufsiz) = NULL;
+#endif
 static char *  (*next_realpath) (const char *name, char *resolved) = NULL;
 static int     (*next_remove) (const char *pathname) = NULL;
 #ifdef HAVE_REMOVEXATTR
 static int     (*next_removexattr) (const char *path, const char *name) = NULL;
 #endif
 static int     (*next_rename) (const char *oldpath, const char *newpath) = NULL;
+#ifdef HAVE_RENAMEAT
+static int     (*next_renameat) (int olddirfd, const char *oldpath, int newdirfd, const char *newpath) = NULL;
+#endif
 #ifdef HAVE_REVOKE
 static int     (*next_revoke) (const char *file) = NULL;
 #endif
@@ -439,6 +488,9 @@ static int     (*next_stat64) (const char *file_name, struct stat64 *buf) = NULL
 #endif
 #endif
 static int     (*next_symlink) (const char *oldpath, const char *newpath) = NULL;
+#ifdef HAVE_SYMLINKAT
+static int     (*next_symlinkat) (const char *oldpath, int newdirfd, const char *newpath) = NULL;
+#endif
 static char *  (*next_tempnam) (const char *dir, const char *pfx) = NULL;
 static char *  (*next_tmpnam) (char *s) = NULL;
 static int     (*next_truncate) (const char *path, off_t length) = NULL;
@@ -446,6 +498,9 @@ static int     (*next_truncate) (const char *path, off_t length) = NULL;
 static int     (*next_truncate64) (const char *path, off64_t length) = NULL;
 #endif
 static int     (*next_unlink) (const char *pathname) = NULL;
+#ifdef HAVE_UNLINKAT
+static int     (*next_unlinkat) (int dirfd, const char *pathname, int flags) = NULL;
+#endif
 #ifdef HAVE_ULCKPWDF
 /* static int     (*next_ulckpwdf) (void) = NULL; */
 #endif
@@ -458,8 +513,8 @@ static int     (*next_uname) (struct utsname *buf) = NULL;
 
 
 
-void fakechroot_init (void) __attribute((constructor));
-void fakechroot_init (void)
+void libsb2_init (void) __attribute((constructor));
+void libsb2_init (void)
 {
 	//DBGOUT("fakechroot init start: %i\n", getpid());
 #ifdef HAVE___LXSTAT
@@ -494,7 +549,6 @@ void fakechroot_init (void)
 	nextsym(chdir, "chdir");
 	nextsym(chmod, "chmod");
 	nextsym(chown, "chown");
-	/*    nextsym(chroot, "chroot"); */
 	nextsym(creat, "creat");
 	nextsym(creat64, "creat64");
 #ifdef HAVE_DLMOPEN
@@ -510,10 +564,22 @@ void fakechroot_init (void)
 	/*    nextsym(execv, "execv"); */
 	nextsym(execve, "execve");
 	nextsym(execvp, "execvp");
+#ifdef HAVE_FACCESSAT
+	nextsym(faccessat, "faccessat");
+#endif
+#ifdef HAVE_FCHMODAT
+	nextsym(fchmodat, "fchmodat");
+#endif
+#ifdef HAVE_FCHOWNAT
+	nextsym(fchownat, "fchownat");
+#endif
 	nextsym(fopen, "fopen");
 	nextsym(fopen64, "fopen64");
 	nextsym(freopen, "freopen");
 	nextsym(freopen64, "freopen64");
+#ifdef HAVE_FSTATAT
+	nextsym(fstatat, "fstatat");
+#endif
 #ifdef HAVE_FTS_OPEN
 #if !defined(HAVE___OPENDIR2)
 	nextsym(fts_open, "fts_open");
@@ -528,6 +594,9 @@ void fakechroot_init (void)
 #if !defined(HAVE___OPENDIR2) && !defined(HAVE__XFTW)
 	nextsym(ftw64, "ftw64");
 #endif
+#endif
+#ifdef HAVE_FUTIMESAT
+	nextsym(futimesat, "futimesat");
 #endif
 #ifdef HAVE_GET_CURRENT_DIR_NAME
 	nextsym(get_current_dir_name, "get_current_dir_name");
@@ -555,6 +624,9 @@ void fakechroot_init (void)
 	nextsym(lgetxattr, "lgetxattr");
 #endif
 	nextsym(link, "link");
+#ifdef HAVE_LINKAT
+	nextsym(linkat, "linkat");
+#endif
 #ifdef HAVE_LISTXATTR
 	nextsym(listxattr, "listxattr");
 #endif
@@ -579,11 +651,20 @@ void fakechroot_init (void)
 	nextsym(lutimes, "lutimes");
 #endif
 	nextsym(mkdir, "mkdir");
+#ifdef HAVE_MKDIRAT
+	nextsym(mkdirat, "mkdirat");
+#endif
 #ifdef HAVE_MKDTEMP
 	nextsym(mkdtemp, "mkdtemp");
 #endif
 	nextsym(mknod, "mknod");
+#ifdef HAVE_MKNODAT
+	nextsym(mknodat, "mknodat");
+#endif
 	nextsym(mkfifo, "mkfifo");
+#ifdef HAVE_MKFIFOAT
+	nextsym(mkfifoat, "mkfifoat");
+#endif
 	nextsym(mkstemp, "mkstemp");
 	nextsym(mkstemp64, "mkstemp64");
 	nextsym(mktemp, "mktemp");
@@ -594,18 +675,30 @@ void fakechroot_init (void)
 	nextsym(nftw64, "nftw64");
 #endif
 	nextsym(open, "open");
+#ifdef HAVE_OPENAT
+	nextsym(openat, "openat");
+#endif
 	nextsym(open64, "open64");
+#ifdef HAVE_OPENAT64
+	nextsym(openat64, "openat64");
+#endif
 #if !defined(HAVE___OPENDIR2)
 	nextsym(opendir, "opendir");
 #endif
 	nextsym(pathconf, "pathconf");
 	nextsym(readlink, "readlink");
+#ifdef HAVE_READLINKAT
+	nextsym(readlinkat, "readlinkat");
+#endif
 	nextsym(realpath, "realpath");
 	nextsym(remove, "remove");
 #ifdef HAVE_REMOVEXATTR
 	nextsym(removexattr, "removexattr");
 #endif
 	nextsym(rename, "rename");
+#ifdef HAVE_RENAMEAT
+	nextsym(renameat, "renameat");
+#endif
 #ifdef HAVE_REVOKE
 	nextsym(revoke, "revoke");
 #endif
@@ -628,6 +721,9 @@ void fakechroot_init (void)
 #endif
 #endif
 	nextsym(symlink, "symlink");
+#ifdef HAVE_SYMLINKAT
+	nextsym(symlinkat, "symlinkat");
+#endif
 	nextsym(tempnam, "tempnam");
 	nextsym(tmpnam, "tmpnam");
 	nextsym(truncate, "truncate");
@@ -635,6 +731,9 @@ void fakechroot_init (void)
 	nextsym(truncate64, "truncate64");
 #endif
 	nextsym(unlink, "unlink");
+#ifdef HAVE_UNLINKAT
+	nextsym(unlinkat, "unlinkat");
+#endif
 #ifdef HAVE_ULCKPWDF
 	/*    nextsym(ulckpwdf, "ulckpwdf"); */
 #endif
@@ -645,9 +744,9 @@ void fakechroot_init (void)
 }
 
 
-int __next_execve(const char *file, char *const *argv, char *const *envp)
+int sb_next_execve(const char *file, char *const *argv, char *const *envp)
 {
-	if (next_execve == NULL) fakechroot_init();
+	if (next_execve == NULL) libsb2_init();
 	return next_execve(file, argv, envp);
 }
 
@@ -657,9 +756,9 @@ int __next_execve(const char *file, char *const *argv, char *const *envp)
 /* #include <unistd.h> */
 int __lxstat (int ver, const char *filename, struct stat *buf)
 {
-	char *fakechroot_path;
-	expand_chroot_path(filename, fakechroot_path);
-	if (next___lxstat == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(filename, sbox_path);
+	if (next___lxstat == NULL) libsb2_init();
 	return next___lxstat(ver, filename, buf);
 }
 #endif
@@ -670,10 +769,11 @@ int __lxstat (int ver, const char *filename, struct stat *buf)
 /* #include <unistd.h> */
 int __lxstat64 (int ver, const char *filename, struct stat64 *buf)
 {
+	SBOX_MAP_PROLOGUE();
 	int r;
-	char *fakechroot_path;
-	expand_chroot_path(filename, fakechroot_path);
-	if (next___lxstat64 == NULL) fakechroot_init();
+
+	SBOX_MAP_PATH(filename, sbox_path);
+	if (next___lxstat64 == NULL) libsb2_init();
 	r = next___lxstat64(ver, filename, buf);
 	return r;
 }
@@ -684,11 +784,10 @@ int __lxstat64 (int ver, const char *filename, struct stat64 *buf)
 /* Internal libc function */
 int __open (const char *pathname, int flags, ...)
 {
+	SBOX_MAP_PROLOGUE();
 	int mode = 0;
-	char *fakechroot_path;
 
-	printf("Avataan filu %s\n",pathname);
-	expand_chroot_path(pathname, fakechroot_path);
+	SBOX_MAP_PATH(pathname, sbox_path);
 
 	if (flags & O_CREAT) {
 		va_list arg;
@@ -697,7 +796,7 @@ int __open (const char *pathname, int flags, ...)
 		va_end (arg);
 	}
 
-	if (next___open == NULL) fakechroot_init();
+	if (next___open == NULL) libsb2_init();
 	return next___open(pathname, flags, mode);
 }
 #endif
@@ -707,11 +806,10 @@ int __open (const char *pathname, int flags, ...)
 /* Internal libc function */
 int __open64 (const char *pathname, int flags, ...)
 {
+	SBOX_MAP_PROLOGUE();
 	int mode = 0;
-	char *fakechroot_path;
 
-	printf("Avataan filu64 %s\n",pathname);
-	expand_chroot_path(pathname, fakechroot_path);
+	SBOX_MAP_PATH(pathname, sbox_path);
 
 	if (flags & O_CREAT) {
 		va_list arg;
@@ -720,7 +818,7 @@ int __open64 (const char *pathname, int flags, ...)
 		va_end (arg);
 	}
 
-	if (next___open64 == NULL) fakechroot_init();
+	if (next___open64 == NULL) libsb2_init();
 	return next___open64(pathname, flags, mode);
 }
 #endif
@@ -731,9 +829,9 @@ int __open64 (const char *pathname, int flags, ...)
 /* #include <dirent.h> */
 DIR *__opendir2 (const char *name, int flags)
 {
-	char *fakechroot_path;
-	expand_chroot_path(name, fakechroot_path);
-	if (next___opendir2 == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(name, sbox_path);
+	if (next___opendir2 == NULL) libsb2_init();
 	return next___opendir2(name, flags);
 }
 #endif
@@ -744,9 +842,9 @@ DIR *__opendir2 (const char *name, int flags)
 /* #include <unistd.h> */
 int __xmknod (int ver, const char *path, mode_t mode, dev_t *dev)
 {
-	char *fakechroot_path;
-	expand_chroot_path(path, fakechroot_path);
-	if (next___xmknod == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(path, sbox_path);
+	if (next___xmknod == NULL) libsb2_init();
 	return next___xmknod(ver, path, mode, dev);
 }
 #endif
@@ -757,9 +855,9 @@ int __xmknod (int ver, const char *path, mode_t mode, dev_t *dev)
 /* #include <unistd.h> */
 int __xstat (int ver, const char *filename, struct stat *buf)
 {
-	char *fakechroot_path;
-	expand_chroot_path(filename, fakechroot_path);
-	if (next___xstat == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(filename, sbox_path);
+	if (next___xstat == NULL) libsb2_init();
 	return next___xstat(ver, filename, buf);
 }
 #endif
@@ -770,9 +868,9 @@ int __xstat (int ver, const char *filename, struct stat *buf)
 /* #include <unistd.h> */
 int __xstat64 (int ver, const char *filename, struct stat64 *buf)
 {
-	char *fakechroot_path;
-	expand_chroot_path(filename, fakechroot_path);
-	if (next___xstat64 == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(filename, sbox_path);
+	if (next___xstat64 == NULL) libsb2_init();
 	return next___xstat64(ver, filename, buf);
 }
 #endif
@@ -782,9 +880,9 @@ int __xstat64 (int ver, const char *filename, struct stat64 *buf)
 /* include <ftw.h> */
 int _xftw (int mode, const char *dir, int (*fn)(const char *file, const struct stat *sb, int flag), int nopenfd)
 {
-	char *fakechroot_path;
-	expand_chroot_path(dir, fakechroot_path);
-	if (next__xftw == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(dir, sbox_path);
+	if (next__xftw == NULL) libsb2_init();
 	return next__xftw(mode, dir, fn, nopenfd);
 }
 #endif
@@ -794,9 +892,9 @@ int _xftw (int mode, const char *dir, int (*fn)(const char *file, const struct s
 /* include <ftw.h> */
 int _xftw64 (int mode, const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag), int nopenfd)
 {
-	char *fakechroot_path;
-	expand_chroot_path(dir, fakechroot_path);
-	if (next__xftw64 == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(dir, sbox_path);
+	if (next__xftw64 == NULL) libsb2_init();
 	return next__xftw64(mode, dir, fn, nopenfd);
 }
 #endif
@@ -805,9 +903,9 @@ int _xftw64 (int mode, const char *dir, int (*fn)(const char *file, const struct
 /* #include <unistd.h> */
 int access (const char *pathname, int mode)
 {
-	char *fakechroot_path;
-	expand_chroot_path(pathname, fakechroot_path);
-	if (next_access == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(pathname, sbox_path);
+	if (next_access == NULL) libsb2_init();
 	return next_access(pathname, mode);
 }
 
@@ -815,9 +913,9 @@ int access (const char *pathname, int mode)
 /* #include <unistd.h> */
 int acct (const char *filename)
 {
-	char *fakechroot_path;
-	expand_chroot_path(filename, fakechroot_path);
-	if (next_acct == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(filename, sbox_path);
+	if (next_acct == NULL) libsb2_init();
 	return next_acct(filename);
 }
 
@@ -826,9 +924,9 @@ int acct (const char *filename)
 /* #include <stdlib.h> */
 char *canonicalize_file_name (const char *name)
 {
-	char *fakechroot_path;
-	expand_chroot_path(name, fakechroot_path);
-	if (next_canonicalize_file_name == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(name, sbox_path);
+	if (next_canonicalize_file_name == NULL) libsb2_init();
 	return next_canonicalize_file_name(name);
 }
 #endif
@@ -837,9 +935,9 @@ char *canonicalize_file_name (const char *name)
 /* #include <unistd.h> */
 int chdir (const char *path)
 {
-	char *fakechroot_path;
-	expand_chroot_path(path, fakechroot_path);
-	if (next_chdir == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(path, sbox_path);
+	if (next_chdir == NULL) libsb2_init();
 	return next_chdir(path);
 }
 
@@ -848,9 +946,9 @@ int chdir (const char *path)
 /* #include <sys/stat.h> */
 int chmod (const char *path, mode_t mode)
 {
-	char *fakechroot_path;
-	expand_chroot_path(path, fakechroot_path);
-	if (next_chmod == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(path, sbox_path);
+	if (next_chmod == NULL) libsb2_init();
 	return next_chmod(path, mode);
 }
 
@@ -859,78 +957,12 @@ int chmod (const char *path, mode_t mode)
 /* #include <unistd.h> */
 int chown (const char *path, uid_t owner, gid_t group)
 {
-	char *fakechroot_path;
-	expand_chroot_path(path, fakechroot_path);
-	if (next_chown == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(path, sbox_path);
+	if (next_chown == NULL) libsb2_init();
 	return next_chown(path, owner, group);
 }
 
-
-/* #include <unistd.h> */
-/* XXX: fixing needed for scratchbox2 */
-int chroot (const char *path)
-{
-	char *ptr, *ld_library_path, *tmp, *fakechroot_path;
-	int status, len;
-	char dir[FAKECHROOT_MAXPATH];
-#if !defined(HAVE_SETENV)
-	char *envbuf;
-#endif
-
-	fakechroot_path = getenv("FAKECHROOT_BASE");
-	if (fakechroot_path != NULL) {
-		return EFAULT;
-	}
-
-	if ((status = chdir(path)) != 0) {
-		return status;
-	}
-
-	if (getcwd(dir, FAKECHROOT_MAXPATH) == NULL) {
-		return EFAULT;
-	}
-
-	ptr = rindex(dir, 0);
-	if (ptr > dir) {
-		ptr--;
-		while (*ptr == '/') {
-			*ptr-- = 0;
-		}
-	}
-
-#if defined(HAVE_SETENV)
-	setenv("FAKECHROOT_BASE", dir, 1);
-#else
-	envbuf = malloc(FAKECHROOT_MAXPATH+16);
-	snprintf(envbuf, FAKECHROOT_MAXPATH+16, "FAKECHROOT_BASE=%s", dir);
-	putenv(envbuf);
-#endif
-	fakechroot_path = getenv("FAKECHROOT_BASE");
-
-	ld_library_path = getenv("LD_LIBRARY_PATH");
-	if (ld_library_path == NULL) {
-		ld_library_path = "";
-	}
-
-	if ((len = strlen(ld_library_path)+strlen(dir)*2+sizeof(":/usr/lib:/lib")) > FAKECHROOT_MAXPATH) {
-		return ENAMETOOLONG;
-	}
-
-	if ((tmp = malloc(len)) == NULL) {
-		return ENOMEM;
-	}
-
-	snprintf(tmp, len, "%s:%s/usr/lib:%s/lib", ld_library_path, dir, dir);
-#if defined(HAVE_SETENV)
-	setenv("LD_LIBRARY_PATH", tmp, 1);
-#else
-	envbuf = malloc(FAKECHROOT_MAXPATH+16);
-	snprintf(envbuf, FAKECHROOT_MAXPATH+16, "LD_LIBRARY_PATH=%s", tmp);
-	putenv(envbuf);
-#endif
-	free(tmp);
-	return 0;
-}
 
 
 /* #include <sys/types.h> */
@@ -938,9 +970,9 @@ int chroot (const char *path)
 /* #include <fcntl.h> */
 int creat (const char *pathname, mode_t mode)
 {
-	char *fakechroot_path;
-	expand_chroot_path(pathname, fakechroot_path);
-	if (next_creat == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(pathname, sbox_path);
+	if (next_creat == NULL) libsb2_init();
 	return next_creat(pathname, mode);
 }
 
@@ -950,9 +982,9 @@ int creat (const char *pathname, mode_t mode)
 /* #include <fcntl.h> */
 int creat64 (const char *pathname, mode_t mode)
 {
-	char *fakechroot_path;
-	expand_chroot_path(pathname, fakechroot_path);
-	if (next_creat64 == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(pathname, sbox_path);
+	if (next_creat64 == NULL) libsb2_init();
 	return next_creat64(pathname, mode);
 }
 
@@ -961,9 +993,9 @@ int creat64 (const char *pathname, mode_t mode)
 /* #include <dlfcn.h> */
 void *dlmopen (Lmid_t nsid, const char *filename, int flag)
 {
-	char *fakechroot_path;
-	expand_chroot_path(filename, fakechroot_path);
-	if (next_dlmopen == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(filename, sbox_path);
+	if (next_dlmopen == NULL) libsb2_init();
 	return next_dlmopen(nsid, filename, flag);
 }
 #endif
@@ -972,9 +1004,9 @@ void *dlmopen (Lmid_t nsid, const char *filename, int flag)
 /* #include <dlfcn.h> */
 void *dlopen (const char *filename, int flag)
 {
-	char *fakechroot_path;
-	expand_chroot_path(filename, fakechroot_path);
-	if (next_dlopen == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(filename, sbox_path);
+	if (next_dlopen == NULL) libsb2_init();
 	return next_dlopen(filename, flag);
 }
 
@@ -983,16 +1015,10 @@ void *dlopen (const char *filename, int flag)
 /* #include <unistd.h> */
 int euidaccess (const char *pathname, int mode)
 {
-	char *fakechroot_path;
-	int ret;
-	expand_chroot_path(pathname, fakechroot_path);
-	if (next_euidaccess == NULL) fakechroot_init();
-	ret = next_euidaccess(pathname, mode);
-	if (ret < 0) {
-		DBGOUT("ret: %i\n", ret);
-		perror("joo");
-	}
-	return ret;
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(pathname, sbox_path);
+	if (next_euidaccess == NULL) libsb2_init();
+	return next_euidaccess(pathname, mode);
 }
 #endif
 
@@ -1129,20 +1155,20 @@ int execv (const char *path, char *const argv [])
 /* #include <unistd.h> */
 int execve (const char *filename, char *const argv [], char *const envp[])
 {
+	SBOX_MAP_PROLOGUE();
 	int file;
-	char hashbang[FAKECHROOT_MAXPATH];
+	char hashbang[SBOX_MAXPATH];
 	size_t argv_max = 1024;
 	const char **newargv = alloca (argv_max * sizeof (const char *));
-	char tmp[FAKECHROOT_MAXPATH], 
-	     newfilename[FAKECHROOT_MAXPATH], 
-	     argv0[FAKECHROOT_MAXPATH];
+	char tmp[SBOX_MAXPATH], 
+	     newfilename[SBOX_MAXPATH], 
+	     argv0[SBOX_MAXPATH];
 	char *ptr;
 	int k;
 	unsigned int i, j, n;
 	char c;
-	char *fakechroot_path;
 
-	expand_chroot_path(filename, fakechroot_path);
+	SBOX_MAP_PATH(filename, sbox_path);
 	strcpy(tmp, filename);
 	filename = tmp;
 
@@ -1151,7 +1177,7 @@ int execve (const char *filename, char *const argv [], char *const envp[])
 		return -1;
 	}
 
-	k = read(file, hashbang, FAKECHROOT_MAXPATH-2);
+	k = read(file, hashbang, SBOX_MAXPATH-2);
 	close(file);
 	if (k == -1) {
 		errno = ENOENT;
@@ -1164,22 +1190,22 @@ int execve (const char *filename, char *const argv [], char *const envp[])
 	/* if we're here we have a script */
 
 	//printf("hashbang: %s\n", hashbang);
-	for (i = j = 2; (hashbang[i] == ' ' || hashbang[i] == '\t') && i < FAKECHROOT_MAXPATH; i++, j++) {
+	for (i = j = 2; (hashbang[i] == ' ' || hashbang[i] == '\t') && i < SBOX_MAXPATH; i++, j++) {
 		//printf("looping\n");
 	}
 
 	//printf("hashbanging: i=%u\n",i);
 	//hashbang[i] = hashbang[i+1] = 0;
 
-	for (n = 0; i < FAKECHROOT_MAXPATH; i++) {
+	for (n = 0; i < SBOX_MAXPATH; i++) {
 		c = hashbang[i];
 		if (hashbang[i] == 0 || hashbang[i] == ' ' || hashbang[i] == '\t' || hashbang[i] == '\n') {
 			hashbang[i] = 0;
 			if (i > j) {
 				if (n == 0) {
 					ptr = &hashbang[j];
-					//printf("hashbanging ptr, fakechroot_path: %s, %s\n", ptr, fakechroot_path);
-					expand_chroot_path(ptr, fakechroot_path);
+					//printf("hashbanging ptr, sbox_path: %s, %s\n", ptr, sbox_path);
+					SBOX_MAP_PATH(ptr, sbox_path);
 					strcpy(newfilename, ptr);
 					strcpy(argv0, &hashbang[j]);
 					newargv[n++] = argv0;
@@ -1193,8 +1219,8 @@ int execve (const char *filename, char *const argv [], char *const envp[])
 			break;
 	}
 
-	//printf("hashbanging: %s, %s\n", filename, fakechroot_path);
-	expand_chroot_path(filename, fakechroot_path);
+	//printf("hashbanging: %s, %s\n", filename, sbox_path);
+	SBOX_MAP_PATH(filename, sbox_path);
 	newargv[n++] = filename;
 
 	for (i = 1; argv[i] != NULL && i < argv_max; ) {
@@ -1304,12 +1330,42 @@ int execvp (const char *file, char *const argv [])
 }
 
 
+#ifdef HAVE_FACCESSAT
+int faccessat(int dirfd, const char *pathname, int mode, int flags)
+{
+	SBOX_MAP_AT_PROLOGUE();
+	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
+	if (next_faccessat == NULL) libsb2_init();
+	return next_faccessat(dirfd, pathname, mode, flags);
+}
+#endif
+
+#ifdef HAVE_FCHMODAT
+int fchmodat(int dirfd, const char *pathname, mode_t mode, int flags)
+{
+	SBOX_MAP_AT_PROLOGUE();
+	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
+	if (next_fchmodat == NULL) libsb2_init();
+	return next_fchmodat(dirfd, pathname, mode, flags);
+}
+#endif
+#ifdef HAVE_FCHOWNAT
+int fchownat (int dirfd, const char *pathname, uid_t owner, gid_t group, int flags)
+{
+	SBOX_MAP_AT_PROLOGUE();
+	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
+	if (next_fchownat == NULL) libsb2_init();
+	return next_fchownat(dirfd, pathname, owner, group, flags);
+}
+#endif
+
+
 /* #include <stdio.h> */
 FILE *fopen (const char *path, const char *mode)
 {
-	char *fakechroot_path;
-	expand_chroot_path(path, fakechroot_path);
-	if (next_fopen == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(path, sbox_path);
+	if (next_fopen == NULL) libsb2_init();
 	return next_fopen(path, mode);
 }
 
@@ -1317,9 +1373,9 @@ FILE *fopen (const char *path, const char *mode)
 /* #include <stdio.h> */
 FILE *fopen64 (const char *path, const char *mode)
 {
-	char *fakechroot_path;
-	expand_chroot_path(path, fakechroot_path);
-	if (next_fopen64 == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(path, sbox_path);
+	if (next_fopen64 == NULL) libsb2_init();
 	return next_fopen64(path, mode);
 }
 
@@ -1327,9 +1383,9 @@ FILE *fopen64 (const char *path, const char *mode)
 /* #include <stdio.h> */
 FILE *freopen (const char *path, const char *mode, FILE *stream)
 {
-	char *fakechroot_path;
-	expand_chroot_path(path, fakechroot_path);
-	if (next_freopen == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(path, sbox_path);
+	if (next_freopen == NULL) libsb2_init();
 	return next_freopen(path, mode, stream);
 }
 
@@ -1337,18 +1393,29 @@ FILE *freopen (const char *path, const char *mode, FILE *stream)
 /* #include <stdio.h> */
 FILE *freopen64 (const char *path, const char *mode, FILE *stream)
 {
-	char *fakechroot_path;
-	expand_chroot_path(path, fakechroot_path);
-	if (next_freopen64 == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(path, sbox_path);
+	if (next_freopen64 == NULL) libsb2_init();
 	return next_freopen64(path, mode, stream);
 }
+
+
+#ifdef HAVE_FSTATAT
+int fstatat(int dirfd, const char *pathname, struct stat *buf, int flags)
+{
+	SBOX_MAP_AT_PROLOGUE();
+	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
+	if (next_fstatat == NULL) libsb2_init();
+	return next_fstatat(dirfd, pathname, buf, flags);
+}
+#endif
 
 
 #ifdef HAVE_FTS_OPEN
 #if !defined(HAVE___OPENDIR2)
 /* #include <fts.h> */
 FTS * fts_open (char * const *path_argv, int options, int (*compar)(const FTSENT **, const FTSENT **)) {
-	char *fakechroot_path;
+	SBOX_MAP_PROLOGUE();
 	char *path;
 	char * const *p;
 	char **new_path_argv;
@@ -1362,11 +1429,11 @@ FTS * fts_open (char * const *path_argv, int options, int (*compar)(const FTSENT
 
 	for (n=0, p=path_argv, np=new_path_argv; *p; n++, p++, np++) {
 		path = *p;
-		expand_chroot_path_malloc(path, fakechroot_path);
+		SBOX_MAP_PATH(path, sbox_path);
 		*np = path;
 	}
 
-	if (next_fts_open == NULL) fakechroot_init();
+	if (next_fts_open == NULL) libsb2_init();
 	return next_fts_open(new_path_argv, options, compar);
 }
 #endif
@@ -1378,9 +1445,9 @@ FTS * fts_open (char * const *path_argv, int options, int (*compar)(const FTSENT
 /* include <ftw.h> */
 int ftw (const char *dir, int (*fn)(const char *file, const struct stat *sb, int flag), int nopenfd)
 {
-	char *fakechroot_path;
-	expand_chroot_path(dir, fakechroot_path);
-	if (next_ftw == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(dir, sbox_path);
+	if (next_ftw == NULL) libsb2_init();
 	return next_ftw(dir, fn, nopenfd);
 }
 #endif
@@ -1392,28 +1459,40 @@ int ftw (const char *dir, int (*fn)(const char *file, const struct stat *sb, int
 /* include <ftw.h> */
 int ftw64 (const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag), int nopenfd)
 {
-	char *fakechroot_path;
-	expand_chroot_path(dir, fakechroot_path);
-	if (next_ftw64 == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(dir, sbox_path);
+	if (next_ftw64 == NULL) libsb2_init();
 	return next_ftw64(dir, fn, nopenfd);
 }
 #endif
 #endif
 
 
+#ifdef HAVE_FUTIMESAT
+int futimesat(int dirfd, const char *pathname, const struct timeval times[2])
+{
+	SBOX_MAP_AT_PROLOGUE();
+	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
+	if (next_futimesat == NULL) libsb2_init();
+	return next_futimesat(dirfd, pathname, times);
+}
+#endif
+
+
 #ifdef HAVE_GET_CURRENT_DIR_NAME
 /* #include <unistd.h> */
-char * get_current_dir_name (void) {
+char * get_current_dir_name (void) 
+{
+	SBOX_MAP_PROLOGUE();
 	char *cwd, *oldptr, *newptr;
-	char *fakechroot_path;
 
-	if (next_get_current_dir_name == NULL) fakechroot_init();
+	if (next_get_current_dir_name == NULL) libsb2_init();
 
 	if ((cwd = next_get_current_dir_name()) == NULL) {
 		return NULL;
 	}
 	oldptr = cwd;
-	narrow_chroot_path(cwd, fakechroot_path);
+	SBOX_MAP_PATH_NARROW(cwd, sbox_path);
 	if (cwd == NULL) {
 		return NULL;
 	}
@@ -1432,14 +1511,14 @@ char * get_current_dir_name (void) {
 char * getcwd (char *buf, size_t size)
 {
 	char *cwd;
-	char *fakechroot_path;
+	SBOX_MAP_PROLOGUE();
 
-	if (next_getcwd == NULL) fakechroot_init();
+	if (next_getcwd == NULL) libsb2_init();
 
 	if ((cwd = next_getcwd(buf, size)) == NULL) {
 		return NULL;
 	}
-	narrow_chroot_path(cwd, fakechroot_path);
+	SBOX_MAP_PATH_NARROW(cwd, sbox_path);
 	return cwd;
 }
 
@@ -1448,14 +1527,14 @@ char * getcwd (char *buf, size_t size)
 char * getwd (char *buf)
 {
 	char *cwd;
-	char *fakechroot_path;
+	SBOX_MAP_PROLOGUE();
 
-	if (next_getwd == NULL) fakechroot_init();
+	if (next_getwd == NULL) libsb2_init();
 
 	if ((cwd = next_getwd(buf)) == NULL) {
 		return NULL;
 	}
-	narrow_chroot_path(cwd, fakechroot_path);
+	SBOX_MAP_PATH_NARROW(cwd, sbox_path);
 	return cwd;
 }
 
@@ -1464,9 +1543,9 @@ char * getwd (char *buf)
 /* #include <sys/xattr.h> */
 ssize_t getxattr (const char *path, const char *name, void *value, size_t size)
 {
-	char *fakechroot_path;
-	expand_chroot_path(path, fakechroot_path);
-	if (next_getxattr == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(path, sbox_path);
+	if (next_getxattr == NULL) libsb2_init();
 	return next_getxattr(path, name, value, size);
 }
 #endif
@@ -1475,14 +1554,14 @@ ssize_t getxattr (const char *path, const char *name, void *value, size_t size)
 /* #include <glob.h> */
 int glob (const char *pattern, int flags, int (*errfunc) (const char *, int), glob_t *pglob)
 {
+	SBOX_MAP_PROLOGUE();
 	int rc;
 	unsigned int i;
-	char tmp[FAKECHROOT_MAXPATH];
-	char *fakechroot_path;
+	char tmp[SBOX_MAXPATH];
 
-	expand_chroot_path(pattern, fakechroot_path);
+	SBOX_MAP_PATH(pattern, sbox_path);
 
-	if (next_glob == NULL) fakechroot_init();
+	if (next_glob == NULL) libsb2_init();
 
 	rc = next_glob(pattern, flags, errfunc, pglob);
 	if (rc < 0)
@@ -1490,8 +1569,8 @@ int glob (const char *pattern, int flags, int (*errfunc) (const char *, int), gl
 
 	for(i = 0; i < pglob->gl_pathc; i++) {
 		strcpy(tmp,pglob->gl_pathv[i]);
-		fakechroot_path = scratchbox_path(__FUNCTION__, tmp);
-		strcpy(pglob->gl_pathv[i], fakechroot_path);
+		sbox_path = scratchbox_path(__FUNCTION__, tmp);
+		strcpy(pglob->gl_pathv[i], sbox_path);
 	}
 	return rc;
 }
@@ -1501,21 +1580,21 @@ int glob (const char *pattern, int flags, int (*errfunc) (const char *, int), gl
 /* #include <glob.h> */
 int glob64 (const char *pattern, int flags, int (*errfunc) (const char *, int), glob64_t *pglob)
 {
+	SBOX_MAP_PROLOGUE();
 	int rc;
 	unsigned int i;
-	char tmp[FAKECHROOT_MAXPATH];
-	char *fakechroot_path;
+	char tmp[SBOX_MAXPATH];
 
-	if (next_glob64 == NULL) fakechroot_init();
-	expand_chroot_path(pattern, fakechroot_path);
+	if (next_glob64 == NULL) libsb2_init();
+	SBOX_MAP_PATH(pattern, sbox_path);
 
 	rc = next_glob64(pattern, flags, errfunc, pglob);
 	if (rc < 0)
 		return rc;
 	for(i = 0; i < pglob->gl_pathc; i++) {
 		strcpy(tmp,pglob->gl_pathv[i]);
-		fakechroot_path = scratchbox_path(__FUNCTION__, tmp);
-		strcpy(pglob->gl_pathv[i], fakechroot_path);
+		sbox_path = scratchbox_path(__FUNCTION__, tmp);
+		strcpy(pglob->gl_pathv[i], sbox_path);
 	}
 	return rc;
 }
@@ -1526,9 +1605,9 @@ int glob64 (const char *pattern, int flags, int (*errfunc) (const char *, int), 
 /* #include <glob.h> */
 int glob_pattern_p (const char *pattern, int quote)
 {
-	char *fakechroot_path;
-	expand_chroot_path(pattern, fakechroot_path);
-	if (next_glob_pattern_p == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(pattern, sbox_path);
+	if (next_glob_pattern_p == NULL) libsb2_init();
 	return next_glob_pattern_p(pattern, quote);
 }
 #endif
@@ -1539,9 +1618,9 @@ int glob_pattern_p (const char *pattern, int quote)
 /* #include <sys/stat.h> */
 int lchmod (const char *path, mode_t mode)
 {
-	char *fakechroot_path;
-	expand_chroot_path(path, fakechroot_path);
-	if (next_lchmod == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(path, sbox_path);
+	if (next_lchmod == NULL) libsb2_init();
 	return next_lchmod(path, mode);
 }
 #endif
@@ -1551,9 +1630,9 @@ int lchmod (const char *path, mode_t mode)
 /* #include <unistd.h> */
 int lchown (const char *path, uid_t owner, gid_t group)
 {
-	char *fakechroot_path;
-	expand_chroot_path(path, fakechroot_path);
-	if (next_lchown == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(path, sbox_path);
+	if (next_lchown == NULL) libsb2_init();
 	return next_lchown(path, owner, group);
 }
 
@@ -1571,9 +1650,9 @@ int lckpwdf (void)
 /* #include <sys/xattr.h> */
 ssize_t lgetxattr (const char *path, const char *name, void *value, size_t size)
 {
-	char *fakechroot_path;
-	expand_chroot_path(path, fakechroot_path);
-	if (next_lgetxattr == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(path, sbox_path);
+	if (next_lgetxattr == NULL) libsb2_init();
 	return next_lgetxattr(path, name, value, size);
 }
 #endif
@@ -1582,23 +1661,36 @@ ssize_t lgetxattr (const char *path, const char *name, void *value, size_t size)
 /* #include <unistd.h> */
 int link (const char *oldpath, const char *newpath)
 {
-	char tmp[FAKECHROOT_MAXPATH];
-	char *fakechroot_path;
-	expand_chroot_path(oldpath, fakechroot_path);
+	SBOX_MAP_PROLOGUE();
+	char tmp[SBOX_MAXPATH];
+
+	SBOX_MAP_PATH(oldpath, sbox_path);
 	strcpy(tmp, oldpath); oldpath=tmp;
-	expand_chroot_path(newpath, fakechroot_path);
-	if (next_link == NULL) fakechroot_init();
+	SBOX_MAP_PATH(newpath, sbox_path);
+	if (next_link == NULL) libsb2_init();
 	return next_link(oldpath, newpath);
 }
+
+
+#ifdef HAVE_LINKAT
+int linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, int flags)
+{
+	SBOX_MAP_AT_PROLOGUE();
+	SBOX_MAP_PATH_AT(olddirfd, oldpath, sbox_path);
+	SBOX_MAP_PATH_AT(newdirfd, newpath, sbox_path);
+	if (next_linkat == NULL) libsb2_init();
+	return next_linkat(olddirfd, oldpath, newdirfd, newpath, flags);
+}
+#endif
 
 
 #ifdef HAVE_LISTXATTR
 /* #include <sys/xattr.h> */
 ssize_t listxattr (const char *path, char *list, size_t size)
 {
-	char *fakechroot_path;
-	expand_chroot_path(path, fakechroot_path);
-	if (next_listxattr == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(path, sbox_path);
+	if (next_listxattr == NULL) libsb2_init();
 	return next_listxattr(path, list, size);
 }
 #endif
@@ -1608,9 +1700,9 @@ ssize_t listxattr (const char *path, char *list, size_t size)
 /* #include <sys/xattr.h> */
 ssize_t llistxattr (const char *path, char *list, size_t size)
 {
-	char *fakechroot_path;
-	expand_chroot_path(path, fakechroot_path);
-	if (next_llistxattr == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(path, sbox_path);
+	if (next_llistxattr == NULL) libsb2_init();
 	return next_llistxattr(path, list, size);
 }
 #endif
@@ -1620,9 +1712,9 @@ ssize_t llistxattr (const char *path, char *list, size_t size)
 /* #include <sys/xattr.h> */
 int lremovexattr (const char *path, const char *name)
 {
-	char *fakechroot_path;
-	expand_chroot_path(path, fakechroot_path);
-	if (next_lremovexattr == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(path, sbox_path);
+	if (next_lremovexattr == NULL) libsb2_init();
 	return next_lremovexattr(path, name);
 }
 #endif
@@ -1632,9 +1724,9 @@ int lremovexattr (const char *path, const char *name)
 /* #include <sys/xattr.h> */
 int lsetxattr (const char *path, const char *name, const void *value, size_t size, int flags)
 {
-	char *fakechroot_path;
-	expand_chroot_path(path, fakechroot_path);
-	if (next_lsetxattr == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(path, sbox_path);
+	if (next_lsetxattr == NULL) libsb2_init();
 	return next_lsetxattr(path, name, value, size, flags);
 }
 #endif
@@ -1645,9 +1737,9 @@ int lsetxattr (const char *path, const char *name, const void *value, size_t siz
 /* #include <unistd.h> */
 int lstat (const char *file_name, struct stat *buf)
 {
-	char *fakechroot_path;
-	expand_chroot_path(file_name, fakechroot_path);
-	if (next_lstat == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(file_name, sbox_path);
+	if (next_lstat == NULL) libsb2_init();
 	return next_lstat(file_name, buf);
 }
 #endif
@@ -1659,9 +1751,9 @@ int lstat (const char *file_name, struct stat *buf)
 /* #include <unistd.h> */
 int lstat64 (const char *file_name, struct stat64 *buf)
 {
-	char *fakechroot_path;
-	expand_chroot_path(file_name, fakechroot_path);
-	if (next_lstat64 == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(file_name, sbox_path);
+	if (next_lstat64 == NULL) libsb2_init();
 	return next_lstat64(file_name, buf);
 }
 #endif
@@ -1672,9 +1764,9 @@ int lstat64 (const char *file_name, struct stat64 *buf)
 /* #include <sys/time.h> */
 int lutimes (const char *filename, const struct timeval tv[2])
 {
-	char *fakechroot_path;
-	expand_chroot_path(filename, fakechroot_path);
-	if (next_lutimes == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(filename, sbox_path);
+	if (next_lutimes == NULL) libsb2_init();
 	return next_lutimes(filename, tv);
 }
 #endif
@@ -1684,11 +1776,22 @@ int lutimes (const char *filename, const struct timeval tv[2])
 /* #include <sys/types.h> */
 int mkdir (const char *pathname, mode_t mode)
 {
-	char *fakechroot_path;
-	expand_chroot_path(pathname, fakechroot_path);
-	if (next_mkdir == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(pathname, sbox_path);
+	if (next_mkdir == NULL) libsb2_init();
 	return next_mkdir(pathname, mode);
 }
+
+
+#ifdef HAVE_MKDIRAT
+int mkdirat(int dirfd, const char *pathname, mode_t mode)
+{
+	SBOX_MAP_AT_PROLOGUE();
+	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
+	if (next_mkdirat == NULL) libsb2_init();
+	return next_mkdirat(dirfd, pathname, mode);
+}
+#endif
 
 
 #ifdef HAVE_MKDTEMP
@@ -1696,20 +1799,20 @@ int mkdir (const char *pathname, mode_t mode)
 char *mkdtemp (char *template)
 {
 	//    char tmp[FAKECHROOT_MAXPATH], *oldtemplate, *ptr;
-	//    char *fakechroot_path;
+	//    SBOX_MAP_PROLOGUE();
 
 	//    oldtemplate = template;
 
-	//    expand_chroot_path(template, fakechroot_path);
+	//    SBOX_MAP_PATH(template, sbox_path);
 
-	if (next_mkdtemp == NULL) fakechroot_init();
+	if (next_mkdtemp == NULL) libsb2_init();
 
 	if (next_mkdtemp(template) == NULL) {
 		return NULL;
 	}
 	//    ptr = tmp;
 	//    strcpy(ptr, template);
-	//    narrow_chroot_path(ptr, fakechroot_path);
+	//    narrow_chroot_path(ptr, sbox_path);
 	//    if (ptr == NULL) {
 	//        return NULL;
 	//    }
@@ -1724,12 +1827,22 @@ char *mkdtemp (char *template)
 /* #include <sys/stat.h> */
 int mkfifo (const char *pathname, mode_t mode)
 {
-	char *fakechroot_path;
-	expand_chroot_path(pathname, fakechroot_path);
-	if (next_mkfifo == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(pathname, sbox_path);
+	if (next_mkfifo == NULL) libsb2_init();
 	return next_mkfifo(pathname, mode);
 }
 
+
+#ifdef HAVE_MKFIFOAT
+int mkfifoat(int dirfd, const char *pathname, mode_t mode)
+{
+	SBOX_MAP_AT_PROLOGUE();
+	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
+	if (next_mkfifoat == NULL) libsb2_init();
+	return next_mkfifoat(dirfd, pathname, mode);
+}
+#endif
 
 /* #include <sys/types.h> */
 /* #include <sys/stat.h> */
@@ -1737,32 +1850,41 @@ int mkfifo (const char *pathname, mode_t mode)
 /* #include <unistd.h> */
 int mknod (const char *pathname, mode_t mode, dev_t dev)
 {
-	char *fakechroot_path;
-	expand_chroot_path(pathname, fakechroot_path);
-	if (next_mknod == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(pathname, sbox_path);
+	if (next_mknod == NULL) libsb2_init();
 	return next_mknod(pathname, mode, dev);
 }
 
+#ifdef HAVE_MKNODAT
+int mknodat(int dirfd, const char *pathname, mode_t mode, dev_t dev)
+{
+	SBOX_MAP_AT_PROLOGUE();
+	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
+	if (next_mknodat == NULL) libsb2_init();
+	return next_mknodat(dirfd, pathname, mode, dev);
+}
+#endif
 
 /* #include <stdlib.h> */
 int mkstemp (char *template)
 {
-	char tmp[FAKECHROOT_MAXPATH], *oldtemplate, *ptr;
+	SBOX_MAP_PROLOGUE();
+	char tmp[SBOX_MAXPATH], *oldtemplate, *ptr;
 	int fd;
-	char *fakechroot_path;
 
 	oldtemplate = template;
 
-	expand_chroot_path(template, fakechroot_path);
+	SBOX_MAP_PATH(template, sbox_path);
 
-	if (next_mkstemp == NULL) fakechroot_init();
+	if (next_mkstemp == NULL) libsb2_init();
 
 	if ((fd = next_mkstemp(template)) == -1) {
 		return -1;
 	}
 	ptr = tmp;
 	strcpy(ptr, template);
-	narrow_chroot_path(ptr, fakechroot_path);
+	SBOX_MAP_PATH_NARROW(ptr, sbox_path);
 	if (ptr != NULL) {
 		strcpy(oldtemplate, ptr);
 	}
@@ -1773,22 +1895,22 @@ int mkstemp (char *template)
 /* #include <stdlib.h> */
 int mkstemp64 (char *template)
 {
-	char tmp[FAKECHROOT_MAXPATH], *oldtemplate, *ptr;
+	SBOX_MAP_PROLOGUE();
+	char tmp[SBOX_MAXPATH], *oldtemplate, *ptr;
 	int fd;
-	char *fakechroot_path;
 
 	oldtemplate = template;
 
-	expand_chroot_path(template, fakechroot_path);
+	SBOX_MAP_PATH(template, sbox_path);
 
-	if (next_mkstemp64 == NULL) fakechroot_init();
+	if (next_mkstemp64 == NULL) libsb2_init();
 
 	if ((fd = next_mkstemp64(template)) == -1) {
 		return -1;
 	}
 	ptr = tmp;
 	strcpy(ptr, template);
-	narrow_chroot_path(ptr, fakechroot_path);
+	SBOX_MAP_PATH_NARROW(ptr, sbox_path);
 	if (ptr != NULL) {
 		strcpy(oldtemplate, ptr);
 	}
@@ -1799,9 +1921,9 @@ int mkstemp64 (char *template)
 /* #include <stdlib.h> */
 char *mktemp (char *template)
 {
-	char *fakechroot_path;
-	expand_chroot_path(template, fakechroot_path);
-	if (next_mktemp == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(template, sbox_path);
+	if (next_mktemp == NULL) libsb2_init();
 	return next_mktemp(template);
 }
 
@@ -1810,9 +1932,9 @@ char *mktemp (char *template)
 /* #include <ftw.h> */
 int nftw (const char *dir, int (*fn)(const char *file, const struct stat *sb, int flag, struct FTW *s), int nopenfd, int flags)
 {
-	char *fakechroot_path;
-	expand_chroot_path(dir, fakechroot_path);
-	if (next_nftw == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(dir, sbox_path);
+	if (next_nftw == NULL) libsb2_init();
 	return next_nftw(dir, fn, nopenfd, flags);
 }
 #endif
@@ -1822,9 +1944,9 @@ int nftw (const char *dir, int (*fn)(const char *file, const struct stat *sb, in
 /* #include <ftw.h> */
 int nftw64 (const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag, struct FTW *s), int nopenfd, int flags)
 {
-	char *fakechroot_path;
-	expand_chroot_path(dir, fakechroot_path);
-	if (next_nftw64 == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(dir, sbox_path);
+	if (next_nftw64 == NULL) libsb2_init();
 	return next_nftw64(dir, fn, nopenfd, flags);
 }
 #endif
@@ -1833,11 +1955,12 @@ int nftw64 (const char *dir, int (*fn)(const char *file, const struct stat64 *sb
 /* #include <sys/types.h> */
 /* #include <sys/stat.h> */
 /* #include <fcntl.h> */
-int open (const char *pathname, int flags, ...) {
+int open (const char *pathname, int flags, ...) 
+{
+	SBOX_MAP_PROLOGUE();
 	int mode = 0;
-	char *fakechroot_path;
 
-	expand_chroot_path(pathname, fakechroot_path);
+	SBOX_MAP_PATH(pathname, sbox_path);
 
 	if (flags & O_CREAT) {
 		va_list arg;
@@ -1846,7 +1969,7 @@ int open (const char *pathname, int flags, ...) {
 		va_end (arg);
 	}
 
-	if (next_open == NULL) fakechroot_init();
+	if (next_open == NULL) libsb2_init();
 	return next_open(pathname, flags, mode);
 }
 
@@ -1856,9 +1979,10 @@ int open (const char *pathname, int flags, ...) {
 /* #include <fcntl.h> */
 int open64 (const char *pathname, int flags, ...)
 {
+	SBOX_MAP_PROLOGUE();
 	int mode = 0;
-	char *fakechroot_path;
-	expand_chroot_path(pathname, fakechroot_path);
+
+	SBOX_MAP_PATH(pathname, sbox_path);
 
 	if (flags & O_CREAT) {
 		va_list arg;
@@ -1867,19 +1991,60 @@ int open64 (const char *pathname, int flags, ...)
 		va_end (arg);
 	}
 
-	if (next_open64 == NULL) fakechroot_init();
+	if (next_open64 == NULL) libsb2_init();
 	return next_open64(pathname, flags, mode);
 }
 
+
+#ifdef HAVE_OPENAT
+int openat(int dirfd, const char *pathname, int flags, ...)
+{
+	SBOX_MAP_AT_PROLOGUE();
+	int mode = 0;
+
+	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
+
+	if (flags & O_CREAT) {
+		va_list arg;
+		va_start (arg, flags);
+		mode = va_arg (arg, int);
+		va_end (arg);
+	}
+
+	if (next_openat == NULL) libsb2_init();
+	return next_openat(dirfd, pathname, flags, mode);
+}
+#endif
+
+
+#ifdef HAVE_OPENAT64
+int openat64(int dirfd, const char *pathname, int flags, ...)
+{
+	SBOX_MAP_AT_PROLOGUE();
+	int mode = 0;
+
+	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
+
+	if (flags & O_CREAT) {
+		va_list arg;
+		va_start (arg, flags);
+		mode = va_arg (arg, int);
+		va_end (arg);
+	}
+
+	if (next_openat64 == NULL) libsb2_init();
+	return next_openat64(dirfd, pathname, flags, mode);
+}
+#endif
 
 #if !defined(HAVE___OPENDIR2)
 /* #include <sys/types.h> */
 /* #include <dirent.h> */
 DIR *opendir (const char *name)
 {
-	char *fakechroot_path;
-	expand_chroot_path(name, fakechroot_path);
-	if (next_opendir == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(name, sbox_path);
+	if (next_opendir == NULL) libsb2_init();
 	return next_opendir(name);
 }
 #endif
@@ -1888,9 +2053,9 @@ DIR *opendir (const char *name)
 /* #include <unistd.h> */
 long pathconf (const char *path, int name)
 {
-	char *fakechroot_path;
-	expand_chroot_path(path, fakechroot_path);
-	if (next_pathconf == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(path, sbox_path);
+	if (next_pathconf == NULL) libsb2_init();
 	return next_pathconf(path, name);
 }
 
@@ -1899,13 +2064,13 @@ long pathconf (const char *path, int name)
 /* XXX: add proc pid/exe wrapper from libsb to here */
 int readlink (const char *path, char *buf, READLINK_TYPE_ARG3)
 {
+	SBOX_MAP_PROLOGUE();
 	int status;
-	char tmp[FAKECHROOT_MAXPATH];
-	char *fakechroot_path;
+	char tmp[SBOX_MAXPATH];
 
-	expand_chroot_path(path, fakechroot_path);
+	SBOX_MAP_PATH(path, sbox_path);
 
-	if (next_readlink == NULL) fakechroot_init();
+	if (next_readlink == NULL) libsb2_init();
 
 	if ((status = next_readlink(path, tmp, bufsiz)) == -1) {
 		return status;
@@ -1917,17 +2082,38 @@ int readlink (const char *path, char *buf, READLINK_TYPE_ARG3)
 	return strlen(tmp);
 }
 
+#ifdef HAVE_READLINKAT
+int readlinkat(int dirfd, const char *pathname, char *buf, size_t bufsiz)
+{
+	SBOX_MAP_AT_PROLOGUE();
+	int status;
+	char tmp[SBOX_MAXPATH];
+
+	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
+
+	if (next_readlinkat == NULL) libsb2_init();
+
+	if ((status = next_readlinkat(dirfd, pathname, tmp, bufsiz)) == -1) {
+		return status;
+	}
+	/* TODO: shouldn't end with \000 */
+	tmp[status] = '\0';
+
+	strcpy(buf, tmp);
+	return strlen(tmp);
+}
+#endif
 
 /* #include <stdlib.h> */
 char *realpath (const char *name, char *resolved)
 {
 	char *ptr;
-	char *fakechroot_path;
+	SBOX_MAP_PROLOGUE();
 
-	if (next_realpath == NULL) fakechroot_init();
+	if (next_realpath == NULL) libsb2_init();
 
 	if ((ptr = next_realpath(name, resolved)) != NULL) {
-		narrow_chroot_path(ptr, fakechroot_path);
+		SBOX_MAP_PATH_NARROW(ptr, sbox_path);
 	}
 	return ptr;
 }
@@ -1936,9 +2122,9 @@ char *realpath (const char *name, char *resolved)
 /* #include <stdio.h> */
 int remove (const char *pathname)
 {
-	char *fakechroot_path;
-	expand_chroot_path(pathname, fakechroot_path);
-	if (next_remove == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(pathname, sbox_path);
+	if (next_remove == NULL) libsb2_init();
 	return next_remove(pathname);
 }
 
@@ -1947,9 +2133,9 @@ int remove (const char *pathname)
 /* #include <sys/xattr.h> */
 int removexattr (const char *path, const char *name)
 {
-	char *fakechroot_path;
-	expand_chroot_path(path, fakechroot_path);
-	if (next_removexattr == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(path, sbox_path);
+	if (next_removexattr == NULL) libsb2_init();
 	return next_removexattr(path, name);
 }
 #endif
@@ -1958,23 +2144,34 @@ int removexattr (const char *path, const char *name)
 /* #include <stdio.h> */
 int rename (const char *oldpath, const char *newpath)
 {
-	char tmp[FAKECHROOT_MAXPATH];
-	char *fakechroot_path;
-	expand_chroot_path(oldpath, fakechroot_path);
+	SBOX_MAP_PROLOGUE();
+	char tmp[SBOX_MAXPATH];
+	SBOX_MAP_PATH(oldpath, sbox_path);
 	strcpy(tmp, oldpath); oldpath=tmp;
-	expand_chroot_path(newpath, fakechroot_path);
-	if (next_rename == NULL) fakechroot_init();
+	SBOX_MAP_PATH(newpath, sbox_path);
+	if (next_rename == NULL) libsb2_init();
 	return next_rename(oldpath, newpath);
 }
 
+
+#ifdef HAVE_RENAMEAT
+int renameat(int olddirfd, const char *oldpath, int newdirfd, const char *newpath)
+{
+	SBOX_MAP_AT_PROLOGUE();
+	SBOX_MAP_PATH_AT(olddirfd, oldpath, sbox_path);
+	SBOX_MAP_PATH_AT(newdirfd, newpath, sbox_path);
+	if (next_renameat == NULL) libsb2_init();
+	return next_renameat(olddirfd, oldpath, newdirfd, newpath);
+}
+#endif
 
 #ifdef HAVE_REVOKE
 /* #include <unistd.h> */
 int revoke (const char *file)
 {
-	char *fakechroot_path;
-	expand_chroot_path(file, fakechroot_path);
-	if (next_revoke == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(file, sbox_path);
+	if (next_revoke == NULL) libsb2_init();
 	return next_revoke(file);
 }
 #endif
@@ -1983,9 +2180,9 @@ int revoke (const char *file)
 /* #include <unistd.h> */
 int rmdir (const char *pathname)
 {
-	char *fakechroot_path;
-	expand_chroot_path(pathname, fakechroot_path);
-	if (next_rmdir == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(pathname, sbox_path);
+	if (next_rmdir == NULL) libsb2_init();
 	return next_rmdir(pathname);
 }
 
@@ -1994,9 +2191,9 @@ int rmdir (const char *pathname)
 /* #include <dirent.h> */
 int scandir (const char *dir, struct dirent ***namelist, SCANDIR_TYPE_ARG3, int(*compar)(const void *, const void *))
 {
-	char *fakechroot_path;
-	expand_chroot_path(dir, fakechroot_path);
-	if (next_scandir == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(dir, sbox_path);
+	if (next_scandir == NULL) libsb2_init();
 	return next_scandir(dir, namelist, filter, compar);
 }
 #endif
@@ -2006,9 +2203,9 @@ int scandir (const char *dir, struct dirent ***namelist, SCANDIR_TYPE_ARG3, int(
 /* #include <dirent.h> */
 int scandir64 (const char *dir, struct dirent64 ***namelist, int(*filter)(const struct dirent64 *), int(*compar)(const void *, const void *))
 {
-	char *fakechroot_path;
-	expand_chroot_path(dir, fakechroot_path);
-	if (next_scandir64 == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(dir, sbox_path);
+	if (next_scandir64 == NULL) libsb2_init();
 	return next_scandir64(dir, namelist, filter, compar);
 }
 #endif
@@ -2018,9 +2215,9 @@ int scandir64 (const char *dir, struct dirent64 ***namelist, int(*filter)(const 
 /* #include <sys/xattr.h> */
 int setxattr (const char *path, const char *name, const void *value, size_t size, int flags)
 {
-	char *fakechroot_path;
-	expand_chroot_path(path, fakechroot_path);
-	if (next_setxattr == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(path, sbox_path);
+	if (next_setxattr == NULL) libsb2_init();
 	return next_setxattr(path, name, value, size, flags);
 }
 #endif
@@ -2031,9 +2228,9 @@ int setxattr (const char *path, const char *name, const void *value, size_t size
 /* #include <unistd.h> */
 int stat (const char *file_name, struct stat *buf)
 {
-	char *fakechroot_path;
-	expand_chroot_path(file_name, fakechroot_path);
-	if (next_stat == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(file_name, sbox_path);
+	if (next_stat == NULL) libsb2_init();
 	return next_stat(file_name, buf);
 }
 #endif
@@ -2045,9 +2242,9 @@ int stat (const char *file_name, struct stat *buf)
 /* #include <unistd.h> */
 int stat64 (const char *file_name, struct stat64 *buf)
 {
-	char *fakechroot_path;
-	expand_chroot_path(file_name, fakechroot_path);
-	if (next_stat64 == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(file_name, sbox_path);
+	if (next_stat64 == NULL) libsb2_init();
 	return next_stat64(file_name, buf);
 }
 #endif
@@ -2057,22 +2254,36 @@ int stat64 (const char *file_name, struct stat64 *buf)
 /* #include <unistd.h> */
 int symlink (const char *oldpath, const char *newpath)
 {
-	char tmp[FAKECHROOT_MAXPATH];
-	char *fakechroot_path;
-	expand_chroot_path(oldpath, fakechroot_path);
+	SBOX_MAP_PROLOGUE();
+	char tmp[SBOX_MAXPATH];
+
+	SBOX_MAP_PATH(oldpath, sbox_path);
 	strcpy(tmp, oldpath); oldpath=tmp;
-	expand_chroot_path(newpath, fakechroot_path);
-	if (next_symlink == NULL) fakechroot_init();
+	SBOX_MAP_PATH(newpath, sbox_path);
+	if (next_symlink == NULL) libsb2_init();
 	return next_symlink(oldpath, newpath);
 }
 
 
+#ifdef HAVE_SYMLINKAT
+int symlinkat(const char *oldpath, int newdirfd, const char *newpath)
+{
+	SBOX_MAP_AT_PROLOGUE();
+
+	SBOX_MAP_PATH(oldpath, sbox_path);
+	SBOX_MAP_PATH_AT(newdirfd, newpath, sbox_path);
+	if (next_symlinkat == NULL) libsb2_init();
+	return next_symlinkat(oldpath, newdirfd, newpath);
+
+}
+#endif
+
 /* #include <stdio.h> */
 char *tempnam (const char *dir, const char *pfx)
 {
-	char *fakechroot_path;
-	expand_chroot_path(dir, fakechroot_path);
-	if (next_tempnam == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(dir, sbox_path);
+	if (next_tempnam == NULL) libsb2_init();
 	return next_tempnam(dir, pfx);
 }
 
@@ -2080,17 +2291,17 @@ char *tempnam (const char *dir, const char *pfx)
 /* #include <stdio.h> */
 char *tmpnam (char *s)
 {
+	SBOX_MAP_PROLOGUE();
 	char *ptr;
-	char *fakechroot_path;
 
-	if (next_tmpnam == NULL) fakechroot_init();
+	if (next_tmpnam == NULL) libsb2_init();
 
 	if (s != NULL) {
 		return next_tmpnam(s);
 	}
 
 	ptr = next_tmpnam(NULL);
-	expand_chroot_path_malloc(ptr, fakechroot_path);
+	SBOX_MAP_PATH(ptr, sbox_path);
 	return ptr;
 }
 
@@ -2099,9 +2310,9 @@ char *tmpnam (char *s)
 /* #include <sys/types.h> */
 int truncate (const char *path, off_t length)
 {
-	char *fakechroot_path;
-	expand_chroot_path(path, fakechroot_path);
-	if (next_truncate == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(path, sbox_path);
+	if (next_truncate == NULL) libsb2_init();
 	return next_truncate(path, length);
 }
 
@@ -2111,9 +2322,9 @@ int truncate (const char *path, off_t length)
 /* #include <sys/types.h> */
 int truncate64 (const char *path, off64_t length)
 {
-	char *fakechroot_path;
-	expand_chroot_path(path, fakechroot_path);
-	if (next_truncate64 == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(path, sbox_path);
+	if (next_truncate64 == NULL) libsb2_init();
 	return next_truncate64(path, length);
 }
 #endif
@@ -2131,20 +2342,30 @@ int ulckpwdf (void)
 /* #include <unistd.h> */
 int unlink (const char *pathname)
 {
-	char *fakechroot_path;
-	expand_chroot_path(pathname, fakechroot_path);
-	if (next_unlink == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(pathname, sbox_path);
+	if (next_unlink == NULL) libsb2_init();
 	return next_unlink(pathname);
 }
 
+
+#ifdef HAVE_UNLINKAT
+int unlinkat(int dirfd, const char *pathname, int flags)
+{
+	SBOX_MAP_AT_PROLOGUE();
+	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
+	if (next_unlinkat == NULL) libsb2_init();
+	return next_unlinkat(dirfd, pathname, flags);
+}
+#endif
 
 /* #include <sys/types.h> */
 /* #include <utime.h> */
 int utime (const char *filename, const struct utimbuf *buf)
 {
-	char *fakechroot_path;
-	expand_chroot_path(filename, fakechroot_path);
-	if (next_utime == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(filename, sbox_path);
+	if (next_utime == NULL) libsb2_init();
 	return next_utime(filename, buf);
 }
 
@@ -2152,16 +2373,16 @@ int utime (const char *filename, const struct utimbuf *buf)
 /* #include <sys/time.h> */
 int utimes (const char *filename, const struct timeval tv[2])
 {
-	char *fakechroot_path;
-	expand_chroot_path(filename, fakechroot_path);
-	if (next_utimes == NULL) fakechroot_init();
+	SBOX_MAP_PROLOGUE();
+	SBOX_MAP_PATH(filename, sbox_path);
+	if (next_utimes == NULL) libsb2_init();
 	return next_utimes(filename, tv);
 }
 
 
 int uname(struct utsname *buf)
 {
-	if (next_uname == NULL) fakechroot_init();
+	if (next_uname == NULL) libsb2_init();
 
 	if (next_uname(buf) < 0) {
 		return -1;

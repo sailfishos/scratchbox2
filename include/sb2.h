@@ -3,7 +3,7 @@
 
 #define DBGOUT(fmt...) fprintf(stderr, fmt)
 
-int __next_execve(const char *filename, char *const argv [], char *const envp[]);
+int sb_next_execve(const char *filename, char *const argv [], char *const envp[]);
 
 int do_exec(const char *file, char *const *argv, char *const *envp);
 int ld_so_run_app(char *file, char **argv, char *const *envp);

@@ -233,6 +233,8 @@ time_t get_sb2_timestamp(void)
 	}
 	closedir(d);
 
+	/* TODO: check the redir_scripts/preload contents as well */
+
 exit:
 	enable_mapping();
 	sb2_timestamp = t;

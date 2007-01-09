@@ -683,14 +683,7 @@ int do_exec(const char *file, char *const *argv, char *const *envp)
 	}
 
 	for (p = (char **)argv; *p; p++) {
-		if (*p[0] == '/' && (
-					strcmp(binaryname, "rm") == 0
-					|| strcmp(binaryname, "ln") == 0)) {
-			//my_argv[i++] = scratchbox_path2(binaryname, "execve", *p);
-			my_argv[i++] = *p;
-		} else {
-			my_argv[i++] = *p;
-		}
+		my_argv[i++] = *p;
 	}
 	my_argv[i] = NULL;
 

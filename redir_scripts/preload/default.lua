@@ -1,4 +1,4 @@
--- Copyright (C) 2006 Lauri Leukkunen <lle@rahina.org>
+-- Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
 -- Licensed under so called MIT license.
 
 -- print "hello from sample.lua!\n"
@@ -68,29 +68,6 @@ default_dev = {
 	path = "^/dev",
 }
 
-install = {
-	binary = "^install$",
-	path = ".*",
-	map_to = "="
-}
-
-ln = {
-	binary = "^ln$",
-	path = ".*",
-	map_to = "="
-}
-
-cp = {
-	binary = "^cp$",
-	path = ".*",
-	map_to = "="
-}
-
-rm = {
-	binary = "^rm$",
-	path = ".*",
-	map_to = "="
-}
 
 libtool = {
 	func_name = "exec.*",
@@ -108,12 +85,6 @@ ltdlm4 = {
 	map_to = "+/arch_tools/share/aclocal"
 }
 
-qemu = {
-	binary = ".*qemu.*",
-	path = "^/",
-	map_to = "="
-}
-
 autoconf = {
 	path = "^/usr/share/autoconf.*"
 }
@@ -126,10 +97,6 @@ aclocal = {
 	path = "^/usr/share/aclocal.*"
 }
 
-perl = {
-	binary = ".*perl.*",
-	path = "^/usr/lib/perl.*"
-}
 
 hostgcc = {
 	path = "^/host_usr",
@@ -143,29 +110,33 @@ default_rootdir = {
 	map_to = "=",
 }
 
-export_rules = {
-	ln,
-	install,
-	cp,
-	rm,
-	libtool,
-	libtoolm4,
-	ltdlm4,
-	qemu,
-	autoconf,
-	automake,
-	aclocal,
-	perl,
-	default_bin,
-	default_usrbin,
-	default_usrlocalbin,
-	default_scratchbox,
-	default_dev,
-	default_home,
-	default_proc,
-	default_tmp,
-	default_etc,
-	hostgcc,
-	default_rootdir
+
+-- the actual chain
+default_chain = {
+	next = nil,
+	binary = nil,
+	rules = {
+		libtool,
+		libtoolm4,
+		ltdlm4,
+		autoconf,
+		automake,
+		aclocal,
+		default_bin,
+		default_usrbin,
+		default_usrlocalbin,
+		default_scratchbox,
+		default_dev,
+		default_home,
+		default_proc,
+		default_tmp,
+		default_etc,
+		hostgcc,
+		default_rootdir
+	}
+}
+
+export_chains = {
+	default_chain
 }
 

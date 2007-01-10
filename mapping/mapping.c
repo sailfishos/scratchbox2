@@ -188,6 +188,9 @@ static char *read_sb2cache(const char *binary_name, const char *func_name, const
 {
 	char *link_path = NULL;
 	struct stat64 s;
+
+	if (getenv("SBOX_DISABLE_MAPPING_CACHE")) return NULL;
+
 	char *cache_path = create_sb2cache_path(binary_name, func_name, path);
 
 	if (lstat64(cache_path, &s) < 0 ||

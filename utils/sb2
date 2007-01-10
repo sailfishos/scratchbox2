@@ -56,7 +56,9 @@ sb_map_verbose=$1
 sb_bash_args=$*
 
 if [ "$sb_map_verbose" == "--verbose" ]; then
-	export SBOX_MAPPING_VERBOSE=1
+	export SBOX_MAPPING_VERBOSE=1 # enable mapping rules debug output
+	export SBOX_DISABLE_MAPPING_CACHE=1 # disable the cache to force use of lua engine
+	export SBOX_MAPPING_LOGFILE=$PWD/sb2_mapping.log
 	sb_bash_args=$(echo $* | sed 's/^--verbose//')
 fi
 

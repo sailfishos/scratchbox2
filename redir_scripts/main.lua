@@ -39,7 +39,7 @@ if (t ~= nil) then
 	local i = 0
 	local r = 0
 	table.sort(t)
-	-- load the individual parts ($SBOX_REDIR_SCRIPTS/parts/*.lua)
+	-- load the individual parts ($SBOX_REDIR_SCRIPTS/preload/*.lua)
 	for n = 1,table.maxn(t) do
 		if (string.match(t[n], "%a*%.lua$")) then
 			-- print("loading part: " .. t[n])
@@ -67,7 +67,14 @@ if (t ~= nil) then
 							print("path not specified for a rule in " .. filename)
 							os.exit(1)
 						end
+						export_chains[i].rules[r].lua_script = filename
+						if (export_chains[i].binary) then
+							export_chains[i].rules[r].binary_name = export_chains[i].binary
+						else
+							export_chains[i].rules[r].binary_name = "nil"
+						end
 					end
+					export_chains[i].filename = filename
 					table.insert(chains, export_chains[i])
 				end
 			end
@@ -102,6 +109,17 @@ function dirname(path)
 	return dir 
 end
 
+
+function sb_debug(msg)
+	local logfile = os.getenv("SBOX_MAPPING_LOGFILE")
+	local f
+	local err
+	if (not logfile) then return end
+	f, err = io.open(logfile, "a+")
+	if (not f) then return end
+	f:write(msg .. "\n")
+	io.close(f)
+end
 
 function sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
 	local ret = nil
@@ -156,7 +174,7 @@ function sbox_translate_path(binary_name, func_name, work_dir, path)
 
 	-- loop through the chains, first match is used
 	for n=1,table.maxn(chains) do
-		-- print(string.format("looping through rules: %s, %s, %s", rules[n].binary, rules[n].func_name, rules[n].path))
+		-- print(string.format("looping through chains: %s", chains[n].binary))
 		if (string.match(binary_name, chains[n].binary)) then
 			rule = find_rule(chains[n], func_name, rp)
 			if (not rule) then
@@ -169,7 +187,7 @@ function sbox_translate_path(binary_name, func_name, work_dir, path)
 			else
 				ret = sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
 				if (verbose) then
-					print(string.format("[%i]%s: %s(%s) -> [%s]", n, binary_name, func_name, path, ret))
+					sb_debug(string.format("[%s][%s|%s]:\n  %s(%s) -> (%s)", basename(rule.lua_script), rule.binary_name, binary_name, func_name, path, ret))
 				end
 				return ret
 			end

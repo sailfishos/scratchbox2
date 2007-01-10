@@ -51,9 +51,18 @@ export SBOX_CROSS_GCC_PREFIX_LIST
 export SBOX_HOST_GCC_PREFIX_LIST
 export SBOX_UNAME_MACHINE=$SBOX_CPU
 
-if [ -z "$*" ]; then
+sb_map_verbose=$1
+
+sb_bash_args=$*
+
+if [ "$sb_map_verbose" == "--verbose" ]; then
+	export SBOX_MAPPING_VERBOSE=1
+	sb_bash_args=$(echo $* | sed 's/^--verbose//')
+fi
+
+if [ -z "$sb_bash_args" ]; then
 	exec /bin/bash --noprofile --norc
 else
-	exec /bin/bash --noprofile --norc -c "$*"
+	exec /bin/bash --noprofile --norc -c "$sb_bash_args"
 fi
 

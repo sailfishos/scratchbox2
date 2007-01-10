@@ -18,6 +18,8 @@ if (not compiler_root) then
 	compiler_root = "/usr"
 end
 
+verbose = os.getenv("SBOX_MAPPING_VERBOSE")
+
 
 -- SBOX_REDIR_SCRIPTS environment variable controls where
 -- we look for the scriptlets defining the path mappings
@@ -159,14 +161,16 @@ function sbox_translate_path(binary_name, func_name, work_dir, path)
 			rule = find_rule(chains[n], func_name, rp)
 			if (not rule) then
 				-- error, not even a default rule found
-				--print(string.format("Unable to find a match at all: [%s][%s][%s]", binary_name, func_name, path))
+				print(string.format("Unable to find a match at all: [%s][%s][%s]", binary_name, func_name, path))
 				return path
 			end
 			if (rule.custom_map_func ~= nil) then
 				return rule.custom_map_func(binary_name, func_name, work_dir, rp, path, rules[n])
 			else
 				ret = sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
-				--print(string.format("[%i]%s: %s(%s) -> [%s]", n, binary_name, func_name, path, ret))
+				if (verbose) then
+					print(string.format("[%i]%s: %s(%s) -> [%s]", n, binary_name, func_name, path, ret))
+				end
 				return ret
 			end
 		end

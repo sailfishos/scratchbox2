@@ -45,9 +45,7 @@ define import_dir
 	LLPWD := $(1)
 	include $(1)/Makefile
 	dep_files := $$(wildcard $(1)/.*.d)
-ifneq ($(dep_files),)
 	include $(dep_files)
-endif
 	all-objects := $$(all-objects) $$(patsubst %,$(1)/%,$$(objects))
 	tmp := $$(patsubst %,$(1)/%,$$(subdirs))
 	perkele := $$(foreach dir,$$(tmp),$$(eval $$(call import_dir,$$(dir))))

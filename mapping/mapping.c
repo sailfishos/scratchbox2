@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2006 Lauri Leukkunen <lleukkun@cc.hut.fi>
+ * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
  *
- * Licensed under LGPL version 2, see top level LICENSE file for details.
+ * Licensed under LGPL version 2.1, see top level LICENSE file for details.
  *
  * In the path translation functions we must either use syscalls directly,
  * or disable_mapping(); to avoid creating recursive loops of function calls 

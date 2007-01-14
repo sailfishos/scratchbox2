@@ -1,3 +1,9 @@
+/*
+ * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
+ *
+ * Licensed under LGPL version 2.1
+ */
+
 #define _GNU_SOURCE
 
 #include <string.h>

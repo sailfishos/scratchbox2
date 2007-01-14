@@ -1,4 +1,5 @@
 -- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
+-- Licensed under MIT License.
 
 install = {
 	next_chain = default_chain,

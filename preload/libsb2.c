@@ -1,7 +1,7 @@
 /*
  * libsb2 -- scratchbox2 preload library
  *
- * Copyright (C) 2006 Lauri Leukkunen <lle@rahina.org>
+ * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
  * parts contributed by 
  * 	Riku Voipio <riku.voipio@movial.com>
  *	Toni Timonen <toni.timonen@movial.com>

@@ -1,5 +1,6 @@
 -- Scratchbox2 universal redirector dynamic path translation scripts
--- Copyright (C) 2006 Lauri Leukkunen
+-- Copyright (C) 2006, 2007 Lauri Leukkunen
+-- Licensed under MIT license.
 
 --print "hello!\n"
 

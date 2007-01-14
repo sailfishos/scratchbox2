@@ -42,7 +42,6 @@ if (t ~= nil) then
 	-- load the individual parts ($SBOX_REDIR_SCRIPTS/preload/*.lua)
 	for n = 1,table.maxn(t) do
 		if (string.match(t[n], "%a*%.lua$")) then
-			-- print("loading part: " .. t[n])
 			filename = rsdir .. "/preload/" .. t[n]
 			f, err = loadfile(filename)
 			if (f == nil) then
@@ -52,7 +51,6 @@ if (t ~= nil) then
 				-- export_chains variable contains now the chains
 				-- from the chunk
 				for i = 1,table.maxn(export_chains) do
-					--print("loading chain:" .. export_chains[i].binary)
 					-- fill in the default values
 					if (not export_chains[i].binary) then
 						export_chains[i].binary = ".*"
@@ -64,7 +62,6 @@ if (t ~= nil) then
 						end
 						if (not export_chains[i].rules[r].path) then
 							-- this is an error, report and exit
-							print("path not specified for a rule in " .. filename)
 							os.exit(1)
 						end
 						export_chains[i].rules[r].lua_script = filename
@@ -74,7 +71,7 @@ if (t ~= nil) then
 							export_chains[i].rules[r].binary_name = "nil"
 						end
 					end
-					export_chains[i].filename = filename
+					export_chains[i].lua_script = filename
 					table.insert(chains, export_chains[i])
 				end
 			end
@@ -155,9 +152,33 @@ function find_rule(chain, func, path)
 				return wrk.rules[i]
 			end
 		end
-		wrk = wrk.next
+		wrk = wrk.next_chain
 	end
 	return nil
+end
+
+
+function map_using_chain(chain, binary_name, func_name, work_dir, path)
+	local ret = path
+	local rp = path
+	local rule = nil
+
+	-- print(string.format("looping through chains: %s", chains[n].binary))
+	rule = find_rule(chain, func_name, rp)
+	if (not rule) then
+		-- error, not even a default rule found
+		sb_debug(string.format("Unable to find a match at all: [%s][%s][%s]", binary_name, func_name, path))
+		return path
+	end
+	if (rule.custom_map_func ~= nil) then
+		ret = rule.custom_map_func(binary_name, func_name, work_dir, rp, path, rules[n])
+	else
+		ret = sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
+		if (verbose) then
+			sb_debug(string.format("[%s][%s|%s]:\n  %s(%s) -> (%s)", basename(rule.lua_script), rule.binary_name, binary_name, func_name, path, ret))
+		end
+	end
+	return ret
 end
 
 -- sbox_translate_path is the function called from libsb2.so
@@ -165,36 +186,19 @@ end
 -- translating
 
 function sbox_translate_path(binary_name, func_name, work_dir, path)
-	--print(string.format("[%s]:", binary_name))
-	--print(string.format("debug: [%s][%s][%s][%s]", binary_name, func_name, work_dir, path))
+	--sb_debug(string.format("[%s]:", binary_name))
+	--sb_debug(string.format("debug: [%s][%s][%s][%s]", binary_name, func_name, work_dir, path))
 
-	local ret = path
-	local rp = path
-	local rule = nil
-
+	
 	-- loop through the chains, first match is used
 	for n=1,table.maxn(chains) do
-		-- print(string.format("looping through chains: %s", chains[n].binary))
-		if (string.match(binary_name, chains[n].binary)) then
-			rule = find_rule(chains[n], func_name, rp)
-			if (not rule) then
-				-- error, not even a default rule found
-				print(string.format("Unable to find a match at all: [%s][%s][%s]", binary_name, func_name, path))
-				return path
-			end
-			if (rule.custom_map_func ~= nil) then
-				return rule.custom_map_func(binary_name, func_name, work_dir, rp, path, rules[n])
-			else
-				ret = sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
-				if (verbose) then
-					sb_debug(string.format("[%s][%s|%s]:\n  %s(%s) -> (%s)", basename(rule.lua_script), rule.binary_name, binary_name, func_name, path, ret))
-				end
-				return ret
-			end
+		if (not chains[n].noentry 
+			and string.match(binary_name, chains[n].binary)) then
+			return map_using_chain(chains[n], binary_name, func_name, work_dir, path)
 		end
 	end
 
-	-- we should never ever get here, if we still do, map
-	return target_root .. rp
+	-- we should never ever get here, if we still do, don't do anything
+	return path
 end
 

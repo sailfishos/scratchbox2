@@ -1,6 +1,9 @@
 #ifndef __SB2_H
 #define __SB2_H
 
+#include <syscall.h>
+#include <stdio.h>
+
 #define DBGOUT(fmt...) fprintf(stderr, fmt)
 
 int sb_next_execve(const char *filename, char *const argv [], char *const envp[]);

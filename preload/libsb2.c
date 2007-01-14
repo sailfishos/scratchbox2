@@ -94,7 +94,6 @@
 { \
 	if ((path) != NULL && *((char *)(path)) != '\0') { \
 		sbox_path = scratchbox_path(__FUNCTION__, path); \
-		(path) = sbox_path; \
 	} \
 }
 
@@ -102,7 +101,6 @@
 { \
 	if ((path) != NULL) { \
 		sbox_path = scratchbox_path(__FUNCTION__, path); \
-		(path) = sbox_path; \
 	} \
 }
 
@@ -112,8 +110,9 @@
 		if (path[0] == '/') { \
 			/* absolute path */ \
 			sbox_path = scratchbox_path(__FUNCTION__, path); \
-			(path) = sbox_path; \
-		} \
+		} else { \
+			sbox_path = strdup(path); \
+		}\
 	} \
 }
 
@@ -757,9 +756,13 @@ int sb_next_execve(const char *file, char *const *argv, char *const *envp)
 int __lxstat (int ver, const char *filename, struct stat *buf)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(filename, sbox_path);
 	if (next___lxstat == NULL) libsb2_init();
-	return next___lxstat(ver, filename, buf);
+	ret = next___lxstat(ver, sbox_path, buf);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -770,12 +773,13 @@ int __lxstat (int ver, const char *filename, struct stat *buf)
 int __lxstat64 (int ver, const char *filename, struct stat64 *buf)
 {
 	SBOX_MAP_PROLOGUE();
-	int r;
+	int ret;
 
 	SBOX_MAP_PATH(filename, sbox_path);
 	if (next___lxstat64 == NULL) libsb2_init();
-	r = next___lxstat64(ver, filename, buf);
-	return r;
+	ret = next___lxstat64(ver, sbox_path, buf);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -785,6 +789,7 @@ int __lxstat64 (int ver, const char *filename, struct stat64 *buf)
 int __open (const char *pathname, int flags, ...)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
 	int mode = 0;
 
 	SBOX_MAP_PATH(pathname, sbox_path);
@@ -797,7 +802,9 @@ int __open (const char *pathname, int flags, ...)
 	}
 
 	if (next___open == NULL) libsb2_init();
-	return next___open(pathname, flags, mode);
+	ret = next___open(sbox_path, flags, mode);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -807,6 +814,7 @@ int __open (const char *pathname, int flags, ...)
 int __open64 (const char *pathname, int flags, ...)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
 	int mode = 0;
 
 	SBOX_MAP_PATH(pathname, sbox_path);
@@ -819,7 +827,9 @@ int __open64 (const char *pathname, int flags, ...)
 	}
 
 	if (next___open64 == NULL) libsb2_init();
-	return next___open64(pathname, flags, mode);
+	ret = next___open64(sbox_path, flags, mode);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -830,9 +840,13 @@ int __open64 (const char *pathname, int flags, ...)
 DIR *__opendir2 (const char *name, int flags)
 {
 	SBOX_MAP_PROLOGUE();
+	DIR *ret;
+
 	SBOX_MAP_PATH(name, sbox_path);
 	if (next___opendir2 == NULL) libsb2_init();
-	return next___opendir2(name, flags);
+	ret = next___opendir2(sbox_path, flags);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -843,9 +857,13 @@ DIR *__opendir2 (const char *name, int flags)
 int __xmknod (int ver, const char *path, mode_t mode, dev_t *dev)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(path, sbox_path);
 	if (next___xmknod == NULL) libsb2_init();
-	return next___xmknod(ver, path, mode, dev);
+	ret = next___xmknod(ver, sbox_path, mode, dev);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -856,9 +874,13 @@ int __xmknod (int ver, const char *path, mode_t mode, dev_t *dev)
 int __xstat (int ver, const char *filename, struct stat *buf)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(filename, sbox_path);
 	if (next___xstat == NULL) libsb2_init();
-	return next___xstat(ver, filename, buf);
+	ret = next___xstat(ver, sbox_path, buf);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -869,9 +891,13 @@ int __xstat (int ver, const char *filename, struct stat *buf)
 int __xstat64 (int ver, const char *filename, struct stat64 *buf)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(filename, sbox_path);
 	if (next___xstat64 == NULL) libsb2_init();
-	return next___xstat64(ver, filename, buf);
+	ret = next___xstat64(ver, sbox_path, buf);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -881,9 +907,13 @@ int __xstat64 (int ver, const char *filename, struct stat64 *buf)
 int _xftw (int mode, const char *dir, int (*fn)(const char *file, const struct stat *sb, int flag), int nopenfd)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(dir, sbox_path);
 	if (next__xftw == NULL) libsb2_init();
-	return next__xftw(mode, dir, fn, nopenfd);
+	ret = next__xftw(mode, sbox_path, fn, nopenfd);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -893,9 +923,13 @@ int _xftw (int mode, const char *dir, int (*fn)(const char *file, const struct s
 int _xftw64 (int mode, const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag), int nopenfd)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(dir, sbox_path);
 	if (next__xftw64 == NULL) libsb2_init();
-	return next__xftw64(mode, dir, fn, nopenfd);
+	ret = next__xftw64(mode, sbox_path, fn, nopenfd);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -904,9 +938,13 @@ int _xftw64 (int mode, const char *dir, int (*fn)(const char *file, const struct
 int access (const char *pathname, int mode)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(pathname, sbox_path);
 	if (next_access == NULL) libsb2_init();
-	return next_access(pathname, mode);
+	ret = next_access(sbox_path, mode);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -914,9 +952,13 @@ int access (const char *pathname, int mode)
 int acct (const char *filename)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(filename, sbox_path);
 	if (next_acct == NULL) libsb2_init();
-	return next_acct(filename);
+	ret = next_acct(sbox_path);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -925,9 +967,13 @@ int acct (const char *filename)
 char *canonicalize_file_name (const char *name)
 {
 	SBOX_MAP_PROLOGUE();
+	char *ret;
+
 	SBOX_MAP_PATH(name, sbox_path);
 	if (next_canonicalize_file_name == NULL) libsb2_init();
-	return next_canonicalize_file_name(name);
+	ret = next_canonicalize_file_name(sbox_path);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -936,9 +982,13 @@ char *canonicalize_file_name (const char *name)
 int chdir (const char *path)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(path, sbox_path);
 	if (next_chdir == NULL) libsb2_init();
-	return next_chdir(path);
+	ret = next_chdir(sbox_path);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -947,9 +997,13 @@ int chdir (const char *path)
 int chmod (const char *path, mode_t mode)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(path, sbox_path);
 	if (next_chmod == NULL) libsb2_init();
-	return next_chmod(path, mode);
+	ret = next_chmod(sbox_path, mode);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -958,9 +1012,13 @@ int chmod (const char *path, mode_t mode)
 int chown (const char *path, uid_t owner, gid_t group)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(path, sbox_path);
 	if (next_chown == NULL) libsb2_init();
-	return next_chown(path, owner, group);
+	ret = next_chown(sbox_path, owner, group);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -971,9 +1029,13 @@ int chown (const char *path, uid_t owner, gid_t group)
 int creat (const char *pathname, mode_t mode)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(pathname, sbox_path);
 	if (next_creat == NULL) libsb2_init();
-	return next_creat(pathname, mode);
+	ret = next_creat(sbox_path, mode);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -983,9 +1045,13 @@ int creat (const char *pathname, mode_t mode)
 int creat64 (const char *pathname, mode_t mode)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(pathname, sbox_path);
 	if (next_creat64 == NULL) libsb2_init();
-	return next_creat64(pathname, mode);
+	ret = next_creat64(sbox_path, mode);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -994,9 +1060,13 @@ int creat64 (const char *pathname, mode_t mode)
 void *dlmopen (Lmid_t nsid, const char *filename, int flag)
 {
 	SBOX_MAP_PROLOGUE();
+	void *ret;
+
 	SBOX_MAP_PATH(filename, sbox_path);
 	if (next_dlmopen == NULL) libsb2_init();
-	return next_dlmopen(nsid, filename, flag);
+	ret = next_dlmopen(nsid, sbox_path, flag);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -1005,9 +1075,13 @@ void *dlmopen (Lmid_t nsid, const char *filename, int flag)
 void *dlopen (const char *filename, int flag)
 {
 	SBOX_MAP_PROLOGUE();
+	void *ret;
+
 	SBOX_MAP_PATH(filename, sbox_path);
 	if (next_dlopen == NULL) libsb2_init();
-	return next_dlopen(filename, flag);
+	ret = next_dlopen(sbox_path, flag);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -1016,9 +1090,13 @@ void *dlopen (const char *filename, int flag)
 int euidaccess (const char *pathname, int mode)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(pathname, sbox_path);
 	if (next_euidaccess == NULL) libsb2_init();
-	return next_euidaccess(pathname, mode);
+	ret = next_euidaccess(sbox_path, mode);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -1156,24 +1234,23 @@ int execv (const char *path, char *const argv [])
 int execve (const char *filename, char *const argv [], char *const envp[])
 {
 	SBOX_MAP_PROLOGUE();
+	char *hb_sbox_path;
+	int ret;
 	int file;
 	char hashbang[SBOX_MAXPATH];
 	size_t argv_max = 1024;
 	const char **newargv = alloca (argv_max * sizeof (const char *));
-	char tmp[SBOX_MAXPATH], 
-	     newfilename[SBOX_MAXPATH], 
-	     argv0[SBOX_MAXPATH];
+	char newfilename[SBOX_MAXPATH], argv0[SBOX_MAXPATH];
 	char *ptr;
 	int k;
 	unsigned int i, j, n;
 	char c;
 
 	SBOX_MAP_PATH(filename, sbox_path);
-	strcpy(tmp, filename);
-	filename = tmp;
 
-	if ((file = open(filename, O_RDONLY)) == -1) {
+	if ((file = open(sbox_path, O_RDONLY)) == -1) {
 		errno = ENOENT;
+		if (sbox_path) free(sbox_path);
 		return -1;
 	}
 
@@ -1181,11 +1258,15 @@ int execve (const char *filename, char *const argv [], char *const envp[])
 	close(file);
 	if (k == -1) {
 		errno = ENOENT;
+		if (sbox_path) free(sbox_path);
 		return -1;
 	}
 
-	if (hashbang[0] != '#' || hashbang[1] != '!')
-		return do_exec(filename, argv, envp);
+	if (hashbang[0] != '#' || hashbang[1] != '!') {
+		ret = do_exec(sbox_path, argv, envp);
+		if (sbox_path) free(sbox_path);
+		return ret;
+	}
 
 	/* if we're here we have a script */
 
@@ -1205,23 +1286,24 @@ int execve (const char *filename, char *const argv [], char *const envp[])
 				if (n == 0) {
 					ptr = &hashbang[j];
 					//printf("hashbanging ptr, sbox_path: %s, %s\n", ptr, sbox_path);
-					SBOX_MAP_PATH(ptr, sbox_path);
-					strcpy(newfilename, ptr);
+					SBOX_MAP_PATH(ptr, hb_sbox_path);
+					strcpy(newfilename, hb_sbox_path);
 					strcpy(argv0, &hashbang[j]);
 					newargv[n++] = argv0;
+					free(hb_sbox_path);
+					hb_sbox_path = NULL;
 				} else {
 					newargv[n++] = &hashbang[j];
 				}
 			}
 			j = i + 1;
 		}
-		if (c == '\n' || c == 0)
-			break;
+		if (c == '\n' || c == 0) break;
 	}
 
 	//printf("hashbanging: %s, %s\n", filename, sbox_path);
-	SBOX_MAP_PATH(filename, sbox_path);
-	newargv[n++] = filename;
+	SBOX_MAP_PATH(filename, hb_sbox_path);
+	newargv[n++] = hb_sbox_path;
 
 	for (i = 1; argv[i] != NULL && i < argv_max; ) {
 		newargv[n++] = argv[i++];
@@ -1229,7 +1311,10 @@ int execve (const char *filename, char *const argv [], char *const envp[])
 
 	newargv[n] = 0;
 
-	return do_exec(newfilename, (char *const *)newargv, envp);
+	ret = do_exec(newfilename, (char *const *)newargv, envp);
+	if (hb_sbox_path) free(hb_sbox_path);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -1334,9 +1419,13 @@ int execvp (const char *file, char *const argv [])
 int faccessat(int dirfd, const char *pathname, int mode, int flags)
 {
 	SBOX_MAP_AT_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
 	if (next_faccessat == NULL) libsb2_init();
-	return next_faccessat(dirfd, pathname, mode, flags);
+	ret = next_faccessat(dirfd, sbox_path, mode, flags);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -1344,18 +1433,26 @@ int faccessat(int dirfd, const char *pathname, int mode, int flags)
 int fchmodat(int dirfd, const char *pathname, mode_t mode, int flags)
 {
 	SBOX_MAP_AT_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
 	if (next_fchmodat == NULL) libsb2_init();
-	return next_fchmodat(dirfd, pathname, mode, flags);
+	ret = next_fchmodat(dirfd, sbox_path, mode, flags);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 #ifdef HAVE_FCHOWNAT
 int fchownat (int dirfd, const char *pathname, uid_t owner, gid_t group, int flags)
 {
 	SBOX_MAP_AT_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
 	if (next_fchownat == NULL) libsb2_init();
-	return next_fchownat(dirfd, pathname, owner, group, flags);
+	ret = next_fchownat(dirfd, sbox_path, owner, group, flags);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -1364,9 +1461,13 @@ int fchownat (int dirfd, const char *pathname, uid_t owner, gid_t group, int fla
 FILE *fopen (const char *path, const char *mode)
 {
 	SBOX_MAP_PROLOGUE();
+	FILE *ret;
+
 	SBOX_MAP_PATH(path, sbox_path);
 	if (next_fopen == NULL) libsb2_init();
-	return next_fopen(path, mode);
+	ret = next_fopen(sbox_path, mode);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -1374,9 +1475,13 @@ FILE *fopen (const char *path, const char *mode)
 FILE *fopen64 (const char *path, const char *mode)
 {
 	SBOX_MAP_PROLOGUE();
+	FILE *ret;
+
 	SBOX_MAP_PATH(path, sbox_path);
 	if (next_fopen64 == NULL) libsb2_init();
-	return next_fopen64(path, mode);
+	ret = next_fopen64(sbox_path, mode);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -1384,9 +1489,13 @@ FILE *fopen64 (const char *path, const char *mode)
 FILE *freopen (const char *path, const char *mode, FILE *stream)
 {
 	SBOX_MAP_PROLOGUE();
+	FILE *ret;
+
 	SBOX_MAP_PATH(path, sbox_path);
 	if (next_freopen == NULL) libsb2_init();
-	return next_freopen(path, mode, stream);
+	ret = next_freopen(sbox_path, mode, stream);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -1394,9 +1503,13 @@ FILE *freopen (const char *path, const char *mode, FILE *stream)
 FILE *freopen64 (const char *path, const char *mode, FILE *stream)
 {
 	SBOX_MAP_PROLOGUE();
+	FILE *ret;
+
 	SBOX_MAP_PATH(path, sbox_path);
 	if (next_freopen64 == NULL) libsb2_init();
-	return next_freopen64(path, mode, stream);
+	ret = next_freopen64(sbox_path, mode, stream);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -1404,9 +1517,13 @@ FILE *freopen64 (const char *path, const char *mode, FILE *stream)
 int fstatat(int dirfd, const char *pathname, struct stat *buf, int flags)
 {
 	SBOX_MAP_AT_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
 	if (next_fstatat == NULL) libsb2_init();
-	return next_fstatat(dirfd, pathname, buf, flags);
+	ret = next_fstatat(dirfd, sbox_path, buf, flags);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -1430,7 +1547,7 @@ FTS * fts_open (char * const *path_argv, int options, int (*compar)(const FTSENT
 	for (n=0, p=path_argv, np=new_path_argv; *p; n++, p++, np++) {
 		path = *p;
 		SBOX_MAP_PATH(path, sbox_path);
-		*np = path;
+		*np = sbox_path;
 	}
 
 	if (next_fts_open == NULL) libsb2_init();
@@ -1446,9 +1563,14 @@ FTS * fts_open (char * const *path_argv, int options, int (*compar)(const FTSENT
 int ftw (const char *dir, int (*fn)(const char *file, const struct stat *sb, int flag), int nopenfd)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(dir, sbox_path);
 	if (next_ftw == NULL) libsb2_init();
-	return next_ftw(dir, fn, nopenfd);
+	ret = next_ftw(sbox_path, fn, nopenfd);
+	if (sbox_path) free(sbox_path);
+	return ret;
+
 }
 #endif
 #endif
@@ -1460,9 +1582,13 @@ int ftw (const char *dir, int (*fn)(const char *file, const struct stat *sb, int
 int ftw64 (const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag), int nopenfd)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(dir, sbox_path);
 	if (next_ftw64 == NULL) libsb2_init();
-	return next_ftw64(dir, fn, nopenfd);
+	ret = next_ftw64(sbox_path, fn, nopenfd);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 #endif
@@ -1472,9 +1598,13 @@ int ftw64 (const char *dir, int (*fn)(const char *file, const struct stat64 *sb,
 int futimesat(int dirfd, const char *pathname, const struct timeval times[2])
 {
 	SBOX_MAP_AT_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
 	if (next_futimesat == NULL) libsb2_init();
-	return next_futimesat(dirfd, pathname, times);
+	ret = next_futimesat(dirfd, sbox_path, times);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -1484,25 +1614,16 @@ int futimesat(int dirfd, const char *pathname, const struct timeval times[2])
 char * get_current_dir_name (void) 
 {
 	SBOX_MAP_PROLOGUE();
-	char *cwd, *oldptr, *newptr;
+	char *cwd;
 
 	if (next_get_current_dir_name == NULL) libsb2_init();
 
 	if ((cwd = next_get_current_dir_name()) == NULL) {
 		return NULL;
 	}
-	oldptr = cwd;
 	SBOX_MAP_PATH_NARROW(cwd, sbox_path);
-	if (cwd == NULL) {
-		return NULL;
-	}
-	if ((newptr = malloc(strlen(cwd)+1)) == NULL) {
-		free(oldptr);
-		return NULL;
-	}
-	strcpy(newptr, cwd);
-	free(oldptr);
-	return newptr;
+	free(cwd);
+	return sbox_path;
 }
 #endif
 
@@ -1510,8 +1631,8 @@ char * get_current_dir_name (void)
 /* #include <unistd.h> */
 char * getcwd (char *buf, size_t size)
 {
-	char *cwd;
 	SBOX_MAP_PROLOGUE();
+	char *cwd;
 
 	if (next_getcwd == NULL) libsb2_init();
 
@@ -1519,6 +1640,10 @@ char * getcwd (char *buf, size_t size)
 		return NULL;
 	}
 	SBOX_MAP_PATH_NARROW(cwd, sbox_path);
+	if (sbox_path) {
+		strncpy(buf, sbox_path, size);
+		free(sbox_path);
+	}
 	return cwd;
 }
 
@@ -1526,8 +1651,8 @@ char * getcwd (char *buf, size_t size)
 /* #include <unistd.h> */
 char * getwd (char *buf)
 {
-	char *cwd;
 	SBOX_MAP_PROLOGUE();
+	char *cwd;
 
 	if (next_getwd == NULL) libsb2_init();
 
@@ -1535,6 +1660,10 @@ char * getwd (char *buf)
 		return NULL;
 	}
 	SBOX_MAP_PATH_NARROW(cwd, sbox_path);
+	if (sbox_path) {
+		strcpy(buf, sbox_path);
+		free(sbox_path);
+	}
 	return cwd;
 }
 
@@ -1544,9 +1673,13 @@ char * getwd (char *buf)
 ssize_t getxattr (const char *path, const char *name, void *value, size_t size)
 {
 	SBOX_MAP_PROLOGUE();
+	ssize_t ret;
+
 	SBOX_MAP_PATH(path, sbox_path);
 	if (next_getxattr == NULL) libsb2_init();
-	return next_getxattr(path, name, value, size);
+	ret = next_getxattr(sbox_path, name, value, size);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -1563,14 +1696,16 @@ int glob (const char *pattern, int flags, int (*errfunc) (const char *, int), gl
 
 	if (next_glob == NULL) libsb2_init();
 
-	rc = next_glob(pattern, flags, errfunc, pglob);
-	if (rc < 0)
-		return rc;
+	rc = next_glob(sbox_path, flags, errfunc, pglob);
+	if (sbox_path) free(sbox_path);
+	
+	if (rc < 0) return rc;
 
 	for(i = 0; i < pglob->gl_pathc; i++) {
 		strcpy(tmp,pglob->gl_pathv[i]);
 		sbox_path = scratchbox_path(__FUNCTION__, tmp);
 		strcpy(pglob->gl_pathv[i], sbox_path);
+		if (sbox_path) free(sbox_path);
 	}
 	return rc;
 }
@@ -1588,13 +1723,16 @@ int glob64 (const char *pattern, int flags, int (*errfunc) (const char *, int), 
 	if (next_glob64 == NULL) libsb2_init();
 	SBOX_MAP_PATH(pattern, sbox_path);
 
-	rc = next_glob64(pattern, flags, errfunc, pglob);
-	if (rc < 0)
-		return rc;
+	rc = next_glob64(sbox_path, flags, errfunc, pglob);
+	if (sbox_path) free(sbox_path);
+
+	if (rc < 0) return rc;
+
 	for(i = 0; i < pglob->gl_pathc; i++) {
 		strcpy(tmp,pglob->gl_pathv[i]);
 		sbox_path = scratchbox_path(__FUNCTION__, tmp);
 		strcpy(pglob->gl_pathv[i], sbox_path);
+		if (sbox_path) free(sbox_path);
 	}
 	return rc;
 }
@@ -1606,9 +1744,13 @@ int glob64 (const char *pattern, int flags, int (*errfunc) (const char *, int), 
 int glob_pattern_p (const char *pattern, int quote)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(pattern, sbox_path);
 	if (next_glob_pattern_p == NULL) libsb2_init();
-	return next_glob_pattern_p(pattern, quote);
+	ret = next_glob_pattern_p(sbox_path, quote);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -1619,9 +1761,13 @@ int glob_pattern_p (const char *pattern, int quote)
 int lchmod (const char *path, mode_t mode)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(path, sbox_path);
 	if (next_lchmod == NULL) libsb2_init();
-	return next_lchmod(path, mode);
+	ret = next_lchmod(sbox_path, mode);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -1631,9 +1777,13 @@ int lchmod (const char *path, mode_t mode)
 int lchown (const char *path, uid_t owner, gid_t group)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(path, sbox_path);
 	if (next_lchown == NULL) libsb2_init();
-	return next_lchown(path, owner, group);
+	ret = next_lchown(sbox_path, owner, group);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -1651,35 +1801,49 @@ int lckpwdf (void)
 ssize_t lgetxattr (const char *path, const char *name, void *value, size_t size)
 {
 	SBOX_MAP_PROLOGUE();
+	ssize_t ret;
+
 	SBOX_MAP_PATH(path, sbox_path);
 	if (next_lgetxattr == NULL) libsb2_init();
-	return next_lgetxattr(path, name, value, size);
+	ret = next_lgetxattr(sbox_path, name, value, size);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
 
 /* #include <unistd.h> */
-int link (const char *oldpath, const char *newpath)
+int link(const char *oldpath, const char *newpath)
 {
-	SBOX_MAP_PROLOGUE();
-	char tmp[SBOX_MAXPATH];
+	char *sbox_path_old, *sbox_path_new;
+	int ret;
 
-	SBOX_MAP_PATH(oldpath, sbox_path);
-	strcpy(tmp, oldpath); oldpath=tmp;
-	SBOX_MAP_PATH(newpath, sbox_path);
+	SBOX_MAP_PATH(oldpath, sbox_path_old);
+	SBOX_MAP_PATH(newpath, sbox_path_new);
 	if (next_link == NULL) libsb2_init();
-	return next_link(oldpath, newpath);
+	ret = next_link(sbox_path_old, sbox_path_new);
+	if (sbox_path_old) free(sbox_path_old);
+	if (sbox_path_new) free(sbox_path_new);
+	return ret;
 }
 
 
 #ifdef HAVE_LINKAT
 int linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, int flags)
 {
-	SBOX_MAP_AT_PROLOGUE();
-	SBOX_MAP_PATH_AT(olddirfd, oldpath, sbox_path);
-	SBOX_MAP_PATH_AT(newdirfd, newpath, sbox_path);
+	char *sbox_path_old, *sbox_path_new;
+	int ret;
+
+	SBOX_MAP_PATH_AT(olddirfd, oldpath, sbox_path_old);
+	SBOX_MAP_PATH_AT(newdirfd, newpath, sbox_path_new);
+
 	if (next_linkat == NULL) libsb2_init();
-	return next_linkat(olddirfd, oldpath, newdirfd, newpath, flags);
+	ret = next_linkat(olddirfd, sbox_path_old, newdirfd, sbox_path_new, flags);
+	
+	if (sbox_path_old) free(sbox_path_old);
+	if (sbox_path_new) free(sbox_path_new);
+	
+	return ret;
 }
 #endif
 
@@ -1689,9 +1853,12 @@ int linkat(int olddirfd, const char *oldpath, int newdirfd, const char *newpath,
 ssize_t listxattr (const char *path, char *list, size_t size)
 {
 	SBOX_MAP_PROLOGUE();
+	ssize_t ret;
 	SBOX_MAP_PATH(path, sbox_path);
 	if (next_listxattr == NULL) libsb2_init();
-	return next_listxattr(path, list, size);
+	ret = next_listxattr(sbox_path, list, size);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -1701,9 +1868,13 @@ ssize_t listxattr (const char *path, char *list, size_t size)
 ssize_t llistxattr (const char *path, char *list, size_t size)
 {
 	SBOX_MAP_PROLOGUE();
+	ssize_t ret;
+
 	SBOX_MAP_PATH(path, sbox_path);
 	if (next_llistxattr == NULL) libsb2_init();
-	return next_llistxattr(path, list, size);
+	ret = next_llistxattr(sbox_path, list, size);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -1713,9 +1884,13 @@ ssize_t llistxattr (const char *path, char *list, size_t size)
 int lremovexattr (const char *path, const char *name)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(path, sbox_path);
 	if (next_lremovexattr == NULL) libsb2_init();
-	return next_lremovexattr(path, name);
+	ret = next_lremovexattr(sbox_path, name);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -1725,9 +1900,13 @@ int lremovexattr (const char *path, const char *name)
 int lsetxattr (const char *path, const char *name, const void *value, size_t size, int flags)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(path, sbox_path);
 	if (next_lsetxattr == NULL) libsb2_init();
-	return next_lsetxattr(path, name, value, size, flags);
+	ret = next_lsetxattr(sbox_path, name, value, size, flags);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -1738,9 +1917,13 @@ int lsetxattr (const char *path, const char *name, const void *value, size_t siz
 int lstat (const char *file_name, struct stat *buf)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(file_name, sbox_path);
 	if (next_lstat == NULL) libsb2_init();
-	return next_lstat(file_name, buf);
+	ret = next_lstat(sbox_path, buf);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -1752,9 +1935,13 @@ int lstat (const char *file_name, struct stat *buf)
 int lstat64 (const char *file_name, struct stat64 *buf)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(file_name, sbox_path);
 	if (next_lstat64 == NULL) libsb2_init();
-	return next_lstat64(file_name, buf);
+	ret = next_lstat64(sbox_path, buf);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 #endif
@@ -1762,24 +1949,32 @@ int lstat64 (const char *file_name, struct stat64 *buf)
 
 #ifdef HAVE_LUTIMES
 /* #include <sys/time.h> */
-int lutimes (const char *filename, const struct timeval tv[2])
+int lutimes(const char *filename, const struct timeval tv[2])
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(filename, sbox_path);
 	if (next_lutimes == NULL) libsb2_init();
-	return next_lutimes(filename, tv);
+	ret = next_lutimes(sbox_path, tv);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
 
 /* #include <sys/stat.h> */
 /* #include <sys/types.h> */
-int mkdir (const char *pathname, mode_t mode)
+int mkdir(const char *pathname, mode_t mode)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+	
 	SBOX_MAP_PATH(pathname, sbox_path);
 	if (next_mkdir == NULL) libsb2_init();
-	return next_mkdir(pathname, mode);
+	ret = next_mkdir(sbox_path, mode);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -1787,9 +1982,13 @@ int mkdir (const char *pathname, mode_t mode)
 int mkdirat(int dirfd, const char *pathname, mode_t mode)
 {
 	SBOX_MAP_AT_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
 	if (next_mkdirat == NULL) libsb2_init();
-	return next_mkdirat(dirfd, pathname, mode);
+	ret = next_mkdirat(dirfd, sbox_path, mode);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -1828,9 +2027,13 @@ char *mkdtemp (char *template)
 int mkfifo (const char *pathname, mode_t mode)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(pathname, sbox_path);
 	if (next_mkfifo == NULL) libsb2_init();
-	return next_mkfifo(pathname, mode);
+	ret = next_mkfifo(sbox_path, mode);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -1838,9 +2041,13 @@ int mkfifo (const char *pathname, mode_t mode)
 int mkfifoat(int dirfd, const char *pathname, mode_t mode)
 {
 	SBOX_MAP_AT_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
 	if (next_mkfifoat == NULL) libsb2_init();
-	return next_mkfifoat(dirfd, pathname, mode);
+	ret = next_mkfifoat(dirfd, sbox_path, mode);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -1851,78 +2058,48 @@ int mkfifoat(int dirfd, const char *pathname, mode_t mode)
 int mknod (const char *pathname, mode_t mode, dev_t dev)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(pathname, sbox_path);
 	if (next_mknod == NULL) libsb2_init();
-	return next_mknod(pathname, mode, dev);
+	ret = next_mknod(sbox_path, mode, dev);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 #ifdef HAVE_MKNODAT
 int mknodat(int dirfd, const char *pathname, mode_t mode, dev_t dev)
 {
 	SBOX_MAP_AT_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
 	if (next_mknodat == NULL) libsb2_init();
-	return next_mknodat(dirfd, pathname, mode, dev);
+	ret = next_mknodat(dirfd, sbox_path, mode, dev);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
 /* #include <stdlib.h> */
 int mkstemp (char *template)
 {
-	SBOX_MAP_PROLOGUE();
-	char tmp[SBOX_MAXPATH], *oldtemplate, *ptr;
-	int fd;
-
-	oldtemplate = template;
-
-	SBOX_MAP_PATH(template, sbox_path);
-
 	if (next_mkstemp == NULL) libsb2_init();
-
-	if ((fd = next_mkstemp(template)) == -1) {
-		return -1;
-	}
-	ptr = tmp;
-	strcpy(ptr, template);
-	SBOX_MAP_PATH_NARROW(ptr, sbox_path);
-	if (ptr != NULL) {
-		strcpy(oldtemplate, ptr);
-	}
-	return fd;
+	return next_mkstemp(template);
 }
 
 
 /* #include <stdlib.h> */
 int mkstemp64 (char *template)
 {
-	SBOX_MAP_PROLOGUE();
-	char tmp[SBOX_MAXPATH], *oldtemplate, *ptr;
-	int fd;
-
-	oldtemplate = template;
-
-	SBOX_MAP_PATH(template, sbox_path);
-
 	if (next_mkstemp64 == NULL) libsb2_init();
-
-	if ((fd = next_mkstemp64(template)) == -1) {
-		return -1;
-	}
-	ptr = tmp;
-	strcpy(ptr, template);
-	SBOX_MAP_PATH_NARROW(ptr, sbox_path);
-	if (ptr != NULL) {
-		strcpy(oldtemplate, ptr);
-	}
-	return fd;
+	return next_mkstemp64(template);
 }
 
 
 /* #include <stdlib.h> */
 char *mktemp (char *template)
 {
-	SBOX_MAP_PROLOGUE();
-	SBOX_MAP_PATH(template, sbox_path);
 	if (next_mktemp == NULL) libsb2_init();
 	return next_mktemp(template);
 }
@@ -1933,9 +2110,13 @@ char *mktemp (char *template)
 int nftw (const char *dir, int (*fn)(const char *file, const struct stat *sb, int flag, struct FTW *s), int nopenfd, int flags)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(dir, sbox_path);
 	if (next_nftw == NULL) libsb2_init();
-	return next_nftw(dir, fn, nopenfd, flags);
+	ret = next_nftw(sbox_path, fn, nopenfd, flags);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -1945,9 +2126,13 @@ int nftw (const char *dir, int (*fn)(const char *file, const struct stat *sb, in
 int nftw64 (const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag, struct FTW *s), int nopenfd, int flags)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(dir, sbox_path);
 	if (next_nftw64 == NULL) libsb2_init();
-	return next_nftw64(dir, fn, nopenfd, flags);
+	ret = next_nftw64(sbox_path, fn, nopenfd, flags);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -1955,9 +2140,10 @@ int nftw64 (const char *dir, int (*fn)(const char *file, const struct stat64 *sb
 /* #include <sys/types.h> */
 /* #include <sys/stat.h> */
 /* #include <fcntl.h> */
-int open (const char *pathname, int flags, ...) 
+int open(const char *pathname, int flags, ...) 
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
 	int mode = 0;
 
 	SBOX_MAP_PATH(pathname, sbox_path);
@@ -1970,7 +2156,9 @@ int open (const char *pathname, int flags, ...)
 	}
 
 	if (next_open == NULL) libsb2_init();
-	return next_open(pathname, flags, mode);
+	ret = next_open(sbox_path, flags, mode);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -1980,6 +2168,7 @@ int open (const char *pathname, int flags, ...)
 int open64 (const char *pathname, int flags, ...)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
 	int mode = 0;
 
 	SBOX_MAP_PATH(pathname, sbox_path);
@@ -1992,7 +2181,9 @@ int open64 (const char *pathname, int flags, ...)
 	}
 
 	if (next_open64 == NULL) libsb2_init();
-	return next_open64(pathname, flags, mode);
+	ret = next_open64(sbox_path, flags, mode);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -2000,6 +2191,7 @@ int open64 (const char *pathname, int flags, ...)
 int openat(int dirfd, const char *pathname, int flags, ...)
 {
 	SBOX_MAP_AT_PROLOGUE();
+	int ret;
 	int mode = 0;
 
 	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
@@ -2012,7 +2204,9 @@ int openat(int dirfd, const char *pathname, int flags, ...)
 	}
 
 	if (next_openat == NULL) libsb2_init();
-	return next_openat(dirfd, pathname, flags, mode);
+	ret = next_openat(dirfd, sbox_path, flags, mode);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -2021,6 +2215,7 @@ int openat(int dirfd, const char *pathname, int flags, ...)
 int openat64(int dirfd, const char *pathname, int flags, ...)
 {
 	SBOX_MAP_AT_PROLOGUE();
+	int ret;
 	int mode = 0;
 
 	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
@@ -2033,7 +2228,9 @@ int openat64(int dirfd, const char *pathname, int flags, ...)
 	}
 
 	if (next_openat64 == NULL) libsb2_init();
-	return next_openat64(dirfd, pathname, flags, mode);
+	ret = next_openat64(dirfd, sbox_path, flags, mode);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -2043,9 +2240,13 @@ int openat64(int dirfd, const char *pathname, int flags, ...)
 DIR *opendir (const char *name)
 {
 	SBOX_MAP_PROLOGUE();
+	DIR *ret;
+
 	SBOX_MAP_PATH(name, sbox_path);
 	if (next_opendir == NULL) libsb2_init();
-	return next_opendir(name);
+	ret = next_opendir(sbox_path);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -2054,9 +2255,13 @@ DIR *opendir (const char *name)
 long pathconf (const char *path, int name)
 {
 	SBOX_MAP_PROLOGUE();
+	long ret;
+
 	SBOX_MAP_PATH(path, sbox_path);
 	if (next_pathconf == NULL) libsb2_init();
-	return next_pathconf(path, name);
+	ret = next_pathconf(sbox_path, name);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -2065,125 +2270,135 @@ long pathconf (const char *path, int name)
 int readlink (const char *path, char *buf, READLINK_TYPE_ARG3)
 {
 	SBOX_MAP_PROLOGUE();
-	int status;
-	char tmp[SBOX_MAXPATH];
+	int ret;
 
 	SBOX_MAP_PATH(path, sbox_path);
 
 	if (next_readlink == NULL) libsb2_init();
-
-	if ((status = next_readlink(path, tmp, bufsiz)) == -1) {
-		return status;
-	}
-	/* TODO: shouldn't end with \000 */
-	tmp[status] = '\0';
-
-	strcpy(buf, tmp);
-	return strlen(tmp);
+	ret = next_readlink(sbox_path, buf, bufsiz);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 #ifdef HAVE_READLINKAT
 int readlinkat(int dirfd, const char *pathname, char *buf, size_t bufsiz)
 {
 	SBOX_MAP_AT_PROLOGUE();
-	int status;
-	char tmp[SBOX_MAXPATH];
+	int ret;
 
 	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
 
 	if (next_readlinkat == NULL) libsb2_init();
-
-	if ((status = next_readlinkat(dirfd, pathname, tmp, bufsiz)) == -1) {
-		return status;
-	}
-	/* TODO: shouldn't end with \000 */
-	tmp[status] = '\0';
-
-	strcpy(buf, tmp);
-	return strlen(tmp);
+	ret = next_readlinkat(dirfd, sbox_path, buf, bufsiz);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
 /* #include <stdlib.h> */
 char *realpath (const char *name, char *resolved)
 {
-	char *ptr;
 	SBOX_MAP_PROLOGUE();
+	char *ret;
 
+	SBOX_MAP_PATH(name, sbox_path);
 	if (next_realpath == NULL) libsb2_init();
-
-	if ((ptr = next_realpath(name, resolved)) != NULL) {
-		SBOX_MAP_PATH_NARROW(ptr, sbox_path);
-	}
-	return ptr;
+	ret = next_realpath(sbox_path, resolved);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
 /* #include <stdio.h> */
-int remove (const char *pathname)
+int remove(const char *pathname)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(pathname, sbox_path);
 	if (next_remove == NULL) libsb2_init();
-	return next_remove(pathname);
+	ret = next_remove(sbox_path);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
 #ifdef HAVE_REMOVEXATTR
 /* #include <sys/xattr.h> */
-int removexattr (const char *path, const char *name)
+int removexattr(const char *path, const char *name)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(path, sbox_path);
 	if (next_removexattr == NULL) libsb2_init();
-	return next_removexattr(path, name);
+	ret = next_removexattr(sbox_path, name);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
 
 /* #include <stdio.h> */
-int rename (const char *oldpath, const char *newpath)
+int rename(const char *oldpath, const char *newpath)
 {
-	SBOX_MAP_PROLOGUE();
-	char tmp[SBOX_MAXPATH];
-	SBOX_MAP_PATH(oldpath, sbox_path);
-	strcpy(tmp, oldpath); oldpath=tmp;
-	SBOX_MAP_PATH(newpath, sbox_path);
+	char *sbox_path_old, *sbox_path_new;
+	int ret;
+
+	SBOX_MAP_PATH(oldpath, sbox_path_old);
+	SBOX_MAP_PATH(newpath, sbox_path_new);
 	if (next_rename == NULL) libsb2_init();
-	return next_rename(oldpath, newpath);
+	ret = next_rename(sbox_path_old, sbox_path_new);
+	if (sbox_path_old) free(sbox_path_old);
+	if (sbox_path_new) free(sbox_path_new);
+	return ret;
 }
 
 
 #ifdef HAVE_RENAMEAT
 int renameat(int olddirfd, const char *oldpath, int newdirfd, const char *newpath)
 {
-	SBOX_MAP_AT_PROLOGUE();
-	SBOX_MAP_PATH_AT(olddirfd, oldpath, sbox_path);
-	SBOX_MAP_PATH_AT(newdirfd, newpath, sbox_path);
+	char *sbox_path_old, *sbox_path_new;
+	int ret;
+
+	SBOX_MAP_PATH_AT(olddirfd, oldpath, sbox_path_old);
+	SBOX_MAP_PATH_AT(newdirfd, newpath, sbox_path_new);
+
 	if (next_renameat == NULL) libsb2_init();
-	return next_renameat(olddirfd, oldpath, newdirfd, newpath);
+	ret = next_renameat(olddirfd, sbox_path_old, newdirfd, sbox_path_new);
+	if (sbox_path_old) free(sbox_path_old);
+	if (sbox_path_new) free(sbox_path_new);
+	return ret;
 }
 #endif
 
 #ifdef HAVE_REVOKE
 /* #include <unistd.h> */
-int revoke (const char *file)
+int revoke(const char *file)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(file, sbox_path);
 	if (next_revoke == NULL) libsb2_init();
-	return next_revoke(file);
+	ret = next_revoke(sbox_path);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
 
 /* #include <unistd.h> */
-int rmdir (const char *pathname)
+int rmdir(const char *pathname)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(pathname, sbox_path);
 	if (next_rmdir == NULL) libsb2_init();
-	return next_rmdir(pathname);
+	ret = next_rmdir(sbox_path);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -2192,9 +2407,13 @@ int rmdir (const char *pathname)
 int scandir (const char *dir, struct dirent ***namelist, SCANDIR_TYPE_ARG3, int(*compar)(const void *, const void *))
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(dir, sbox_path);
 	if (next_scandir == NULL) libsb2_init();
-	return next_scandir(dir, namelist, filter, compar);
+	ret = next_scandir(sbox_path, namelist, filter, compar);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -2204,9 +2423,13 @@ int scandir (const char *dir, struct dirent ***namelist, SCANDIR_TYPE_ARG3, int(
 int scandir64 (const char *dir, struct dirent64 ***namelist, int(*filter)(const struct dirent64 *), int(*compar)(const void *, const void *))
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(dir, sbox_path);
 	if (next_scandir64 == NULL) libsb2_init();
-	return next_scandir64(dir, namelist, filter, compar);
+	ret = next_scandir64(sbox_path, namelist, filter, compar);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -2216,9 +2439,13 @@ int scandir64 (const char *dir, struct dirent64 ***namelist, int(*filter)(const 
 int setxattr (const char *path, const char *name, const void *value, size_t size, int flags)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(path, sbox_path);
 	if (next_setxattr == NULL) libsb2_init();
-	return next_setxattr(path, name, value, size, flags);
+	ret = next_setxattr(sbox_path, name, value, size, flags);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -2226,12 +2453,16 @@ int setxattr (const char *path, const char *name, const void *value, size_t size
 #if !defined(HAVE___XSTAT)
 /* #include <sys/stat.h> */
 /* #include <unistd.h> */
-int stat (const char *file_name, struct stat *buf)
+int stat(const char *file_name, struct stat *buf)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(file_name, sbox_path);
 	if (next_stat == NULL) libsb2_init();
-	return next_stat(file_name, buf);
+	ret = next_stat(sbox_path, buf);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -2240,41 +2471,51 @@ int stat (const char *file_name, struct stat *buf)
 #if !defined(HAVE___XSTAT64)
 /* #include <sys/stat.h> */
 /* #include <unistd.h> */
-int stat64 (const char *file_name, struct stat64 *buf)
+int stat64(const char *file_name, struct stat64 *buf)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(file_name, sbox_path);
 	if (next_stat64 == NULL) libsb2_init();
-	return next_stat64(file_name, buf);
+	ret = next_stat64(sbox_path, buf);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 #endif
 
 
 /* #include <unistd.h> */
-int symlink (const char *oldpath, const char *newpath)
+int symlink(const char *oldpath, const char *newpath)
 {
-	SBOX_MAP_PROLOGUE();
-	char tmp[SBOX_MAXPATH];
+	char *sbox_path_old, *sbox_path_new;
+	int ret;
 
-	SBOX_MAP_PATH(oldpath, sbox_path);
-	strcpy(tmp, oldpath); oldpath=tmp;
-	SBOX_MAP_PATH(newpath, sbox_path);
+	SBOX_MAP_PATH(oldpath, sbox_path_old);
+	SBOX_MAP_PATH(newpath, sbox_path_new);
+
 	if (next_symlink == NULL) libsb2_init();
-	return next_symlink(oldpath, newpath);
+	ret = next_symlink(sbox_path_old, sbox_path_new);
+	if (sbox_path_old) free(sbox_path_old);
+	if (sbox_path_new) free(sbox_path_new);
+	return ret;
 }
 
 
 #ifdef HAVE_SYMLINKAT
 int symlinkat(const char *oldpath, int newdirfd, const char *newpath)
 {
-	SBOX_MAP_AT_PROLOGUE();
+	char *sbox_path_old, *sbox_path_new;
+	int ret;
 
-	SBOX_MAP_PATH(oldpath, sbox_path);
-	SBOX_MAP_PATH_AT(newdirfd, newpath, sbox_path);
+	SBOX_MAP_PATH(oldpath, sbox_path_old);
+	SBOX_MAP_PATH_AT(newdirfd, newpath, sbox_path_new);
 	if (next_symlinkat == NULL) libsb2_init();
-	return next_symlinkat(oldpath, newdirfd, newpath);
-
+	ret = next_symlinkat(sbox_path_old, newdirfd, sbox_path_new);
+	if (sbox_path_old) free(sbox_path_old);
+	if (sbox_path_new) free(sbox_path_new);
+	return ret;
 }
 #endif
 
@@ -2282,27 +2523,21 @@ int symlinkat(const char *oldpath, int newdirfd, const char *newpath)
 char *tempnam (const char *dir, const char *pfx)
 {
 	SBOX_MAP_PROLOGUE();
+	char *ret;
+
 	SBOX_MAP_PATH(dir, sbox_path);
 	if (next_tempnam == NULL) libsb2_init();
-	return next_tempnam(dir, pfx);
+	ret = next_tempnam(sbox_path, pfx);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
 /* #include <stdio.h> */
 char *tmpnam (char *s)
 {
-	SBOX_MAP_PROLOGUE();
-	char *ptr;
-
 	if (next_tmpnam == NULL) libsb2_init();
-
-	if (s != NULL) {
-		return next_tmpnam(s);
-	}
-
-	ptr = next_tmpnam(NULL);
-	SBOX_MAP_PATH(ptr, sbox_path);
-	return ptr;
+	return next_tmpnam(s);
 }
 
 
@@ -2311,9 +2546,13 @@ char *tmpnam (char *s)
 int truncate (const char *path, off_t length)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(path, sbox_path);
 	if (next_truncate == NULL) libsb2_init();
-	return next_truncate(path, length);
+	ret = next_truncate(sbox_path, length);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -2323,9 +2562,13 @@ int truncate (const char *path, off_t length)
 int truncate64 (const char *path, off64_t length)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(path, sbox_path);
 	if (next_truncate64 == NULL) libsb2_init();
-	return next_truncate64(path, length);
+	ret = next_truncate64(sbox_path, length);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -2340,12 +2583,16 @@ int ulckpwdf (void)
 
 
 /* #include <unistd.h> */
-int unlink (const char *pathname)
+int unlink(const char *pathname)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(pathname, sbox_path);
 	if (next_unlink == NULL) libsb2_init();
-	return next_unlink(pathname);
+	ret = next_unlink(sbox_path);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -2353,9 +2600,13 @@ int unlink (const char *pathname)
 int unlinkat(int dirfd, const char *pathname, int flags)
 {
 	SBOX_MAP_AT_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH_AT(dirfd, pathname, sbox_path);
 	if (next_unlinkat == NULL) libsb2_init();
-	return next_unlinkat(dirfd, pathname, flags);
+	ret = next_unlinkat(dirfd, sbox_path, flags);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 #endif
 
@@ -2364,9 +2615,13 @@ int unlinkat(int dirfd, const char *pathname, int flags)
 int utime (const char *filename, const struct utimbuf *buf)
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(filename, sbox_path);
 	if (next_utime == NULL) libsb2_init();
-	return next_utime(filename, buf);
+	ret = next_utime(sbox_path, buf);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 
@@ -2374,9 +2629,13 @@ int utime (const char *filename, const struct utimbuf *buf)
 int utimes (const char *filename, const struct timeval tv[2])
 {
 	SBOX_MAP_PROLOGUE();
+	int ret;
+
 	SBOX_MAP_PATH(filename, sbox_path);
 	if (next_utimes == NULL) libsb2_init();
-	return next_utimes(filename, tv);
+	ret = next_utimes(sbox_path, tv);
+	if (sbox_path) free(sbox_path);
+	return ret;
 }
 
 

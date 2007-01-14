@@ -1,7 +1,7 @@
 -- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 
 install = {
-	next = default_chain,
+	next_chain = default_chain,
 	binary = "^install$",
 	rules = {
 		{path = ".*", map_to = "="}
@@ -9,7 +9,7 @@ install = {
 }
 
 ln = {
-	next = default_chain,
+	next_chain = default_chain,
 	binary = "^ln$",
 	rules = {
 		{path = ".*", map_to = "="}
@@ -17,7 +17,7 @@ ln = {
 }
 
 cp = {
-	next = default_chain,
+	next_chain = default_chain,
 	binary = "^cp$",
 	rules = {
 		{path = ".*", map_to = "="}
@@ -25,7 +25,7 @@ cp = {
 }
 
 rm = {
-	next = default_chain,
+	next_chain = default_chain,
 	binary = "^rm$",
 	rules = {
 		{path = ".*", map_to = "="}
@@ -33,15 +33,26 @@ rm = {
 }
 
 qemu = {
-	next = default_chain,
+	next_chain = default_chain,
 	binary = ".*qemu.*",
 	rules = {
 		{path = "^/", map_to = "="}
 	}
 }
 
+
+dpkg = {
+	next_chain = default_chain,
+	binary = ".*dpkg.*",
+	rules = {
+		{path = "^/usr/lib/dpkg.*", map_to = nil},
+		{path = "^/usr/share/dpkg.*", map_to = nil}
+	}
+}
+
+
 perl = {
-	next = default_chain,
+	next_chain = dpkg,
 	binary = ".*perl.*",
 	rules = {
 		{path = "^/usr/lib/perl.*", map_to = nil}
@@ -54,5 +65,6 @@ export_chains = {
 	cp,
 	rm,
 	qemu,
+	dpkg,
 	perl
 }

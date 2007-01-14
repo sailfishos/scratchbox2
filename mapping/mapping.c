@@ -23,6 +23,7 @@
 #include <string.h>
 #include <limits.h>
 #include <sys/param.h>
+#include <sys/file.h>
 #include <assert.h>
 #include <pthread.h>
 
@@ -32,6 +33,18 @@
 
 #include <mapping.h>
 #include <sb2.h>
+
+#define WRITE_LOG(fmt...) \
+	{char *__logfile = getenv("SBOX_MAPPING_LOGFILE"); \
+	int __logfd; FILE *__logfs;\
+	if (__logfile) { \
+		if ((__logfd = syscall(__NR_open, __logfile, O_APPEND | O_RDWR | O_CREAT, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)) > 0) { \
+			__logfs = fdopen(__logfd, "a"); \
+			fprintf(__logfs, fmt); \
+			fclose(__logfs); \
+		} \
+	}}
+
 
 #define enable_mapping() mapping_disabled--
 #define disable_mapping() mapping_disabled++
@@ -45,6 +58,7 @@ void bind_set_getpid(pidfunction *func) {
 }
 
 
+void mapping_log_write(char *msg);
 static int lua_bind_sb_functions(lua_State *l);
 char *__sb2_realpath (const char *name, char *resolved);
 
@@ -57,6 +71,8 @@ __thread int mapping_disabled = 0;
 __thread time_t sb2_timestamp = 0;
 
 __thread pthread_mutex_t lua_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+
+pthread_mutex_t mapping_cache_lock = PTHREAD_MUTEX_INITIALIZER;
 
 struct path_entry {
 	struct path_entry *prev;
@@ -163,15 +179,14 @@ proceed:
 
 static char *create_sb2cache_path(const char *binary_name, const char *func_name, const char *path)
 {
-	char *target_dir = getenv("SBOX_TARGET_ROOT");
+	char *target_dir = getenv("SBOX_MAPPING_CACHE");
 	char *cache_path;
 	unsigned int length;
 
-	length = strlen(target_dir) + strlen(".sb2cache") + strlen(path) + 1 + strlen(binary_name) + 1 + strlen(func_name) + 4 + 1;
+	length = strlen(target_dir) + strlen(path) + 1 + strlen(binary_name) + 1 + strlen(func_name) + 4 + 1;
 	cache_path = malloc(length * sizeof(char));
 	memset(cache_path, '\0', length);
 	strcpy(cache_path, target_dir);
-	strcat(cache_path, ".sb2cache");
 	strcat(cache_path, path);
 	strcat(cache_path, ".");
 	strcat(cache_path, binary_name);
@@ -253,8 +268,23 @@ static int insert_sb2cache(const char *binary_name, const char *func_name, const
 	char *dcopy;
 	char *wrk;
 	struct stat64 s;
+	int lockfd;
 
 	disable_mapping();
+
+	/* get a lock on the cache
+	 * first get a lock within this process
+	 */
+	pthread_mutex_lock(&mapping_cache_lock);
+	lockfd = open(getenv("SBOX_MAPPING_CACHE"), O_RDONLY);
+	while (flock(lockfd, LOCK_EX) < 0) {
+		if (errno != EINTR) {
+			perror("Unable to acquire cache lock");
+			pthread_mutex_unlock(&mapping_cache_lock);
+			close(lockfd);
+			return -1;
+		}
+	}
 
 	cache_path = create_sb2cache_path(binary_name, func_name, path);
 
@@ -279,10 +309,16 @@ static int insert_sb2cache(const char *binary_name, const char *func_name, const
 				/* create the dir */
 				if (syscall(__NR_mkdir, dcopy, S_IRWXU) < 0) {
 					perror("Unable to create dir in sb2cache\n");
+					flock(lockfd, LOCK_UN);
+					close(lockfd);
+					pthread_mutex_unlock(&mapping_cache_lock);
 					exit(1);
 				}
 			} else {
 				perror("Big trouble working the sb2cache\n");
+				flock(lockfd, LOCK_UN);
+				close(lockfd);
+				pthread_mutex_unlock(&mapping_cache_lock);
 				exit(1);
 			}
 		}
@@ -293,14 +329,25 @@ static int insert_sb2cache(const char *binary_name, const char *func_name, const
 	if (lstat64(cache_path, &s) == 0) {
 		/* link exists, remove it */
 		if (unlink(cache_path) < 0) {
+			DBGOUT("unable to remove: %s\n", cache_path);
 			perror("Error while removing symlink in sb2cache");
+			flock(lockfd, LOCK_UN);
+			close(lockfd);
+			pthread_mutex_unlock(&mapping_cache_lock);
 			exit(1);
 		}
 	}
 	if (symlink(map_to, cache_path) < 0) {
 		perror("Error while creating symlink in sb2cache\n");
+		DBGOUT("Failed on: (%s, %s)\n", map_to, cache_path);
+		flock(lockfd, LOCK_UN);
+		close(lockfd);
+		pthread_mutex_unlock(&mapping_cache_lock);
 		exit(1);
 	}
+	flock(lockfd, LOCK_UN);
+	close(lockfd);
+	pthread_mutex_unlock(&mapping_cache_lock);
 	enable_mapping();
 	return 0;
 }
@@ -470,14 +517,18 @@ char *scratchbox_path2(const char *binary_name, const char *func_name, const cha
 	char work_dir[PATH_MAX+1];
 	char *tmp = NULL, *decolon_path = NULL;
 	char pidlink[17]; /* /proc/2^8/exe */
-
-	if (!path) return NULL;
+	
+	if (!path) {
+		WRITE_LOG("ERROR: scratchbox_path2: path == NULL: [%s][%s]\n", binary_name, func_name);
+		return NULL;
+	}
+	//WRITE_LOG("in scratchbox_path2: %s %s (%s)\n", binary_name, func_name, path);
 	if (mapping_disabled || getenv("SBOX_DISABLE_MAPPING")) {
 		return strdup(path);
 	}
 
 	decolon_path = decolonize_path(path);
-
+	//WRITE_LOG("scratchbox_path2: decolon_path: (%s)\n", decolon_path);
 	if (strstr(decolon_path, getenv("SBOX_TARGET_ROOT"))) {
 		/* short circuit a direct reference to a file inside the sbox 
 		 * target dir */

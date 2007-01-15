@@ -51,12 +51,21 @@ dpkg = {
 	}
 }
 
-
+-- Some stuff is under share or even etc...
 perl = {
 	next_chain = dpkg,
 	binary = ".*perl.*",
 	rules = {
-		{path = "^/usr/lib/perl.*", map_to = nil}
+		{path = ".*perl.*", map_to = nil}
+	}
+}
+
+-- fakeroot needs this
+sh = {
+	next_chain = default_chain,
+	binary = ".*sh.*",
+	rules = {
+		{path = "^/usr/lib.*", map_to = nil}
 	}
 }
 
@@ -67,5 +76,6 @@ export_chains = {
 	rm,
 	qemu,
 	dpkg,
-	perl
+	perl,
+	sh
 }

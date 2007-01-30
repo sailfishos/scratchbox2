@@ -38,6 +38,7 @@ HOST_GCC_INC_DIR=$(echo "#include <stdio.h>" | gcc -M -E - | perl -e 'while(<STD
 export PATH=$PATH:$SBOX_DIR/bin
 export LD_PRELOAD=$SBOX_LIBSB2
 export SBOX_EXTRA_HOST_COMPILER_ARGS="$HOST_GCC_INC_DIR"
+export SBOX_EXTRA_TARGET_COMPILER_ARGS="-isystem /usr/local/include -isystem /usr/include"
 export SBOX_SCRATCHBOX_CONFIG=$SBOX_TARGET_ROOT/sb2.config
 export PS1="[SB2] \u@\h \w \$ "
 

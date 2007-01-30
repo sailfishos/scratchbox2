@@ -368,7 +368,7 @@ static enum binary_type inspect_binary(const char *filename)
 	char *region;
 	unsigned int ph_base, ph_frag;
 #ifdef __x86_64__
-	uint64_t reloc0;
+	int64_t reloc0;
 	Elf64_Ehdr *ehdr;
 	Elf64_Phdr *phdr;
 #else

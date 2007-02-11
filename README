@@ -10,7 +10,6 @@ Here are some instructions:
 You need git to work with sbox2, get it from http://git.or.cz/.
 
 
-
 Build using:
 
 $ ./autogen.sh
@@ -19,18 +18,33 @@ $ make
 $ make install prefix=$HOME/scratchbox
 
 
-Fire it up:
+Set it up:
 
 $ mkdir $HOME/buildroot
 $ cp $HOME/scratchbox/share/scratchbox2/sb2.config.sample \
 $HOME/buildroot/sb2.config
 
 (at this point you _really_ should go through that file and make sure
-it applies to your host system and intended target toolchain)
+it applies to your host system and intended target toolchain). After you're
+happy with it you can simply start sb2:
 
 $ cd $HOME/buildroot
 $ ../scratchbox/bin/sb2
 
+
+For Maemo (http://www.maemo.org/) development you can download
+the latest rootstrap:
+http://repository.maemo.org/stable/3.0/armel/maemo-sdk-rootstrap_3.0_armel.tgz)
+Extract that to $HOME/buildroot.
+
+Also get a current toolchain from CodeSourcery:
+http://www.codesourcery.com/gnu_toolchains/arm/download.html
+Put that to $HOME/compilers/arm-2006q3 (sb2.config.sample expects this).
+
+Then build a proper libtool for your active toolchain by running this inside
+sb2:
+
+$ $HOME/scratchbox/bin/sb2-build-libtool.sh
 
 
 That's all folks, enjoy!

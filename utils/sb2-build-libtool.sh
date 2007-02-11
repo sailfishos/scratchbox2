@@ -12,7 +12,7 @@ WORKDIR=libtool_build
 mkdir -p $WORKDIR
 cd $WORKDIR
 wget $DLHOST/$SOURCEFILE
-tar zxf $SOURCEFILE
+tar zxf $SOURCEFILE --strip-components=1
 
 
 ./configure --prefix=$SBOX_TARGET_ROOT

@@ -55,25 +55,6 @@ default_dev = {
 	map_to = nil
 }
 
-
-libtool = {
-	func_name = "exec.*",
-	path = ".*libtool",
-	map_to = "+/arch_tools/bin"
-}
-
-libtoolm4 = {
-	func_name = ".*",
-	path = ".*libtool.m4",
-	map_to = "+/arch_tools/share/aclocal"
-}
-
-ltdlm4 = {
-	func_name = ".*",
-	path = ".*ltdlm4",
-	map_to = "+/arch_tools/share/aclocal"
-}
-
 autoconf = {
 	func_name = ".*",
 	path = "^/usr/share/autoconf.*",
@@ -100,6 +81,14 @@ hostgcc = {
 }
 
 
+-- don't map anything else from TARGETDIR
+
+targetdir = {
+	func_name = ".*",
+	path = "^" .. target_root .. ".*",
+	map_to = nil
+}
+
 -- catch all rule to map everything else to TARGETDIR/
 default_rootdir = {
 	func_name = ".*",
@@ -118,9 +107,6 @@ default_chain = {
 	noentry = 1, -- never use this chain directly to start mapping
 	binary = nil,
 	rules = {
-		libtool,
-		libtoolm4,
-		ltdlm4,
 		autoconf,
 		automake,
 		aclocal,
@@ -134,6 +120,7 @@ default_chain = {
 		default_tmp,
 		default_etc,
 		hostgcc,
+		targetdir,
 		default_rootdir
 	}
 }

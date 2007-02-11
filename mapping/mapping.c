@@ -117,6 +117,7 @@ static char *decolonize_path(const char *path)
 	} else {
 		cpath = strdup(path);
 	}
+
 	start = cpath + 1; /* ignore leading '/' */
 	while (1) {
 		index = strstr(start, "/");
@@ -527,15 +528,19 @@ char *scratchbox_path2(const char *binary_name, const char *func_name, const cha
 		return strdup(path);
 	}
 
+	disable_mapping();
 	decolon_path = decolonize_path(path);
 	//WRITE_LOG("scratchbox_path2: decolon_path: (%s)\n", decolon_path);
+#if 0
 	if (strstr(decolon_path, getenv("SBOX_TARGET_ROOT"))) {
 		/* short circuit a direct reference to a file inside the sbox 
 		 * target dir */
 		//DBGOUT("about to short circuit: %s\n", func_name);
 		free(decolon_path);
+		enable_mapping();
 		return strdup(path);
 	}
+#endif
 
 
 	/* first try from the cache */
@@ -547,18 +552,18 @@ char *scratchbox_path2(const char *binary_name, const char *func_name, const cha
 	if (tmp) {
 		if (strcmp(tmp, decolon_path) == 0) {
 			free(decolon_path);
+			enable_mapping();
 			return strdup(path);
 		} else {
+			enable_mapping();
 			return tmp;
 		}
 	}
 #endif
 
-#if 1
 	if (pthread_mutex_trylock(&lua_lock) < 0) {
 		pthread_mutex_lock(&lua_lock);
 	}
-#endif
 
 	if (!rsdir) {
 		rsdir = getenv("SBOX_REDIR_SCRIPTS");
@@ -585,6 +590,7 @@ char *scratchbox_path2(const char *binary_name, const char *func_name, const cha
 	if (strncmp(decolon_path, rsdir, strlen(rsdir)) == 0) {
 		//pthread_mutex_unlock(&lua_lock);
 		//DBGOUT("cutting recursive call\n");
+		enable_mapping();
 		return (char *)decolon_path;
 	}
 	
@@ -629,9 +635,11 @@ char *scratchbox_path2(const char *binary_name, const char *func_name, const cha
 	if (strcmp(tmp, decolon_path) == 0) {
 		free(decolon_path);
 		free(tmp);
+		enable_mapping();
 		return strdup(path);
 	} else {
 		free(decolon_path);
+		enable_mapping();
 		return tmp;
 	}
 }

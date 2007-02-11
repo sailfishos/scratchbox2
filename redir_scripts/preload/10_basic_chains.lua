@@ -1,40 +1,39 @@
 -- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 -- Licensed under MIT License.
 
-install = {
+
+util_chain = {
 	next_chain = default_chain,
-	binary = "^install$",
+	binary = nil,
+	noentry = 1,
 	rules = {
+		autoconf,
+		automake,
+		aclocal,
 		{path = "^" .. target_root ..".*", map_to = nil},
+		{path = "^/home.*", map_to = nil},
 		{path = ".*", map_to = "="}
 	}
+}
+
+install = {
+	next_chain = util_chain,
+	binary = "^install$"
 }
 
 ln = {
-	next_chain = default_chain,
-	binary = "^ln$",
-	rules = {
-		{path = "^" .. target_root ..".*", map_to = nil},
-		{path = ".*", map_to = "="}
-	}
+	next_chain = util_chain,
+	binary = "^ln$"
 }
 
 cp = {
-	next_chain = default_chain,
-	binary = "^cp$",
-	rules = {
-		{path = "^" .. target_root ..".*", map_to = nil},
-		{path = ".*", map_to = "="}
-	}
+	next_chain = util_chain,
+	binary = "^cp$"
 }
 
 rm = {
-	next_chain = default_chain,
-	binary = "^rm$",
-	rules = {
-		{path = "^" .. target_root ..".*", map_to = nil},
-		{path = ".*", map_to = "="}
-	}
+	next_chain = util_chain,
+	binary = "^rm$"
 }
 
 
@@ -43,6 +42,7 @@ libtool = {
 	binary = ".*libtool.*",
 	rules = {
 		{path = "^" .. target_root ..".*", map_to = nil},
+		{path = "^/home.*", map_to = nil},
 		{path = "^/", map_to = "="}
 	}
 }
@@ -52,6 +52,7 @@ qemu = {
 	binary = ".*qemu.*",
 	rules = {
 		{path = "^" .. target_root ..".*", map_to = nil},
+		{path = "^/home.*", map_to = nil},
 		{path = "^/", map_to = "="}
 	}
 }
@@ -62,6 +63,7 @@ dpkg = {
 	binary = ".*dpkg.*",
 	rules = {
 		{path = "^" .. target_root ..".*", map_to = nil},
+		{path = "^/home.*", map_to = nil},
 		{path = "^/usr/lib/dpkg.*", map_to = nil},
 		{path = "^/usr/share/dpkg.*", map_to = nil}
 	}
@@ -86,6 +88,7 @@ sh = {
 }
 
 export_chains = {
+	util_chain,
 	install,
 	ln,
 	cp,

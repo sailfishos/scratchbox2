@@ -56,6 +56,9 @@ if (t ~= nil) then
 					if (not export_chains[i].binary) then
 						export_chains[i].binary = ".*"
 					end
+					if (not export_chains[i].rules) then
+						export_chains[i].rules = {}
+					end
 					-- loop through the rules
 					for r = 1, table.maxn(export_chains[i].rules) do
 						if (not export_chains[i].rules[r].func_name) then

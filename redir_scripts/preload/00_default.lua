@@ -81,6 +81,14 @@ hostgcc = {
 }
 
 
+-- pkgconfig
+
+pkgconfig = {
+	func_name = ".*",
+	path = "^/usr/lib/pkgconfig.*",
+	map_to = "="
+}
+
 -- don't map anything else from TARGETDIR
 
 targetdir = {
@@ -120,6 +128,7 @@ default_chain = {
 		default_tmp,
 		default_etc,
 		hostgcc,
+		pkgconfig,
 		targetdir,
 		default_rootdir
 	}

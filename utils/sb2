@@ -35,11 +35,11 @@ cd $SBOX_TARGET_ROOT
 
 HOST_GCC_INC_DIR=$(echo "#include <stdio.h>" | gcc -M -E - | perl -e 'while(<STDIN>) { $foo{$1} = 1 if m/\/usr([^[:space:]]*\/include)/;}; foreach my $k (keys %foo) {print " -isystem $ENV{SBOX_DIR}/share/scratchbox2/host_usr$k"};')
 
-export PATH=$SBOX_TARGET_ROOT/bin:$SBOX_TARGET_ROOT/usr/bin:$SBOX_TARGET_ROOT/usr/local/bin:$PATH:$SBOX_DIR/bin
+export PATH=$SBOX_TARGET_ROOT/sb_tools/bin:$SBOX_DIR/bin:$PATH:$SBOX_TARGET_ROOT/bin:$SBOX_TARGET_ROOT/usr/bin:$SBOX_TARGET_ROOT/usr/local/bin
 export LD_PRELOAD=$SBOX_LIBSB2
 export SBOX_EXTRA_HOST_COMPILER_ARGS="$HOST_GCC_INC_DIR"
 export SBOX_EXTRA_CROSS_COMPILER_ARGS="-isystem /usr/local/include -isystem /usr/include -I/usr/local/include -I/usr/include -L/usr/local/lib -L/usr/lib -L/lib"
-export SBOX_EXTRA_CROSS_LD_ARGS="-rpath-link /usr/local/lib:/usr/lib:/lib"
+export SBOX_EXTRA_CROSS_LD_ARGS="-rpath-link $SBOX_TARGET_ROOT/usr/local/lib:$SBOX_TARGET_ROOT/usr/lib:$SBOX_TARGET_ROOT/lib"
 export SBOX_SCRATCHBOX_CONFIG=$SBOX_TARGET_ROOT/sb2.config
 export PS1="[SB2] \u@\h \w \$ "
 

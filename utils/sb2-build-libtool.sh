@@ -15,7 +15,7 @@ wget $DLHOST/$SOURCEFILE
 tar zxf $SOURCEFILE --strip-components=1
 
 
-./configure --prefix=$SBOX_TARGET_ROOT/usr
+./configure --prefix=$SBOX_TARGET_ROOT/sb_tools
 
 # The system libtool script in Debian must be able to support
 # invoking gcc as cc (Debian specific)

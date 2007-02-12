@@ -97,6 +97,13 @@ targetdir = {
 	map_to = nil
 }
 
+-- don't map "/" path
+actual_root = {
+	func_name = ".*",
+	path = "^/$",
+	map_to = nil
+}
+
 -- catch all rule to map everything else to TARGETDIR/
 default_rootdir = {
 	func_name = ".*",
@@ -130,6 +137,7 @@ default_chain = {
 		hostgcc,
 		pkgconfig,
 		targetdir,
+		actual_root,
 		default_rootdir
 	}
 }

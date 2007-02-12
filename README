@@ -51,6 +51,12 @@ sb2:
 
 $ $HOME/scratchbox/bin/sb2-build-libtool.sh
 
+In order to build debian packages, you have to use -d switch for
+dpkg-buildpackage to skip build dependency checking. A proper
+command line would be for example:
+
+dpkg-buildpackage -rfakeroot -d
+
 
 That's all folks, enjoy!
 

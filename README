@@ -9,9 +9,14 @@ Here are some instructions:
 
 You need git to work with sbox2, get it from http://git.or.cz/.
 
+Clone the scratchbox 2 repository:
+
+$ git clone http://rahina.org/repos/sbox2.git
+
 
 Build using:
 
+$ cd sbox2
 $ ./autogen.sh
 $ ./configure
 $ make

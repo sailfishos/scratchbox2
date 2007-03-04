@@ -9,9 +9,14 @@ Here are some instructions:
 
 You need git to work with sbox2, get it from http://git.or.cz/.
 
+Clone the scratchbox 2 repository:
+
+$ git clone http://rahina.org/repos/sbox2.git
+
 
 Build using:
 
+$ cd sbox2
 $ ./autogen.sh
 $ ./configure
 $ make
@@ -45,6 +50,12 @@ Then build a proper libtool for your active toolchain by running this inside
 sb2:
 
 $ $HOME/scratchbox/bin/sb2-build-libtool.sh
+
+In order to build debian packages, you have to use -d switch for
+dpkg-buildpackage to skip build dependency checking. A proper
+command line would be for example:
+
+dpkg-buildpackage -rfakeroot -d
 
 
 That's all folks, enjoy!

@@ -36,6 +36,13 @@ rm = {
 	binary = "^rm$"
 }
 
+file = {
+	next_chain = default_chain,
+	binary = "^file$",
+	rules = {
+		{path = "^/usr/share/file/.*", map_to = nil}
+	}
+}
 
 libtool = {
 	next_chain = default_chain,
@@ -93,6 +100,7 @@ export_chains = {
 	ln,
 	cp,
 	rm,
+	file,
 	libtool,
 	qemu,
 	dpkg,

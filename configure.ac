@@ -156,7 +156,6 @@ utime \
 utimes \
 ])
 
-
 AC_EGREP_CPP(EM_386,
 [
 #include <asm/elf.h>
@@ -165,5 +164,13 @@ ELF_ARCH
 )
 AH_TEMPLATE([ELF_ARCH], [ELF architecture])
 AC_DEFINE_UNQUOTED(ELF_ARCH, ${elf_arch})
+
+AH_TEMPLATE([READLINK_TYPE], [readlink() return type])
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+#include <unistd.h>
+ssize_t readlink(const char *path, char *buf, size_t bufsize) 
+{ return 0; }]])], 
+readlink_type="ssize_t", readlink_type="int")
+AC_DEFINE_UNQUOTED(READLINK_TYPE, ${readlink_type})
 
 AC_OUTPUT

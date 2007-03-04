@@ -2267,7 +2267,8 @@ long pathconf (const char *path, int name)
 
 /* #include <unistd.h> */
 /* XXX: add proc pid/exe wrapper from libsb to here */
-ssize_t readlink (const char *path, char *buf, size_t bufsize)
+
+READLINK_TYPE readlink (const char *path, char *buf, size_t bufsize)
 {
 	SBOX_MAP_PROLOGUE();
 	int ret;
@@ -2281,7 +2282,7 @@ ssize_t readlink (const char *path, char *buf, size_t bufsize)
 }
 
 #ifdef HAVE_READLINKAT
-ssize_t readlinkat(int dirfd, const char *pathname, char *buf, size_t bufsize)
+READLINK_TYPE readlinkat(int dirfd, const char *pathname, char *buf, size_t bufsize)
 {
 	SBOX_MAP_AT_PROLOGUE();
 	int ret;

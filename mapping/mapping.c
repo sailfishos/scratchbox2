@@ -489,10 +489,6 @@ static int sb_getdirlisting(lua_State *l)
 	}
 	closedir(d);
 
-	/* make sure lua knows about the table size */
-	lua_pushliteral(l, "n");
-	lua_pushnumber(l, count);
-	lua_rawset(l, -3);
 	free(path);
 	enable_mapping();
 	return 1;

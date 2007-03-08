@@ -478,7 +478,7 @@ static int sb_getdirlisting(lua_State *l)
 		enable_mapping();
 		return 1;
 	}
-	count = 0;
+	count = 1; /* Lua indexes tables from 1 */
 	lua_newtable(l); /* create a new table on the stack */
 	
 	while ( (de = readdir(d)) != NULL) { /* get one dirent at a time */
@@ -491,7 +491,7 @@ static int sb_getdirlisting(lua_State *l)
 
 	/* make sure lua knows about the table size */
 	lua_pushliteral(l, "n");
-	lua_pushnumber(l, count - 1);
+	lua_pushnumber(l, count);
 	lua_rawset(l, -3);
 	free(path);
 	enable_mapping();

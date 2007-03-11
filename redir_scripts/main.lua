@@ -122,25 +122,52 @@ function sb_debug(msg)
 	io.close(f)
 end
 
+function adjust_for_mapping_leakage(path)
+	if (not path) then 
+		return nil
+	end
+	--print("path: " .. path)
+	local tmp = sb.sb_readlink(path)
+	if (not tmp) then
+		-- not a symlink
+		return path
+	end
+	-- make it an absolute path if it's not
+	if (string.sub(tmp, 1, 1) ~= "/") then
+		tmp = dirname(path) .. "/" .. tmp
+	end
+	-- decolonize it
+	tmp = sb.sb_decolonize_path(tmp)
+	--print(string.format("after decolonizing: %s\n", tmp))
+	if (not string.match(tmp, "^" .. target_root .. ".*")) then
+		-- aha! tried to get out of there, now map it right back in
+		return adjust_for_mapping_leakage(target_root .. tmp)
+	else
+		return adjust_for_mapping_leakage(tmp)
+	end
+end
+
 function sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
 	local ret = nil
 	if (rule.map_to) then
 		if (string.sub(rule.map_to, 1, 1) == "=") then
 			--print(string.format("rp: %s\ntarget_root: %s", rp, target_root))
-			return target_root .. string.sub(rule.map_to, 2) .. path
-		elseif (string.sub(rule.map_to, 1, 1) == "+") then
-			ret = compiler_root .. string.sub(rule.map_to, 2) .. "/" .. basename(path)
-			return ret
+			ret = target_root .. string.sub(rule.map_to, 2) .. path
 		elseif (string.sub(rule.map_to, 1, 1) == "-") then
 			ret = string.match(path, rule.path .. "(.*)")
 			ret = string.sub(rule.map_to, 2) .. ret
-			return ret
 		else
-			return rule.map_to .. path
+			ret = rule.map_to .. path
 		end
+		return adjust_for_mapping_leakage(ret)
 	end
-
-	return path
+	-- if not mapping, check if we're within the 
+	-- target_root and adjust for mapping leakage if so
+	if (string.match(path, "^" .. target_root .. ".*")) then
+		return adjust_for_mapping_leakage(path)
+	else
+		return path
+	end
 end
 
 

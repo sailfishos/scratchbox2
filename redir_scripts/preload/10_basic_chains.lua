@@ -10,6 +10,7 @@ util_chain = {
 		autoconf,
 		automake,
 		aclocal,
+		intltool,
 		{path = "^" .. target_root ..".*", map_to = nil},
 		{path = "^/home.*", map_to = nil},
 		{path = ".*", map_to = "="}

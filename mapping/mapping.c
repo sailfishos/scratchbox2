@@ -355,6 +355,54 @@ static int insert_sb2cache(const char *binary_name, const char *func_name, const
 
 #endif /* DISABLE_CACHE */
 
+
+static int sb_decolonize_path(lua_State *l)
+{
+	int n;
+	char *path;
+	char *resolved_path;
+
+	n = lua_gettop(l);
+	if (n != 1) {
+		lua_pushstring(l, NULL);
+		return 1;
+	}
+
+	path = strdup(lua_tostring(l, 1));
+
+	resolved_path = decolonize_path(path);
+	lua_pushstring(l, resolved_path);
+	free(resolved_path);
+	free(path);
+	return 1;
+}
+
+static int sb_readlink(lua_State *l)
+{
+	int n;
+	char *path;
+	char resolved_path[PATH_MAX + 1];
+
+	n = lua_gettop(l);
+	if (n != 1) {
+		lua_pushstring(l, NULL);
+		return 1;
+	}
+
+	memset(resolved_path, '\0', PATH_MAX + 1);
+
+	path = strdup(lua_tostring(l, 1));
+	if (readlink(path, resolved_path, PATH_MAX) < 0) {
+		free(path);
+		lua_pushstring(l, NULL);
+		return 1;
+	} else {
+		free(path);
+		lua_pushstring(l, resolved_path);
+		return 1;
+	}
+}
+
 static int sb_realpath(lua_State *l)
 {
 	char *path;
@@ -511,7 +559,7 @@ char *scratchbox_path(const char *func_name, const char *path)
 
 char *scratchbox_path2(const char *binary_name, const char *func_name, const char *path)
 {	
-	char work_dir[PATH_MAX+1];
+	char work_dir[PATH_MAX + 1];
 	char *tmp = NULL, *decolon_path = NULL;
 	char pidlink[17]; /* /proc/2^8/exe */
 	
@@ -624,6 +672,7 @@ char *scratchbox_path2(const char *binary_name, const char *func_name, const cha
 	lua_pop(l, 1);
 
 	pthread_mutex_unlock(&lua_lock);
+
 #ifndef DISABLE_CACHE
 	insert_sb2cache(binary_name, func_name, decolon_path, tmp);
 #endif
@@ -647,6 +696,8 @@ static const luaL_reg reg[] =
 	{"sb_getdirlisting",		sb_getdirlisting},
 	{"sb_followsymlink",		sb_followsymlink},
 	{"sb_realpath",			sb_realpath},
+	{"sb_readlink",			sb_readlink},
+	{"sb_decolonize_path",		sb_decolonize_path},
 	{NULL,				NULL}
 };
 

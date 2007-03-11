@@ -73,6 +73,12 @@ aclocal = {
 	map_to = nil
 }
 
+intltool = {
+	func_name = ".*",
+	path = "^/usr/share/intltool.*",
+	map_to = nil
+}
+
 
 hostgcc = {
 	func_name = ".*",
@@ -125,6 +131,7 @@ default_chain = {
 		autoconf,
 		automake,
 		aclocal,
+		intltool,
 		default_bin,
 		default_usrbin,
 		default_usrlocalbin,

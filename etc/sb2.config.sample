@@ -7,7 +7,7 @@ SBOX_TARGET_NAME=arm
 SBOX_CPU=arm
 SBOX_OS=none-linux-gnueabi
 SBOX_CLIB=glibc
-SBOX_CPUTRANSPARENCY_METHOD=/home/lleukkun/scratchbox/bin/qemu-arm
+SBOX_CPUTRANSPARENCY_METHOD=/usr/bin/qemu-arm
 
 SBOX_DEFAULT_GCC_PREFIX=arm-none-linux-gnueabi-
 SBOX_TARGET_SETUP_SCRIPT=

@@ -80,7 +80,7 @@ struct path_entry {
 	char name[PATH_MAX];
 };
 
-static char *decolonize_path(const char *path)
+char *decolonize_path(const char *path)
 {
 	char *cpath, *index, *start;
 	char cwd[PATH_MAX];

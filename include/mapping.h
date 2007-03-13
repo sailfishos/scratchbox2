@@ -9,9 +9,11 @@
 
 #include <sys/types.h>
 
-
+char *decolonize_path(const char *path);
 char *scratchbox_path(const char *func_name, const char *path);
 char *scratchbox_path2(const char *binary_name, const char *func_name, const char *path);
+
+char *emumode_map(const char *path);
 
 typedef pid_t pidfunction(void);
 void bind_set_getpid(pidfunction *func);

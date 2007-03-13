@@ -10,9 +10,9 @@ Architecture: i386 amd64
 Depends: ${shlibs:Depends}
 Recommends: qemu
 Suggests: sbrsh
-Description: Transparent crosscompiling enviroinment
- Scratchbox2 uses LD_PRELOAD library to create a transparent crosscompiling
- enviroinment. Scratchbox2 automatically maps filesystem access to 
- crosscompiler, target libraries and headers using a flexible lua path mapping 
- engine. Together with cpu transparency, it enables fast crosscompiling
- without modifying build scripts.
+Description: Transparent cross compiling environment
+ Scratchbox2 uses a LD_PRELOAD library to create a transparent cross compiling
+ environment. Scratchbox2 automatically maps file system accesses to
+ crosscompiler, target libraries and headers using a flexible lua path mapping
+ engine. Together with CPU transparency, provided by qemu or sbrsh, scratchbox2
+ enables fast crosscompiling without modifying build scripts.

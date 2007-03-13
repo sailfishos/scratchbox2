@@ -30,7 +30,7 @@ install: $(targets)
 	install -d -m 755 $(prefix)/share/scratchbox2/redir_scripts/preload
 	install -c -m 755 preload/libsb2.so $(prefix)/lib/libsb2.so
 	install -c -m 755 utils/sb2 $(prefix)/bin/sb2
-	install -c -m 755 utils/sb2-build-libtool.sh $(prefix)/bin/sb2-build-libtool.sh
+	install -c -m 755 utils/sb2-build-libtool.sh $(prefix)/bin/sb2-build-libtool
 	install -c -m 755 utils/sb_gcc_wrapper $(prefix)/bin/sb_gcc_wrapper
 	install -c -m 755 scripts/sb2rc $(prefix)/share/scratchbox2/sb2rc
 	install -c -m 644 redir_scripts/main.lua $(prefix)/share/scratchbox2/redir_scripts/main.lua

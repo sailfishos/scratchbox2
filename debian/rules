@@ -24,7 +24,7 @@ build-stamp:
 
 clean: checkroot
 	$(checkdir)
-	rm -f build-stamp 
+	rm -f build-stamp
 	rm -rf .deps
 	rm -f debian/substvars debian/files
 	rm -rf debian/tmp obj obj-build obj64 objfake
@@ -38,7 +38,7 @@ binary-indep: build
 # We have nothing to do by default.
 
 # Build architecture-dependent files here.
-install: build 
+install: build
 	dh_testdir
 	dh_testroot
 	dh_installdirs

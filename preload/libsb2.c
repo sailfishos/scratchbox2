@@ -85,10 +85,10 @@
  */
 
 #define SBOX_MAP_PROLOGUE() \
-	char *sbox_path;
+	char *sbox_path = NULL;
 
 #define SBOX_MAP_AT_PROLOGUE() \
-	char *sbox_path;
+	char *sbox_path = NULL;
 
 #define SBOX_MAP_PATH_NARROW(path, sbox_path) \
 { \

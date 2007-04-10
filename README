@@ -11,7 +11,7 @@ You need git to work with sbox2, get it from http://git.or.cz/.
 
 Clone the scratchbox 2 repository:
 
-$ git clone http://rahina.org/repos/sbox2.git
+$ git clone git://anongit.freedesktop.org/git/sbox2
 
 
 Build using:
@@ -34,7 +34,7 @@ it applies to your host system and intended target toolchain).
 
 You need Qemu for cpu-transparency. Debian/Etch and Debian/unstable provide
 a good one. Use it. If all else fails, there's a static qemu-arm-0.8.1-sb2
-available on http://rahina.org/sb2/.
+available on http://freedesktop.org/wiki/Software_2fsbox2.
 
 After you're happy with your config you can simply start sb2:
 

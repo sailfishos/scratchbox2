@@ -121,7 +121,7 @@
 { \
 	char *msg; \
 	if (next_##function == NULL) { \
-		*(void **)(&next_##function) = dlsym(RTLD_NEXT, name); \
+		next_##function = dlsym(RTLD_NEXT, name); \
 		if ((msg = dlerror()) != NULL) { \
 			fprintf (stderr, "%s: dlsym(%s): %s\n", PACKAGE_NAME, name, msg); \
 		} \
@@ -2343,7 +2343,7 @@ int removexattr(const char *path, const char *name)
 /* #include <stdio.h> */
 int rename(const char *oldpath, const char *newpath)
 {
-	char *sbox_path_old, *sbox_path_new;
+	char *sbox_path_old = NULL, *sbox_path_new = NULL;
 	int ret;
 
 	SBOX_MAP_PATH(oldpath, sbox_path_old);

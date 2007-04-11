@@ -77,6 +77,18 @@ dpkg = {
 	}
 }
 
+apt = {
+	next_chain = default_chain,
+	binary = ".*apt.*",
+	rules = {
+		{path = "^" .. target_root .. ".*", map_to = nil},
+		{path = "^/var/lib/apt.*", map_to = "="},
+		{path = "^/var/cache/apt.*", map_to = "="},
+		{path = "^/usr/lib/apt.*", map_to = nil},
+		{path = "^/etc/apt.*", map_to = "="}
+	}
+}
+
 -- Some stuff is under share or even etc...
 perl = {
 	next_chain = dpkg,
@@ -105,6 +117,7 @@ export_chains = {
 	libtool,
 	qemu,
 	dpkg,
+	apt,
 	perl,
 	sh
 }

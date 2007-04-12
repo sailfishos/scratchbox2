@@ -2,8 +2,6 @@
 -- Copyright (C) 2006, 2007 Lauri Leukkunen
 -- Licensed under MIT license.
 
---print "hello!\n"
-
 tools_root = os.getenv("SBOX_TOOLS_ROOT")
 if (not tools_root) then
 	tools_root = "/scratchbox/sarge"
@@ -30,54 +28,68 @@ if (rsdir == nil) then
 	rsdir = "/scratchbox/redir_scripts"
 end
 
-chains = {}
+
+function read_mode_part(mode, part)
+	filename = rsdir .. "/preload/" .. mode .. "/" .. part
+	f, err = loadfile(filename)
+	if (f == nil) then
+		error("\nError while loading " .. filename .. ": \n" .. err .. "\n")
+	else
+		f() -- execute the loaded chunk
+		-- export_chains variable contains now the chains
+		-- from the chunk
+		for i = 1,table.maxn(export_chains) do
+			-- fill in the default values
+			if (not export_chains[i].binary) then
+				export_chains[i].binary = ".*"
+			end
+			if (not export_chains[i].rules) then
+				export_chains[i].rules = {}
+			end
+			-- loop through the rules
+			for r = 1, table.maxn(export_chains[i].rules) do
+				if (not export_chains[i].rules[r].func_name) then
+					export_chains[i].rules[r].func_name = ".*"
+				end
+				if (not export_chains[i].rules[r].path) then
+					-- this is an error, report and exit
+					os.exit(1)
+				end
+				export_chains[i].rules[r].lua_script = filename
+				if (export_chains[i].binary) then
+					export_chains[i].rules[r].binary_name = export_chains[i].binary
+				else
+					export_chains[i].rules[r].binary_name = "nil"
+				end
+			end
+			export_chains[i].lua_script = filename
+			table.insert(modes[mode].chains, export_chains[i])
+		end
+	end
+end
+
+-- modes represent the different mapping modes supported.
+-- Each mode contains its own set of chains.
+-- The mode is passed from the libsb2.so to here in the first
+-- argument to sbox_translate_path()
+modes = {}
 
 -- sb.sb_getdirlisting is provided by lua_bindings.c
 -- it returns a table listing all files in a directory
-t = sb.sb_getdirlisting(rsdir .. "/preload")
-
-if (t ~= nil) then
+mm = sb.sb_getdirlisting(rsdir .. "/preload")
+table.sort(mm);
+for m = 1, table.maxn(mm) do
+	local t = sb.sb_getdirlisting(rsdir .. "/preload/" .. mm[m])
 	local i = 0
 	local r = 0
-	table.sort(t)
-	-- load the individual parts ($SBOX_REDIR_SCRIPTS/preload/*.lua)
-	for n = 1,table.maxn(t) do
-		if (string.match(t[n], "%a*%.lua$")) then
-			filename = rsdir .. "/preload/" .. t[n]
-			f, err = loadfile(filename)
-			if (f == nil) then
-				error("\nError while loading " .. filename .. ": \n" .. err .. "\n")
-			else
-				f() -- execute the loaded chunk
-				-- export_chains variable contains now the chains
-				-- from the chunk
-				for i = 1,table.maxn(export_chains) do
-					-- fill in the default values
-					if (not export_chains[i].binary) then
-						export_chains[i].binary = ".*"
-					end
-					if (not export_chains[i].rules) then
-						export_chains[i].rules = {}
-					end
-					-- loop through the rules
-					for r = 1, table.maxn(export_chains[i].rules) do
-						if (not export_chains[i].rules[r].func_name) then
-							export_chains[i].rules[r].func_name = ".*"
-						end
-						if (not export_chains[i].rules[r].path) then
-							-- this is an error, report and exit
-							os.exit(1)
-						end
-						export_chains[i].rules[r].lua_script = filename
-						if (export_chains[i].binary) then
-							export_chains[i].rules[r].binary_name = export_chains[i].binary
-						else
-							export_chains[i].rules[r].binary_name = "nil"
-						end
-					end
-					export_chains[i].lua_script = filename
-					table.insert(chains, export_chains[i])
-				end
+	if (mm[m] ~= "." and mm[m] ~= "..") then
+		table.sort(t)
+		modes[mm[m]] = {}
+		modes[mm[m]].chains = {}
+		-- load the individual parts ($SBOX_REDIR_SCRIPTS/preload/[modename]/*.lua)
+		for n = 1,table.maxn(t) do
+			if (string.match(t[n], "%a*%.lua$")) then
+				read_mode_part(mm[m], t[n])
 			end
 		end
 	end
@@ -215,17 +227,15 @@ end
 -- sbox_translate_path is the function called from libsb2.so
 -- preload library and the FUSE system for each path that needs 
 -- translating
-
-function sbox_translate_path(binary_name, func_name, work_dir, path)
+function sbox_translate_path(mapping_mode, binary_name, func_name, work_dir, path)
 	--sb_debug(string.format("[%s]:", binary_name))
 	--sb_debug(string.format("debug: [%s][%s][%s][%s]", binary_name, func_name, work_dir, path))
 
-	
 	-- loop through the chains, first match is used
-	for n=1,table.maxn(chains) do
-		if (not chains[n].noentry 
-			and string.match(binary_name, chains[n].binary)) then
-			return map_using_chain(chains[n], binary_name, func_name, work_dir, path)
+	for n=1,table.maxn(modes[mapping_mode].chains) do
+		if (not modes[mapping_mode].chains[n].noentry 
+			and string.match(binary_name, modes[mapping_mode].chains[n].binary)) then
+			return map_using_chain(modes[mapping_mode].chains[n], binary_name, func_name, work_dir, path)
 		end
 	end
 

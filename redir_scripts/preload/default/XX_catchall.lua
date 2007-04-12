@@ -1,4 +1,4 @@
--- Copyright (C) 2007 Lauri Leukkunen
+-- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 -- Licensed under MIT license.
 
 

@@ -109,7 +109,8 @@ char *decolonize_path(const char *path)
 			return NULL;
 		}
 		unsigned int l = (strlen(cwd) + 1 + strlen(path) + 1);
-		cpath = malloc((strlen(cwd) + 1 + strlen(path) + 1) * sizeof(char));
+		cpath = malloc((strlen(cwd) + 1 
+				+ strlen(path) + 1) * sizeof(char));
 		memset(cpath, '\0', l);
 		strcpy(cpath, cwd);
 		strcat(cpath, "/");
@@ -134,7 +135,8 @@ char *decolonize_path(const char *path)
 		}
 		*index = '\0';
 		if (index == (start)) {
-			goto proceed; /* skip over empty strings resulting from // */
+			goto proceed; /* skip over empty strings 
+					 resulting from // */
 		}
 
 		if (strcmp(start, "..") == 0) {
@@ -178,17 +180,24 @@ proceed:
 
 #ifndef DISABLE_CACHE
 
-static char *create_sb2cache_path(const char *binary_name, const char *func_name, const char *path)
+static char *create_sb2cache_path(const char *mapping_mode, 
+			const char *binary_name, 
+			const char *func_name, 
+			const char *path)
 {
 	char *target_dir = getenv("SBOX_MAPPING_CACHE");
 	char *cache_path;
 	unsigned int length;
 
-	length = strlen(target_dir) + strlen(path) + 1 + strlen(binary_name) + 1 + strlen(func_name) + 4 + 1;
+	length = strlen(mapping_mode) + 1 + strlen(target_dir) + strlen(path) 
+		+ 1 + strlen(binary_name) + 1 + strlen(func_name) + 4 + 1;
+
 	cache_path = malloc(length * sizeof(char));
 	memset(cache_path, '\0', length);
 	strcpy(cache_path, target_dir);
 	strcat(cache_path, path);
+	strcat(cache_path, ".");
+	strcat(cache_path, mapping_mode);
 	strcat(cache_path, ".");
 	strcat(cache_path, binary_name);
 	strcat(cache_path, ".");
@@ -198,16 +207,20 @@ static char *create_sb2cache_path(const char *binary_name, const char *func_name
 }
 
 /*
- * return NULL if not found from cache, or if the cache is outdated compared to sb2_timestamp
+ * Return NULL if not found from cache, or if the cache is outdated 
+ * compared to sb2_timestamp.
  */
-static char *read_sb2cache(const char *binary_name, const char *func_name, const char *path)
+static char *read_sb2cache(const char *mapping_mode, 
+			const char *binary_name, 
+			const char *func_name, 
+			const char *path)
 {
 	char *link_path = NULL;
 	struct stat64 s;
 
 	if (getenv("SBOX_DISABLE_MAPPING_CACHE")) return NULL;
 
-	char *cache_path = create_sb2cache_path(binary_name, func_name, path);
+	char *cache_path = create_sb2cache_path(mapping_mode, binary_name, func_name, path);
 
 	if (lstat64(cache_path, &s) < 0 ||
 		(s.st_mtime < get_sb2_timestamp())) {
@@ -261,9 +274,13 @@ exit:
 }
 
 /*
- * if the cache dir doesn't exist, this will create it
+ * If the cache dir doesn't exist, this will create it.
  */
-static int insert_sb2cache(const char *binary_name, const char *func_name, const char *path, const char *map_to)
+static int insert_sb2cache(const char *mapping_mode,
+			const char *binary_name, 
+			const char *func_name, 
+			const char *path, 
+			const char *map_to)
 {
 	char *cache_path;
 	char *dcopy;
@@ -287,7 +304,8 @@ static int insert_sb2cache(const char *binary_name, const char *func_name, const
 		}
 	}
 
-	cache_path = create_sb2cache_path(binary_name, func_name, path);
+	cache_path = create_sb2cache_path(mapping_mode, binary_name, 
+					func_name, path);
 
 	dcopy = strdup(cache_path);
 
@@ -417,11 +435,9 @@ static int sb_realpath(lua_State *l)
 
 	path = strdup(lua_tostring(l, 1));
 
-	//printf("sb_realpath: [%s]\n", path);
-
 	/* Here we rely on glibc specific feature of passing NULL as the second
-	 * parameter to realpath, thus forcing it to allocate a sufficient buffer.
-	 * This might not work at all on other systems.
+	 * parameter to realpath, thus forcing it to allocate a sufficient 
+	 * buffer. This might not work at all on other systems.
 	 */
 
 	resolved_path = __sb2_realpath(path, NULL);
@@ -429,8 +445,6 @@ static int sb_realpath(lua_State *l)
 		lua_pushstring(l, "no such file");
 		return 1;
 	}
-
-	//printf("sb_realpath: resolved_path = [%s]\n", resolved_path);
 
 	lua_pushstring(l, resolved_path);
 	return 1;
@@ -461,7 +475,6 @@ static int sb_followsymlink(lua_State *l)
 
 	path = strdup(lua_tostring(l, 1));
 
-	//printf("C thinks path is: %s\n", path);
 #ifdef __x86_64__
 	if (syscall(__NR_lstat, path, &s) < 0) {
 #else
@@ -474,10 +487,9 @@ static int sb_followsymlink(lua_State *l)
 		lua_pushstring(l, path);
 		goto getout;
 	}
-	//printf("about to test for symlink: %i\n", s.st_mode);
+	
 	if (S_ISLNK(s.st_mode)) {
 		/* we have a symlink, read it and return */
-		//printf("WE HAVE A SYMLINK!!!\n");
 		syscall(__NR_readlink, path, link_path, PATH_MAX);
 		lua_pushstring(l, link_path);
 
@@ -485,10 +497,9 @@ static int sb_followsymlink(lua_State *l)
 		//printf("not a symlink! %s\n", path);
 		/* not a symlink, return path */
 		lua_pushstring(l, path);
-		//printf("after pushing\n");
 	}
+
 getout:	
-	//printf("about to free!\n");
 	free(path);
 	return 1;
 }
@@ -497,7 +508,6 @@ getout:
  * This function should ONLY look at things from rsdir
  * any other path leads to loops
  */
-
 static int sb_getdirlisting(lua_State *l)
 {
 	DIR *d;
@@ -552,46 +562,42 @@ char *scratchbox_path(const char *func_name, const char *path)
 	if (tmp) {
 		strcpy(binary_name, tmp);
 	} else {
-		strcpy(binary_name, "DUMMY");
+		strcpy(binary_name, "UNKNOWN");
 	}
 	return scratchbox_path2(binary_name, func_name, path);
 }
 
-char *scratchbox_path2(const char *binary_name, const char *func_name, const char *path)
+char *scratchbox_path2(const char *binary_name,
+		const char *func_name,
+		const char *path)
 {	
 	char work_dir[PATH_MAX + 1];
-	char *tmp = NULL, *decolon_path = NULL;
+	char *tmp = NULL, *decolon_path = NULL, *mapping_mode = NULL;
 	char pidlink[17]; /* /proc/2^8/exe */
-	
+
+	if (!(mapping_mode = getenv("SBOX2_MAPMODE"))) {
+		mapping_mode = "default";
+	}
+
 	if (!path) {
 		WRITE_LOG("ERROR: scratchbox_path2: path == NULL: [%s][%s]\n", binary_name, func_name);
 		return NULL;
 	}
-	//WRITE_LOG("in scratchbox_path2: %s %s (%s)\n", binary_name, func_name, path);
+
 	if (mapping_disabled || getenv("SBOX_DISABLE_MAPPING")) {
 		return strdup(path);
 	}
 
 	disable_mapping();
 	decolon_path = decolonize_path(path);
-	//WRITE_LOG("scratchbox_path2: decolon_path: (%s)\n", decolon_path);
-#if 0
-	if (strstr(decolon_path, getenv("SBOX_TARGET_ROOT"))) {
-		/* short circuit a direct reference to a file inside the sbox 
-		 * target dir */
-		//DBGOUT("about to short circuit: %s\n", func_name);
-		free(decolon_path);
-		enable_mapping();
-		return strdup(path);
-	}
-#endif
-
 
 	/* first try from the cache */
 
 #ifndef DISABLE_CACHE
 	tmp = NULL;
-	if (rsdir && main_lua) tmp = read_sb2cache(binary_name, func_name, decolon_path);
+	if (rsdir && main_lua) tmp = read_sb2cache(mapping_mode,
+						binary_name, 
+						func_name, decolon_path);
 
 	if (tmp) {
 		if (strcmp(tmp, decolon_path) == 0) {
@@ -625,15 +631,11 @@ char *scratchbox_path2(const char *binary_name, const char *func_name, const cha
 	
 	memset(work_dir, '\0', PATH_MAX+1);
 	snprintf(pidlink,16,"/proc/%i/exe",sb_getpid());
-//	if (syscall(__NR_readlink, pidlink, binary_name, PATH_MAX) < 0) {
-//		perror("__NR_readlink() error, check that /proc is mounted!");
-//	}
 	syscall(__NR_getcwd, work_dir, PATH_MAX);
 
 	/* redir_scripts RECURSIVE CALL BREAK */
 	if (strncmp(decolon_path, rsdir, strlen(rsdir)) == 0) {
-		//pthread_mutex_unlock(&lua_lock);
-		//DBGOUT("cutting recursive call\n");
+		pthread_mutex_unlock(&lua_lock);
 		enable_mapping();
 		return (char *)decolon_path;
 	}
@@ -660,23 +662,26 @@ char *scratchbox_path2(const char *binary_name, const char *func_name, const cha
 	}
 
 	lua_getfield(l, LUA_GLOBALSINDEX, "sbox_translate_path");
+	lua_pushstring(l, mapping_mode);
 	lua_pushstring(l, binary_name);
 	lua_pushstring(l, func_name);
 	lua_pushstring(l, work_dir);
 	lua_pushstring(l, decolon_path);
-	lua_call(l, 4, 1); /* four arguments, one result */
+	lua_call(l, 5, 1); /* five arguments, one result */
+
 	tmp = (char *)lua_tostring(l, -1);
 	if (tmp) {
 		tmp = strdup(tmp);
 	}
+
 	lua_pop(l, 1);
 
 	pthread_mutex_unlock(&lua_lock);
 
 #ifndef DISABLE_CACHE
-	insert_sb2cache(binary_name, func_name, decolon_path, tmp);
+	insert_sb2cache(mapping_mode, binary_name, func_name, decolon_path, tmp);
 #endif
-	//DBGOUT("returning path: [%s]\n", tmp);
+	
 	if (strcmp(tmp, decolon_path) == 0) {
 		free(decolon_path);
 		free(tmp);

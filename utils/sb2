@@ -70,6 +70,9 @@ if [ "$sb_map_verbose" == "--verbose" ]; then
 	sb_bash_args=$(echo $* | sed 's/^--verbose//')
 fi
 
+# set the initial binary name for the mapping engine
+export __SB2_BINARYNAME="bash"
+
 if [ -z "$sb_bash_args" ]; then
 	exec /bin/bash --noprofile --norc
 else

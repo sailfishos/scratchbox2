@@ -27,9 +27,11 @@ $ make install prefix=$HOME/scratchbox
 
 
 You need Qemu for cpu-transparency. Unfortunately at the moment no
-qemu release works well with SB2, there are patches on qemu-devel
-mailing list that help to make the CVS version work, I hope debian's
-qemu package incorporates them soon. Meanwhile you're on your own.
+qemu release works well with SB2. You can use these two patches to make
+the CVS version of Qemu work:
+
+http://people.freedesktop.org/~lle/qemu-linux-user-path.diff
+http://people.freedesktop.org/~lle/qemu-linux-user-drop-preload.diff
 
 If you're targeting ARM and are on a 32bit x86 machine, you can get a 
 good toolchain from CodeSourcery:

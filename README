@@ -38,7 +38,7 @@ $ cd $HOME/buildroot
 $ $HOME/scratchbox/bin/sb2-init arm-none-linux-gnueabi-gcc
 
 That will automatically generate a working sb2.config for the compiler
-which is given on the command line.
+given on the command line.
 
 At this point you can simply run sb2:
 

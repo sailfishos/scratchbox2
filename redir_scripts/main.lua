@@ -144,6 +144,10 @@ function adjust_for_mapping_leakage(path)
 		-- not a symlink
 		return path
 	end
+	if (tmp == basename(path)) then
+		-- symlink refers to itself
+		return path
+	end
 	-- make it an absolute path if it's not
 	if (string.sub(tmp, 1, 1) ~= "/") then
 		tmp = dirname(path) .. "/" .. tmp

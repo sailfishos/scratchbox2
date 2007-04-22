@@ -35,7 +35,7 @@ cd $SBOX_TARGET_ROOT
 
 HOST_GCC_INC_DIR=$(echo "#include <stdio.h>" | gcc -M -E - | perl -e 'while(<STDIN>) { $foo{$1} = 1 if m/\/usr([^[:space:]]*\/include)/;}; foreach my $k (keys %foo) {print " -isystem $ENV{SBOX_DIR}/share/scratchbox2/host_usr$k"};')
 
-export PATH=$SBOX_TARGET_ROOT/sb_tools/bin:$SBOX_DIR/bin:$PATH:$SBOX_TARGET_ROOT/bin:$SBOX_TARGET_ROOT/usr/bin:$SBOX_TARGET_ROOT/usr/local/bin
+export PATH=$SBOX_TARGET_ROOT/sb_tools/bin:$SBOX_DIR/bin:$PATH:$SBOX_TARGET_ROOT/bin:$SBOX_TARGET_ROOT/usr/bin:$SBOX_TARGET_ROOT/usr/local/bin:/sbin:/usr/sbin
 export LD_PRELOAD=$SBOX_LIBSB2
 export SBOX_EXTRA_HOST_COMPILER_ARGS="$HOST_GCC_INC_DIR"
 export SBOX_EXTRA_CROSS_COMPILER_ARGS="--sysroot=$SBOX_TARGET_ROOT -isystem $SBOX_TARGET_ROOT/usr/local/include -isystem $SBOX_TARGET_ROOT/usr/include -I$SBOX_TARGET_ROOT/usr/local/include -I$SBOX_TARGET_ROOT/usr/include -L$SBOX_TARGET_ROOT/usr/local/lib -L$SBOX_TARGET_ROOT/usr/lib -L$SBOX_TARGET_ROOT/lib"
@@ -58,6 +58,16 @@ export SBOX_CPUTRANSPARENCY_METHOD
 export SBOX_CROSS_GCC_PREFIX_LIST
 export SBOX_HOST_GCC_PREFIX_LIST
 export SBOX_UNAME_MACHINE=$SBOX_CPU
+
+# Debian exports
+if [ $SBOX_CPU = "arm" ]; then
+	export DEB_BUILD_ARCH=armel
+else
+	export DEB_BUILD_ARCH=$SBOX_CPU
+fi
+export DEB_BUILD_ARCH_CPU=$SBOX_CPU
+export DEB_BUILD_GNU_CPU=$SBOX_CPU
+export DEB_BUILD_GNU_TYPE=$SBOX_CPU-linux-gnu
 
 sb_map_verbose=$1
 

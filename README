@@ -5,7 +5,10 @@ This is development code, it is broken. Don't expect to use it for
 anything resembling production use. However, I firmly believe this is
 infinitely more functional than Scratchbox 1.x can ever be.
 
-Here are some instructions:
+
+
+INSTALLATION
+
 
 You need git to work with sbox2, get it from http://git.or.cz/.
 
@@ -23,15 +26,19 @@ $ make
 $ make install prefix=$HOME/scratchbox
 
 
-You need Qemu for cpu-transparency. Debian/Etch and Debian/unstable provide
-a good one. If all else fails, there's a static qemu-arm-0.8.1-sb2
-available on http://freedesktop.org/wiki/Software/sbox2
+You need Qemu for cpu-transparency. Unfortunately at the moment no
+qemu release works well with SB2, there are patches on qemu-devel
+mailing list that help to make the CVS version work, I hope debian's
+qemu package incorporates them soon. Meanwhile you're on your own.
 
 If you're targeting ARM and are on a 32bit x86 machine, you can get a 
 good toolchain from CodeSourcery:
+
 http://www.codesourcery.com/gnu_toolchains/arm/download.html
 
+
 For amd64 systems there's a quite functional toolchain available here:
+
 http://people.freedesktop.org/~lle/arm-lltc-gcc412-glibc25.tar.bz2
 
 Add the compiler to your path before continuing, alternatively you can
@@ -51,10 +58,22 @@ At this point you can simply run sb2:
 $ ../scratchbox/bin/sb2
 
 
-For Maemo (http://www.maemo.org/) development you can download
-the latest rootstrap:
-http://repository.maemo.org/stable/3.0/armel/maemo-sdk-rootstrap_3.0_armel.tgz)
-Extract that to $HOME/buildroot.
+
+MAEMO DEVELOPMENT
+
+
+Download the latest rootstrap from:
+
+http://repository.maemo.org/stable/3.1/armel/maemo-sdk-rootstrap_3.1_armel.tgz
+
+Extract that to $HOME/buildroot
+
+Edit $HOME/buildroot/etc/apt/apt.conf so that it looks like this:
+-- snip --
+APT {
+Architecture armel;
+}
+-- snip --
 
 Then build a proper libtool for your active toolchain by running 
 this inside sb2:
@@ -62,8 +81,8 @@ this inside sb2:
 [SB2] $ $HOME/scratchbox/bin/sb2-build-libtool
 
 In order to build debian packages, you have to use -d switch for
-dpkg-buildpackage to skip build dependency checking. A proper
-command line would be for example:
+dpkg-buildpackage to skip build dependency checking. A proper command line 
+would be for example:
 
 dpkg-buildpackage -rfakeroot -d
 

@@ -214,10 +214,12 @@ int run_qemu(char *qemu_bin, char *target_root, char *file, char **argv, char *c
 	i = 0;
 	for (p=(char **)envp; *p; p++) {
 		//DBGOUT("ENV: [%s]\n", *p);
+#if 0
 		if (strncmp(*p, "LD_PRELOAD=", strlen("LD_PRELOAD="))==0) {
 			//DBGOUT("skipping LD_PRELOAD\n");
 			continue;
 		}
+#endif
 		my_envp[i++] = *p;
 	}
 	my_envp[i] = NULL;
@@ -632,7 +634,11 @@ int do_exec(const char *file, char *const *argv, char *const *envp)
 	}
 	enum binary_type type = inspect_binary(file);
 
-	binaryname = strdup(basename(file));
+	if (type == BIN_TARGET) {
+		binaryname = strdup(getenv("SBOX_CPUTRANSPARENCY_METHOD"));
+	} else {
+		binaryname = strdup(basename(file));
+	}
 
 	/* count the environment variables and arguments */
 	for (p=(char **)envp; *p; p++, envc++)
@@ -644,7 +650,7 @@ int do_exec(const char *file, char *const *argv, char *const *envp)
 	//printf("envc: %i\n", envc);
 
 	my_envp = (char **)calloc(envc + 2, sizeof(char *));
-	i = strlen(file) + strlen("__SB2_BINARYNAME") + 1;
+	i = strlen(binaryname) + strlen("__SB2_BINARYNAME") + 1;
 	tmp = malloc(i * sizeof(char *));
 	strcpy(tmp, "__SB2_BINARYNAME=");
 	strcat(tmp, binaryname);

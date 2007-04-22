@@ -23,22 +23,25 @@ $ make
 $ make install prefix=$HOME/scratchbox
 
 
-Set it up:
-
-$ mkdir $HOME/buildroot
-$ cp $HOME/scratchbox/share/scratchbox2/sb2.config.sample \
-$HOME/buildroot/sb2.config
-
-(at this point you _really_ should go through that file and make sure
-it applies to your host system and intended target toolchain). 
-
 You need Qemu for cpu-transparency. Debian/Etch and Debian/unstable provide
-a good one. Use it. If all else fails, there's a static qemu-arm-0.8.1-sb2
+a good one. If all else fails, there's a static qemu-arm-0.8.1-sb2
 available on http://freedesktop.org/wiki/Software_2fsbox2.
 
-After you're happy with your config you can simply start sb2:
+If you're targeting ARM, you can get a good toolchain from CodeSourcery:
+http://www.codesourcery.com/gnu_toolchains/arm/download.html
 
+
+Now complete sb2 target setup:
+
+$ mkdir $HOME/buildroot
 $ cd $HOME/buildroot
+$ $HOME/scratchbox/bin/sb2-init arm-none-linux-gnueabi-gcc
+
+That will automatically generate a working sb2.config for the compiler
+which is given on the command line.
+
+At this point you can simply run sb2:
+
 $ ../scratchbox/bin/sb2
 
 
@@ -47,12 +50,8 @@ the latest rootstrap:
 http://repository.maemo.org/stable/3.0/armel/maemo-sdk-rootstrap_3.0_armel.tgz)
 Extract that to $HOME/buildroot.
 
-Also get a current toolchain from CodeSourcery:
-http://www.codesourcery.com/gnu_toolchains/arm/download.html
-Put that to $HOME/compilers/arm-2006q3 (sb2.config.sample expects this).
-
-Then build a proper libtool for your active toolchain by running this inside
-sb2:
+Then build a proper libtool for your active toolchain by running 
+this inside sb2:
 
 $ $HOME/scratchbox/bin/sb2-build-libtool.sh
 

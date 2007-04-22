@@ -19,6 +19,18 @@ default_usrlocalbin = {
 	map_to = nil
 }
 
+default_sbin = {
+	func_name = ".*",
+	path = "^/sbin",
+	map_to = nil
+}
+
+default_usrsbin = {
+	func_name = ".*",
+	path = "^/usr/sbin",
+	map_to = nil
+}
+
 default_home = {
 	func_name = ".*",
 	path = "^/home",
@@ -135,6 +147,8 @@ default_chain = {
 		default_bin,
 		default_usrbin,
 		default_usrlocalbin,
+		default_sbin,
+		default_usrsbin,
 		default_scratchbox,
 		default_dev,
 		default_home,

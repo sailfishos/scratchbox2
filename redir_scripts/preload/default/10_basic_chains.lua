@@ -65,7 +65,6 @@ qemu = {
 	}
 }
 
-
 dpkg = {
 	next_chain = default_chain,
 	binary = ".*dpkg.*",
@@ -73,7 +72,8 @@ dpkg = {
 		{path = "^" .. target_root ..".*", map_to = nil},
 		{path = "^/home.*", map_to = nil},
 		{path = "^/usr/lib/dpkg.*", map_to = nil},
-		{path = "^/usr/share/dpkg.*", map_to = nil}
+		{path = "^/usr/share/dpkg.*", map_to = nil},
+		{path = "^/etc/dpkg/.*", map_to = "="}
 	}
 }
 

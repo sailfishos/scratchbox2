@@ -1,7 +1,0 @@
-#!/bin/bash
-
-
-echo "starting scratchbox2 shell..."
-
-bash
-

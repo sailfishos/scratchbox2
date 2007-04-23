@@ -1,0 +1,46 @@
+.TH sb2 1 "12 April 2007" "2.0" "sb2 man page"
+.SH NAME
+sb2 \- crosscompiling environment
+.SH SYNOPSIS
+.B sb2
+[ \-v ] [ \-h ] [ \-t DIRECTORY ] [ \-e ] [ -m DIRECTORY] [command] [arguments] [...]
+.SH DESCRIPTION
+.B sb2
+Runs command in scratchbox2. If no command is given, a bash shell
+in scratchbox2 environment is started.
+.SH OPTIONS
+.TP
+\-v
+Output all done lua mappings to $PWD/sb2_mapping.log.
+.TP
+\-h
+Print help.
+.TP
+\-t
+Define target root location in argument. Usually sb2 will find the
+right target root location automatically.
+.TP
+\-e
+Use emulation mode, avoid executing ANY host binaries.
+.TP
+\-m
+Use redirection rules from the directory given in argument.
+
+.SH ENVIRONMENT
+There is a LOT environment variables being used. Since sb2 is still
+very volatile, the best documentation is in the source of sb2.
+.IP SBOX_TARGET_ROOT
+Target location. If not defined, it will be searched.
+.SH FILES
+.P
+.I sb2.config
+.I ~/.sb2rc
+.SH SEE ALSO
+.BR sb2-init (1)
+.BR gcc (1),
+.BR ld (1),
+No known bugs at this time.
+.SH AUTHOR
+.nf
+Riku Voipio
+.fi

@@ -8,7 +8,7 @@ Build-Depends: debhelper (>=5), automake1.9, autoconf
 Package: scratchbox2
 Architecture: i386 amd64
 Depends: ${shlibs:Depends}
-Recommends: qemu
+Recommends: qemu, fakeroot
 Suggests: sbrsh
 Description: Transparent cross compiling environment
  Scratchbox2 uses a LD_PRELOAD library to create a transparent cross compiling

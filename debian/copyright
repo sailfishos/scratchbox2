@@ -1,6 +1,6 @@
 This package was debianized by Riku Voipio <riku.voipio@iki.fi>
 
-The source may be fetched from http://rahina.org/sb2/
+The source may be fetched from git://anongit.freedesktop.org/git/sbox2
 
 preload library and most of sratchbox 2.0 :
  Copyright (C) 2006 Lauri Leukkunen <lle@rahina.org>

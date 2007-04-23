@@ -28,6 +28,7 @@ clean: checkroot
 	rm -rf .deps
 	rm -f debian/substvars debian/files
 	rm -rf debian/tmp obj obj-build obj64 objfake
+	rm -f config.log config.status
 	find -name '*.o'  | xargs rm -f
 	find -name '*.a'  | xargs rm -f
 	find -name '*.so' | xargs rm -f

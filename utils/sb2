@@ -163,7 +163,10 @@ sboxify_environment
 export __SB2_BINARYNAME="bash"
 
 if [ $# -gt 0 -o "$STDIN" = true ] ; then
-	exec /bin/bash --noprofile --norc -c "$@"
+	binary="$1"
+	shift 1
+	args="$@"
+	exec /bin/sh -c "$binary $args"
 else
 	exec /bin/bash --noprofile --norc
 fi

@@ -67,6 +67,12 @@ default_dev = {
 	map_to = nil
 }
 
+default_opt = {
+	func_name = ".*",
+	path = "^/opt",
+	map_to = nil
+}
+
 autoconf = {
 	func_name = ".*",
 	path = "^/usr/share/autoconf.*",
@@ -151,6 +157,7 @@ default_chain = {
 		default_usrsbin,
 		default_scratchbox,
 		default_dev,
+		default_opt,
 		default_home,
 		default_proc,
 		default_tmp,

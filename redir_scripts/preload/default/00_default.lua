@@ -79,6 +79,12 @@ autoconf = {
 	map_to = nil
 }
 
+autoconf_misc = {
+	func_name = ".*",
+	path = "^/usr/share/misc/config.*",
+	map_to = nil
+}
+
 automake = {
 	func_name = ".*",
 	path = "^/usr/share/automake.*",
@@ -147,6 +153,7 @@ default_chain = {
 	binary = nil,
 	rules = {
 		autoconf,
+		autoconf_misc,
 		automake,
 		aclocal,
 		intltool,

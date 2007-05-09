@@ -13,6 +13,7 @@ util_chain = {
 		intltool,
 		{path = "^" .. target_root ..".*", map_to = nil},
 		{path = "^/home.*", map_to = nil},
+		{path = "^/usr/share/misc/config.*", map_to = nil},
 		{path = ".*", map_to = "="}
 	}
 }

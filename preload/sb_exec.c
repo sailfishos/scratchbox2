@@ -197,10 +197,11 @@ int run_qemu(char *qemu_bin, char *target_root, char *file, char **argv, char *c
 	char **my_envp;
 	int i = 0;
 	//DBGOUT("about to run qemu: %s %s %s %s\n", qemu_bin, target_root, file, argv[0]);
-	my_argv = (char **)calloc(elem_count(argv) + 4 + 1, sizeof(char *));
+	my_argv = (char **)calloc(elem_count(argv) + 5 + 1, sizeof(char *));
 	my_envp = (char **)calloc(elem_count((char **)envp) + 1, sizeof(char *));
 
 	my_argv[i++] = qemu_bin;
+	my_argv[i++] = "-drop-ld-preload";
 	my_argv[i++] = "-L";
 
 	my_argv[i++] = target_root;

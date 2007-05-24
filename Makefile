@@ -18,13 +18,19 @@ subdirs = mapping preload utils
 include config.mak
 include $(LLBUILD)/Makefile.include
 
+ifdef prefix
+CONFIGURE_ARGS = --prefix=$(prefix)
+else
+CONFIGURE_ARGS = 
+endif
+
 all: $(targets)
 
 gcc_bins = addr2line ar as cc c++ c++filt cpp g++ gcc gcov gdb gdbtui gprof ld nm objcopy objdump ranlib rdi-stub readelf run size strings strip
 gcc_bins_expanded = $(foreach v,$(gcc_bins),$(prefix)/bin/host-$(v))
 
 config.mak: configure
-	./configure
+	./configure $(CONFIGURE_ARGS)
 
 configure: configure.ac autogen.sh
 	./autogen.sh

@@ -1,6 +1,6 @@
 *.o
 .*.d
-*.so
+*.so*
 .*.swp
 *.*~
 config.log

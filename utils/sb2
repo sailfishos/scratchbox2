@@ -74,7 +74,7 @@ function sboxify_environment()
 
 
 	if [ -n "$SBOX_DIR" ]; then
-		SBOX_LIBSB2="$SBOX_DIR/lib/libsb2.so"
+		SBOX_LIBSB2="$SBOX_DIR/lib/libsb2.so.1"
 		if [ -z "$SBOX_REDIR_SCRIPTS" ]; then
 			SBOX_REDIR_SCRIPTS="$SBOX_DIR/share/scratchbox2/redir_scripts"
 		fi

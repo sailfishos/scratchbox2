@@ -79,7 +79,7 @@ endef
 define llbuild_link_shlib
 	@run_sources="$^"; \
 	run_target="$@"; \
-	run_cmd="$(CC) $(CFLAGS) $(LDFLAGS) -shared -o $@ $^ $(LIBS)"; \
+	run_cmd="$(CC) $(CFLAGS) $(LDFLAGS) -shared -Wl,-soname=$(1) -o $@ $^ $(LIBS)"; \
 	run_alias="SHLIB"; \
 	$(ll_pretty_run)
 endef

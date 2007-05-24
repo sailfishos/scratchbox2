@@ -9,6 +9,7 @@ AC_INIT([sb2], [1.99b], [lle@rahina.org])
 #AM_MAINTAINER_MODE
 #AC_CONFIG_SRCDIR([src/libfakechroot.c])
 AC_CONFIG_HEADER([include/config.h])
+AC_CONFIG_FILES([config.mak])
 AC_LANG_C
 
 # Checks for programs.
@@ -172,5 +173,8 @@ ssize_t readlink(const char *path, char *buf, size_t bufsize)
 { return 0; }]])], 
 readlink_type="ssize_t", readlink_type="int")
 AC_DEFINE_UNQUOTED(READLINK_TYPE, ${readlink_type})
+AC_SUBST(PREFIX, ${prefix})
+AC_SUBST(CC, ${CC})
+AC_SUBST(CXX, ${CXX})
 
 AC_OUTPUT

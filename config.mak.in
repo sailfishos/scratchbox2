@@ -1,0 +1,4 @@
+prefix=@prefix@
+CC=@CC@
+CXX=@CXX@
+

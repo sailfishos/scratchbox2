@@ -15,13 +15,19 @@ export CC CFLAGS CXX CXXFLAGS TOPDIR LLBUILD
 targets = 
 subdirs = mapping preload utils
 
--include .config
+include config.mak
 include $(LLBUILD)/Makefile.include
 
 all: $(targets)
 
 gcc_bins = addr2line ar as cc c++ c++filt cpp g++ gcc gcov gdb gdbtui gprof ld nm objcopy objdump ranlib rdi-stub readelf run size strings strip
 gcc_bins_expanded = $(foreach v,$(gcc_bins),$(prefix)/bin/host-$(v))
+
+config.mak: configure
+	./configure
+
+configure: configure.ac autogen.sh
+	./autogen.sh
 
 install: $(targets)
 	install -d -m 755 $(prefix)/bin

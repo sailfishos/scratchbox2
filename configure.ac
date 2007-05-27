@@ -10,7 +10,8 @@ AC_INIT([sb2], [1.99b], [lle@rahina.org])
 #AC_CONFIG_SRCDIR([src/libfakechroot.c])
 AC_CONFIG_HEADER([include/config.h])
 AC_CONFIG_FILES([config.mak])
-AC_LANG_C
+AC_PROG_CC
+AC_PROG_CXX
 
 # Checks for programs.
 AC_PROG_MAKE_SET

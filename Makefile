@@ -36,6 +36,9 @@ config.mak: configure
 configure: configure.ac autogen.sh
 	./autogen.sh
 
+sources-release:
+	git archive --format=tar --prefix=sbox2-$(PACKAGE_VERSION)/ $(PACKAGE_VERSION) | bzip2 >sbox2-$(PACKAGE_VERSION).tar.bz2
+
 install: $(targets)
 	install -d -m 755 $(prefix)/bin
 	install -d -m 755 $(prefix)/lib

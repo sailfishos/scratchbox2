@@ -1,11 +1,6 @@
-scratchbox2 (1.99) unstable; urgency=low
+scratchbox2 (1.99.0.5) unstable; urgency=low
 
-  * Rewrite by Lauri Leukkunen
+  * Initial upload to Debian. Closes: #414737
 
- -- Riku Voipio <riku.voipio@iki.fi>  Wed, 27 Dec 2006 13:55:24 +0200
+ -- Riku Voipio <riku.voipio@iki.fi>  Fri, 25 May 2007 21:46:52 +0300
 
-scratchbox2 (0.0-1) unstable; urgency=low
-
-  * Initial fork
-
- -- Riku Voipio <riku.voipio@iki.fi>  Thu, 13 Apr 2006 01:29:39 +0300

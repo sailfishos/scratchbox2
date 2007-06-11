@@ -44,6 +44,9 @@ install: build
 	dh_testroot
 	dh_installdirs
 	$(MAKE) prefix="$(CURDIR)/debian/scratchbox2/usr" install
+	# make lintian happy
+	rm -f debian/scratchbox2/usr/share/scratchbox2/host_usr
+	ln -sf ../.. debian/scratchbox2/usr/share/scratchbox2/host_usr
 
 binary-arch: install
 	dh_testdir -a

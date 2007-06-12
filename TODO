@@ -1,5 +1,11 @@
-* kdrive x server fails to build because of libtool
+* Complete documentation
+
+* SBRSH support
+
+* libtool: kdrive x server fails to build because of libtool
+
 * dpkg-checkbuilddeps needs to be made to look at the host system
   instead of the target
+
 * apt and dpkg may still need a little bit of care
 

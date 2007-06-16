@@ -48,8 +48,7 @@ install: $(targets)
 	install -d -m 755 $(prefix)/share/scratchbox2/redir_scripts/preload/default
 	install -d -m 755 $(prefix)/share/scratchbox2/redir_scripts/preload/emulate
 	install -d -m 755 $(prefix)/share/man/man1
-	install -c -m 755 preload/libsb2.so.$(PACKAGE_VERSION) $(prefix)/lib/libsb2/libsb2.so.$(PACKAGE_VERSION)
-	cd $(prefix)/lib/libsb2/; ln -s libsb2.so.$(PACKAGE_VERSION) libsb2.so.1
+	install -c -m 755 preload/libsb2.so $(prefix)/lib/libsb2/libsb2.so.$(PACKAGE_VERSION)
 	install -c -m 755 utils/sb2 $(prefix)/bin/sb2
 	install -c -m 755 utils/sb2-init $(prefix)/bin/sb2-init
 	install -c -m 755 utils/sb2-build-libtool $(prefix)/bin/sb2-build-libtool
@@ -59,13 +58,12 @@ install: $(targets)
 	install -c -m 644 redir_scripts/preload/emulate/*.lua $(prefix)/share/scratchbox2/redir_scripts/preload/emulate/
 	install -c -m 644 etc/sb2.config.sample $(prefix)/share/scratchbox2/sb2.config.sample
 	install -c -m 644 docs/sb2.1 $(prefix)/share/man/man1/sb2.1
-	# unneeded
-#	@for f in $(gcc_bins_expanded); do \
+	@for f in $(gcc_bins_expanded); do \
 		ln -sf sb_gcc_wrapper $$f; \
 	done
 	rm -f $(prefix)/share/scratchbox2/host_usr
 	ln -sf /usr $(prefix)/share/scratchbox2/host_usr
-	/sbin/ldconfig -n $(prefix)/lib
+	/sbin/ldconfig -n $(prefix)/lib/libsb2
 
 CLEAN_FILES = $(targets) config.status config.log
 

@@ -32,8 +32,8 @@ TOPDIR := $(CURDIR)
 
 # a useful function to expand paths
 
-define llep
-$(patsubst %,$(LLPWD)/%,$(1))
+define O
+$(patsubst %,$(D)/%,$(1))
 endef
 
 
@@ -42,7 +42,7 @@ endef
 define import_dir
 	subdirs := 
 	objects :=
-	LLPWD := $(1)
+	D := $(1)
 	include $(1)/Makefile
 	dep_files := $$(wildcard $(1)/.*.d)
 	include $(dep_files)

@@ -20,7 +20,17 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
+
+#ifdef _GNU_SOURCE
+#undef _GNU_SOURCE
 #include <string.h>
+#include <libgen.h>
+#define _GNU_SOURCE
+#else
+#include <string.h>
+#include <libgen.h>
+#endif
+
 #include <limits.h>
 #include <sys/param.h>
 #include <sys/file.h>
@@ -88,12 +98,11 @@ char *decolonize_path(const char *path)
 	struct path_entry *work;
 	struct path_entry *new;
 	char *buf = NULL;
-	
+
 	if (!path) {
-		DBGOUT("PATH IS CRAP\n");
 		return NULL;
 	}
-	
+
 	buf = malloc((PATH_MAX + 1) * sizeof(char));
 	memset(buf, '\0', PATH_MAX + 1);
 
@@ -104,44 +113,45 @@ char *decolonize_path(const char *path)
 	if (path[0] != '/') {
 		/* not an absolute path */
 		memset(cwd, '\0', PATH_MAX);
-		if (syscall(__NR_getcwd, cwd, PATH_MAX) < 0) {
+		if (!getcwd(cwd, PATH_MAX)) {
 			perror("error getting current work dir\n");
 			return NULL;
 		}
 		unsigned int l = (strlen(cwd) + 1 + strlen(path) + 1);
-		cpath = malloc((strlen(cwd) + 1 
-				+ strlen(path) + 1) * sizeof(char));
+		cpath = malloc((strlen(cwd) + 1
+					+ strlen(path) + 1) * sizeof(char));
+		if (!cpath)
+			abort();
+
 		memset(cpath, '\0', l);
 		strcpy(cpath, cwd);
 		strcat(cpath, "/");
 		strcat(cpath, path);
 	} else {
-		cpath = strdup(path);
+		if (!(cpath = strdup(path)))
+			abort();
 	}
 
-	start = cpath + 1; /* ignore leading '/' */
+	start = cpath + 1;          /* ignore leading '/' */
 	while (1) {
+		unsigned int last = 0;
+
 		index = strstr(start, "/");
 		if (!index) {
-			/* add the last item */
-			new = malloc(sizeof(struct path_entry));
-			memset(new->name, '\0', PATH_MAX);
-			new->prev = work;
-			work->next = new;
-			new->next = NULL;
-			strcpy(new->name, start);
-			work = new;
-			break;
+			last = 1;
+		} else {
+			*index = '\0';
 		}
-		*index = '\0';
-		if (index == (start)) {
-			goto proceed; /* skip over empty strings 
-					 resulting from // */
+
+		if (index == start) {
+			goto proceed;       /* skip over empty strings 
+					       resulting from // */
 		}
 
 		if (strcmp(start, "..") == 0) {
 			/* travel up one */
-			if (!work->prev) goto proceed;
+			if (!work->prev)
+				goto proceed;
 			work = work->prev;
 			free(work->next);
 			work->next = NULL;
@@ -150,7 +160,8 @@ char *decolonize_path(const char *path)
 			goto proceed;
 		} else {
 			/* add an entry to our path_entry list */
-			new = malloc(sizeof(struct path_entry));
+			if (!(new = malloc(sizeof(struct path_entry))))
+				abort();
 			memset(new->name, '\0', PATH_MAX);
 			new->prev = work;
 			work->next = new;
@@ -160,6 +171,8 @@ char *decolonize_path(const char *path)
 		}
 
 proceed:
+		if (last)
+			break;
 		*index = '/';
 		start = index + 1;
 	}
@@ -169,7 +182,6 @@ proceed:
 		struct path_entry *tmp;
 		strcat(buf, "/");
 		strcat(buf, work->name);
-		//printf("entry name: %s\n", work->name);
 		tmp = work;
 		work = work->next;
 		free(tmp);

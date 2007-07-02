@@ -103,6 +103,11 @@ intltool = {
 	map_to = nil
 }
 
+debhelper = {
+	func_name = ".*",
+	path = "^/usr/share/debhelper.*",
+	map_to = nil
+}
 
 hostgcc = {
 	func_name = ".*",
@@ -157,6 +162,7 @@ default_chain = {
 		automake,
 		aclocal,
 		intltool,
+		debhelper,
 		default_bin,
 		default_usrbin,
 		default_usrlocalbin,

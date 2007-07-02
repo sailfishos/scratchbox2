@@ -7,6 +7,7 @@ util_chain = {
 	binary = nil,
 	noentry = 1,
 	rules = {
+		actual_root,
 		autoconf,
 		automake,
 		aclocal,

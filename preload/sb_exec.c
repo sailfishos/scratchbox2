@@ -204,7 +204,7 @@ int run_qemu(char *qemu_bin, char *target_root, char *file, char **argv, char *c
 	my_argv[i++] = "-drop-ld-preload";
 	my_argv[i++] = "-L";
 
-	my_argv[i++] = target_root;
+	my_argv[i++] = "/";
 	my_argv[i++] = file;
 	for (p=&argv[1]; *p; p++) {
 		//DBGOUT("processing args: [%s]\n", *p);

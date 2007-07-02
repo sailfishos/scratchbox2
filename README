@@ -1,5 +1,18 @@
+SCRATCHBOX 2 README
+
+author: Lauri Leukkunen <lle@rahina.org>
+date:   2007-07-02
+
+
+
+LICENSING
+
 All files are licensed under GNU LGPL version 2.1 unless specifically 
 stated otherwise in the file itself.
+
+
+
+GENERAL NOTICE
 
 This is development code, it is broken. Don't expect to use it for
 anything resembling production use. However, I firmly believe this is
@@ -8,7 +21,6 @@ infinitely more functional than Scratchbox 1.x can ever be.
 
 
 INSTALLATION
-
 
 You need git to work with sbox2, get it from http://git.or.cz/.
 
@@ -52,10 +64,17 @@ At this point you can simply run sb2:
 
 $ ../scratchbox/bin/sb2
 
+To make sb2 default to the $HOME/buildroot sandbox, you can put this in
+your $HOME/.sb2rc:
+-- snip --
+SBOX_TARGET_ROOT=~/buildroot
+-- snip --
+
+After that you can run sb2 from anywhere and it'll just do its magic.
+
 
 
 MAEMO DEVELOPMENT
-
 
 Download the latest rootstrap from:
 
@@ -71,15 +90,24 @@ Architecture armel;
 -- snip --
 
 Then build a proper libtool for your active toolchain by running 
-this inside sb2:
+this:
 
-[SB2] $ $HOME/scratchbox/bin/sb2-build-libtool
+$ sb2 $HOME/scratchbox/bin/sb2-build-libtool
 
 In order to build debian packages, you have to use -d switch for
 dpkg-buildpackage to skip build dependency checking. A proper command line 
 would be for example:
 
-dpkg-buildpackage -rfakeroot -d
+$ sb2 dpkg-buildpackage -rfakeroot -d
+
+Full example of building fontconfig for Maemo would go like this:
+
+$ sb2 apt-get source fontconfig
+$ cd fontconfig-2.4.1
+$ sb2 dpkg-buildpackage -rfakeroot -d
+
+You don't need to be in $HOME/buildroot to do that, I typically do all
+development work in $HOME/src.
 
 
 That's all folks, enjoy!

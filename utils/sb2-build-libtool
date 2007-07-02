@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# test that we're inside sb2
+if [ -z "$SBOX_TARGET_ROOT" ]; then
+	echo "Please run this script inside sb2, like this:
+$ sb2 $0"
+	exit 1
+fi
+
 set -e
 
 NAME=libtool

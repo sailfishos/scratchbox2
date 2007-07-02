@@ -126,7 +126,7 @@ function sboxify_environment()
 
 	if [ "$SBOX_MAPPING_VERBOSE" == "1" ]; then
 		export SBOX_DISABLE_MAPPING_CACHE=1 # disable the cache to force use of lua engine
-		export SBOX_MAPPING_LOGFILE=$PWD/sb2_mapping.log
+		export SBOX_MAPPING_LOGFILE=$HOME/sb2_mapping.log
 		echo "Running scratchbox with these settings:"
 		echo "SBOX_LIBSB2 = $SBOX_LIBSB2"
 		echo "SBOX_REDIR_SCRIPTS = $SBOX_REDIR_SCRIPTS"

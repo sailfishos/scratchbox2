@@ -1,4 +1,6 @@
 #!/bin/bash
+# sb2-build-libtool - Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
+# Licensed under GPL version 2
 
 # test that we're inside sb2
 if [ -z "$SBOX_TARGET_ROOT" ]; then
@@ -15,8 +17,7 @@ VERSION=1.5.22
 DLHOST="http://ftp.funet.fi/pub/mirrors/ftp.gnu.org/pub/gnu/libtool"
 SOURCEFILE=$NAME-$VERSION.tar.gz
 COMPILERDIR=
-WORKDIR=libtool_build
-mkdir -p $WORKDIR
+WORKDIR=$(mktemp -d -t sb2_libtool_build.XXXXXXX) || exit 1
 cd $WORKDIR
 wget $DLHOST/$SOURCEFILE
 tar zxf $SOURCEFILE --strip-components=1
@@ -51,4 +52,7 @@ chmod 755 libtool
 
 make
 make install
+cd ..
+# cleanup
+rm -rf $WORKDIR
 

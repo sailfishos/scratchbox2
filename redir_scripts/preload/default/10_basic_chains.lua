@@ -12,8 +12,9 @@ util_chain = {
 		automake,
 		aclocal,
 		intltool,
-		{path = "^" .. target_root ..".*", map_to = nil},
+		{path = "^" .. target_root .. ".*", map_to = nil},
 		{path = "^/home.*", map_to = nil},
+		{path = "^/tmp.*", map_to = nil},
 		{path = "^/usr/share/misc/config.*", map_to = nil},
 		{path = ".*", map_to = "="}
 	}
@@ -53,6 +54,7 @@ libtool = {
 	rules = {
 		{path = "^" .. target_root ..".*", map_to = nil},
 		{path = "^/home.*", map_to = nil},
+		{path = "^/tmp.*", map_to = nil},
 		{path = "^/", map_to = "="}
 	}
 }
@@ -63,6 +65,7 @@ qemu = {
 	rules = {
 		{path = "^" .. target_root ..".*", map_to = nil},
 		{path = "^/home.*", map_to = nil},
+		{path = "^/tmp.*", map_to = nil},
 		{path = "^/", map_to = "="}
 	}
 }
@@ -75,6 +78,7 @@ dpkg = {
 		{path = "^/home.*", map_to = nil},
 		{path = "^/usr/lib/dpkg.*", map_to = nil},
 		{path = "^/usr/share/dpkg.*", map_to = nil},
+		{path = "^/tmp.*", map_to = nil},
 		{path = "^/etc/dpkg/.*", map_to = "="}
 	}
 }

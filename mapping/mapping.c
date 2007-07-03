@@ -462,12 +462,43 @@ static int sb_realpath(lua_State *l)
 	return 1;
 }
 
+/*
+ * Check if file exists
+ */
+static int sb_file_exists(lua_State *l)
+{
+	struct stat s;
+	char *path;
+	int n;
+	
+	memset(&s, '\0', sizeof(struct stat64));
+
+	n = lua_gettop(l);
+	if (n != 1) {
+		lua_pushstring(l, "sb_file_exists(path) - invalid number of parameters");
+		return 1;
+	}
+	
+	path = strdup(lua_tostring(l, 1));
+
+	if (stat(path, &s) < 0) {
+		/* failure, we assume it's because the target
+		 * doesn't exist
+		 */
+		lua_pushnumber(l, 0);
+		free(path);
+		return 1;
+	}
+	
+	free(path);
+	lua_pushnumber(l, 1);
+	return 1;
+}
 
 /*
  * check if the path is a symlink, if yes then return it resolved,
  * if not, return the path intact
  */
-
 static int sb_followsymlink(lua_State *l)
 {
 	char *path;
@@ -504,7 +535,6 @@ static int sb_followsymlink(lua_State *l)
 		/* we have a symlink, read it and return */
 		syscall(__NR_readlink, path, link_path, PATH_MAX);
 		lua_pushstring(l, link_path);
-
 	} else {
 		//printf("not a symlink! %s\n", path);
 		/* not a symlink, return path */
@@ -715,6 +745,7 @@ static const luaL_reg reg[] =
 	{"sb_realpath",			sb_realpath},
 	{"sb_readlink",			sb_readlink},
 	{"sb_decolonize_path",		sb_decolonize_path},
+	{"sb_file_exists",		sb_file_exists},
 	{NULL,				NULL}
 };
 

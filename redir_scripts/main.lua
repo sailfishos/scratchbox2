@@ -148,6 +148,13 @@ function adjust_for_mapping_leakage(path)
 		-- symlink refers to itself
 		return path
 	end
+
+	-- check if the file pointed to by the symlink
+	-- exists, if not, return path
+	
+	if (sb.sb_file_exists(tmp)) then
+		return path
+	end
 	-- make it an absolute path if it's not
 	if (string.sub(tmp, 1, 1) ~= "/") then
 		tmp = dirname(path) .. "/" .. tmp
@@ -155,6 +162,7 @@ function adjust_for_mapping_leakage(path)
 	-- decolonize it
 	tmp = sb.sb_decolonize_path(tmp)
 	--print(string.format("after decolonizing: %s\n", tmp))
+	
 	if (not string.match(tmp, "^" .. target_root .. ".*")) then
 		-- aha! tried to get out of there, now map it right back in
 		return adjust_for_mapping_leakage(target_root .. tmp)

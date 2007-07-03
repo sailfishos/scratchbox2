@@ -15,7 +15,7 @@ Options:
     -v           verbose mode: log all redirections
     -h           print this help
     -t DIRECTORY target directory, else search up in directory
-                 structure for a .sbrc
+                 structure for a .sb2rc
     -e           emulation mode
     -m DIRECTORY load preload scripts from alternative location
 

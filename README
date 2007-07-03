@@ -1,7 +1,7 @@
 SCRATCHBOX 2 README
 
 author: Lauri Leukkunen <lle@rahina.org>
-date:   2007-07-02
+date:   2007-07-03
 
 
 
@@ -25,12 +25,9 @@ INSTALLATION
 You need git to work with sbox2, get it from http://git.or.cz/.
 
 Clone the scratchbox 2 repository:
-
 $ git clone git://anongit.freedesktop.org/git/sbox2
 
-
 Build using:
-
 $ cd sbox2
 $ make install prefix=$HOME/scratchbox
 
@@ -40,29 +37,33 @@ of Qemu works fine, earlier versions lack the -drop-ld-preload option.
 
 If you're targeting ARM and are on a 32bit x86 machine, you can get a 
 good toolchain from CodeSourcery:
-
 http://www.codesourcery.com/gnu_toolchains/arm/download.html
 
-
 For amd64 systems there's a quite functional toolchain available here:
-
 http://people.freedesktop.org/~lle/arm-lltc-gcc412-glibc25.tar.bz2
 
-Add the compiler to your path before continuing, alternatively you can
-give the absolute path to gcc in the sb2-init step below.
+To use sb2 you need to get a rootfs for your target and put it into
+some useful directory, alternatively you can copy the necessary files
+into right places from your toolchain. The essential thing is that
+sb2 needs FHS compliant target directory structure to work. For an example
+of such a system you can look at the Maemo example later in this README.
 
-Now complete sb2 target setup:
+To complete sb2 target setup:
 
 $ mkdir $HOME/buildroot
 $ cd $HOME/buildroot
-$ $HOME/scratchbox/bin/sb2-init arm-none-linux-gnueabi-gcc
+[extract or copy your rootfs contents into place]
+$ $HOME/scratchbox/bin/sb2-init /path/to/compiler/bin/arm-linux-gcc
 
 That will automatically generate a working sb2.config for the compiler
-given on the command line.
+given on the command line and run sb2-build-libtool script to get you a
+nice working libtool for your compiler. If the sb2-build-libtool part
+fails for some reason (incorrect http proxy or something similar), you
+can always run it manually later.
 
 At this point you can simply run sb2:
 
-$ ../scratchbox/bin/sb2
+$ $HOME/scratchbox/bin/sb2
 
 To make sb2 default to the $HOME/buildroot sandbox, you can put this in
 your $HOME/.sb2rc:
@@ -70,7 +71,13 @@ your $HOME/.sb2rc:
 SBOX_TARGET_ROOT=~/buildroot
 -- snip --
 
-After that you can run sb2 from anywhere and it'll just do its magic.
+Perhaps adding $HOME/scratchbox/bin to your PATH is also a good idea, put
+this in your $HOME/.bashrc:
+-- snip --
+export PATH=$PATH:$HOME/scratchbox/bin
+-- snip --
+
+After that you can run sb2 easily from anywhere and it'll just do its magic.
 
 
 
@@ -89,22 +96,18 @@ Architecture armel;
 }
 -- snip --
 
-Then build a proper libtool for your active toolchain by running 
-this:
+Then get a nice toolchain from the locations mentioned above.
+After that you can setup sb2 by running:
 
-$ sb2 $HOME/scratchbox/bin/sb2-build-libtool
+$ cd $HOME/buildroot
+$ sb2-init /path/to/compiler/bin/arm-none-linux-gnueabi-gcc
 
-In order to build debian packages, you have to use -d switch for
-dpkg-buildpackage to skip build dependency checking. A proper command line 
-would be for example:
-
-$ sb2 dpkg-buildpackage -rfakeroot -d
-
-Full example of building fontconfig for Maemo would go like this:
+Now you should have a fully functioning development environment.
+To try it out you can try building for example fontconfig like this:
 
 $ sb2 apt-get source fontconfig
 $ cd fontconfig-2.4.1
-$ sb2 dpkg-buildpackage -rfakeroot -d
+$ sb2 dpkg-buildpackage -rfakeroot
 
 You don't need to be in $HOME/buildroot to do that, I typically do all
 development work in $HOME/src.

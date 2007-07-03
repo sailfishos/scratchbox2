@@ -3,6 +3,8 @@
 # Licensed under GPL version 2
 
 
+SBOX_DIR=$(readlink -f $(dirname $_)/..)
+
 if [[ "$1" = "" || "$1" = "--help" ]]; then
 	echo "Usage: sb2-init [compiler]"
 	echo "example: sb2-init arm-linux-gcc"
@@ -59,5 +61,64 @@ EOF
 	echo "Finished writing sb2.config"
 }
 
+function write_dpkg_checkbuilddeps()
+{
+	cat - > sb_tools/bin/dpkg-checkbuilddeps <<EOF
+#!/bin/sh
+
+export SBOX_DISABLE_MAPPING=1
+/usr/bin/dpkg-checkbuilddeps $*
+EOF
+	chmod 0755 sb_tools/bin/dpkg-checkbuilddeps
+}
+
+function check_buildroot_sanity()
+{
+	a_ok=1
+
+	if [ ! -e usr/include/stdio.h ]; then
+		echo "no usr/include/stdio.h"
+		a_ok=0
+	fi
+
+	if [ ! -e lib/libc.so.6 ]; then
+		echo "no lib/libc.so.6"
+		a_ok=0
+	fi
+
+	if [ ! -e usr/lib/libc.so ]; then
+		echo "no usr/lib/libc.so"
+		a_ok=0
+	fi
+	
+	if [ $a_ok == 1 ]; then
+		true
+	else
+		false
+	fi
+}
+
+check_buildroot_sanity
+if [ $? != 0 ]; then
+	echo "Your buildroot seems to lack basic essentials like headers 
+or c-library. You should probably get either a ready rootfs tarball or
+copy the necessary files from your toolchain into place. After doing that
+you can re-run this script."
+	exit 1
+fi
+
+mkdir -p sb_tools/bin
 write_sb2config
+write_dpkg_checkbuilddeps
+
+$SBOX_DIR/bin/sb2 -t . $SBOX_DIR/bin/sb2-build-libtool 
+
+if [ $? == 0 ]; then
+	echo "sb2-init completed successfully, have fun!"
+else
+	echo "Running $SBOX_DIR/bin/sb2-build-libtool failed"
+	echo "You can run this manually later, otherwise your"
+	echo "sb2 environment is correctly setup and ready to use"
+fi
+
 

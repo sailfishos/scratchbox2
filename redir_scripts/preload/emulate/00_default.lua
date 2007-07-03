@@ -7,6 +7,7 @@ mapall_chain = {
 	binary = ".*",
 	rules = {
 		{path = ".*qemu.*", map_to = nil},
+		{path = "^" .. target_root .. ".*", map_to = nil},
 		{path = "^/dev", map_to = nil},
 		{path = "^/proc", map_to = nil},
 		{path = "^/tmp", map_to = nil},

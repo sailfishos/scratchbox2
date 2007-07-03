@@ -145,7 +145,7 @@ do
 	(v) export SBOX_MAPPING_VERBOSE=1 ;;
 	(h) usage ;;
 	(t) export SBOX_TARGET_ROOT=$OPTARG ;;
-	(e) export SBOX_EMULATE=1 ;;
+	(e) export SBOX2_MAPMODE=emulate ;;
 	(m) export SBOX_REDIR_SCRIPTS=$OPTARG;;
 	(*) usage ;;
 	esac

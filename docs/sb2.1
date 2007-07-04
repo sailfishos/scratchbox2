@@ -35,12 +35,15 @@ Target location. If not defined, .sb2rc file is searched for.
 .SH CONFIGURATION
 To configure sb2, do something like this:
 
+.nf
 mkdir $HOME/buildroot
 cd $HOME/buildroot
 [fetch a rootfs from somewhere and extract it here]
 sb2-init /path/to/cross-compiler/bin/arm-linux-gcc
+.fi
 
-Put this in your $HOME/.sb2rc to make sb2 default to using $HOME/buildroot:
+Put this in $HOME/.sb2rc to default to using $HOME/buildroot:
+.PP
 SBOX_TARGET_ROOT=~/buildroot
 
 .SH FILES

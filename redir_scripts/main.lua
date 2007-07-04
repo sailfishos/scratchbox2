@@ -173,6 +173,38 @@ function adjust_for_mapping_leakage(path)
 	end
 end
 
+no_adjust_funcs = {
+	"__lxstat",
+	"__lxstat64",
+	"__xmknod",
+	"lchmod",
+	"lchown",
+	"lgetxattr",
+	"llistxattr",
+	"lremovexattr",
+	"lsetxattr",
+	"lstat",
+	"lstat64",
+	"lutimes",
+	"mknod",
+	"mknodat",
+	"mkfifo",
+	"mkfifoat",
+	"symlink",
+	"symlinkat",
+	"unlink",
+	"unlinkat"
+}
+
+function should_adjust(func_name)
+	for i = 1, table.maxn(no_adjust_funcs) do
+		if (no_adjust_funcs[i] == func_name) then
+			return false
+		end
+	end
+	return true
+end
+
 function sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
 	local ret = nil
 	if (rule.map_to) then
@@ -185,12 +217,20 @@ function sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
 		else
 			ret = rule.map_to .. path
 		end
-		return adjust_for_mapping_leakage(ret)
+		if (should_adjust(func_name)) then
+			return adjust_for_mapping_leakage(ret)
+		else
+			return ret
+		end
 	end
 	-- if not mapping, check if we're within the 
 	-- target_root and adjust for mapping leakage if so
 	if (string.match(path, "^" .. target_root .. ".*")) then
-		return adjust_for_mapping_leakage(path)
+		if (should_adjust(func_name)) then
+			return adjust_for_mapping_leakage(path)
+		else
+			return path
+		end
 	else
 		return path
 	end

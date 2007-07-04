@@ -2359,7 +2359,7 @@ int rename(const char *oldpath, const char *newpath)
 #ifdef HAVE_RENAMEAT
 int renameat(int olddirfd, const char *oldpath, int newdirfd, const char *newpath)
 {
-	char *sbox_path_old, *sbox_path_new;
+	char *sbox_path_old = NULL, *sbox_path_new = NULL;
 	int ret;
 
 	SBOX_MAP_PATH_AT(olddirfd, oldpath, sbox_path_old);

@@ -109,6 +109,42 @@ debhelper = {
 	map_to = nil
 }
 
+doc = {
+	func_name = ".*",
+	path = "^/usr/share/doc.*",
+	map_to = nil
+}
+
+tex = {
+	func_name = ".*",
+	path = "^/usr/share/tex.*",
+	map_to = nil
+}
+
+sgml = {
+	func_name = ".*",
+	path = "^/usr/share/sgml.*",
+	map_to = nil
+}
+
+xml = {
+	func_name = ".*",
+	path = "^/usr/share/xml.*",
+	map_to = nil
+}
+
+linuxdoc = {
+	func_name = ".*",
+	path = "^/usr/share/linuxdoc.*",
+	map_to = nil
+}
+
+bison = {
+	func_name = ".*",
+	path = "^/usr/share/bison.*",
+	map_to = nil
+}
+
 hostgcc = {
 	func_name = ".*",
 	path = "^/host_usr",
@@ -163,6 +199,12 @@ default_chain = {
 		aclocal,
 		intltool,
 		debhelper,
+		doc,
+		tex,
+		sgml,
+		xml,
+		linuxdoc,
+		bison,
 		default_bin,
 		default_usrbin,
 		default_usrlocalbin,

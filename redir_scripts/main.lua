@@ -138,13 +138,14 @@ function adjust_for_mapping_leakage(path)
 	if (not path) then 
 		return nil
 	end
-	--print("path: " .. path)
+	-- print("path: " .. path)
 	local tmp = sb.sb_readlink(path)
 	if (not tmp) then
 		-- not a symlink
 		return path
 	end
-	if (tmp == basename(path)) then
+
+	if (sb.sb_decolonize_path(tmp) == sb.sb_decolonize_path(path)) then
 		-- symlink refers to itself
 		return path
 	end
@@ -152,7 +153,7 @@ function adjust_for_mapping_leakage(path)
 	-- check if the file pointed to by the symlink
 	-- exists, if not, return path
 	
-	if (sb.sb_file_exists(tmp)) then
+	if (not sb.sb_file_exists(tmp)) then
 		return path
 	end
 	-- make it an absolute path if it's not
@@ -165,6 +166,7 @@ function adjust_for_mapping_leakage(path)
 	
 	if (not string.match(tmp, "^" .. target_root .. ".*")) then
 		-- aha! tried to get out of there, now map it right back in
+		--print("it tried to LEAK\n")
 		return adjust_for_mapping_leakage(target_root .. tmp)
 	else
 		return adjust_for_mapping_leakage(tmp)

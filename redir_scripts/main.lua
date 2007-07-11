@@ -190,6 +190,7 @@ no_adjust_funcs = {
 	"mknodat",
 	"mkfifo",
 	"mkfifoat",
+	"readlink",
 	"symlink",
 	"symlinkat",
 	"unlink",

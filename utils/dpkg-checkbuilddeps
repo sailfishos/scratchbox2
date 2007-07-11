@@ -1,0 +1,92 @@
+#!/bin/sh
+#
+# Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
+# Licensed under GPL version 2
+#
+# Idea behind operation is to use debian package tags to identify
+# libraries, headers and other such "obviously" target stuff from
+# build tools (gcc, doxygen, etc). This means that the build dependencies
+# need to be checked against both target and host debian package databases
+# and irrelevant failures need to be filtered from the results.
+# This is far from ideal, but hopefully adequate for now.
+
+
+args="$*"
+
+function run_dpkg_checkbuilddeps()
+{
+	missing_deps=$(/usr/bin/dpkg-checkbuilddeps $args 2>&1 | \
+		grep "^dpkg-checkbuilddeps: Unmet build dependencies:" | \
+		sed 's/dpkg-checkbuilddeps: Unmet build dependencies: //')
+}
+
+# takes two lists, one containing packages which are ok to miss,
+# the other the list of packages that are missing
+function check_missing_deps()
+{
+	ok_list="$1"
+	missing_list="$2"
+	list_ok=0
+	not_ok_missing_list=""
+
+	for m in $(echo $missing_list | sed 's/([^)]\+)//g') ; do
+		m_ok=1
+		for o in $ok_list ; do
+			if [ "$m" == "$o" ]; then
+				m_ok=0
+			fi
+			printf "Problem with: %s\n" $m
+		done
+		if [ $m_ok != 0 ]; then
+			list_ok=1
+		fi
+	done
+}
+
+function check_host_builddeps()
+{
+	ret=0
+	export SBOX_DISABLE_MAPPING=1
+	# do the magic here
+	echo "SB2 Checking host build deps..."
+	run_dpkg_checkbuilddeps
+	check_missing_deps "crap" "$missing_deps"
+	unset SBOX_DISABLE_MAPPING
+
+	if [ $list_ok != 0 ]; then
+		# somethings missing
+		false
+	else
+		true
+	fi
+}
+
+function check_target_builddeps()
+{
+	ret=0
+	echo "SB2 Checking target build deps..."
+	run_dpkg_checkbuilddeps
+	check_missing_deps "crap2" "$missing_deps"
+	if [ $list_ok != 0 ]; then
+		echo "failing target deps"
+		false
+	else
+		echo "target deps ok"
+		true
+	fi
+}
+
+check_target_builddeps
+if [ $? != 0 ]; then
+	exit 1
+fi
+
+check_host_builddeps
+if [ $? != 0 ]; then
+	exit 1
+fi
+
+# since we're here, everything is more or less ok
+
+exit 0
+

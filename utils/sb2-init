@@ -61,17 +61,6 @@ EOF
 	echo "Finished writing sb2.config"
 }
 
-function write_dpkg_checkbuilddeps()
-{
-	cat - > sb_tools/bin/dpkg-checkbuilddeps <<EOF
-#!/bin/sh
-
-export SBOX_DISABLE_MAPPING=1
-/usr/bin/dpkg-checkbuilddeps $*
-EOF
-	chmod 0755 sb_tools/bin/dpkg-checkbuilddeps
-}
-
 function check_buildroot_sanity()
 {
 	a_ok=1
@@ -109,7 +98,6 @@ fi
 
 mkdir -p sb_tools/bin
 write_sb2config
-write_dpkg_checkbuilddeps
 
 $SBOX_DIR/bin/sb2 -t . $SBOX_DIR/bin/sb2-build-libtool 
 

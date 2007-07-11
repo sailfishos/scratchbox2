@@ -47,11 +47,13 @@ install: $(targets)
 	install -d -m 755 $(prefix)/share/scratchbox2/redir_scripts/preload
 	install -d -m 755 $(prefix)/share/scratchbox2/redir_scripts/preload/default
 	install -d -m 755 $(prefix)/share/scratchbox2/redir_scripts/preload/emulate
+	install -d -m 755 $(prefix)/share/scratchbox2/scripts
 	install -d -m 755 $(prefix)/share/man/man1
 	install -c -m 755 preload/libsb2.so $(prefix)/lib/libsb2/libsb2.so.$(PACKAGE_VERSION)
 	install -c -m 755 utils/sb2 $(prefix)/bin/sb2
 	install -c -m 755 utils/sb2-init $(prefix)/bin/sb2-init
 	install -c -m 755 utils/sb2-build-libtool $(prefix)/bin/sb2-build-libtool
+	install -c -m 755 utils/dpkg-checkbuilddeps $(prefix)/share/scratchbox2/scripts/dpkg-checkbuilddeps
 	install -c -m 755 utils/sb_gcc_wrapper $(prefix)/bin/sb_gcc_wrapper
 	install -c -m 644 redir_scripts/main.lua $(prefix)/share/scratchbox2/redir_scripts/main.lua
 	install -c -m 644 redir_scripts/preload/default/*.lua $(prefix)/share/scratchbox2/redir_scripts/preload/default/

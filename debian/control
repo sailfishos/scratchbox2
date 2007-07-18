@@ -4,6 +4,8 @@ Section: utils
 Priority: extra
 Standards-Version: 3.7.2
 Build-Depends: debhelper (>=5), automake1.9, autoconf
+XS-Vcs-Git: git://anongit.freedesktop.org/git/sbox2
+XS-Vcs-Browser: http://gitweb.freedesktop.org/?p=sbox2.git
 
 Package: scratchbox2
 Architecture: i386 amd64
@@ -16,3 +18,6 @@ Description: Transparent cross compiling environment
  crosscompiler, target libraries and headers using a flexible lua path mapping
  engine. Together with CPU transparency, provided by qemu or sbrsh, scratchbox2
  enables fast crosscompiling without modifying build scripts.
+ .
+ Homepage: http://www.freedesktop.org/wiki/Software/sbox2
+

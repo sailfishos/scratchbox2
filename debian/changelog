@@ -1,3 +1,9 @@
+scratchbox2 (1.99.0.9) unstable; urgency=low
+
+  * New upstream version
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Tue, 10 Jul 2007 11:40:46 +0300
+
 scratchbox2 (1.99.0.5) unstable; urgency=low
 
   * Initial upload to Debian. Closes: #414737

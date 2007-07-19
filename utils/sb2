@@ -134,7 +134,7 @@ function sboxify_environment()
 	fi
 }
 
-export SBOX_DIR=$(readlink -f $(dirname $_)/..)
+export SBOX_DIR=$(readlink -f $(dirname $0)/..)
 
 while getopts vht:em: foo
 do

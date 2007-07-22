@@ -626,11 +626,15 @@ int do_exec(const char *file, char *const *argv, char *const *envp)
 {
 	char **my_envp, **my_argv, **p;
 	char *binaryname, *tmp, *my_file;
-	int envc=0, argc=0, i;
+	int envc=0, argc=0, i, has_ld_preload=0;
+
+
+	/* if we have LD_PRELOAD env var set, make sure the new my_envp
+	 * has it as well
+	 */
 
 	if (getenv("SBOX_DISABLE_MAPPING")) {
 		/* just run it, don't worry, be happy! */
-		//DBGOUT("mapping disabled\n");
 		return sb_next_execve(file, argv, envp);
 	}
 	enum binary_type type = inspect_binary(file);
@@ -641,16 +645,23 @@ int do_exec(const char *file, char *const *argv, char *const *envp)
 		binaryname = strdup(basename(file));
 	}
 
-	/* count the environment variables and arguments */
-	for (p=(char **)envp; *p; p++, envc++)
-		;
+	/* count the environment variables and arguments, also check
+	 * for LD_PRELOAD
+	 */
+	for (p=(char **)envp; *p; p++, envc++) {
+		if (strncmp("LD_PRELOAD=", *p, strlen("LD_PRELOAD=")) == 0)
+			has_ld_preload = 1;
+	}
 
 	for (p=(char **)argv; *p; p++, argc++)
 		;
 
-	//printf("envc: %i\n", envc);
+	if (has_ld_preload || !getenv("LD_PRELOAD")) {
+		my_envp = (char **)calloc(envc + 2, sizeof(char *));
+	} else {
+		my_envp = (char **)calloc(envc + 3, sizeof(char *));
+	}
 
-	my_envp = (char **)calloc(envc + 2, sizeof(char *));
 	i = strlen(binaryname) + strlen("__SB2_BINARYNAME") + 1;
 	tmp = malloc(i * sizeof(char *));
 	strcpy(tmp, "__SB2_BINARYNAME=");
@@ -673,6 +684,17 @@ int do_exec(const char *file, char *const *argv, char *const *envp)
 
 	my_envp[i++] = strdup(tmp);
 	free(tmp);
+	if (!has_ld_preload && getenv("LD_PRELOAD")) {
+		tmp = malloc(strlen(getenv("LD_PRELOAD")) 
+				+ strlen("LD_PRELOAD=") + 1);
+		if (!tmp)
+			exit(1);
+		strcpy(tmp, "LD_PRELOAD=");
+		strcat(tmp, getenv("LD_PRELOAD"));
+		my_envp[i++] = strdup(tmp);
+		free(tmp);
+	}
+
 	my_envp[i] = NULL;
 
 	char const* const* new_env=(char const* const*)my_envp;
@@ -691,8 +713,6 @@ int do_exec(const char *file, char *const *argv, char *const *envp)
 		} else {
 			my_file = strdup(sb_gcc_wrapper);
 		}
-		/*DBGOUT("we've a gcc tool!\n");*/
-		//my_argv[i++] = strdup(binaryname);
 	}
 
 	for (p = (char **)argv; *p; p++) {
@@ -700,7 +720,6 @@ int do_exec(const char *file, char *const *argv, char *const *envp)
 	}
 	my_argv[i] = NULL;
 
-	/* printf("type: %i\n", type);*/ 
 	switch (type) {
 		case BIN_FOREIGN:
 			new_env = drop_preload(my_envp);
@@ -719,7 +738,6 @@ int do_exec(const char *file, char *const *argv, char *const *envp)
 				}
 			}
 		case BIN_TARGET:
-			/* DBGOUT("cpu transparency needed\n"); */
 			return run_cputransparency(my_file, (char **)my_argv, my_envp);
 
 		case BIN_NONE:
@@ -731,15 +749,4 @@ int do_exec(const char *file, char *const *argv, char *const *envp)
 
 	return sb_next_execve(my_file, my_argv, (char *const*)new_env);
 }
-
-
-#if 0
-void scratchbox_init (void) __attribute((constructor));
-void scratchbox_init (void)
-{
-	/* currently doing nothing */
-	DBGOUT("in scratchbox_init\n");
-}
-#endif
-
 

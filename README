@@ -1,7 +1,7 @@
 SCRATCHBOX 2 README
 
 author: Lauri Leukkunen <lle@rahina.org>
-date:   2007-07-03
+date:   2007-07-23
 
 
 
@@ -34,7 +34,17 @@ $ make install prefix=$HOME/scratchbox
 
 You need Qemu for cpu-transparency. Current (2007-06-18) CVS version
 of Qemu works fine, earlier versions lack the -drop-ld-preload option.
-Install it so that the binaries are found in your PATH.
+Here are basic instructions for installing qemu:
+
+1. Get a CVS snapshot from http://qemu-forum.ipi.fi/qemu-snapshots/
+2. Extract that somewhere, change into the created directory
+3. ./configure --prefix=$HOME/qemu --target-list=arm-linux-user
+4. make && make install
+5. Add $HOME/qemu/bin to your PATH
+
+Qemu has many issues on amd64 host systems, at least when trying to
+do user-space emulation of ARM. Better results can be achieved on 32bit
+i386 hosts.
 
 If you're targeting ARM and are on a 32bit x86 machine, you can get a 
 good toolchain from CodeSourcery:
@@ -86,6 +96,9 @@ After that you can run sb2 easily from anywhere and it'll just do its magic.
 
 MAEMO DEVELOPMENT
 
+First install sb2 as described above, or if you're using debian testing or
+unstable you can simply "apt-get install scratchbox2".
+
 Download the latest rootstrap from:
 
 http://repository.maemo.org/stable/3.1/armel/maemo-sdk-rootstrap_3.1_armel.tgz
@@ -100,13 +113,16 @@ Architecture armel;
 -- snip --
 
 Then get a nice toolchain from the locations mentioned above.
+
+Edit $HOME/.sb2rc as described earlier in this README.
+
 After that you can setup sb2 by running:
 
 $ cd $HOME/buildroot
 $ sb2-init /path/to/compiler/bin/arm-none-linux-gnueabi-gcc
 
 Now you should have a fully functioning development environment.
-To try it out you can try building for example fontconfig like this:
+To try it out you can build for example fontconfig like this:
 
 $ sb2 apt-get source fontconfig
 $ cd fontconfig-2.4.1

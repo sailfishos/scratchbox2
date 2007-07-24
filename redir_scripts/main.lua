@@ -33,7 +33,7 @@ end
 function escape_string(a)
 	b = ""
 	for i = 1, string.len(a) do
-		c = string.sub(a, i, i + 1)
+		c = string.sub(a, i, i)
 		-- escape the magic chars
 		if (c == "^" or
 			c == "$" or

@@ -19,7 +19,7 @@ util_chain = {
 		xml,
 		linuxdoc,
 		bison,
-		{path = "^" .. target_root .. ".*", map_to = nil},
+		{path = "^" .. escape_string(target_root) .. ".*", map_to = nil},
 		{path = "^/home.*", map_to = nil},
 		{path = "^/tmp.*", map_to = nil},
 		{path = "^/usr/share/misc/config.*", map_to = nil},
@@ -59,7 +59,7 @@ libtool = {
 	next_chain = default_chain,
 	binary = ".*libtool.*",
 	rules = {
-		{path = "^" .. target_root ..".*", map_to = nil},
+		{path = "^" .. escape_string(target_root) ..".*", map_to = nil},
 		{path = "^/home.*", map_to = nil},
 		{path = "^/tmp.*", map_to = nil},
 		{path = "^/", map_to = "="}
@@ -70,7 +70,7 @@ qemu = {
 	next_chain = default_chain,
 	binary = ".*qemu.*",
 	rules = {
-		{path = "^" .. target_root ..".*", map_to = nil},
+		{path = "^" .. escape_string(target_root) ..".*", map_to = nil},
 		{path = "^/home.*", map_to = nil},
 		{path = "^/tmp.*", map_to = nil},
 		{path = "^/", map_to = "="}
@@ -81,7 +81,7 @@ dpkg = {
 	next_chain = default_chain,
 	binary = ".*dpkg.*",
 	rules = {
-		{path = "^" .. target_root ..".*", map_to = nil},
+		{path = "^" .. escape_string(target_root) ..".*", map_to = nil},
 		{path = "^/home.*", map_to = nil},
 		{path = "^/usr/lib/dpkg.*", map_to = nil},
 		{path = "^/usr/share/dpkg.*", map_to = nil},
@@ -94,7 +94,7 @@ apt = {
 	next_chain = default_chain,
 	binary = ".*apt.*",
 	rules = {
-		{path = "^" .. target_root .. ".*", map_to = nil},
+		{path = "^" .. escape_string(target_root) .. ".*", map_to = nil},
 		{path = "^/var/lib/apt.*", map_to = "="},
 		{path = "^/var/cache/apt.*", map_to = "="},
 		{path = "^/usr/lib/apt.*", map_to = nil},

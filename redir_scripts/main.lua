@@ -28,6 +28,31 @@ if (rsdir == nil) then
 	rsdir = "/scratchbox/redir_scripts"
 end
 
+-- escape_string() prefixes the magic pattern matching
+-- characters ^$()%.[]*+-?) with '%'
+function escape_string(a)
+	b = ""
+	for i = 1, string.len(a) do
+		c = string.sub(a, i, i + 1)
+		-- escape the magic chars
+		if (c == "^" or
+			c == "$" or
+			c == "(" or
+			c == ")" or
+			c == "%" or
+			c == "." or
+			c == "[" or
+			c == "]" or
+			c == "*" or
+			c == "+" or
+			c == "-" or
+			c == "?") then
+			b = b .. "%"
+		end
+		b = b .. c
+	end
+	return b
+end
 
 function read_mode_part(mode, part)
 	filename = rsdir .. "/preload/" .. mode .. "/" .. part

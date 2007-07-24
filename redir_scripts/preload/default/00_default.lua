@@ -164,7 +164,7 @@ pkgconfig = {
 
 targetdir = {
 	func_name = ".*",
-	path = "^" .. target_root .. ".*",
+	path = "^" .. escape_string(target_root) .. ".*",
 	map_to = nil
 }
 

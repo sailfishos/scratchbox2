@@ -141,15 +141,9 @@ char **pre_args(char *fname, char **args)
 	return padded_list(ret);
 }
 
-char *searchdir_flags[] = { "-L/usr/local/lib", "-L/lib", "-L/usr/lib",NULL };
-#define SD_FLAGLEN (3)
-
 char **post_args(char *fname)
 {
 	char **ret = NULL;
-	if (is_linker(fname)) {
-		ret=searchdir_flags;
-	}
 	return padded_list(ret);
 }
 

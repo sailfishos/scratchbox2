@@ -50,7 +50,7 @@ struct Compiler {
 
 	bool ok() const
 	{
-		return !name.empty() && !prefix_list.empty() && !subst_prefix.empty() && !dir.empty();
+		return !name.empty() && !prefix_list.empty() && !dir.empty();
 	}
 
 	bool has_prefix(const string &prefix) const
@@ -86,7 +86,7 @@ static void init_compilers()
 	host_gcc.dir           = config["SBOX_HOST_GCC_DIR"];
 	host_gcc.ld_args       = config["SBOX_HOST_GCC_LD_ARGS"];
 
-	if (!cross_gcc.ok() && !host_gcc.ok())
+	if (!cross_gcc.ok() || !host_gcc.ok())
 		throw sb::error("No proper compiler configurations found");
 
 	const string &default_prefix = config["SBOX_DEFAULT_GCC_PREFIX"];

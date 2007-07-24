@@ -99,7 +99,7 @@ fi
 mkdir -p sb_tools/bin
 write_sb2config
 
-$SBOX_DIR/bin/sb2 -t . $SBOX_DIR/bin/sb2-build-libtool 
+$SBOX_DIR/bin/sb2 -t $PWD $SBOX_DIR/bin/sb2-build-libtool
 
 if [ $? == 0 ]; then
 	echo "sb2-init completed successfully, have fun!"

@@ -134,6 +134,10 @@ function sb_debug(msg)
 	io.close(f)
 end
 
+function isprefix(a, b)
+	return string.sub(b, 1, string.len(a)) == a
+end
+
 function adjust_for_mapping_leakage(path)
 	if (not path) then 
 		return nil
@@ -163,8 +167,8 @@ function adjust_for_mapping_leakage(path)
 	-- decolonize it
 	tmp = sb.sb_decolonize_path(tmp)
 	--print(string.format("after decolonizing: %s\n", tmp))
-	
-	if (not string.match(tmp, "^" .. target_root .. ".*")) then
+
+	if (not isprefix(target_root, tmp)) then
 		-- aha! tried to get out of there, now map it right back in
 		--print("it tried to LEAK\n")
 		return adjust_for_mapping_leakage(target_root .. tmp)
@@ -226,7 +230,7 @@ function sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
 	end
 	-- if not mapping, check if we're within the 
 	-- target_root and adjust for mapping leakage if so
-	if (string.match(path, "^" .. target_root .. ".*")) then
+	if (isprefix(target_root, path)) then
 		if (should_adjust(func_name)) then
 			return adjust_for_mapping_leakage(path)
 		else

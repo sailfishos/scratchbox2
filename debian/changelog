@@ -1,3 +1,10 @@
+scratchbox2 (1.99.0.11) unstable; urgency=low
+
+  * New upstream version, fixes and sb1 cruft killing
+  * Add Homepage and git repos to debian/control
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Thu, 26 Jul 2007 00:17:44 +0300
+
 scratchbox2 (1.99.0.9) unstable; urgency=low
 
   * New upstream version

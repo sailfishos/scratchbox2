@@ -130,12 +130,12 @@ static const Name compilers[] = {
 	{ "cpp",       "CPP",       },
 	{ "f77",       "F77",       },
 	{ "g77",       "F77",       },
-	{ 0 }
+	{ 0, 0 },
 };
 
 static const Name linkers[] = {
 	{ "ld",        "LD",        },
-	{ 0 }
+	{ 0, 0 },
 };
 
 static const Name others[] = {
@@ -153,7 +153,7 @@ static const Name others[] = {
 	{ "size",      "SIZE",      },
 	{ "strings",   "STRINGS",   },
 	{ "strip",     "STRIP",     },
-	{ 0 }
+	{ 0, 0 },
 };
 
 static Program *detect_program(const char *const name, const Name &listedname,

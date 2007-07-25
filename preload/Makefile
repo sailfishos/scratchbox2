@@ -1,4 +1,4 @@
-objs := libsb2.o libsb_env.o sb_exec.o
+objs := libsb2.o sb_exec.o
 
 $(D)/libsb2.so: $(call O,$(objs))
 

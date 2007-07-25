@@ -26,8 +26,6 @@
 #include <sb2.h>
 #include <mapping.h>
 
-#include "sb_env.h"
-
 
 #if __BYTE_ORDER == __BIG_ENDIAN
 # define elf_endianness ELFDATA2MSB

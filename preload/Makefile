@@ -6,7 +6,7 @@ $(D)/libsb2.so: mapping/libmapping.a
 
 $(D)/libsb2.so: CFLAGS := $(CFLAGS) -fPIC -Wall -W
 $(D)/libsb2.so: LDFLAGS := $(LDFLAGS) -Wl,-soname=$(LIBSB2_SONAME)
-$(D)/libsb2.so: LIBS := -ldl -lm -lpthread -lrt 
+$(D)/libsb2.so: LIBS := -ldl -lm -lpthread -lrt $(LUA51_LIBS)
 
 targets := $(targets) $(D)/libsb2.so
 

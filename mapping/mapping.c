@@ -37,9 +37,9 @@
 #include <assert.h>
 #include <pthread.h>
 
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
 
 #include <mapping.h>
 #include <sb2.h>

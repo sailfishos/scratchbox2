@@ -17,7 +17,7 @@ if (not compiler_root) then
 	compiler_root = "/usr"
 end
 
-verbose = os.getenv("SBOX_MAPPING_VERBOSE")
+debug = os.getenv("SBOX_MAPPING_DEBUG")
 
 
 -- SBOX_REDIR_SCRIPTS environment variable controls where
@@ -301,7 +301,7 @@ function map_using_chain(chain, binary_name, func_name, work_dir, path)
 		ret = rule.custom_map_func(binary_name, func_name, work_dir, rp, path, rules[n])
 	else
 		ret = sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
-		if (verbose) then
+		if (debug) then
 			sb_debug(string.format("[%s][%s|%s]:\n  %s(%s) -> (%s)", basename(rule.lua_script), rule.binary_name, binary_name, func_name, path, ret))
 		end
 	end

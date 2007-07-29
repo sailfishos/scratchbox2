@@ -2,6 +2,12 @@
 # Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
 # Licensed under GPL version 2
 
+function version()
+{
+	cat $SBOX_DIR/share/scratchbox2/version
+	exit 0
+}
+
 function usage()
 {
 	cat <<EOF
@@ -12,7 +18,8 @@ Usage:
 If no COMMAND is given, a bash shell in scratchbox2 environment is started.
 
 Options:
-    -v           verbose mode: log all redirections
+    -v           display version
+    -d           debug mode: log all redirections
     -h           print this help
     -t DIRECTORY target directory, else search up in directory
                  structure for a .sb2rc
@@ -121,7 +128,7 @@ function sboxify_environment()
 	export SBOX_HOST_GCC_PREFIX_LIST
 	export SBOX_UNAME_MACHINE=$SBOX_CPU
 
-	if [ "$SBOX_MAPPING_VERBOSE" == "1" ]; then
+	if [ "$SBOX_MAPPING_DEBUG" == "1" ]; then
 		export SBOX_DISABLE_MAPPING_CACHE=1 # disable the cache to force use of lua engine
 		export SBOX_MAPPING_LOGFILE=$HOME/sb2_mapping.log
 		echo "Running scratchbox with these settings:"
@@ -136,13 +143,14 @@ function sboxify_environment()
 
 export SBOX_DIR=$(readlink -f $(dirname $0)/..)
 
-while getopts vht:em: foo
+while getopts vdht:em: foo
 do
 	case $foo in
-	(v) export SBOX_MAPPING_VERBOSE=1 ;;
+	(v) version ;;
+	(d) export SBOX_MAPPING_DEBUG=1 ;;
 	(h) usage ;;
 	(t) export SBOX_TARGET_ROOT=$OPTARG ;;
-	(e) export SBOX2_MAPMODE=emulate ;;
+	(e) export SBOX_MAPMODE=emulate ;;
 	(m) export SBOX_REDIR_SCRIPTS=$OPTARG;;
 	(*) usage ;;
 	esac

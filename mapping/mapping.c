@@ -617,7 +617,7 @@ char *scratchbox_path2(const char *binary_name,
 	char *tmp = NULL, *decolon_path = NULL, *mapping_mode = NULL;
 	char pidlink[17]; /* /proc/2^8/exe */
 
-	if (!(mapping_mode = getenv("SBOX2_MAPMODE"))) {
+	if (!(mapping_mode = getenv("SBOX_MAPMODE"))) {
 		mapping_mode = "default";
 	}
 

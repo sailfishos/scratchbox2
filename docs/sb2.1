@@ -3,7 +3,7 @@
 sb2 \- crosscompiling environment
 .SH SYNOPSIS
 .B sb2
-[ \-v ] [ \-h ] [ \-t DIRECTORY ] [ \-e ] [ -m DIRECTORY] [command] [arguments] [...]
+[ \-v ] [ \-d ] [ \-h ] [ \-t DIRECTORY ] [ \-e ] [ -m DIRECTORY] [command] [arguments] [...]
 .SH DESCRIPTION
 .B sb2
 Runs command in scratchbox2. If no command is given, a bash shell
@@ -11,6 +11,9 @@ in scratchbox2 environment is started.
 .SH OPTIONS
 .TP
 \-v
+Display version number.
+.TP
+\-d
 Output all path mappings to $HOME/sb2_mapping.log.
 .TP
 \-h

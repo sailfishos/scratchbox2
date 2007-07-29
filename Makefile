@@ -1,7 +1,10 @@
+# Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
+# Licensed under LGPL 2.1
+
 CC = gcc
 CXX = g++
 LD = ld
-PACKAGE_VERSION = "1.99.0.11"
+PACKAGE_VERSION = "1.99.0.12"
 PACKAGE = "SB2"
 LIBSB2_SONAME = "libsb2.so.1"
 CFLAGS = -O2 -g -Wall -W -I./include -D_LARGEFILE_SOURCE=1 -D_LARGEFILE64_SOURCE=1
@@ -49,6 +52,7 @@ install: $(targets)
 	install -d -m 755 $(prefix)/share/scratchbox2/redir_scripts/preload/emulate
 	install -d -m 755 $(prefix)/share/scratchbox2/scripts
 	install -d -m 755 $(prefix)/share/man/man1
+	echo "$(PACKAGE_VERSION)" > $(prefix)/share/scratchbox2/version
 	install -c -m 755 preload/libsb2.so $(prefix)/lib/libsb2/libsb2.so.$(PACKAGE_VERSION)
 	install -c -m 755 utils/sb2 $(prefix)/bin/sb2
 	install -c -m 755 utils/sb2-init $(prefix)/bin/sb2-init

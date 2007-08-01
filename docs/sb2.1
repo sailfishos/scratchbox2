@@ -3,7 +3,7 @@
 sb2 \- crosscompiling environment
 .SH SYNOPSIS
 .B sb2
-[ \-v ] [ \-d ] [ \-h ] [ \-t DIRECTORY ] [ \-e ] [ -m DIRECTORY] [command] [arguments] [...]
+[ \-v ] [ \-d ] [ \-h ] [ \-t DIRECTORY ] [ \-e ] [ \-m MODE ] [ -s DIRECTORY] [command] [arguments] [...]
 .SH DESCRIPTION
 .B sb2
 Runs command in scratchbox2. If no command is given, a bash shell
@@ -27,6 +27,9 @@ right target root location automatically, but this overrides that.
 Use emulation mode, avoid executing ANY host binaries except qemu.
 .TP
 \-m
+Use mapping mode given in argument.
+.TP
+\-s
 Use redirection rules from the directory given in argument.
 
 .SH ENVIRONMENT

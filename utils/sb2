@@ -24,12 +24,14 @@ Options:
     -t DIRECTORY target directory, else search up in directory
                  structure for a .sb2rc
     -e           emulation mode
-    -m DIRECTORY load preload scripts from alternative location
+    -m MODE      use mapping mode MODE
+    -s DIRECTORY load mapping scripts from alternative location
 
 Examples:
     sb2 ./configure
 	sb2 make
 	sb2 -e make install
+	sb2 -m emulate make install
 EOF
 	exit 2
 }
@@ -143,7 +145,7 @@ function sboxify_environment()
 
 export SBOX_DIR=$(readlink -f $(dirname $0)/..)
 
-while getopts vdht:em: foo
+while getopts vdht:em:s: foo
 do
 	case $foo in
 	(v) version ;;
@@ -151,7 +153,8 @@ do
 	(h) usage ;;
 	(t) export SBOX_TARGET_ROOT=$OPTARG ;;
 	(e) export SBOX_MAPMODE=emulate ;;
-	(m) export SBOX_REDIR_SCRIPTS=$OPTARG;;
+	(m) export SBOX_MAPMODE=$OPTARG ;;
+	(s) export SBOX_REDIR_SCRIPTS=$OPTARG;;
 	(*) usage ;;
 	esac
 done

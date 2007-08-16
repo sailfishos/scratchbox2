@@ -23,7 +23,6 @@ infinitely more functional than Scratchbox 1.x can ever be.
 INSTALLATION
 
 You need git to work with sbox2, get it from http://git.or.cz/.
-Also liblua5.1 is needed on your system for compiling SB2.
 
 Clone the scratchbox 2 repository:
 $ git clone git://anongit.freedesktop.org/git/sbox2

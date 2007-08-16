@@ -3,8 +3,7 @@ Maintainer: Riku Voipio <riku.voipio@iki.fi>
 Section: utils
 Priority: extra
 Standards-Version: 3.7.2
-Build-Depends: debhelper (>=5), automake1.9, autoconf, pkg-config,
- liblua5.1-dev
+Build-Depends: debhelper (>=5), automake1.9, autoconf
 XS-Vcs-Git: git://anongit.freedesktop.org/git/sbox2
 XS-Vcs-Browser: http://gitweb.freedesktop.org/?p=sbox2.git
 

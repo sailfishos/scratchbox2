@@ -15,6 +15,6 @@ utils/sb_gcc_wrapper
 *.d
 autom4te.cache
 aclocal.*
-mapping/libmapping.a
+*.a
 config.mak
 

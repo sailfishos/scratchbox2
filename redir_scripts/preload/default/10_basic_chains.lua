@@ -13,6 +13,7 @@ util_chain = {
 		aclocal,
 		intltool,
 		debhelper,
+		dbs,
 		doc,
 		tex,
 		sgml,

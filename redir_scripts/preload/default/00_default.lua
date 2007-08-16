@@ -109,6 +109,12 @@ debhelper = {
 	map_to = nil
 }
 
+dbs = {
+	func_name = ".*",
+	path = "^/usr/share/dbs.*",
+	map_to = nil
+}
+
 doc = {
 	func_name = ".*",
 	path = "^/usr/share/doc.*",
@@ -199,6 +205,7 @@ default_chain = {
 		aclocal,
 		intltool,
 		debhelper,
+		dbs,
 		doc,
 		tex,
 		sgml,

@@ -515,7 +515,7 @@ static int     (*next_uname) (struct utsname *buf) = NULL;
 void libsb2_init (void) __attribute((constructor));
 void libsb2_init (void)
 {
-	//DBGOUT("fakechroot init start: %i\n", getpid());
+	//DBGOUT("libsb2 init start: %i\n", getpid());
 #ifdef HAVE___LXSTAT
 	nextsym(__lxstat, "__lxstat");
 #endif

@@ -59,6 +59,8 @@ built_in_target := built-in.o
 all_objects := $(obj-builtin)
 all_objects += $(foreach t,$(extra_targets),$($(t)))
 
+MKOUTPUTDIR = @mkdir -p $(dir $@)
+
 ifdef V
 Q = 
 P = @printf "" # <- space before hash is important!!!
@@ -68,30 +70,37 @@ Q = @
 endif
 
 %.so::
+	$(MKOUTPUTDIR)
 	$(P)SHLIB
 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -shared -o $@ $^ $(LIBS)
 
 %.a::
+	$(MKOUTPUTDIR)
 	$(P)ARCHIVE
-	$(Q)$(CC) -Wl,-r -nostdlib -nodefaultlibs -nostartfiles -o $@ $^
+	$(Q)$(CC) $(LDFLAGS) -Wl,-r -nostdlib -nodefaultlibs -nostartfiles -o $@ $^
 
 built-in.o:: %.o
+	$(MKOUTPUTDIR)
 	$(P)BUILTIN
 	$(Q)$(CC) -Wl,-r -nostdlib -nodefaultlibs -nostartfiles -o $@ $^
 
 %.o:: %.S
+	$(MKOUTPUTDIR)
 	$(P)AS
 	$(Q)$(CC) $(CFLAGS) -D__ASSEMBLY__ -Wp,-MT,$@ -Wp,-MMD,$(dir $@).$(notdir $@).d -o $@ -c $<
 
 %.o:: %.c
+	$(MKOUTPUTDIR)
 	$(P)CC
-	$(Q)$(CC) $(CFLAGS) -D__ASSEMBLY__ -Wp,-MT,$@ -Wp,-MMD,$(dir $@).$(notdir $@).d -o $@ -c $<
+	$(Q)$(CC) $(CFLAGS) -Wp,-MT,$@ -Wp,-MMD,$(dir $@).$(notdir $@).d -o $@ -c $<
 
 %.o:: %.cc
+	$(MKOUTPUTDIR)
 	$(P)CXX
 	$(Q)$(CXX) $(CFLAGS) $(CXXFLAGS) -Wp,-MT,$@ -Wp,-MMD,$(dir $@)/.$(notdir $@).d -o $@ -c $<
 
 %.o:: %.cpp
+	$(MKOUTPUTDIR)
 	$(P)CXX
 	$(Q)$(CXX) $(CFLAGS) $(CXXFLAGS) -Wp,-MT,$@ -Wp,-MMD,$(dir $@)/.$(notdir $@).d -o $@ -c $<
 
@@ -100,6 +109,15 @@ built-in.o:: %.o
 %:: %.c
 
 %:: %.o
+
+
+#%Makefile.include:: $(SRCDIR)/$@
+#	$(MKOUTPUTDIR)
+#	cp $(SRCDIR)/$@ $@
+
+#%Makefile:: $(SRCDIR)/$@
+#	$(MKOUTPUTDIR)
+#	cp $(SRCDIR)/$@ $@
 
 
 define ll_clean

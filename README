@@ -27,9 +27,19 @@ You need git to work with sbox2, get it from http://git.or.cz/.
 Clone the scratchbox 2 repository:
 $ git clone git://anongit.freedesktop.org/git/sbox2
 
-Build using:
+There are two ways to build sb2, with and without multilib support.
+To be able to run 32bit binaries on a 64bit host, do this:
+
 $ cd sbox2
-$ make install prefix=$HOME/scratchbox
+$ ./autogen.sh
+$ make install-multilib prefix=$HOME/scratchbox
+
+If you only want your host's "native" version of the library, do:
+
+$ cd sbox2
+$ ./autogen.sh
+$ ./configure --prefix=$HOME/scratchbox
+$ make install
 
 
 You need Qemu for cpu-transparency. Current (2007-06-18) CVS version
@@ -46,12 +56,10 @@ Qemu has many issues on amd64 host systems, at least when trying to
 do user-space emulation of ARM. Better results can be achieved on 32bit
 i386 hosts.
 
-If you're targeting ARM and are on a 32bit x86 machine, you can get a 
-good toolchain from CodeSourcery:
+If you're targeting ARM you can get a good toolchain from CodeSourcery:
 http://www.codesourcery.com/gnu_toolchains/arm/download.html
-
-For amd64 systems there's a quite functional toolchain available here:
-http://people.freedesktop.org/~lle/arm-lltc-gcc412-glibc25.tar.bz2
+You need to build sb2 with multilib support to use CodeSourcery toolchains
+on amd64 host.
 
 Notice! Old Scratchbox 1 toolchains don't work with sb2.
 

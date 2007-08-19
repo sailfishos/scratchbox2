@@ -39,8 +39,7 @@ enum binary_type {
 	BIN_NONE, 
 	BIN_UNKNOWN, 
 	BIN_FOREIGN, 
-	BIN_STATIC, 
-	BIN_DYNAMIC, 
+	BIN_HOST,
 	BIN_TARGET
 };
 
@@ -126,18 +125,13 @@ int run_app(char *file, char **argv, char *const *envp)
 static enum binary_type inspect_binary(const char *filename)
 {
 	enum binary_type retval;
-	int fd, phnum, j;
+	int fd;
 	struct stat status;
-	char *region;
-	unsigned int ph_base, ph_frag;
+	char *region, *target_cpu;
 #ifdef __x86_64__
-	int64_t reloc0;
 	Elf64_Ehdr *ehdr;
-	Elf64_Phdr *phdr;
 #else
-	int reloc0;
 	Elf32_Ehdr *ehdr;
-	Elf32_Phdr *phdr;
 #endif
 	retval = BIN_NONE;
 
@@ -167,62 +161,24 @@ static enum binary_type inspect_binary(const char *filename)
 	ehdr = (Elf32_Ehdr *) region;
 #endif
 
-	switch (ehdr->e_machine) {
-		case EM_ARM:
-		case EM_PPC:
-			retval = BIN_TARGET;
-			goto _out_munmap;
-	}
+	target_cpu = getenv("SBOX_CPU");
+	if (!target_cpu) target_cpu = "arm";
+	target_cpu = strdup(target_cpu);
 
-	if (strncmp((char *) ehdr, ELFMAG, SELFMAG) != 0) {
+	if (!strcmp(target_cpu, "arm")
+		&& ehdr->e_machine == EM_ARM) {
+		retval = BIN_TARGET;
+		goto _out_munmap;
+	} else if (!strcmp(target_cpu, "ppc")
+		&& ehdr->e_machine == EM_PPC) {
+		retval = BIN_TARGET;
 		goto _out_munmap;
 	}
 
-	retval = BIN_FOREIGN;
-
-	if (ehdr->e_ident[EI_DATA] != elf_endianness ||
-			ehdr->e_ident[EI_VERSION] != EV_CURRENT ||
-			ehdr->e_machine != ELF_ARCH) {
-		goto _out_munmap;
-	}
-
-	retval = BIN_STATIC;
-
-	phnum = ehdr->e_phnum;
-	reloc0 = ~0;
-	ph_base = ehdr->e_phoff & PAGE_MASK;
-	ph_frag = ehdr->e_phoff - ph_base;
-
-#ifdef __x86_64__
-	phdr = (Elf64_Phdr *) (region + ph_base + ph_frag);
-#else
-	phdr = (Elf32_Phdr *) (region + ph_base + ph_frag);
-#endif
-
-	for (j = phnum; --j >= 0; ++phdr) {
-		if (PT_LOAD == phdr->p_type && ~0 == reloc0) {
-			reloc0 = phdr->p_vaddr - phdr->p_offset;
-		}
-	}
-
-	phdr -= phnum;
-
-	for (j = phnum; --j >= 0; ++phdr) {
-		int szDyn;
-		unsigned int pt_base, pt_frag;
-
-		if (PT_DYNAMIC != phdr->p_type) {
-			continue;
-		}
-
-		retval = BIN_DYNAMIC;
-
-		pt_base = phdr->p_offset & PAGE_MASK;
-		pt_frag = phdr->p_offset - pt_base;
-		szDyn = phdr->p_filesz;
-	}
+	retval = BIN_HOST;
 _out_munmap:
 	munmap(region, status.st_size);
+	free(target_cpu);
 _out_close:
 	close(fd);
 _out:
@@ -441,9 +397,7 @@ int do_exec(const char *file, char *const *argv, char *const *envp)
 		case BIN_FOREIGN:
 			new_env = drop_preload(my_envp);
 			break;
-		case BIN_STATIC:
-			return sb_next_execve(my_file, my_argv, my_envp);
-		case BIN_DYNAMIC:
+		case BIN_HOST:
 			return run_app((char *)my_file, (char **)my_argv, my_envp);
 		case BIN_TARGET:
 			return run_cputransparency(my_file, (char **)my_argv, my_envp);

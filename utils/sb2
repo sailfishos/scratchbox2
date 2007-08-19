@@ -83,7 +83,8 @@ function sboxify_environment()
 
 
 	if [ -n "$SBOX_DIR" ]; then
-		SBOX_LIBSB2="$SBOX_DIR/lib/libsb2/libsb2.so.1"
+		LD_LIBRARY_PATH=$SBOX_DIR/lib/libsb2:$SBOX_DIR/lib64/libsb2:$SBOX_DIR/lib32/libsb2
+		SBOX_LIBSB2="libsb2.so.1"
 		if [ -z "$SBOX_REDIR_SCRIPTS" ]; then
 			SBOX_REDIR_SCRIPTS="$SBOX_DIR/share/scratchbox2/redir_scripts"
 		fi
@@ -99,7 +100,7 @@ function sboxify_environment()
 		export REDIR_LD_SO REDIR_LD_LIBRARY_PATH SBOX_TOOLS_ROOT
 	fi
 
-	export SBOX_LIBSB2 SBOX_REDIR_SCRIPTS SBOX_TARGET_ROOT SBOX_MAPPING_CACHE SBOX_GCCWRAPPER SBOX_TARGET_COMPILER
+	export LD_LIBRARY_PATH SBOX_LIBSB2 SBOX_REDIR_SCRIPTS SBOX_TARGET_ROOT SBOX_MAPPING_CACHE SBOX_GCCWRAPPER SBOX_TARGET_COMPILER
 
 	# -Riku: I don't think we want to run this on every sb2 invocation..
 	HOST_GCC_INC_DIR=$(echo "#include <stdio.h>" | gcc -M -E - | perl -e 'while(<STDIN>) { $foo{$1} = 1 if m/\/usr([^[:space:]]*\/include)/;}; foreach my $k (keys %foo) {print " -isystem $ENV{SBOX_DIR}/share/scratchbox2/host_usr$k"};')
@@ -129,6 +130,7 @@ function sboxify_environment()
 	export SBOX_CROSS_GCC_PREFIX_LIST
 	export SBOX_HOST_GCC_PREFIX_LIST
 	export SBOX_UNAME_MACHINE=$SBOX_CPU
+	export SBOX_CPU
 
 	if [ "$SBOX_MAPPING_DEBUG" == "1" ]; then
 		export SBOX_DISABLE_MAPPING_CACHE=1 # disable the cache to force use of lua engine

@@ -111,7 +111,9 @@ for m = 1, table.maxn(mm) do
 		table.sort(t)
 		modes[mm[m]] = {}
 		modes[mm[m]].chains = {}
-		-- load the individual parts ($SBOX_REDIR_SCRIPTS/preload/[modename]/*.lua)
+		
+		-- load the individual parts from
+		-- ($SBOX_REDIR_SCRIPTS/preload/[modename]/*.lua)
 		for n = 1,table.maxn(t) do
 			if (string.match(t[n], "%a*%.lua$")) then
 				read_mode_part(mm[m], t[n])
@@ -167,7 +169,7 @@ function adjust_for_mapping_leakage(path)
 	if (not path) then 
 		return nil
 	end
-	-- print("path: " .. path)
+
 	local tmp = sb.sb_readlink(path)
 	if (not tmp) then
 		-- not a symlink
@@ -179,23 +181,15 @@ function adjust_for_mapping_leakage(path)
 		return path
 	end
 
-	-- check if the file pointed to by the symlink
-	-- exists, if not, return path
-	
-	if (not sb.sb_file_exists(tmp)) then
-		return path
-	end
 	-- make it an absolute path if it's not
 	if (string.sub(tmp, 1, 1) ~= "/") then
 		tmp = dirname(path) .. "/" .. tmp
 	end
-	-- decolonize it
+
 	tmp = sb.sb_decolonize_path(tmp)
-	--print(string.format("after decolonizing: %s\n", tmp))
 
 	if (not isprefix(target_root, tmp)) then
 		-- aha! tried to get out of there, now map it right back in
-		--print("it tried to LEAK\n")
 		return adjust_for_mapping_leakage(target_root .. tmp)
 	else
 		return adjust_for_mapping_leakage(tmp)
@@ -215,10 +209,6 @@ no_adjust_funcs = {
 	"lstat",
 	"lstat64",
 	"lutimes",
-	"mknod",
-	"mknodat",
-	"mkfifo",
-	"mkfifoat",
 	"readlink",
 	"symlink",
 	"symlinkat",
@@ -239,7 +229,6 @@ function sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
 	local ret = nil
 	if (rule.map_to) then
 		if (string.sub(rule.map_to, 1, 1) == "=") then
-			--print(string.format("rp: %s\ntarget_root: %s", rp, target_root))
 			ret = target_root .. string.sub(rule.map_to, 2) .. path
 		elseif (string.sub(rule.map_to, 1, 1) == "-") then
 			ret = string.match(path, rule.path .. "(.*)")
@@ -290,7 +279,6 @@ function map_using_chain(chain, binary_name, func_name, work_dir, path)
 	local rp = path
 	local rule = nil
 
-	-- print(string.format("looping through chains: %s", chains[n].binary))
 	rule = find_rule(chain, func_name, rp)
 	if (not rule) then
 		-- error, not even a default rule found

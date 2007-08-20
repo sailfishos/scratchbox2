@@ -54,7 +54,8 @@ static int elem_count(char **elems)
 	return count;
 }
 
-int run_cputransparency(char *file, char **argv, char *const *envp)
+int run_cputransparency(char *orig_file, char *file, char **argv,
+			char *const *envp)
 {
 	char *cputransp_bin, *target_root;
 	char *basec, *bname;
@@ -76,10 +77,10 @@ int run_cputransparency(char *file, char **argv, char *const *envp)
 
 	if (strstr(bname, "qemu")) {
 		free(basec);
-		return run_qemu(cputransp_bin, file, argv, envp);
+		return run_qemu(cputransp_bin, orig_file, file, argv, envp);
 	} else if (strstr(bname, "sbrsh")) {
 		free(basec);
-		return run_sbrsh(cputransp_bin, target_root, file, argv, envp);
+		return run_sbrsh(cputransp_bin, orig_file, target_root, file, argv, envp);
 	}
 
 	free(basec);
@@ -87,12 +88,14 @@ int run_cputransparency(char *file, char **argv, char *const *envp)
 	return -1;
 }
 
-int run_sbrsh(char *sbrsh_bin, char *target_root, char *file, char **argv, char *const *envp)
+int run_sbrsh(char *sbrsh_bin, char *target_root, char *orig_file, char *file,
+		char **argv, char *const *envp)
 {
 	return -1;
 }
 
-int run_qemu(char *qemu_bin, char *file, char **argv, char *const *envp)
+int run_qemu(char *qemu_bin, char *orig_file,char *file,
+		char **argv, char *const *envp)
 {
 	char **my_argv, **p;
 	int i = 0;
@@ -104,14 +107,18 @@ int run_qemu(char *qemu_bin, char *file, char **argv, char *const *envp)
 	my_argv[i++] = "-L";
 
 	my_argv[i++] = "/";
-	my_argv[i++] = file;
+	my_argv[i++] = orig_file; /* we're passing the unmapped file
+				   * here, it works because qemu will
+				   * do open() on it, and that gets
+				   * mapped again.
+				   */
 	for (p=&argv[1]; *p; p++) {
 		my_argv[i++] = *p;
 	}
 
 	my_argv[i] = NULL;
 
-	return sb_next_execve(my_argv[0], my_argv, envp);
+	return sb_next_execve(qemu_bin, my_argv, envp);
 }
 
 int run_app(char *file, char **argv, char *const *envp)
@@ -295,7 +302,8 @@ static char const* const*drop_preload(char *const oldenv[])
 }
 
 
-int do_exec(const char *file, char *const *argv, char *const *envp)
+int do_exec(const char *orig_file, const char *file,
+		char *const *argv, char *const *envp)
 {
 	char **my_envp, **my_argv, **p;
 	char *binaryname, *tmp, *my_file;
@@ -400,7 +408,7 @@ int do_exec(const char *file, char *const *argv, char *const *envp)
 		case BIN_HOST:
 			return run_app((char *)my_file, (char **)my_argv, my_envp);
 		case BIN_TARGET:
-			return run_cputransparency(my_file, (char **)my_argv, my_envp);
+			return run_cputransparency((char *)orig_file, my_file, (char **)my_argv, my_envp);
 		case BIN_NONE:
 		case BIN_UNKNOWN:
 			DBGOUT("unknown\n");

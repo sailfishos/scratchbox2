@@ -1263,7 +1263,7 @@ int execve (const char *filename, char *const argv [], char *const envp[])
 	}
 
 	if (hashbang[0] != '#' || hashbang[1] != '!') {
-		ret = do_exec(sbox_path, argv, envp);
+		ret = do_exec(filename, sbox_path, argv, envp);
 		if (sbox_path) free(sbox_path);
 		return ret;
 	}
@@ -1311,7 +1311,7 @@ int execve (const char *filename, char *const argv [], char *const envp[])
 
 	newargv[n] = 0;
 
-	ret = do_exec(newfilename, (char *const *)newargv, envp);
+	ret = do_exec(filename, newfilename, (char *const *)newargv, envp);
 	if (hb_sbox_path) free(hb_sbox_path);
 	if (sbox_path) free(sbox_path);
 	return ret;

@@ -1234,14 +1234,14 @@ int execv (const char *path, char *const argv [])
 int execve (const char *filename, char *const argv [], char *const envp[])
 {
 	SBOX_MAP_PROLOGUE();
-	char *hb_sbox_path;
+	char *hb_sbox_path = NULL;
 	int ret;
 	int file;
 	char hashbang[SBOX_MAXPATH];
-	size_t argv_max = 1024;
-	const char **newargv = alloca (argv_max * sizeof (const char *));
-	char newfilename[SBOX_MAXPATH], argv0[SBOX_MAXPATH];
-	char *ptr;
+	unsigned int argc;
+	const char **newargv;
+	char interp_filename[SBOX_MAXPATH];
+	char *ptr, **p;
 	int k;
 	unsigned int i, j, n;
 	char c;
@@ -1270,6 +1270,13 @@ int execve (const char *filename, char *const argv [], char *const envp[])
 
 	/* if we're here we have a script */
 
+	argc = 0;
+	for (p = (char **)argv; *p; p++)
+		argc++;
+
+	/* extra element for hashbang argument */
+	newargv = alloca((argc + 2) * sizeof (const char *));
+
 	//printf("hashbang: %s\n", hashbang);
 	for (i = j = 2; (hashbang[i] == ' ' || hashbang[i] == '\t') && i < SBOX_MAXPATH; i++, j++) {
 		//printf("looping\n");
@@ -1286,14 +1293,10 @@ int execve (const char *filename, char *const argv [], char *const envp[])
 				if (n == 0) {
 					ptr = &hashbang[j];
 					//printf("hashbanging ptr, sbox_path: %s, %s\n", ptr, sbox_path);
-					SBOX_MAP_PATH(ptr, hb_sbox_path);
-					strcpy(newfilename, hb_sbox_path);
-					strcpy(argv0, &hashbang[j]);
-					newargv[n++] = argv0;
-					free(hb_sbox_path);
-					hb_sbox_path = NULL;
+					strcpy(interp_filename, ptr);
+					newargv[n++] = strdup(ptr);
 				} else {
-					newargv[n++] = &hashbang[j];
+					newargv[n++] = strdup(&hashbang[j]);
 				}
 			}
 			j = i + 1;
@@ -1301,17 +1304,17 @@ int execve (const char *filename, char *const argv [], char *const envp[])
 		if (c == '\n' || c == 0) break;
 	}
 
-	//printf("hashbanging: %s, %s\n", filename, sbox_path);
-	SBOX_MAP_PATH(filename, hb_sbox_path);
-	newargv[n++] = hb_sbox_path;
+	SBOX_MAP_PATH(interp_filename, hb_sbox_path);
+	//printf("hashbanging: %s, %s\n", interp_filename, hb_sbox_path);
+	newargv[n++] = filename; /* the unmapped script path */
 
-	for (i = 1; argv[i] != NULL && i < argv_max; ) {
+	for (i = 1; argv[i] != NULL && i < argc; ) {
 		newargv[n++] = argv[i++];
 	}
 
-	newargv[n] = 0;
+	newargv[n] = NULL;
 
-	ret = do_exec(filename, newfilename, (char *const *)newargv, envp);
+	ret = do_exec(interp_filename, hb_sbox_path, (char *const *)newargv, envp);
 	if (hb_sbox_path) free(hb_sbox_path);
 	if (sbox_path) free(sbox_path);
 	return ret;

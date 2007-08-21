@@ -38,7 +38,6 @@
 enum binary_type {
 	BIN_NONE, 
 	BIN_UNKNOWN, 
-	BIN_FOREIGN, 
 	BIN_HOST,
 	BIN_TARGET
 };
@@ -278,30 +277,6 @@ static int is_gcc_tool(char *fname)
 }
 
 
-static char const* const*drop_preload(char *const oldenv[])
-{
-	char const* *newenv;
-	int i, j;
-
-	for (i = 0; oldenv[i]; ++i)
-		;
-
-	newenv = (char const**) calloc(i + 1, sizeof (char *));
-	if (!newenv) {
-		fprintf(stderr, "libsb: %s\n", strerror(errno));
-		return (char const*const*)oldenv;
-	}
-
-	for (i = 0, j = 0; oldenv[i]; ++i) {
-		if (strncmp(oldenv[i], "LD_PRELOAD=", 11) != 0) {
-			newenv[j++] = oldenv[i];
-		}
-	}
-
-	return newenv;
-}
-
-
 int do_exec(const char *orig_file, const char *file,
 		char *const *argv, char *const *envp)
 {
@@ -323,7 +298,9 @@ int do_exec(const char *orig_file, const char *file,
 	if (type == BIN_TARGET) {
 		binaryname = strdup(getenv("SBOX_CPUTRANSPARENCY_METHOD"));
 	} else {
-		binaryname = strdup(basename(file));
+		tmp = strdup(file);
+		binaryname = strdup(basename(tmp));
+		free(tmp);
 	}
 
 	/* count the environment variables and arguments, also check
@@ -402,9 +379,6 @@ int do_exec(const char *orig_file, const char *file,
 	my_argv[i] = NULL;
 
 	switch (type) {
-		case BIN_FOREIGN:
-			new_env = drop_preload(my_envp);
-			break;
 		case BIN_HOST:
 			return run_app((char *)my_file, (char **)my_argv, my_envp);
 		case BIN_TARGET:

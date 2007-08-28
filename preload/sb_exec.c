@@ -179,6 +179,14 @@ static enum binary_type inspect_binary(const char *filename)
 		&& ehdr->e_machine == EM_PPC) {
 		retval = BIN_TARGET;
 		goto _out_munmap;
+	} else if (!strcmp(target_cpu, "mips")
+		&& ehdr->e_machine == EM_MIPS) {
+		retval = BIN_TARGET;
+		goto _out_munmap;
+	} else if (!strcmp(target_cpu, "mipsel")
+		&& ehdr->e_machine == EM_MIPS_RS3_LE) {
+		retval = BIN_TARGET;
+		goto _out_munmap;
 	}
 
 	retval = BIN_HOST;

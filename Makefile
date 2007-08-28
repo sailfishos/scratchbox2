@@ -6,6 +6,13 @@ OBJDIR = $(TOPDIR)
 SRCDIR = $(TOPDIR)
 VPATH = $(SRCDIR)
 
+
+ifeq ($(MAKECMDGOALS),install-multilib)
+BUILD_TARGET=multilib
+else
+BUILD_TARGET=$(targets)
+endif
+
 ifeq ($(shell uname -m),x86_64)
 PRI_OBJDIR = obj-64
 else
@@ -68,7 +75,7 @@ sources-release:
 	git archive --format=tar --prefix=sbox2-$(PACKAGE_VERSION)/ $(PACKAGE_VERSION) | bzip2 >sbox2-$(PACKAGE_VERSION).tar.bz2
 
 
-install-noarch:
+install-noarch: $(BUILD_TARGET)
 	install -d -m 755 $(prefix)/bin
 	install -d -m 755 $(prefix)/share/scratchbox2/redir_scripts
 	install -d -m 755 $(prefix)/share/scratchbox2/redir_scripts/preload
@@ -90,7 +97,7 @@ install-noarch:
 
 
 # remember to keep install and install-multilib in sync!
-install: $(targets) install-noarch
+install: install-noarch
 	install -d -m 755 $(prefix)/lib
 	install -d -m 755 $(prefix)/lib/libsb2
 	install -c -m 755 $(OBJDIR)/preload/libsb2.so $(prefix)/lib/libsb2/libsb2.so.$(PACKAGE_VERSION)
@@ -101,7 +108,7 @@ install: $(targets) install-noarch
 	/sbin/ldconfig -n $(prefix)/lib/libsb2
 
 
-install-multilib: multilib install-noarch
+install-multilib: install-noarch
 	install -d -m 755 $(prefix)/lib32
 	install -d -m 755 $(prefix)/lib32/libsb2
 	install -d -m 755 $(prefix)/lib64

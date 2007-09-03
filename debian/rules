@@ -11,12 +11,22 @@ ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
 INSTALL_PROGRAM += -s
 endif
 
+DEB_HOST_GNU_TYPE = $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+
+ifeq (x86_64-linux-gnu,$(DEB_HOST_GNU_TYPE))
+BUILD_TARGET=multilib
+INSTALL_TARGET=install-multilib
+else
+BUILD_TARGET=all
+INSTALL_TARGET=install
+endif
+
 build: build-stamp
 build-stamp:
 	dh_testdir
 	./autogen.sh
 	./configure --prefix=/usr
-	make
+	make $(BUILD_TARGET)
 
 	touch build-stamp
 
@@ -43,7 +53,7 @@ install: build
 	dh_testdir
 	dh_testroot
 	dh_installdirs
-	$(MAKE) prefix="$(CURDIR)/debian/scratchbox2/usr" install
+	$(MAKE) prefix="$(CURDIR)/debian/scratchbox2/usr" $(INSTALL_TARGET)
 	# make lintian happy
 	rm -f debian/scratchbox2/usr/share/scratchbox2/host_usr
 	ln -sf ../.. debian/scratchbox2/usr/share/scratchbox2/host_usr

@@ -3,7 +3,7 @@ Maintainer: Riku Voipio <riku.voipio@iki.fi>
 Section: utils
 Priority: extra
 Standards-Version: 3.7.2
-Build-Depends: debhelper (>=5), automake1.9, autoconf
+Build-Depends: debhelper (>=5), automake1.9, autoconf, gcc-multilib [amd64], libc6-dev-i386 [amd64], g++-multilib [amd64]
 XS-Vcs-Git: git://anongit.freedesktop.org/git/sbox2
 XS-Vcs-Browser: http://gitweb.freedesktop.org/?p=sbox2.git
 

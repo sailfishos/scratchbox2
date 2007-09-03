@@ -1,3 +1,15 @@
+scratchbox2 (1.99.0.16) unstable; urgency=low
+
+  * New upstream version:
+  - Multilib support to allow using precompiled ia32 crosstoolchains
+    on amd64 hosts
+  - Fix hashbang support in execve() and do_exec()
+  - Fix symlink handling
+  - Add dbs support
+  * Change packagin to use multilib
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Wed, 29 Aug 2007 15:13:36 +0300
+
 scratchbox2 (1.99.0.11) unstable; urgency=low
 
   * New upstream version, fixes and sb1 cruft killing

@@ -37,6 +37,7 @@ subdirs = mapping preload utils
 
 CFLAGS += -O2 -g -Wall -W -I$(OBJDIR)/include -I$(SRCDIR)/include -D_LARGEFILE_SOURCE=1 -D_LARGEFILE64_SOURCE=1
 CFLAGS += -DSCRATCHBOX_ROOT="$(prefix)"
+CFLAGS += -DDISABLE_CACHE
 CXXFLAGS = 
 
 include $(LLBUILD)/Makefile.include
@@ -79,8 +80,9 @@ install-noarch: $(BUILD_TARGET)
 	install -d -m 755 $(prefix)/bin
 	install -d -m 755 $(prefix)/share/scratchbox2/redir_scripts
 	install -d -m 755 $(prefix)/share/scratchbox2/redir_scripts/preload
-	install -d -m 755 $(prefix)/share/scratchbox2/redir_scripts/preload/default
+	install -d -m 755 $(prefix)/share/scratchbox2/redir_scripts/preload/complex
 	install -d -m 755 $(prefix)/share/scratchbox2/redir_scripts/preload/emulate
+	install -d -m 755 $(prefix)/share/scratchbox2/redir_scripts/preload/simple
 	install -d -m 755 $(prefix)/share/scratchbox2/scripts
 	install -d -m 755 $(prefix)/share/man/man1
 	echo "$(PACKAGE_VERSION)" > $(prefix)/share/scratchbox2/version
@@ -89,8 +91,10 @@ install-noarch: $(BUILD_TARGET)
 	install -c -m 755 $(SRCDIR)/utils/sb2-build-libtool $(prefix)/bin/sb2-build-libtool
 	install -c -m 755 $(SRCDIR)/utils/dpkg-checkbuilddeps $(prefix)/share/scratchbox2/scripts/dpkg-checkbuilddeps
 	install -c -m 644 $(SRCDIR)/redir_scripts/main.lua $(prefix)/share/scratchbox2/redir_scripts/main.lua
-	install -c -m 644 $(SRCDIR)/redir_scripts/preload/default/*.lua $(prefix)/share/scratchbox2/redir_scripts/preload/default/
+	install -c -m 644 $(SRCDIR)/redir_scripts/preload/complex/*.lua $(prefix)/share/scratchbox2/redir_scripts/preload/complex/
 	install -c -m 644 $(SRCDIR)/redir_scripts/preload/emulate/*.lua $(prefix)/share/scratchbox2/redir_scripts/preload/emulate/
+	install -c -m 644 $(SRCDIR)/redir_scripts/preload/simple/*.lua $(prefix)/share/scratchbox2/redir_scripts/preload/simple/
+
 	install -c -m 644 $(SRCDIR)/docs/sb2.1 $(prefix)/share/man/man1/sb2.1
 	rm -f $(prefix)/share/scratchbox2/host_usr
 	ln -sf /usr $(prefix)/share/scratchbox2/host_usr

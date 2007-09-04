@@ -16,7 +16,6 @@
 #include <limits.h>
 #include <fcntl.h>
 
-#include <sys/syscall.h>
 #include <sys/utsname.h>
 #include <elf.h>
 #include <sys/user.h>
@@ -141,7 +140,7 @@ static enum binary_type inspect_binary(const char *filename)
 #endif
 	retval = BIN_NONE;
 
-	fd = syscall(__NR_open, filename, O_RDONLY, 0);
+	fd = open(filename, O_RDONLY, 0);
 	if (fd < 0) {
 		goto _out;
 	}

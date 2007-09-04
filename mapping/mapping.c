@@ -3,14 +3,12 @@
  *
  * Licensed under LGPL version 2.1, see top level LICENSE file for details.
  *
- * In the path translation functions we must either use syscalls directly,
- * or disable_mapping(); to avoid creating recursive loops of function calls 
- * due to wrapping.
+ * In the path translation functions we must call disable_mapping();
+ * to avoid creating recursive loops of function calls due to wrapping.
  */
 
 #define _GNU_SOURCE
 
-#include <sys/syscall.h>
 #include <asm/unistd.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -48,7 +46,7 @@
 	{char *__logfile = getenv("SBOX_MAPPING_LOGFILE"); \
 	int __logfd; FILE *__logfs;\
 	if (__logfile) { \
-		if ((__logfd = syscall(__NR_open, __logfile, O_APPEND | O_RDWR | O_CREAT, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)) > 0) { \
+		if ((__logfd = open(__logfile, O_APPEND | O_RDWR | O_CREAT, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)) > 0) { \
 			__logfs = fdopen(__logfd, "a"); \
 			fprintf(__logfs, fmt); \
 			fclose(__logfs); \
@@ -243,7 +241,7 @@ static char *read_sb2cache(const char *mapping_mode,
 	memset(link_path, '\0', PATH_MAX + 1);
 
 
-	if (syscall(__NR_readlink, cache_path, link_path, PATH_MAX) < 0) {
+	if (readlink(cache_path, link_path, PATH_MAX) < 0) {
 		free(link_path);
 		link_path = NULL;
 	}
@@ -332,13 +330,13 @@ static int insert_sb2cache(const char *mapping_mode,
 		*wrk = '\0';
 		//DBGOUT("checking path: %s\n", dcopy);
 #ifdef __x86_64__
-		if (syscall(__NR_stat, dcopy, &s) < 0) {
+		if (stat(dcopy, &s) < 0) {
 #else
-		if (syscall(__NR_stat64, dcopy, &s) < 0) {
+		if (stat64(dcopy, &s) < 0) {
 #endif
 			if (errno == ENOENT || errno == ENOTDIR) {
 				/* create the dir */
-				if (syscall(__NR_mkdir, dcopy, S_IRWXU) < 0) {
+				if (mkdir(dcopy, S_IRWXU) < 0) {
 					perror("Unable to create dir in sb2cache\n");
 					flock(lockfd, LOCK_UN);
 					close(lockfd);
@@ -519,9 +517,9 @@ static int sb_followsymlink(lua_State *l)
 	path = strdup(lua_tostring(l, 1));
 
 #ifdef __x86_64__
-	if (syscall(__NR_lstat, path, &s) < 0) {
+	if (lstat(path, &s) < 0) {
 #else
-	if (syscall(__NR_lstat64, path, &s) < 0) {
+	if (lstat64(path, &s) < 0) {
 #endif
 		/* didn't work
 		 * TODO: error handling 
@@ -533,7 +531,7 @@ static int sb_followsymlink(lua_State *l)
 	
 	if (S_ISLNK(s.st_mode)) {
 		/* we have a symlink, read it and return */
-		syscall(__NR_readlink, path, link_path, PATH_MAX);
+		readlink(path, link_path, PATH_MAX);
 		lua_pushstring(l, link_path);
 	} else {
 		//printf("not a symlink! %s\n", path);
@@ -673,7 +671,7 @@ char *scratchbox_path2(const char *binary_name,
 	
 	memset(work_dir, '\0', PATH_MAX+1);
 	snprintf(pidlink,16,"/proc/%i/exe",sb_getpid());
-	syscall(__NR_getcwd, work_dir, PATH_MAX);
+	getcwd(work_dir, PATH_MAX);
 
 	/* redir_scripts RECURSIVE CALL BREAK */
 	if (strncmp(decolon_path, rsdir, strlen(rsdir)) == 0) {
@@ -763,8 +761,8 @@ static int lua_bind_sb_functions(lua_State *l)
 
 /*
  * __sb_realpath is based directly on the __realpath in glibc-2.4.
- * The only difference is that this uses syscalls directly and 
- * replaces all __functions with their public names.
+ * The only difference is that this replaces all __functions with their
+ * public names.
  */
 
 /* Return the canonical absolute name of file NAME.  A canonical name
@@ -824,7 +822,7 @@ __sb2_realpath (const char *name, char *resolved)
 
   if (name[0] != '/')
     {
-      if (!syscall(__NR_getcwd, rpath, path_max))
+      if (!getcwd(rpath, path_max))
 	{
 	  rpath[0] = '\0';
 	  goto error;
@@ -897,9 +895,9 @@ __sb2_realpath (const char *name, char *resolved)
 	  dest = mempcpy (dest, start, end - start);
 	  *dest = '\0';
 #ifdef __x86_64__
-	  if (syscall(__NR_lstat, rpath, &st) < 0)
+	  if (lstat(rpath, &st) < 0)
 #else
-	  if (syscall(__NR_lstat64, rpath, &st) < 0)
+	  if (lstat64(rpath, &st) < 0)
 #endif
 	    goto error;
 
@@ -914,7 +912,7 @@ __sb2_realpath (const char *name, char *resolved)
 		  goto error;
 		}
 
-	      n = syscall(__NR_readlink, rpath, buf, path_max);
+	      n = readlink(rpath, buf, path_max);
 	      if (n < 0)
 		goto error;
 	      buf[n] = '\0';

@@ -39,7 +39,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/times.h>
-#include <sys/syscall.h>
 #include <sys/utsname.h>
 #include <asm/unistd.h>
 #include <fcntl.h>

@@ -90,8 +90,8 @@ function check_buildroot_sanity()
 		a_ok=0
 	fi
 
-	if [ ! -e lib/libc.so.6 ]; then
-		echo "no lib/libc.so.6"
+	if [ ! -e lib/libc.so.6 ] && [ ! -e lib/libc.so.0 ]; then
+		echo "no lib/libc.so.6 or lib/libc.so.0"
 		a_ok=0
 	fi
 

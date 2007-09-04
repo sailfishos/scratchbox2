@@ -169,7 +169,6 @@ static enum binary_type inspect_binary(const char *filename)
 
 	target_cpu = getenv("SBOX_CPU");
 	if (!target_cpu) target_cpu = "arm";
-	target_cpu = strdup(target_cpu);
 
 	if (!strcmp(target_cpu, "arm")
 		&& ehdr->e_machine == EM_ARM) {
@@ -192,7 +191,6 @@ static enum binary_type inspect_binary(const char *filename)
 	retval = BIN_HOST;
 _out_munmap:
 	munmap(region, status.st_size);
-	free(target_cpu);
 _out_close:
 	close(fd);
 _out:

@@ -75,11 +75,8 @@ __thread lua_State *l = NULL;
 __thread char *rsdir = NULL;
 __thread char *main_lua = NULL;
 __thread int mapping_disabled = 0;
-__thread time_t sb2_timestamp = 0;
 
 __thread pthread_mutex_t lua_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-
-pthread_mutex_t mapping_cache_lock = PTHREAD_MUTEX_INITIALIZER;
 
 struct path_entry {
 	struct path_entry *prev;
@@ -185,202 +182,6 @@ proceed:
 	}
 	return buf;
 }
-
-
-#ifndef DISABLE_CACHE
-
-static char *create_sb2cache_path(const char *mapping_mode, 
-			const char *binary_name, 
-			const char *func_name, 
-			const char *path)
-{
-	char *target_dir = getenv("SBOX_MAPPING_CACHE");
-	char *cache_path;
-	unsigned int length;
-
-	length = strlen(mapping_mode) + 1 + strlen(target_dir) + strlen(path) 
-		+ 1 + strlen(binary_name) + 1 + strlen(func_name) + 4 + 1;
-
-	cache_path = malloc(length * sizeof(char));
-	memset(cache_path, '\0', length);
-	strcpy(cache_path, target_dir);
-	strcat(cache_path, path);
-	strcat(cache_path, ".");
-	strcat(cache_path, mapping_mode);
-	strcat(cache_path, ".");
-	strcat(cache_path, binary_name);
-	strcat(cache_path, ".");
-	strcat(cache_path, func_name);
-	strcat(cache_path, ".map");
-	return cache_path;
-}
-
-/*
- * Return NULL if not found from cache, or if the cache is outdated 
- * compared to sb2_timestamp.
- */
-static char *read_sb2cache(const char *mapping_mode, 
-			const char *binary_name, 
-			const char *func_name, 
-			const char *path)
-{
-	char *link_path = NULL;
-	struct stat64 s;
-
-	if (getenv("SBOX_DISABLE_MAPPING_CACHE")) return NULL;
-
-	char *cache_path = create_sb2cache_path(mapping_mode, binary_name, func_name, path);
-
-	if (lstat64(cache_path, &s) < 0 ||
-		(s.st_mtime < get_sb2_timestamp())) {
-		goto exit;
-	}
-
-	link_path = malloc((PATH_MAX + 1) * sizeof(char));
-	memset(link_path, '\0', PATH_MAX + 1);
-
-
-	if (readlink(cache_path, link_path, PATH_MAX) < 0) {
-		free(link_path);
-		link_path = NULL;
-	}
-exit:
-	free(cache_path);
-	return link_path;
-}
-
-time_t get_sb2_timestamp(void)
-{
-	DIR *d = NULL;
-	struct dirent *de = NULL;
-	struct stat64 s;
-	time_t t;
-	char *libsb2 = getenv("SBOX_LIBSB2");
-
-	if (sb2_timestamp) return sb2_timestamp;
-	disable_mapping();
-	
-	t = 0;
-	if (stat64(libsb2, &s) < 0) goto exit;
-	t = s.st_mtime;
-
-	if (stat64(main_lua, &s) < 0) goto exit;
-	if (t < s.st_mtime) t = s.st_mtime;
-
-	if ((d = opendir(rsdir)) == NULL) goto exit;
-	while ((de = readdir(d)) != NULL) {
-		if (stat64(de->d_name, &s) < 0) continue;
-		if (t < s.st_mtime) t = s.st_mtime;
-	}
-	closedir(d);
-
-	/* TODO: check the redir_scripts/preload contents as well */
-
-exit:
-	enable_mapping();
-	sb2_timestamp = t;
-	return sb2_timestamp;
-}
-
-/*
- * If the cache dir doesn't exist, this will create it.
- */
-static int insert_sb2cache(const char *mapping_mode,
-			const char *binary_name, 
-			const char *func_name, 
-			const char *path, 
-			const char *map_to)
-{
-	char *cache_path;
-	char *dcopy;
-	char *wrk;
-	struct stat64 s;
-	int lockfd;
-
-	disable_mapping();
-
-	/* get a lock on the cache
-	 * first get a lock within this process
-	 */
-	pthread_mutex_lock(&mapping_cache_lock);
-	lockfd = open(getenv("SBOX_MAPPING_CACHE"), O_RDONLY);
-	while (flock(lockfd, LOCK_EX) < 0) {
-		if (errno != EINTR) {
-			perror("Unable to acquire cache lock");
-			pthread_mutex_unlock(&mapping_cache_lock);
-			close(lockfd);
-			return -1;
-		}
-	}
-
-	cache_path = create_sb2cache_path(mapping_mode, binary_name, 
-					func_name, path);
-
-	dcopy = strdup(cache_path);
-
-	/* make sure all the directory elements exist, 
-	 * this does nasty stuff in place to dcopy */
-	wrk = dcopy;
-	while (*wrk != '\0') {
-		wrk = strstr(wrk + 1, "/");
-		
-		if (!wrk) break;
-
-		*wrk = '\0';
-		//DBGOUT("checking path: %s\n", dcopy);
-#ifdef __x86_64__
-		if (stat(dcopy, &s) < 0) {
-#else
-		if (stat64(dcopy, &s) < 0) {
-#endif
-			if (errno == ENOENT || errno == ENOTDIR) {
-				/* create the dir */
-				if (mkdir(dcopy, S_IRWXU) < 0) {
-					perror("Unable to create dir in sb2cache\n");
-					flock(lockfd, LOCK_UN);
-					close(lockfd);
-					pthread_mutex_unlock(&mapping_cache_lock);
-					exit(1);
-				}
-			} else {
-				perror("Big trouble working the sb2cache\n");
-				flock(lockfd, LOCK_UN);
-				close(lockfd);
-				pthread_mutex_unlock(&mapping_cache_lock);
-				exit(1);
-			}
-		}
-
-		*wrk = '/';
-		wrk++;
-	}
-	if (lstat64(cache_path, &s) == 0) {
-		/* link exists, remove it */
-		if (unlink(cache_path) < 0) {
-			DBGOUT("unable to remove: %s\n", cache_path);
-			perror("Error while removing symlink in sb2cache");
-			flock(lockfd, LOCK_UN);
-			close(lockfd);
-			pthread_mutex_unlock(&mapping_cache_lock);
-			exit(1);
-		}
-	}
-	if (symlink(map_to, cache_path) < 0) {
-		perror("Error while creating symlink in sb2cache\n");
-		DBGOUT("Failed on: (%s, %s)\n", map_to, cache_path);
-		flock(lockfd, LOCK_UN);
-		close(lockfd);
-		pthread_mutex_unlock(&mapping_cache_lock);
-		exit(1);
-	}
-	flock(lockfd, LOCK_UN);
-	close(lockfd);
-	pthread_mutex_unlock(&mapping_cache_lock);
-	enable_mapping();
-	return 0;
-}
-
-#endif /* DISABLE_CACHE */
 
 
 static int sb_decolonize_path(lua_State *l)
@@ -601,26 +402,6 @@ char *scratchbox_path2(const char *binary_name,
 	disable_mapping();
 	decolon_path = decolonize_path(path);
 
-	/* first try from the cache */
-
-#ifndef DISABLE_CACHE
-	tmp = NULL;
-	if (rsdir && main_lua) tmp = read_sb2cache(mapping_mode,
-						binary_name, 
-						func_name, decolon_path);
-
-	if (tmp) {
-		if (strcmp(tmp, decolon_path) == 0) {
-			free(decolon_path);
-			enable_mapping();
-			return strdup(path);
-		} else {
-			enable_mapping();
-			return tmp;
-		}
-	}
-#endif
-
 	if (pthread_mutex_trylock(&lua_lock) < 0) {
 		pthread_mutex_lock(&lua_lock);
 	}
@@ -688,10 +469,6 @@ char *scratchbox_path2(const char *binary_name,
 
 	pthread_mutex_unlock(&lua_lock);
 
-#ifndef DISABLE_CACHE
-	insert_sb2cache(mapping_mode, binary_name, func_name, decolon_path, tmp);
-#endif
-	
 	if (strcmp(tmp, decolon_path) == 0) {
 		free(decolon_path);
 		free(tmp);

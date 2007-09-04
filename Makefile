@@ -37,7 +37,6 @@ subdirs = mapping preload utils
 
 CFLAGS += -O2 -g -Wall -W -I$(OBJDIR)/include -I$(SRCDIR)/include -D_LARGEFILE_SOURCE=1 -D_LARGEFILE64_SOURCE=1
 CFLAGS += -DSCRATCHBOX_ROOT="$(prefix)"
-CFLAGS += -DDISABLE_CACHE
 CXXFLAGS = 
 
 include $(LLBUILD)/Makefile.include

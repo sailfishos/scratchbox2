@@ -54,7 +54,7 @@ find_target_root()
 {
 (
 	while [ "$PWD" != "/" ]; do
-		if [ -r sb2.config -o -d .sb2cache ]; then
+		if [ -r sb2.config ]; then
 			echo "$(readlink -f -n $PWD)"
 			return 0
 		else
@@ -76,12 +76,6 @@ function sboxify_environment()
 		SBOX_TARGET_ROOT=`find_target_root` || exit_error "Cannot find target root!"
 	fi
 
-	SBOX_MAPPING_CACHE=$SBOX_TARGET_ROOT/.sb2cache
-	if [ ! -d $SBOX_MAPPING_CACHE ]; then
-		mkdir -p $SBOX_MAPPING_CACHE
-	fi
-
-
 	if [ -n "$SBOX_DIR" ]; then
 		LD_LIBRARY_PATH=$SBOX_DIR/lib/libsb2:$SBOX_DIR/lib64/libsb2:$SBOX_DIR/lib32/libsb2
 		SBOX_LIBSB2="libsb2.so.1"
@@ -100,7 +94,7 @@ function sboxify_environment()
 		export REDIR_LD_SO REDIR_LD_LIBRARY_PATH SBOX_TOOLS_ROOT
 	fi
 
-	export LD_LIBRARY_PATH SBOX_LIBSB2 SBOX_REDIR_SCRIPTS SBOX_TARGET_ROOT SBOX_MAPPING_CACHE SBOX_GCCWRAPPER SBOX_TARGET_COMPILER
+	export LD_LIBRARY_PATH SBOX_LIBSB2 SBOX_REDIR_SCRIPTS SBOX_TARGET_ROOT SBOX_GCCWRAPPER SBOX_TARGET_COMPILER
 
 	# -Riku: I don't think we want to run this on every sb2 invocation..
 	HOST_GCC_INC_DIR=$(echo "#include <stdio.h>" | gcc -M -E - | perl -e 'while(<STDIN>) { $foo{$1} = 1 if m/\/usr([^[:space:]]*\/include)/;}; foreach my $k (keys %foo) {print " -isystem $ENV{SBOX_DIR}/share/scratchbox2/host_usr$k"};')
@@ -133,7 +127,6 @@ function sboxify_environment()
 	export SBOX_CPU
 
 	if [ "$SBOX_MAPPING_DEBUG" == "1" ]; then
-		export SBOX_DISABLE_MAPPING_CACHE=1 # disable the cache to force use of lua engine
 		export SBOX_MAPPING_LOGFILE=$HOME/sb2_mapping.log
 		echo "Running scratchbox with these settings:"
 		echo "SBOX_LIBSB2 = $SBOX_LIBSB2"

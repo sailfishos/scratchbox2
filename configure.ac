@@ -168,6 +168,9 @@ ssize_t readlink(const char *path, char *buf, size_t bufsize)
 readlink_type="ssize_t", readlink_type="int")
 AC_DEFINE_UNQUOTED(READLINK_TYPE, ${readlink_type})
 
+AC_C_BIGENDIAN()
+
+AC_SUBST(WORDS_BIGENDIAN, ${WORDS_BIGENDIAN})
 AC_SUBST(PREFIX, ${prefix})
 AC_SUBST(CC, ${CC})
 AC_SUBST(CXX, ${CXX})

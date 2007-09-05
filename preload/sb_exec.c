@@ -34,6 +34,18 @@
 # error Invalid __BYTE_ORDER
 #endif
 
+uint16_t byte_swap(uint16_t a)
+{
+	uint16_t b;
+	uint8_t *r;
+	uint8_t *t;
+	t = (uint8_t *)&a;
+	r = (uint8_t *)&b;
+	*r++ = *(t + 1);
+	*r = *t;
+	return b;
+}
+
 enum binary_type {
 	BIN_NONE, 
 	BIN_UNKNOWN, 
@@ -169,7 +181,16 @@ static enum binary_type inspect_binary(const char *filename)
 	target_cpu = getenv("SBOX_CPU");
 	if (!target_cpu) target_cpu = "arm";
 
+#ifdef WORDS_BIGENDIAN
 	if (!strcmp(target_cpu, "arm")
+		&& ehdr->e_machine == byte_swap(EM_ARM)) {
+		retval = BIN_TARGET;
+		goto _out_munmap;
+	} else if (!strcmp(target_cpu, "armel")
+		&& ehdr->e_machine == byte_swap(EM_ARM)) {
+		retval = BIN_TARGET;
+		goto _out_munmap;
+	} else if (!strcmp(target_cpu, "armeb")
 		&& ehdr->e_machine == EM_ARM) {
 		retval = BIN_TARGET;
 		goto _out_munmap;
@@ -182,10 +203,37 @@ static enum binary_type inspect_binary(const char *filename)
 		retval = BIN_TARGET;
 		goto _out_munmap;
 	} else if (!strcmp(target_cpu, "mipsel")
+		&& ehdr->e_machine == byte_swap(EM_MIPS_RS3_LE)) {
+		retval = BIN_TARGET;
+		goto _out_munmap;
+	}
+#else
+	if (!strcmp(target_cpu, "arm")
+		&& ehdr->e_machine == EM_ARM) {
+		retval = BIN_TARGET;
+		goto _out_munmap;
+	} else if (!strcmp(target_cpu, "armel")
+		&& ehdr->e_machine == EM_ARM) {
+		retval = BIN_TARGET;
+		goto _out_munmap;
+	} else if (!strcmp(target_cpu, "armeb")
+		&& ehdr->e_machine == byte_swap(EM_ARM)) {
+		retval = BIN_TARGET;
+		goto _out_munmap;
+	} else if (!strcmp(target_cpu, "ppc")
+		&& ehdr->e_machine == byte_swap(EM_PPC)) {
+		retval = BIN_TARGET;
+		goto _out_munmap;
+	} else if (!strcmp(target_cpu, "mips")
+		&& ehdr->e_machine == byte_swap(EM_MIPS)) {
+		retval = BIN_TARGET;
+		goto _out_munmap;
+	} else if (!strcmp(target_cpu, "mipsel")
 		&& ehdr->e_machine == EM_MIPS_RS3_LE) {
 		retval = BIN_TARGET;
 		goto _out_munmap;
 	}
+#endif
 
 	retval = BIN_HOST;
 _out_munmap:

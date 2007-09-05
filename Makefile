@@ -83,6 +83,7 @@ install-noarch: $(BUILD_TARGET)
 	install -d -m 755 $(prefix)/share/scratchbox2/redir_scripts/preload/emulate
 	install -d -m 755 $(prefix)/share/scratchbox2/redir_scripts/preload/simple
 	install -d -m 755 $(prefix)/share/scratchbox2/scripts
+	install -d -m 755 $(prefix)/share/scratchbox2/tests
 	install -d -m 755 $(prefix)/share/man/man1
 	echo "$(PACKAGE_VERSION)" > $(prefix)/share/scratchbox2/version
 	install -c -m 755 $(SRCDIR)/utils/sb2 $(prefix)/bin/sb2
@@ -93,6 +94,8 @@ install-noarch: $(BUILD_TARGET)
 	install -c -m 644 $(SRCDIR)/redir_scripts/preload/complex/*.lua $(prefix)/share/scratchbox2/redir_scripts/preload/complex/
 	install -c -m 644 $(SRCDIR)/redir_scripts/preload/emulate/*.lua $(prefix)/share/scratchbox2/redir_scripts/preload/emulate/
 	install -c -m 644 $(SRCDIR)/redir_scripts/preload/simple/*.lua $(prefix)/share/scratchbox2/redir_scripts/preload/simple/
+	install -c -m 644 $(SRCDIR)/tests/* $(prefix)/share/scratchbox2/tests
+	chmod a+x $(prefix)/share/scratchbox2/tests/run.sh
 
 	install -c -m 644 $(SRCDIR)/docs/sb2.1 $(prefix)/share/man/man1/sb2.1
 	rm -f $(prefix)/share/scratchbox2/host_usr

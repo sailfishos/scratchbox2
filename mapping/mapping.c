@@ -54,8 +54,8 @@
 	}}
 
 
-#define enable_mapping() mapping_disabled--
-#define disable_mapping() mapping_disabled++
+#define enable_mapping(m) m->mapping_disabled--
+#define disable_mapping(m) m->mapping_disabled++
 
 #define __set_errno(e) errno = e
 
@@ -69,14 +69,49 @@ void bind_set_getpid(pidfunction *func) {
 void mapping_log_write(char *msg);
 static int lua_bind_sb_functions(lua_State *l);
 
-/* Lua interpreter */
-__thread lua_State *l = NULL;
+struct mapping {
+	lua_State *lua;
+	char *script_dir;
+	char *main_lua_script;
+	int mapping_disabled;
+	pthread_mutex_t lua_lock;
+};
 
-__thread char *rsdir = NULL;
-__thread char *main_lua = NULL;
-__thread int mapping_disabled = 0;
+static pthread_key_t mapping_key;
+static pthread_once_t mapping_key_once = PTHREAD_ONCE_INIT;
 
-__thread pthread_mutex_t lua_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+static void free_mapping(void *buf)
+{
+	free(buf);
+}
+
+static void alloc_mapping_key(void)
+{
+	pthread_key_create(&mapping_key, free_mapping);
+}
+
+void alloc_mapping(void)
+{
+	struct mapping *tmp;
+	tmp = malloc(sizeof(struct mapping));
+	memset(tmp, 0, sizeof(struct mapping));
+	pthread_once(&mapping_key_once, alloc_mapping_key);
+	pthread_setspecific(mapping_key, tmp);
+}
+
+struct mapping *get_mapping(void)
+{
+	return (struct mapping *)pthread_getspecific(mapping_key);
+}
+
+static char *dummy = NULL;
+
+void sb2_mapping_init(void) __attribute((constructor));
+void sb2_mapping_init(void)
+{
+	alloc_mapping();
+	dummy = "ok";
+}
 
 struct path_entry {
 	struct path_entry *prev;
@@ -334,17 +369,9 @@ static int sb_getdirlisting(lua_State *l)
 	}
 
 	path = strdup(lua_tostring(l, 1));
-	if (strncmp(path, rsdir, strlen(rsdir)) != 0) {
-		/* invalid path used */
-		lua_pushstring(l, NULL);
-		return 1;
-	}
-
-	disable_mapping();
 
 	if ( (d = opendir(path)) == NULL ) {
 		lua_pushstring(l, NULL);
-		enable_mapping();
 		return 1;
 	}
 	count = 1; /* Lua indexes tables from 1 */
@@ -359,7 +386,6 @@ static int sb_getdirlisting(lua_State *l)
 	closedir(d);
 
 	free(path);
-	enable_mapping();
 	return 1;
 }
 
@@ -385,6 +411,20 @@ char *scratchbox_path2(const char *binary_name,
 	char work_dir[PATH_MAX + 1];
 	char *tmp = NULL, *decolon_path = NULL, *mapping_mode = NULL;
 	char pidlink[17]; /* /proc/2^8/exe */
+	struct mapping *m;
+
+	if (!dummy) sb2_mapping_init();
+
+	m = get_mapping();
+	if (!m) {
+		alloc_mapping();
+		m = get_mapping();
+		if (!m) {
+			printf("Something's really wrong with"
+				" the pthreads support.\n");
+			exit(1);
+		}
+	}
 
 	if (!(mapping_mode = getenv("SBOX_MAPMODE"))) {
 		mapping_mode = "simple";
@@ -395,29 +435,30 @@ char *scratchbox_path2(const char *binary_name,
 		return NULL;
 	}
 
-	if (mapping_disabled || getenv("SBOX_DISABLE_MAPPING")) {
+	//printf("before testing m->mapping_disabled\n");
+	if (m->mapping_disabled || getenv("SBOX_DISABLE_MAPPING")) {
 		return strdup(path);
 	}
 
-	disable_mapping();
+	disable_mapping(m);
 	decolon_path = decolonize_path(path);
 
-	if (pthread_mutex_trylock(&lua_lock) < 0) {
-		pthread_mutex_lock(&lua_lock);
+	if (pthread_mutex_trylock(&m->lua_lock) < 0) {
+		pthread_mutex_lock(&m->lua_lock);
 	}
 
-	if (!rsdir) {
-		rsdir = getenv("SBOX_REDIR_SCRIPTS");
-		if (!rsdir) {
-			rsdir = "/scratchbox/redir_scripts";
+	if (!m->script_dir) {
+		m->script_dir = getenv("SBOX_REDIR_SCRIPTS");
+		if (!m->script_dir) {
+			m->script_dir = "/scratchbox/redir_scripts";
 		} else {
-			rsdir = strdup(rsdir);
+			m->script_dir = strdup(m->script_dir);
 		}
 		
-		main_lua = calloc(strlen(rsdir) + strlen("/main.lua") + 1, sizeof(char));
+		m->main_lua_script = calloc(strlen(m->script_dir) + strlen("/main.lua") + 1, sizeof(char));
 
-		strcpy(main_lua, rsdir);
-		strcat(main_lua, "/main.lua");
+		strcpy(m->main_lua_script, m->script_dir);
+		strcat(m->main_lua_script, "/main.lua");
 	}
 	
 	memset(work_dir, '\0', PATH_MAX+1);
@@ -425,58 +466,58 @@ char *scratchbox_path2(const char *binary_name,
 	getcwd(work_dir, PATH_MAX);
 
 	/* redir_scripts RECURSIVE CALL BREAK */
-	if (strncmp(decolon_path, rsdir, strlen(rsdir)) == 0) {
-		pthread_mutex_unlock(&lua_lock);
-		enable_mapping();
+	if (strncmp(decolon_path, m->script_dir, strlen(m->script_dir)) == 0) {
+		pthread_mutex_unlock(&m->lua_lock);
+		enable_mapping(m);
 		return (char *)decolon_path;
 	}
 	
-	if (!l) {
-		l = luaL_newstate();
+	if (!m->lua) {
+		m->lua = luaL_newstate();
 		
-		luaL_openlibs(l);
-		lua_bind_sb_functions(l); /* register our sb_ functions */
-		switch(luaL_loadfile(l, main_lua)) {
+		luaL_openlibs(m->lua);
+		lua_bind_sb_functions(m->lua); /* register our sb_ functions */
+		switch(luaL_loadfile(m->lua, m->main_lua_script)) {
 		case LUA_ERRFILE:
-			fprintf(stderr, "Error loading %s\n", main_lua);
+			fprintf(stderr, "Error loading %s\n", m->main_lua_script);
 			exit(1);
 		case LUA_ERRSYNTAX:
-			fprintf(stderr, "Syntax error in %s\n", main_lua);
+			fprintf(stderr, "Syntax error in %s\n", m->main_lua_script);
 			exit(1);
 		case LUA_ERRMEM:
-			fprintf(stderr, "Memory allocation error while loading %s\n", main_lua);
+			fprintf(stderr, "Memory allocation error while loading %s\n", m->main_lua_script);
 			exit(1);
 		default:
 			;
 		}
-		lua_call(l, 0, 0);
+		lua_call(m->lua, 0, 0);
 	}
 
-	lua_getfield(l, LUA_GLOBALSINDEX, "sbox_translate_path");
-	lua_pushstring(l, mapping_mode);
-	lua_pushstring(l, binary_name);
-	lua_pushstring(l, func_name);
-	lua_pushstring(l, work_dir);
-	lua_pushstring(l, decolon_path);
-	lua_call(l, 5, 1); /* five arguments, one result */
+	lua_getfield(m->lua, LUA_GLOBALSINDEX, "sbox_translate_path");
+	lua_pushstring(m->lua, mapping_mode);
+	lua_pushstring(m->lua, binary_name);
+	lua_pushstring(m->lua, func_name);
+	lua_pushstring(m->lua, work_dir);
+	lua_pushstring(m->lua, decolon_path);
+	lua_call(m->lua, 5, 1); /* five arguments, one result */
 
-	tmp = (char *)lua_tostring(l, -1);
+	tmp = (char *)lua_tostring(m->lua, -1);
 	if (tmp) {
 		tmp = strdup(tmp);
 	}
 
-	lua_pop(l, 1);
+	lua_pop(m->lua, 1);
 
-	pthread_mutex_unlock(&lua_lock);
+	pthread_mutex_unlock(&m->lua_lock);
 
 	if (strcmp(tmp, decolon_path) == 0) {
 		free(decolon_path);
 		free(tmp);
-		enable_mapping();
+		enable_mapping(m);
 		return strdup(path);
 	} else {
 		free(decolon_path);
-		enable_mapping();
+		enable_mapping(m);
 		return tmp;
 	}
 }

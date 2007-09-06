@@ -99,12 +99,12 @@ end
 -- argument to sbox_translate_path()
 modes = {}
 
--- sb.sb_getdirlisting is provided by lua_bindings.c
+-- sb.getdirlisting is provided by lua_bindings.c
 -- it returns a table listing all files in a directory
-mm = sb.sb_getdirlisting(rsdir .. "/preload")
+mm = sb.getdirlisting(rsdir .. "/preload")
 table.sort(mm);
 for m = 1, table.maxn(mm) do
-	local t = sb.sb_getdirlisting(rsdir .. "/preload/" .. mm[m])
+	local t = sb.getdirlisting(rsdir .. "/preload/" .. mm[m])
 	local i = 0
 	local r = 0
 	if (mm[m] ~= "." and mm[m] ~= "..") then
@@ -170,13 +170,13 @@ function adjust_for_mapping_leakage(path)
 		return nil
 	end
 
-	local tmp = sb.sb_readlink(path)
+	local tmp = sb.readlink(path)
 	if (not tmp) then
 		-- not a symlink
 		return path
 	end
 
-	if (sb.sb_decolonize_path(tmp) == sb.sb_decolonize_path(path)) then
+	if (sb.decolonize_path(tmp) == sb.decolonize_path(path)) then
 		-- symlink refers to itself
 		return path
 	end
@@ -186,7 +186,7 @@ function adjust_for_mapping_leakage(path)
 		tmp = dirname(path) .. "/" .. tmp
 	end
 
-	tmp = sb.sb_decolonize_path(tmp)
+	tmp = sb.decolonize_path(tmp)
 
 	if (not isprefix(target_root, tmp)) then
 		-- aha! tried to get out of there, now map it right back in

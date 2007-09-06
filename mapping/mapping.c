@@ -434,9 +434,9 @@ char *scratchbox_path2(const char *binary_name,
 /* mappings from c to lua */
 static const luaL_reg reg[] =
 {
-	{"sb_getdirlisting",		sb_getdirlisting},
-	{"sb_readlink",			sb_readlink},
-	{"sb_decolonize_path",		sb_decolonize_path},
+	{"getdirlisting",		sb_getdirlisting},
+	{"readlink",			sb_readlink},
+	{"decolonize_path",		sb_decolonize_path},
 	{NULL,				NULL}
 };
 

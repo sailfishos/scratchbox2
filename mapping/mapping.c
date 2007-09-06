@@ -2,14 +2,10 @@
  * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
  *
  * Licensed under LGPL version 2.1, see top level LICENSE file for details.
- *
- * In the path translation functions we must call disable_mapping();
- * to avoid creating recursive loops of function calls due to wrapping.
  */
 
 #define _GNU_SOURCE
 
-#include <asm/unistd.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,12 +54,6 @@
 #define disable_mapping(m) m->mapping_disabled++
 
 #define __set_errno(e) errno = e
-
-pidfunction *sb_getpid=getpid;
-
-void bind_set_getpid(pidfunction *func) {
-	sb_getpid=func;
-}
 
 
 void mapping_log_write(char *msg);
@@ -266,94 +256,7 @@ static int sb_readlink(lua_State *l)
 	}
 }
 
-/*
- * Check if file exists
- */
-static int sb_file_exists(lua_State *l)
-{
-	struct stat s;
-	char *path;
-	int n;
-	
-	memset(&s, '\0', sizeof(struct stat64));
 
-	n = lua_gettop(l);
-	if (n != 1) {
-		lua_pushstring(l, "sb_file_exists(path) - invalid number of parameters");
-		return 1;
-	}
-	
-	path = strdup(lua_tostring(l, 1));
-
-	if (stat(path, &s) < 0) {
-		/* failure, we assume it's because the target
-		 * doesn't exist
-		 */
-		lua_pushnumber(l, 0);
-		free(path);
-		return 1;
-	}
-	
-	free(path);
-	lua_pushnumber(l, 1);
-	return 1;
-}
-
-/*
- * check if the path is a symlink, if yes then return it resolved,
- * if not, return the path intact
- */
-static int sb_followsymlink(lua_State *l)
-{
-	char *path;
-	struct stat64 s;
-	char link_path[PATH_MAX + 1];
-	int n;
-
-	/* printf("in sb_followsymlink\n"); */
-	memset(&s, '\0', sizeof(struct stat64));
-	memset(link_path, '\0', PATH_MAX + 1);
-
-	n = lua_gettop(l);
-	if (n != 1) {
-		lua_pushstring(l, "sb_followsymlink(path) - invalid number of parameters");
-		return 1;
-	}
-
-	path = strdup(lua_tostring(l, 1));
-
-#ifdef __x86_64__
-	if (lstat(path, &s) < 0) {
-#else
-	if (lstat64(path, &s) < 0) {
-#endif
-		/* didn't work
-		 * TODO: error handling 
-		 */
-		//perror("stat failed\n");
-		lua_pushstring(l, path);
-		goto getout;
-	}
-	
-	if (S_ISLNK(s.st_mode)) {
-		/* we have a symlink, read it and return */
-		readlink(path, link_path, PATH_MAX);
-		lua_pushstring(l, link_path);
-	} else {
-		//printf("not a symlink! %s\n", path);
-		/* not a symlink, return path */
-		lua_pushstring(l, path);
-	}
-
-getout:	
-	free(path);
-	return 1;
-}
-
-/*
- * This function should ONLY look at things from rsdir
- * any other path leads to loops
- */
 static int sb_getdirlisting(lua_State *l)
 {
 	DIR *d;
@@ -404,6 +307,9 @@ char *scratchbox_path(const char *func_name, const char *path)
 	return scratchbox_path2(binary_name, func_name, path);
 }
 
+
+/* make sure to use disable_mapping(m); 
+ * to prevent recursive calls to this function */
 char *scratchbox_path2(const char *binary_name,
 		const char *func_name,
 		const char *path)
@@ -417,13 +323,9 @@ char *scratchbox_path2(const char *binary_name,
 
 	m = get_mapping();
 	if (!m) {
-		alloc_mapping();
-		m = get_mapping();
-		if (!m) {
-			printf("Something's really wrong with"
-				" the pthreads support.\n");
-			exit(1);
-		}
+		printf("Something's wrong with"
+			" the pthreads support.\n");
+		exit(1);
 	}
 
 	if (!(mapping_mode = getenv("SBOX_MAPMODE"))) {
@@ -431,21 +333,22 @@ char *scratchbox_path2(const char *binary_name,
 	}
 
 	if (!path) {
-		WRITE_LOG("ERROR: scratchbox_path2: path == NULL: [%s][%s]\n", binary_name, func_name);
+		WRITE_LOG("ERROR: scratchbox_path2: path == NULL: [%s][%s]\n",
+			binary_name, func_name);
 		return NULL;
 	}
 
-	//printf("before testing m->mapping_disabled\n");
+	if (pthread_mutex_trylock(&m->lua_lock) < 0) {
+		pthread_mutex_lock(&m->lua_lock);
+	}
+
 	if (m->mapping_disabled || getenv("SBOX_DISABLE_MAPPING")) {
+		pthread_mutex_unlock(&m->lua_lock);
 		return strdup(path);
 	}
 
 	disable_mapping(m);
 	decolon_path = decolonize_path(path);
-
-	if (pthread_mutex_trylock(&m->lua_lock) < 0) {
-		pthread_mutex_lock(&m->lua_lock);
-	}
 
 	if (!m->script_dir) {
 		m->script_dir = getenv("SBOX_REDIR_SCRIPTS");
@@ -455,20 +358,22 @@ char *scratchbox_path2(const char *binary_name,
 			m->script_dir = strdup(m->script_dir);
 		}
 		
-		m->main_lua_script = calloc(strlen(m->script_dir) + strlen("/main.lua") + 1, sizeof(char));
+		m->main_lua_script = calloc(strlen(m->script_dir)
+				+ strlen("/main.lua") + 1, sizeof(char));
 
 		strcpy(m->main_lua_script, m->script_dir);
 		strcat(m->main_lua_script, "/main.lua");
 	}
 	
 	memset(work_dir, '\0', PATH_MAX+1);
-	snprintf(pidlink,16,"/proc/%i/exe",sb_getpid());
+	snprintf(pidlink,16, "/proc/%i/exe", getpid());
 	getcwd(work_dir, PATH_MAX);
 
 	/* redir_scripts RECURSIVE CALL BREAK */
-	if (strncmp(decolon_path, m->script_dir, strlen(m->script_dir)) == 0) {
-		pthread_mutex_unlock(&m->lua_lock);
+	if (strncmp(decolon_path, m->script_dir,
+			strlen(m->script_dir)) == 0) {
 		enable_mapping(m);
+		pthread_mutex_unlock(&m->lua_lock);
 		return (char *)decolon_path;
 	}
 	
@@ -479,13 +384,16 @@ char *scratchbox_path2(const char *binary_name,
 		lua_bind_sb_functions(m->lua); /* register our sb_ functions */
 		switch(luaL_loadfile(m->lua, m->main_lua_script)) {
 		case LUA_ERRFILE:
-			fprintf(stderr, "Error loading %s\n", m->main_lua_script);
+			fprintf(stderr, "Error loading %s\n",
+					m->main_lua_script);
 			exit(1);
 		case LUA_ERRSYNTAX:
-			fprintf(stderr, "Syntax error in %s\n", m->main_lua_script);
+			fprintf(stderr, "Syntax error in %s\n",
+					m->main_lua_script);
 			exit(1);
 		case LUA_ERRMEM:
-			fprintf(stderr, "Memory allocation error while loading %s\n", m->main_lua_script);
+			fprintf(stderr, "Memory allocation error while "
+					"loading %s\n", m->main_lua_script);
 			exit(1);
 		default:
 			;
@@ -508,16 +416,16 @@ char *scratchbox_path2(const char *binary_name,
 
 	lua_pop(m->lua, 1);
 
-	pthread_mutex_unlock(&m->lua_lock);
+	enable_mapping(m);
 
 	if (strcmp(tmp, decolon_path) == 0) {
 		free(decolon_path);
 		free(tmp);
-		enable_mapping(m);
+		pthread_mutex_unlock(&m->lua_lock);
 		return strdup(path);
 	} else {
 		free(decolon_path);
-		enable_mapping(m);
+		pthread_mutex_unlock(&m->lua_lock);
 		return tmp;
 	}
 }
@@ -527,10 +435,8 @@ char *scratchbox_path2(const char *binary_name,
 static const luaL_reg reg[] =
 {
 	{"sb_getdirlisting",		sb_getdirlisting},
-	{"sb_followsymlink",		sb_followsymlink},
 	{"sb_readlink",			sb_readlink},
 	{"sb_decolonize_path",		sb_decolonize_path},
-	{"sb_file_exists",		sb_file_exists},
 	{NULL,				NULL}
 };
 

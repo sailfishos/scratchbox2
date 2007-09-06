@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006 Lauri Leukkunen <lleukkun@cc.hut.fi>
+ * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
  *
  * Licensed under LGPL version 2.1, see top level LICENSE file for details.
  */
@@ -11,11 +11,9 @@
 
 char *decolonize_path(const char *path);
 char *scratchbox_path(const char *func_name, const char *path);
-char *scratchbox_path2(const char *binary_name, const char *func_name, const char *path);
+char *scratchbox_path2(const char *binary_name, const char *func_name,
+			const char *path);
 
 char *emumode_map(const char *path);
-
-typedef pid_t pidfunction(void);
-void bind_set_getpid(pidfunction *func);
 
 #endif

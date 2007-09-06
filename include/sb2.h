@@ -1,3 +1,9 @@
+/*
+ * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
+ *
+ * Licensed under LGPL version 2.1, see top level LICENSE file for details.
+ */
+
 #ifndef __SB2_H
 #define __SB2_H
 
@@ -6,7 +12,8 @@
 
 #define DBGOUT(fmt...) fprintf(stderr, fmt)
 
-int sb_next_execve(const char *filename, char *const argv [], char *const envp[]);
+int sb_next_execve(const char *filename, char *const argv [],
+			char *const envp[]);
 
 int do_exec(const char *orig_file, const char *file,
 		char *const *argv, char *const *envp);

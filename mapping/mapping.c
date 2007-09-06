@@ -66,7 +66,6 @@ struct mapping {
 	char *script_dir;
 	char *main_lua_script;
 	int mapping_disabled;
-	pthread_mutex_t lua_lock;
 };
 
 static pthread_key_t mapping_key;
@@ -342,12 +341,7 @@ char *scratchbox_path2(const char *binary_name,
 		return NULL;
 	}
 
-	if (pthread_mutex_trylock(&m->lua_lock) < 0) {
-		pthread_mutex_lock(&m->lua_lock);
-	}
-
 	if (m->mapping_disabled || getenv("SBOX_DISABLE_MAPPING")) {
-		pthread_mutex_unlock(&m->lua_lock);
 		return strdup(path);
 	}
 
@@ -377,7 +371,6 @@ char *scratchbox_path2(const char *binary_name,
 	if (strncmp(decolon_path, m->script_dir,
 			strlen(m->script_dir)) == 0) {
 		enable_mapping(m);
-		pthread_mutex_unlock(&m->lua_lock);
 		return (char *)decolon_path;
 	}
 	
@@ -425,11 +418,9 @@ char *scratchbox_path2(const char *binary_name,
 	if (strcmp(tmp, decolon_path) == 0) {
 		free(decolon_path);
 		free(tmp);
-		pthread_mutex_unlock(&m->lua_lock);
 		return strdup(path);
 	} else {
 		free(decolon_path);
-		pthread_mutex_unlock(&m->lua_lock);
 		return tmp;
 	}
 }

@@ -122,7 +122,8 @@
 	if (next_##function == NULL) { \
 		next_##function = dlsym(RTLD_NEXT, name); \
 		if ((msg = dlerror()) != NULL) { \
-			fprintf (stderr, "%s: dlsym(%s): %s\n", PACKAGE_NAME, name, msg); \
+			fprintf(stderr, "%s: dlsym(%s): %s\n", \
+				PACKAGE_NAME, name, msg); \
 		} \
 	} \
 }
@@ -181,7 +182,8 @@ static char *strchrnul (const char *s, int c_in)
 	charmask = c | (c << 8);
 	charmask |= charmask << 16;
 	if (sizeof(longword) > 4)
-		/* Do the shift in two steps to avoid a warning if long has 32 bits.  */
+		/* Do the shift in two steps to avoid a warning if long
+		 * has 32 bits. */
 		charmask |= (charmask << 16) << 16;
 	if (sizeof(longword) > 8)
 		abort();
@@ -228,7 +230,7 @@ static char *strchrnul (const char *s, int c_in)
 
 		/* Add MAGIC_BITS to LONGWORD.  */
 		if ((((longword + magic_bits)
-			/* Set those bits that were unchanged by the addition.  */
+			/* Set those bits that were unchanged by the addition.*/
 			^ ~longword)
 
 			/* Look at only the hole bits.  If any of the hole bits
@@ -236,13 +238,14 @@ static char *strchrnul (const char *s, int c_in)
 			 * zero.
 			 */
 			& ~magic_bits) != 0 ||
-			/* That caught zeroes.  Now test for C.  */
+			/* That caught zeroes.  Now test for C. */
 			((((longword ^ charmask) +
 				magic_bits) ^ ~(longword ^ charmask))
 				& ~magic_bits) != 0) {
 			
 			/* Which of the bytes was C or zero?
-			 * If none of them were, it was a misfire; continue the search.
+			 * If none of them were, it was a misfire;
+			 * continue the search.
 			 */
 
 			const unsigned char *cp =
@@ -269,7 +272,7 @@ static char *strchrnul (const char *s, int c_in)
 		}
 	}
 
-	/* This should never happen.  */
+	/* This should never happen. */
 	return NULL;
 }
 #endif

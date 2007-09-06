@@ -42,7 +42,9 @@
 	{char *__logfile = getenv("SBOX_MAPPING_LOGFILE"); \
 	int __logfd; FILE *__logfs;\
 	if (__logfile) { \
-		if ((__logfd = open(__logfile, O_APPEND | O_RDWR | O_CREAT, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)) > 0) { \
+		if ((__logfd = open(__logfile, O_APPEND | O_RDWR | O_CREAT, \
+					S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP \
+					| S_IROTH | S_IWOTH)) > 0) { \
 			__logfs = fdopen(__logfd, "a"); \
 			fprintf(__logfs, fmt); \
 			fclose(__logfs); \
@@ -282,7 +284,8 @@ static int sb_getdirlisting(lua_State *l)
 	
 	while ( (de = readdir(d)) != NULL) { /* get one dirent at a time */
 		lua_pushnumber(l, count);
-		lua_pushstring(l, de->d_name); /* push the entries to lua stack */
+		lua_pushstring(l, de->d_name); /* push the entries to
+						* lua stack */
 		lua_settable(l, -3);
 		count++;
 	}
@@ -309,7 +312,8 @@ char *scratchbox_path(const char *func_name, const char *path)
 
 
 /* make sure to use disable_mapping(m); 
- * to prevent recursive calls to this function */
+ * to prevent recursive calls to this function
+ */
 char *scratchbox_path2(const char *binary_name,
 		const char *func_name,
 		const char *path)

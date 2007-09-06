@@ -72,13 +72,15 @@ int run_cputransparency(char *orig_file, char *file, char **argv,
 
 	cputransp_bin = getenv("SBOX_CPUTRANSPARENCY_METHOD");
 	if (!cputransp_bin) {
-		fprintf(stderr, "SBOX_CPUTRANSPARENCY_METHOD not set, unable to execute the target binary\n");
+		fprintf(stderr, "SBOX_CPUTRANSPARENCY_METHOD not set, "
+				"unable to execute the target binary\n");
 		return -1;
 	}
 
 	target_root = getenv("SBOX_TARGET_ROOT");
 	if (!target_root) {
-		fprintf(stderr, "SBOX_TARGET_ROOT not set, unable to execute the target binary\n");
+		fprintf(stderr, "SBOX_TARGET_ROOT not set, "
+				"unable to execute the target binary\n");
 		return -1;
 	}
 
@@ -90,11 +92,14 @@ int run_cputransparency(char *orig_file, char *file, char **argv,
 		return run_qemu(cputransp_bin, orig_file, file, argv, envp);
 	} else if (strstr(bname, "sbrsh")) {
 		free(basec);
-		return run_sbrsh(cputransp_bin, orig_file, target_root, file, argv, envp);
+		return run_sbrsh(cputransp_bin, orig_file, target_root,
+				file, argv, envp);
 	}
 
 	free(basec);
-	fprintf(stderr, "run_cputransparency() error: Unknown cputransparency method: [%s]\n", cputransp_bin);
+	fprintf(stderr, "run_cputransparency() error: "
+			"Unknown cputransparency method: [%s]\n",
+			cputransp_bin);
 	return -1;
 }
 
@@ -135,7 +140,8 @@ int run_app(char *file, char **argv, char *const *envp)
 {
 	sb_next_execve(file, argv, envp);
 
-	fprintf(stderr, "libsb2.so failed running (%s): %s\n", file, strerror(errno));
+	fprintf(stderr, "libsb2.so failed running (%s): %s\n", file,
+			strerror(errno));
 	return -12;
 }
 
@@ -381,12 +387,14 @@ int do_exec(const char *orig_file, const char *file,
 	i = 0;
 	for (p=(char **)envp; *p; p++) {
 		/* DBGOUT("ENV: [%s]\n", *p); */
-		if (strncmp(*p, "__SB2_BINARYNAME=", strlen("__SB2_BINARYNAME=")) == 0) {
+		if (strncmp(*p, "__SB2_BINARYNAME=",
+				strlen("__SB2_BINARYNAME=")) == 0) {
 			/* already set, skip it */
 			continue;
 		}
 
-		if (strncmp(*p, "__SBOX_GCCWRAPPER_RUN=", strlen("__SBOX_GCCWRAPPER_RUN")) == 0) {
+		if (strncmp(*p, "__SBOX_GCCWRAPPER_RUN=",
+				strlen("__SBOX_GCCWRAPPER_RUN")) == 0) {
 			/* don't pass this onwards */
 			continue;
 		}
@@ -433,9 +441,11 @@ int do_exec(const char *orig_file, const char *file,
 
 	switch (type) {
 		case BIN_HOST:
-			return run_app((char *)my_file, (char **)my_argv, my_envp);
+			return run_app((char *)my_file, (char **)my_argv,
+					my_envp);
 		case BIN_TARGET:
-			return run_cputransparency((char *)orig_file, my_file, (char **)my_argv, my_envp);
+			return run_cputransparency((char *)orig_file, my_file,
+					(char **)my_argv, my_envp);
 		case BIN_NONE:
 		case BIN_UNKNOWN:
 			DBGOUT("unknown\n");

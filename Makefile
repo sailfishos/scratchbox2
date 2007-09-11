@@ -88,6 +88,7 @@ install-noarch: $(BUILD_TARGET)
 	echo "$(PACKAGE_VERSION)" > $(prefix)/share/scratchbox2/version
 	install -c -m 755 $(SRCDIR)/utils/sb2 $(prefix)/bin/sb2
 	install -c -m 755 $(SRCDIR)/utils/sb2-init $(prefix)/bin/sb2-init
+	install -c -m 755 $(SRCDIR)/utils/sb2-config $(prefix)/bin/sb2-config
 	install -c -m 755 $(SRCDIR)/utils/sb2-build-libtool $(prefix)/bin/sb2-build-libtool
 	install -c -m 755 $(SRCDIR)/utils/dpkg-checkbuilddeps $(prefix)/share/scratchbox2/scripts/dpkg-checkbuilddeps
 	install -c -m 644 $(SRCDIR)/redir_scripts/main.lua $(prefix)/share/scratchbox2/redir_scripts/main.lua

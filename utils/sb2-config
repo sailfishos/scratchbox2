@@ -1,0 +1,60 @@
+#!/bin/bash
+# Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
+# Licensed under GPL version 2
+
+function usage()
+{
+	cat <<EOF
+sb2-config - configure scratchbox2
+Usage:
+	sb2-config [OPTION]... [TARGETNAME]
+
+Options:
+    -d                set default scratchbox2 target
+    -l                list scratchbox2 targets
+    -h                print this help
+    -v                display version
+
+Examples:
+    sb2-config -d ARM
+EOF
+	exit 2
+}
+
+function version()
+{
+	cat $SBOX_DIR/share/scratchbox2/version
+	exit 0
+}
+
+function list_targets()
+{
+	for f in $(find $HOME/.scratchbox2/ -maxdepth 1 -mindepth 1 -type d); do echo $(basename $f); done
+	exit 0
+}
+
+function write_config()
+{
+	echo "
+DEFAULT_TARGET=$DEFAULT_TARGET
+" > $HOME/.scratchbox2/config
+}
+
+SBOX_DIR=$(readlink -f $(dirname $_)/..)
+
+while getopts d:hlv foo
+do
+	case $foo in
+	(d) set_as_default=1
+	    DEFAULT_TARGET=$OPTARG
+	    ;;
+	(h) usage ;;
+	(l) list_targets ;;
+	(v) version ;;
+	(*) usage ;;
+	esac
+done
+shift $(($OPTIND - 1))
+
+write_config
+

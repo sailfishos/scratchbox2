@@ -21,8 +21,7 @@ Options:
     -v           display version
     -d           debug mode: log all redirections
     -h           print this help
-    -t DIRECTORY target directory, else search up in directory
-                 structure for a .sb2rc
+    -t TARGET    target to use, use sb2-config -d TARGET to set a default
     -e           emulation mode
     -m MODE      use mapping mode MODE
     -s DIRECTORY load mapping scripts from alternative location
@@ -50,31 +49,27 @@ function sanity_check()
 	# check that most important host and target files exist
 }
 
-find_target_root()
-{
-(
-	while [ "$PWD" != "/" ]; do
-		if [ -r sb2.config ]; then
-			echo "$(readlink -f -n $PWD)"
-			return 0
-		else
-			cd ..
-		fi
-	done
-	return 1
-)
-}
-
 function sboxify_environment()
 {
-
-	if [ -r ~/.sb2rc ]; then
-		. ~/.sb2rc
+	if [ -r ~/.scratchbox2/config ]; then
+		. ~/.scratchbox2/config
 	fi
 
-	if [ -z "$SBOX_TARGET_ROOT" ]; then
-		SBOX_TARGET_ROOT=`find_target_root` || exit_error "Cannot find target root!"
+	if [ -z "$SBOX_TARGET" ]; then
+		SBOX_TARGET=$DEFAULT_TARGET
 	fi
+
+	if [ -z "$SBOX_TARGET" ]; then
+		echo "No target specified and none set as default, aborting."
+		exit 2
+	fi
+
+	if [ ! -e ~/.scratchbox2/$SBOX_TARGET/sb2.config ]; then
+		echo "Invalid target specified, aborting."
+		exit 2
+	fi
+	export SBOX_TARGET
+	. ~/.scratchbox2/$SBOX_TARGET/sb2.config
 
 	if [ -n "$SBOX_DIR" ]; then
 		LD_LIBRARY_PATH=$SBOX_DIR/lib/libsb2:$SBOX_DIR/lib64/libsb2:$SBOX_DIR/lib32/libsb2
@@ -84,14 +79,7 @@ function sboxify_environment()
 		fi
 		SBOX_GCCWRAPPER="$SBOX_DIR/bin/sb_gcc_wrapper"
 	else
-		exit_error "Something foul happeninged..."
-	fi
-
-	if [ -n "$SBOX_TOOLS_ROOT" ]; then
-		REDIR_LD_SO="$SBOX_TOOLS_DIR/lib/ld-linux.so.2"
-		REDIR_LD_LIBRARY_PATH="$SBOX_TOOLS_DIR/lib:$SBOX_TOOLS_DIR/usr/lib:$SBOX_TOOLS_DIR/usr/local/lib"
-
-		export REDIR_LD_SO REDIR_LD_LIBRARY_PATH SBOX_TOOLS_ROOT
+		exit_error "Incorrect target config in ~/.scratchbox2/$SBOX_TARGET/sb2.config"
 	fi
 
 	export LD_LIBRARY_PATH SBOX_LIBSB2 SBOX_REDIR_SCRIPTS SBOX_TARGET_ROOT SBOX_GCCWRAPPER SBOX_TARGET_COMPILER
@@ -99,18 +87,16 @@ function sboxify_environment()
 	# -Riku: I don't think we want to run this on every sb2 invocation..
 	HOST_GCC_INC_DIR=$(echo "#include <stdio.h>" | gcc -M -E - | perl -e 'while(<STDIN>) { $foo{$1} = 1 if m/\/usr([^[:space:]]*\/include)/;}; foreach my $k (keys %foo) {print " -isystem $ENV{SBOX_DIR}/share/scratchbox2/host_usr$k"};')
 
-	export PATH=$SBOX_TARGET_ROOT/sb_tools/bin:$SBOX_DIR/share/scratchbox2/scripts:$SBOX_DIR/bin:$PATH:$SBOX_TARGET_ROOT/bin:$SBOX_TARGET_ROOT/usr/bin:$SBOX_TARGET_ROOT/usr/local/bin:/sbin:/usr/sbin
+	export PATH=$HOME/.scratchbox2/$SBOX_TARGET/bin:$SBOX_DIR/share/scratchbox2/scripts:$SBOX_DIR/bin:$PATH:/sbin:/usr/sbin:$SBOX_TARGET_ROOT/bin:$SBOX_TARGET_ROOT/usr/bin:$SBOX_TARGET_ROOT/usr/local/bin
 
 	export LD_PRELOAD=$SBOX_LIBSB2
 	export SBOX_EXTRA_HOST_COMPILER_ARGS="$HOST_GCC_INC_DIR"
 	export SBOX_EXTRA_CROSS_COMPILER_ARGS="--sysroot=$SBOX_TARGET_ROOT"
-	export SBOX_SCRATCHBOX_CONFIG=$SBOX_TARGET_ROOT/sb2.config
+	export SBOX_SCRATCHBOX_CONFIG=$HOME/.scratchbox2/$SBOX_TARGET/sb2.config
 	export PS1="[SB2] \u@\h \w \$ "
 
-	. $SBOX_SCRATCHBOX_CONFIG
-
 	# Debian exports REVISIT on dpkg 1.14
-	if [ $SBOX_CPU = "arm" ]; then
+	if [ "$SBOX_CPU" = "arm" ]; then
 		export DEB_BUILD_ARCH=armel
 	else
 		export DEB_BUILD_ARCH=$SBOX_CPU
@@ -146,7 +132,7 @@ do
 	(v) version ;;
 	(d) export SBOX_MAPPING_DEBUG=1 ;;
 	(h) usage ;;
-	(t) export SBOX_TARGET_ROOT=$OPTARG ;;
+	(t) export SBOX_TARGET=$OPTARG ;;
 	(e) export SBOX_MAPMODE=emulate ;;
 	(m) export SBOX_MAPMODE=$OPTARG ;;
 	(s) export SBOX_REDIR_SCRIPTS=$OPTARG;;

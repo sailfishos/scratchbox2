@@ -3,11 +3,13 @@
 # Licensed under GPL version 2
 
 # test that we're inside sb2
-if [ -z "$SBOX_TARGET_ROOT" ]; then
+if [ -z "$SBOX_TARGET" ]; then
 	echo "Please run this script inside sb2, like this:
 $ sb2 $0"
 	exit 1
 fi
+
+TARGET="$SBOX_TARGET"
 
 set -e
 
@@ -16,18 +18,19 @@ VERSION=1.5.22
 
 DLHOST="http://ftp.funet.fi/pub/mirrors/ftp.gnu.org/pub/gnu/libtool"
 SOURCEFILE=$NAME-$VERSION.tar.gz
+LOCAL_SOURCEFILE=$HOME/.scratchbox2/$SOURCEFILE
 COMPILERDIR=
 WORKDIR=$(mktemp -d -t sb2_libtool_build.XXXXXXX) || exit 1
 cd $WORKDIR
 
-if [ ! -e ../$SOURCEFILE ]; then
-	wget $DLHOST/$SOURCEFILE -O ../$SOURCEFILE
+if [ ! -e $LOCAL_SOURCEFILE ]; then
+	wget $DLHOST/$SOURCEFILE -O $LOCAL_SOURCEFILE
 fi
 
-tar zxf ../$SOURCEFILE --strip-components=1
+tar zxf $LOCAL_SOURCEFILE --strip-components=1
 
 
-./configure --prefix=$SBOX_TARGET_ROOT/sb_tools --build=$(uname -m)-unknown-linux-gnu
+./configure --prefix=$HOME/.scratchbox2/$TARGET --build=$(uname -m)-unknown-linux-gnu
 
 # The system libtool script in Debian must be able to support
 # invoking gcc as cc (Debian specific)
@@ -56,10 +59,10 @@ chmod 755 libtool
 
 make
 # create these directories to work around ppc host issues
-mkdir -p $SBOX_TARGET_ROOT/sb_tools/share/aclocal
-mkdir -p $SBOX_TARGET_ROOT/sb_tools/share/libtool/libltdl
-mkdir -p $SBOX_TARGET_ROOT/sb_tools/lib
-mkdir -p $SBOX_TARGET_ROOT/sb_tools/include
+mkdir -p $HOME/.scratchbox2/$TARGET/share/aclocal
+mkdir -p $HOME/.scratchbox2/$TARGET/share/libtool/libltdl
+mkdir -p $HOME/.scratchbox2/$TARGET/lib
+mkdir -p $HOME/.scratchbox2/$TARGET/include
 make install
 cd ..
 # cleanup

@@ -1,9 +1,9 @@
-.TH sb2 1 "12 April 2007" "2.0" "sb2 man page"
+.TH sb2 1 "11 September 2007" "2.0" "sb2 man page"
 .SH NAME
 sb2 \- crosscompiling environment
 .SH SYNOPSIS
 .B sb2
-[ \-v ] [ \-d ] [ \-h ] [ \-t DIRECTORY ] [ \-e ] [ \-m MODE ] [ -s DIRECTORY] [command] [arguments] [...]
+[ \-v ] [ \-d ] [ \-h ] [ \-t TARGET ] [ \-e ] [ \-m MODE ] [ -s DIRECTORY] [command] [arguments] [...]
 .SH DESCRIPTION
 .B sb2
 Runs command in scratchbox2. If no command is given, a bash shell
@@ -20,8 +20,7 @@ Output all path mappings to $HOME/sb2_mapping.log.
 Print help.
 .TP
 \-t
-Define target root location in argument. Scratchbox2 tries to find the
-right target root location automatically, but this overrides that.
+Define target to use. Use sb2-config -d TARGET to set a default.
 .TP
 \-e
 Use emulation mode, avoid executing ANY host binaries except qemu.
@@ -33,10 +32,8 @@ Use mapping mode given in argument.
 Use redirection rules from the directory given in argument.
 
 .SH ENVIRONMENT
-There is a LOT environment variables being used. Since sb2 is still
-very volatile, the best documentation is in the source of sb2.
-.IP SBOX_TARGET_ROOT
-Target location. If not defined, .sb2rc file is searched for.
+There are quite many environment variables being used. Since sb2 is still
+very volatile, the best documentation is in the source of sb2 script itself.
 
 .SH CONFIGURATION
 To configure sb2, do something like this:
@@ -48,14 +45,13 @@ cd $HOME/buildroot
 sb2-init /path/to/cross-compiler/bin/arm-linux-gcc
 .fi
 
-Put this in $HOME/.sb2rc to default to using $HOME/buildroot:
-.PP
-SBOX_TARGET_ROOT=~/buildroot
+To change default scratchbox2 target:
+
+sb2-config -d another_target
 
 .SH FILES
 .P
-.I sb2.config
-.I ~/.sb2rc
+.I ~/.scratchbox2/config
 .SH SEE ALSO
 .BR gcc (1),
 .BR ld (1),

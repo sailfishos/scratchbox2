@@ -1,7 +1,7 @@
 SCRATCHBOX 2 README
 
 author: Lauri Leukkunen <lle@rahina.org>
-date:   2007-08-19
+date:   2007-09-11
 
 
 
@@ -42,15 +42,9 @@ $ ./configure --prefix=$HOME/scratchbox
 $ make install
 
 
-You need Qemu for cpu-transparency. Current (2007-06-18) CVS version
-of Qemu works fine, earlier versions lack the -drop-ld-preload option.
-Here are basic instructions for installing qemu:
-
-1. Get a CVS snapshot from http://qemu-forum.ipi.fi/qemu-snapshots/
-2. Extract that somewhere, change into the created directory
-3. ./configure --prefix=$HOME/qemu --target-list=arm-linux-user
-4. make && make install
-5. Add $HOME/qemu/bin to your PATH
+You need Qemu for cpu-transparency. As of 2007-09-11 it's recommended to use
+debian/unstable's qemu-0.9.0+20070816-1 (or newer), it's by far the best that
+can be used with sb2.
 
 Qemu has many issues on amd64 host systems, at least when trying to
 do user-space emulation of ARM. Better results can be achieved on 32bit
@@ -74,9 +68,9 @@ To complete sb2 target setup:
 $ mkdir $HOME/buildroot
 $ cd $HOME/buildroot
 [extract or copy your rootfs contents into place]
-$ $HOME/scratchbox/bin/sb2-init /path/to/compiler/bin/arm-linux-gcc
+$ $HOME/scratchbox/bin/sb2-init my_target /path/to/compiler/bin/arm-linux-gcc
 
-That will automatically generate a working sb2.config for the compiler
+That will automatically generate a working target config for the compiler
 given on the command line and run sb2-build-libtool script to get you a
 nice working libtool for your compiler. If the sb2-build-libtool part
 fails for some reason (incorrect http proxy or something similar), you
@@ -86,11 +80,8 @@ At this point you can simply run sb2:
 
 $ $HOME/scratchbox/bin/sb2
 
-To make sb2 default to the $HOME/buildroot sandbox, you can put this in
-your $HOME/.sb2rc:
--- snip --
-SBOX_TARGET_ROOT=~/buildroot
--- snip --
+sb2-init made this target your default if you had no prior sb2 targets
+configured. To change the default use sb2-config -d your_target.
 
 Perhaps adding $HOME/scratchbox/bin to your PATH is also a good idea, put
 this in your $HOME/.bashrc:
@@ -111,9 +102,9 @@ Download the latest rootstrap from:
 
 http://repository.maemo.org/stable/3.1/armel/maemo-sdk-rootstrap_3.1_armel.tgz
 
-Extract that to $HOME/buildroot
+Extract that to $HOME/maemo-root
 
-Edit $HOME/buildroot/etc/apt/apt.conf so that it looks like this:
+Edit $HOME/maemo-root/etc/apt/apt.conf so that it looks like this:
 -- snip --
 APT {
 Architecture armel;
@@ -122,12 +113,10 @@ Architecture armel;
 
 Then get a nice toolchain from the locations mentioned above.
 
-Edit $HOME/.sb2rc as described earlier in this README.
-
 After that you can setup sb2 by running:
 
-$ cd $HOME/buildroot
-$ sb2-init /path/to/compiler/bin/arm-none-linux-gnueabi-gcc
+$ cd $HOME/maemo-root
+$ sb2-init maemo /path/to/compiler/bin/arm-none-linux-gnueabi-gcc
 
 Now you should have a fully functioning development environment.
 To try it out you can build for example fontconfig like this:
@@ -136,7 +125,7 @@ $ sb2 apt-get source fontconfig
 $ cd fontconfig-2.4.1
 $ sb2 dpkg-buildpackage -rfakeroot
 
-You don't need to be in $HOME/buildroot to do that, I typically do all
+You don't need to be in $HOME/maemo-root to do that, I typically do all
 development work in $HOME/src.
 
 

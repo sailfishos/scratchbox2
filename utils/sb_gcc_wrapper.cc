@@ -66,30 +66,26 @@ static Compiler host_gcc;
 
 static void init_compilers()
 {
-	map<string,string> config;
-	if (!sb::read_config(config))
-		throw sb::error("unable to open scratchbox.config");
-
 	cross_gcc.stereotype   = CROSS_STEREOTYPE;
-	cross_gcc.name         = config["SBOX_CROSS_GCC_NAME"];
-	cross_gcc.prefix_list  = sb::split(config["SBOX_CROSS_GCC_PREFIX_LIST"]);
-	cross_gcc.subst_prefix = config["SBOX_CROSS_GCC_SUBST_PREFIX"];
-	cross_gcc.specs_file   = config["SBOX_CROSS_GCC_SPECS_FILE"];
-	cross_gcc.dir          = config["SBOX_CROSS_GCC_DIR"];
-	cross_gcc.ld_args      = config["SBOX_CROSS_GCC_LD_ARGS"];
+	cross_gcc.name         = getenv("SBOX_CROSS_GCC_NAME");
+	cross_gcc.prefix_list  = sb::split(getenv("SBOX_CROSS_GCC_PREFIX_LIST"));
+	cross_gcc.subst_prefix = getenv("SBOX_CROSS_GCC_SUBST_PREFIX");
+	cross_gcc.specs_file   = getenv("SBOX_CROSS_GCC_SPECS_FILE");
+	cross_gcc.dir          = getenv("SBOX_CROSS_GCC_DIR");
+	cross_gcc.ld_args      = getenv("SBOX_CROSS_GCC_LD_ARGS");
 
 	host_gcc.stereotype    = HOST_STEREOTYPE;
-	host_gcc.name          = config["SBOX_HOST_GCC_NAME"];
-	host_gcc.prefix_list   = sb::split(config["SBOX_HOST_GCC_PREFIX_LIST"]);
-	host_gcc.subst_prefix  = config["SBOX_HOST_GCC_SUBST_PREFIX"];
-	host_gcc.specs_file    = config["SBOX_HOST_GCC_SPECS_FILE"];
-	host_gcc.dir           = config["SBOX_HOST_GCC_DIR"];
-	host_gcc.ld_args       = config["SBOX_HOST_GCC_LD_ARGS"];
+	host_gcc.name          = getenv("SBOX_HOST_GCC_NAME");
+	host_gcc.prefix_list   = sb::split(getenv("SBOX_HOST_GCC_PREFIX_LIST"));
+	host_gcc.subst_prefix  = getenv("SBOX_HOST_GCC_SUBST_PREFIX");
+	host_gcc.specs_file    = getenv("SBOX_HOST_GCC_SPECS_FILE");
+	host_gcc.dir           = getenv("SBOX_HOST_GCC_DIR");
+	host_gcc.ld_args       = getenv("SBOX_HOST_GCC_LD_ARGS");
 
 	if (!cross_gcc.ok() || !host_gcc.ok())
 		throw sb::error("No proper compiler configurations found");
 
-	const string &default_prefix = config["SBOX_DEFAULT_GCC_PREFIX"];
+	const string &default_prefix = getenv("SBOX_DEFAULT_GCC_PREFIX");
 	if (cross_gcc.has_prefix(default_prefix))
 		default_gcc = cross_gcc;
 	else if (host_gcc.has_prefix(default_prefix))

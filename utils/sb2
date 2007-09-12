@@ -95,22 +95,7 @@ function sboxify_environment()
 	export SBOX_SCRATCHBOX_CONFIG=$HOME/.scratchbox2/$SBOX_TARGET/sb2.config
 	export PS1="[SB2] \u@\h \w \$ "
 
-	# Debian exports REVISIT on dpkg 1.14
-	if [ "$SBOX_CPU" = "arm" ]; then
-		export DEB_BUILD_ARCH=armel
-	else
-		export DEB_BUILD_ARCH=$SBOX_CPU
-	fi
-	export DEB_BUILD_ARCH_CPU=$SBOX_CPU
-	export DEB_BUILD_GNU_CPU=$SBOX_CPU
-	export DEB_BUILD_GNU_TYPE=$SBOX_CPU-linux-gnu
-
 	export SBOX_COMPILER_ROOT=$(readlink -f $SBOX_CROSS_GCC_DIR/..)
-	export SBOX_CPUTRANSPARENCY_METHOD
-	export SBOX_CROSS_GCC_PREFIX_LIST
-	export SBOX_HOST_GCC_PREFIX_LIST
-	export SBOX_UNAME_MACHINE=$SBOX_CPU
-	export SBOX_CPU
 
 	if [ "$SBOX_MAPPING_DEBUG" == "1" ]; then
 		export SBOX_MAPPING_LOGFILE=$HOME/sb2_mapping.log

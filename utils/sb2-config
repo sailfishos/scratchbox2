@@ -41,12 +41,14 @@ DEFAULT_TARGET=$DEFAULT_TARGET
 }
 
 SBOX_DIR=$(readlink -f $(dirname $_)/..)
+WRITE_CONFIG=0
 
 while getopts d:hlv foo
 do
 	case $foo in
 	(d) set_as_default=1
 	    DEFAULT_TARGET=$OPTARG
+	    WRITE_CONFIG=1
 	    ;;
 	(h) usage ;;
 	(l) list_targets ;;
@@ -56,5 +58,7 @@ do
 done
 shift $(($OPTIND - 1))
 
-write_config
+if [ $WRITE_CONFIG == 1 ]; then
+	write_config
+fi
 

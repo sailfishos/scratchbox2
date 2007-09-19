@@ -91,6 +91,7 @@ install-noarch: $(BUILD_TARGET)
 	install -c -m 755 $(SRCDIR)/utils/sb2-config $(prefix)/bin/sb2-config
 	install -c -m 755 $(SRCDIR)/utils/sb2-build-libtool $(prefix)/bin/sb2-build-libtool
 	install -c -m 755 $(SRCDIR)/utils/dpkg-checkbuilddeps $(prefix)/share/scratchbox2/scripts/dpkg-checkbuilddeps
+	install -c -m 755 $(SRCDIR)/utils/dpkg-architecture $(prefix)/share/scratchbox2/scripts/dpkg-architecture
 	install -c -m 644 $(SRCDIR)/redir_scripts/main.lua $(prefix)/share/scratchbox2/redir_scripts/main.lua
 	install -c -m 644 $(SRCDIR)/redir_scripts/preload/complex/*.lua $(prefix)/share/scratchbox2/redir_scripts/preload/complex/
 	install -c -m 644 $(SRCDIR)/redir_scripts/preload/emulate/*.lua $(prefix)/share/scratchbox2/redir_scripts/preload/emulate/

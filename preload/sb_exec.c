@@ -379,8 +379,8 @@ int do_exec(const char *orig_file, const char *file,
 		my_envp = (char **)calloc(envc + 3, sizeof(char *));
 	}
 
-	i = strlen(binaryname) + strlen("__SB2_BINARYNAME") + 1;
-	tmp = malloc(i * sizeof(char *));
+	i = strlen(binaryname) + strlen("__SB2_BINARYNAME=") + 1;
+	tmp = malloc(i * sizeof(char));
 	strcpy(tmp, "__SB2_BINARYNAME=");
 	strcat(tmp, binaryname);
 

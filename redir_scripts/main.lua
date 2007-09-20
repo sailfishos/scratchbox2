@@ -290,7 +290,11 @@ function map_using_chain(chain, binary_name, func_name, work_dir, path)
 	else
 		ret = sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
 		if (debug) then
-			sb_debug(string.format("[%s][%s|%s]:\n  %s(%s) -> (%s)", basename(rule.lua_script), rule.binary_name, binary_name, func_name, path, ret))
+			if(path == ret) then
+				sb_debug(string.format("[%s][%s|%s]:\n  %s(%s) [==]", basename(rule.lua_script), rule.binary_name, binary_name, func_name, path))
+			else
+				sb_debug(string.format("[%s][%s|%s]:\n  %s(%s) -> (%s)", basename(rule.lua_script), rule.binary_name, binary_name, func_name, path, ret))
+			end
 		end
 	end
 	return ret
@@ -312,6 +316,9 @@ function sbox_translate_path(mapping_mode, binary_name, func_name, work_dir, pat
 	end
 
 	-- we should never ever get here, if we still do, don't do anything
+	sb_debug(string.format("[-][-|%s]:\n  %s(%s) [MAPPING FAILED]",
+		binary_name, func_name, path))
+
 	return path
 end
 

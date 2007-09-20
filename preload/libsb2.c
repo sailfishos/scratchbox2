@@ -1646,8 +1646,14 @@ char * getcwd (char *buf, size_t size)
 	}
 	SBOX_MAP_PATH_NARROW(cwd, sbox_path);
 	if (sbox_path) {
-		strncpy(buf, sbox_path, size);
-		free(sbox_path);
+		if(buf) {
+			strncpy(buf, sbox_path, size);
+			free(sbox_path);
+		} else {
+			/* buf==NULL: next_getcwd used malloc() to allocate cwd */
+			free(cwd);
+			cwd = sbox_path;
+		}
 	}
 	return cwd;
 }
@@ -1666,8 +1672,14 @@ char * getwd (char *buf)
 	}
 	SBOX_MAP_PATH_NARROW(cwd, sbox_path);
 	if (sbox_path) {
-		strcpy(buf, sbox_path);
-		free(sbox_path);
+		if(buf) {
+			strcpy(buf, sbox_path);
+			free(sbox_path);
+		} else {
+			/* buf==NULL: next_getwd used malloc() to allocate cwd */
+			free(cwd);
+			cwd = sbox_path;
+		}
 	}
 	return cwd;
 }
@@ -2654,7 +2666,10 @@ int uname(struct utsname *buf)
 	}
 	/* this may be called before environ is properly setup */
 	if (environ) {
-		strncpy(buf->machine, getenv("SBOX_UNAME_MACHINE"), sizeof(buf->machine));
+		char *uname_machine = getenv("SBOX_UNAME_MACHINE");
+
+		if(uname_machine)
+			snprintf(buf->machine, sizeof(buf->machine), "%s", uname_machine);
 	}
 	return 0;
 }

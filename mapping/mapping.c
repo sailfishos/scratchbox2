@@ -364,7 +364,7 @@ char *scratchbox_path2(const char *binary_name,
 	}
 	
 	memset(work_dir, '\0', PATH_MAX+1);
-	snprintf(pidlink,16, "/proc/%i/exe", getpid());
+	snprintf(pidlink, sizeof(pidlink), "/proc/%i/exe", getpid());
 	getcwd(work_dir, PATH_MAX);
 
 	/* redir_scripts RECURSIVE CALL BREAK */

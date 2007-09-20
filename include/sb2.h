@@ -23,8 +23,8 @@ int run_app(char *file, char **argv, char *const *envp);
 int run_cputransparency(char *orig_file, char *file,
 		char **argv, char *const *envp);
 
-int run_sbrsh(char *sbrsh_bin, char *target_root, char *orig_file,char *file,
-		char **argv, char *const *envp);
+int run_sbrsh(char *sbrsh_bin, char *target_root, char *orig_file,
+              char **argv, char *const *envp);
 int run_qemu(char *qemu_bin, char *orig_file, char *file,
 		char **argv, char *const *envp);
 

@@ -92,8 +92,8 @@ int run_cputransparency(char *orig_file, char *file, char **argv,
 		return run_qemu(cputransp_bin, orig_file, file, argv, envp);
 	} else if (strstr(bname, "sbrsh")) {
 		free(basec);
-		return run_sbrsh(cputransp_bin, orig_file, target_root,
-				file, argv, envp);
+		return run_sbrsh(cputransp_bin, target_root, orig_file,
+		                 argv, envp);
 	}
 
 	free(basec);
@@ -103,15 +103,69 @@ int run_cputransparency(char *orig_file, char *file, char **argv,
 	return -1;
 }
 
-int run_sbrsh(char *sbrsh_bin, char *target_root, char *orig_file, char *file,
-		char **argv, char *const *envp)
+int run_sbrsh(char *sbrsh_bin, char *target_root, char *orig_file,
+              char **argv, char *const *envp)
 {
-	/* FIXME. This method should be implemented. */
-	SB_LOG(SB_LOGLEVEL_ERROR, "Exec:REMOTE EXECUTION IS NOT SUPPORTED "
-		"BY THIS VERSION OF sb2 (%s,%s,%s,%s)",
-		sbrsh_bin, target_root, orig_file, file);
+	char *config, *file, *dir, **my_argv, **p;
+	int len, i = 0;
 
-	return -1;
+	SB_LOG(SB_LOGLEVEL_INFO, "Exec:sbrsh (%s,%s,%s)",
+		sbrsh_bin, target_root, orig_file);
+
+	config = getenv("SBRSH_CONFIG");
+	if (config && strlen(config) == 0)
+		config = NULL;
+
+	len = strlen(target_root);
+	if (len > 0 && target_root[len - 1] == '/')
+		--len;
+
+	file = orig_file;
+	if (file[0] == '/') {
+		if (strstr(file, target_root) != file) {
+			fprintf(stderr, "Binary must be under target (%s)"
+			        " when using sbrsh\n", target_root);
+			errno = ENOTDIR;
+			return -1;
+		}
+		file += len;
+	}
+
+	dir = get_current_dir_name();
+	if (strstr(dir, target_root) == dir) {
+		dir += len;
+	} else {
+		fprintf(stderr, "Warning: Executing binary with bogus working"
+		        " directory (/tmp) because sbrsh can only see %s\n",
+		        target_root);
+		dir = "/tmp";
+	}
+
+	my_argv = calloc(6 + elem_count(argv) + 1, sizeof (char *));
+
+	my_argv[i++] = sbrsh_bin;
+	if (config) {
+		my_argv[i++] = "--config";
+		my_argv[i++] = config;
+	}
+	my_argv[i++] = "--directory";
+	my_argv[i++] = dir;
+	my_argv[i++] = file;
+
+	for (p = &argv[1]; *p; p++)
+		my_argv[i++] = *p;
+
+	i = 0;
+	for (p = (char **) envp; *p; ++p) {
+		if (strncmp("LD_PRELOAD=", *p, strlen("LD_PRELOAD=")) == 0)
+			++i;
+		if (i > 0)
+			*p = p[i];
+	}
+	if (i > 0)
+		*p = NULL;
+
+	return sb_next_execve(sbrsh_bin, my_argv, envp);
 }
 
 int run_qemu(char *qemu_bin, char *orig_file,char *file,

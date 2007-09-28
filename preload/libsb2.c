@@ -124,6 +124,8 @@
 		if ((msg = dlerror()) != NULL) { \
 			fprintf(stderr, "%s: dlsym(%s): %s\n", \
 				PACKAGE_NAME, name, msg); \
+			SB_LOG(SB_LOGLEVEL_ERROR, "ERROR: %s: dlsym(%s): %s\n", \
+				PACKAGE_NAME, name, msg); \
 		} \
 	} \
 }
@@ -1316,6 +1318,9 @@ int execve (const char *filename, char *const argv [], char *const envp[])
 
 	newargv[n] = NULL;
 
+	SB_LOG(SB_LOGLEVEL_DEBUG, "exec script, interp=%s",
+		interp_filename);
+
 	ret = do_exec(interp_filename, hb_sbox_path, (char *const *)newargv, envp);
 	if (hb_sbox_path) free(hb_sbox_path);
 	if (sbox_path) free(sbox_path);
@@ -2178,6 +2183,15 @@ int open(const char *pathname, int flags, ...)
 	return ret;
 }
 
+/* for internal use:
+ * calls the "raw" open() function without logging anything,
+ * this is needed e.g. for opening the log file from logging code.
+*/
+int sb_call_open_without_logging(const char *pathname, int flags, int mode)
+{
+	if (next_open == NULL) libsb2_init();
+	return(next_open(pathname, flags, mode));
+}
 
 /* #include <sys/types.h> */
 /* #include <sys/stat.h> */

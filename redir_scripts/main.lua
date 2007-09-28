@@ -150,17 +150,6 @@ function dirname(path)
 end
 
 
-function sb_debug(msg)
-	local logfile = os.getenv("SBOX_MAPPING_LOGFILE")
-	local f
-	local err
-	if (not logfile) then return end
-	f, err = io.open(logfile, "a+")
-	if (not f) then return end
-	f:write(msg .. "\n")
-	io.close(f)
-end
-
 function isprefix(a, b)
 	return string.sub(b, 1, string.len(a)) == a
 end
@@ -282,7 +271,7 @@ function map_using_chain(chain, binary_name, func_name, work_dir, path)
 	rule = find_rule(chain, func_name, rp)
 	if (not rule) then
 		-- error, not even a default rule found
-		sb_debug(string.format("Unable to find a match at all: [%s][%s][%s]", binary_name, func_name, path))
+		sb.log("error", string.format("Unable to find a match at all: %s(%s)", func_name, path))
 		return path
 	end
 	if (rule.custom_map_func ~= nil) then
@@ -291,9 +280,9 @@ function map_using_chain(chain, binary_name, func_name, work_dir, path)
 		ret = sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
 		if (debug) then
 			if(path == ret) then
-				sb_debug(string.format("[%s][%s|%s]:\n  %s(%s) [==]", basename(rule.lua_script), rule.binary_name, binary_name, func_name, path))
+				--sb.log("debug", string.format("[%s][%s] %s(%s) [==]", basename(rule.lua_script), rule.binary_name, func_name, path))
 			else
-				sb_debug(string.format("[%s][%s|%s]:\n  %s(%s) -> (%s)", basename(rule.lua_script), rule.binary_name, binary_name, func_name, path, ret))
+				--sb.log("debug", string.format("[%s][%s] %s(%s) -> (%s)", basename(rule.lua_script), rule.binary_name, func_name, path, ret))
 			end
 		end
 	end
@@ -304,9 +293,6 @@ end
 -- preload library and the FUSE system for each path that needs 
 -- translating
 function sbox_translate_path(mapping_mode, binary_name, func_name, work_dir, path)
-	--sb_debug(string.format("[%s]:", binary_name))
-	--sb_debug(string.format("debug: [%s][%s][%s][%s]", binary_name, func_name, work_dir, path))
-
 	-- loop through the chains, first match is used
 	for n=1,table.maxn(modes[mapping_mode].chains) do
 		if (not modes[mapping_mode].chains[n].noentry 
@@ -316,8 +302,8 @@ function sbox_translate_path(mapping_mode, binary_name, func_name, work_dir, pat
 	end
 
 	-- we should never ever get here, if we still do, don't do anything
-	sb_debug(string.format("[-][-|%s]:\n  %s(%s) [MAPPING FAILED]",
-		binary_name, func_name, path))
+	sb.log("error", string.format("[-][-] %s(%s) [MAPPING FAILED]",
+		func_name, path))
 
 	return path
 end

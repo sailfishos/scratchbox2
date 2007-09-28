@@ -38,19 +38,6 @@
 #include <mapping.h>
 #include <sb2.h>
 
-#define WRITE_LOG(fmt...) \
-	{char *__logfile = getenv("SBOX_MAPPING_LOGFILE"); \
-	int __logfd; FILE *__logfs;\
-	if (__logfile) { \
-		if ((__logfd = open(__logfile, O_APPEND | O_RDWR | O_CREAT, \
-					S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP \
-					| S_IROTH | S_IWOTH)) > 0) { \
-			__logfs = fdopen(__logfd, "a"); \
-			fprintf(__logfs, fmt); \
-			fclose(__logfs); \
-		} \
-	}}
-
 
 #define enable_mapping(m) m->mapping_disabled--
 #define disable_mapping(m) m->mapping_disabled++
@@ -102,6 +89,8 @@ void sb2_mapping_init(void)
 {
 	alloc_mapping();
 	dummy = "ok";
+
+	sblog_init_logging();
 }
 
 struct path_entry {
@@ -209,7 +198,7 @@ proceed:
 	return buf;
 }
 
-
+/* "sb.decolonize_path", to be called from lua code */
 static int sb_decolonize_path(lua_State *l)
 {
 	int n;
@@ -231,6 +220,7 @@ static int sb_decolonize_path(lua_State *l)
 	return 1;
 }
 
+/* "sb.readlink", to be called from lua code */
 static int sb_readlink(lua_State *l)
 {
 	int n;
@@ -257,7 +247,7 @@ static int sb_readlink(lua_State *l)
 	}
 }
 
-
+/* "sb.getdirlisting", to be called from lua code */
 static int sb_getdirlisting(lua_State *l)
 {
 	DIR *d;
@@ -291,6 +281,46 @@ static int sb_getdirlisting(lua_State *l)
 	closedir(d);
 
 	free(path);
+	return 1;
+}
+
+/* "sb.log": interface from lua to the logging system.
+ * Parameters:
+ *  1. log level (string)
+ *  2. log message (string)
+*/
+static int sb_log_from_lua(lua_State *luastate)
+{
+	char	*logmsg;
+	char	*loglevel;
+	int	n = lua_gettop(luastate);
+
+	if (n != 2) {
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"sb_log_from_lua: wrong number of params (%d)", n);
+		lua_pushstring(luastate, NULL);
+		return 1;
+	}
+
+	/* FIXME: is it necessary to use strdup here? */
+	loglevel = strdup(lua_tostring(luastate, 1));
+	logmsg = strdup(lua_tostring(luastate, 2));
+
+	if(!strcmp(loglevel, "debug"))
+		SB_LOG(SB_LOGLEVEL_DEBUG, ">> %s", logmsg);
+	else if(!strcmp(loglevel, "info"))
+		SB_LOG(SB_LOGLEVEL_INFO, "INFO: %s", logmsg);
+	else if(!strcmp(loglevel, "warning"))
+		SB_LOG(SB_LOGLEVEL_WARNING, "WARNING: %s", logmsg);
+	else if(!strcmp(loglevel, "error"))
+		SB_LOG(SB_LOGLEVEL_ERROR, "ERROR: %s", logmsg);
+	else /* default to level "error"  */
+		SB_LOG(SB_LOGLEVEL_ERROR, "%s", logmsg);
+
+	free(loglevel);
+	free(logmsg);
+
+	lua_pushnumber(luastate, 1);
 	return 1;
 }
 
@@ -336,12 +366,19 @@ char *scratchbox_path2(const char *binary_name,
 	}
 
 	if (!path) {
-		WRITE_LOG("ERROR: scratchbox_path2: path == NULL: [%s][%s]\n",
-			binary_name, func_name);
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"ERROR: scratchbox_path2: path==NULL [%s]", func_name);
 		return NULL;
 	}
 
-	if (m->mapping_disabled || getenv("SBOX_DISABLE_MAPPING")) {
+	if (getenv("SBOX_DISABLE_MAPPING")) {
+		SB_LOG(SB_LOGLEVEL_DEBUG, "disabled(E): %s '%s'",
+			func_name, path);
+		return strdup(path);
+	}
+	if (m->mapping_disabled) {
+		SB_LOG(SB_LOGLEVEL_DEBUG, "disabled(%d): %s '%s'",
+			m->mapping_disabled, func_name, path);
 		return strdup(path);
 	}
 
@@ -361,6 +398,9 @@ char *scratchbox_path2(const char *binary_name,
 
 		strcpy(m->main_lua_script, m->script_dir);
 		strcat(m->main_lua_script, "/main.lua");
+
+		SB_LOG(SB_LOGLEVEL_DEBUG, "script_dir: '%s'",
+			m->script_dir);
 	}
 	
 	memset(work_dir, '\0', PATH_MAX+1);
@@ -396,6 +436,7 @@ char *scratchbox_path2(const char *binary_name,
 			;
 		}
 		lua_call(m->lua, 0, 0);
+		SB_LOG(SB_LOGLEVEL_DEBUG, "lua initialized.");
 	}
 
 	lua_getfield(m->lua, LUA_GLOBALSINDEX, "sbox_translate_path");
@@ -418,9 +459,13 @@ char *scratchbox_path2(const char *binary_name,
 	if (strcmp(tmp, decolon_path) == 0) {
 		free(decolon_path);
 		free(tmp);
+		SB_LOG(SB_LOGLEVEL_INFO, "pass: %s '%s'",
+			func_name, path);
 		return strdup(path);
 	} else {
 		free(decolon_path);
+		SB_LOG(SB_LOGLEVEL_INFO, "mapped: %s '%s' -> '%s'",
+			func_name, path, tmp);
 		return tmp;
 	}
 }
@@ -432,6 +477,7 @@ static const luaL_reg reg[] =
 	{"getdirlisting",		sb_getdirlisting},
 	{"readlink",			sb_readlink},
 	{"decolonize_path",		sb_decolonize_path},
+	{"log",				sb_log_from_lua},
 	{NULL,				NULL}
 };
 

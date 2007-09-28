@@ -106,6 +106,11 @@ int run_cputransparency(char *orig_file, char *file, char **argv,
 int run_sbrsh(char *sbrsh_bin, char *target_root, char *orig_file, char *file,
 		char **argv, char *const *envp)
 {
+	/* FIXME. This method should be implemented. */
+	SB_LOG(SB_LOGLEVEL_ERROR, "Exec:REMOTE EXECUTION IS NOT SUPPORTED "
+		"BY THIS VERSION OF sb2 (%s,%s,%s,%s)",
+		sbrsh_bin, target_root, orig_file, file);
+
 	return -1;
 }
 
@@ -114,6 +119,9 @@ int run_qemu(char *qemu_bin, char *orig_file,char *file,
 {
 	char **my_argv, **p;
 	int i = 0;
+
+	SB_LOG(SB_LOGLEVEL_INFO, "Exec:qemu (%s,%s,%s)",
+		qemu_bin, orig_file, file);
 
 	my_argv = (char **)calloc(elem_count(argv) + 5 + 1, sizeof(char *));
 
@@ -441,9 +449,15 @@ int do_exec(const char *orig_file, const char *file,
 
 	switch (type) {
 		case BIN_HOST:
+			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/host %s",
+				(char *)my_file);
+
 			return run_app((char *)my_file, (char **)my_argv,
 					my_envp);
 		case BIN_TARGET:
+			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/target %s",
+				(char *)my_file);
+
 			return run_cputransparency((char *)orig_file, my_file,
 					(char **)my_argv, my_envp);
 		case BIN_NONE:

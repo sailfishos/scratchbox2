@@ -1,6 +1,6 @@
 LUASRC = mapping/lua-5.1.2/src
 
-objs := $(D)/mapping.o
+objs := $(D)/mapping.o $(D)/sb_log.o
 
 mapping/libmapping.a: $(objs)
 mapping/libmapping.a: override CFLAGS := -O2 -g -fPIC -Wall -W \

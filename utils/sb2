@@ -19,7 +19,8 @@ If no COMMAND is given, a bash shell in scratchbox2 environment is started.
 
 Options:
     -v           display version
-    -d           debug mode: log all redirections
+    -L level     enable logging (levels=one of error,warning,info,debug,noise)
+    -d           debug mode: log all redirections (logging level=debug)
     -h           print this help
     -t TARGET    target to use, use sb2-config -d TARGET to set a default
     -e           emulation mode
@@ -98,7 +99,8 @@ function sboxify_environment()
 	export SBOX_COMPILER_ROOT=$(readlink -f $SBOX_CROSS_GCC_DIR/..)
 
 	if [ "$SBOX_MAPPING_DEBUG" == "1" ]; then
-		export SBOX_MAPPING_LOGFILE=$HOME/sb2_mapping.log
+		tstamp=`/bin/date +%Y%m%d-%H%M`
+		export SBOX_MAPPING_LOGFILE=$HOME/sb2_mapping_$tstamp.$$.log
 		echo "Running scratchbox with these settings:"
 		echo "SBOX_LIBSB2 = $SBOX_LIBSB2"
 		echo "SBOX_REDIR_SCRIPTS = $SBOX_REDIR_SCRIPTS"
@@ -106,16 +108,21 @@ function sboxify_environment()
 		echo "REDIR_LD_SO = $REDIR_LD_SO"
 		echo "REDIR_LD_LIBRARY_PATH = $REDIR_LD_LIBRARY_PATH"
 		echo "SBOX_TARGET_ROOT = $SBOX_TARGET_ROOT"
+		echo "SBOX_MAPPING_LOGFILE = $SBOX_MAPPING_LOGFILE"
+		echo "SBOX_MAPPING_LOGLEVEL = $SBOX_MAPPING_LOGLEVEL"
 	fi
 }
 
 export SBOX_DIR=$(readlink -f $(dirname $0)/..)
 
-while getopts vdht:em:s: foo
+while getopts vdht:em:s:L: foo
 do
 	case $foo in
 	(v) version ;;
-	(d) export SBOX_MAPPING_DEBUG=1 ;;
+	(d) export SBOX_MAPPING_DEBUG=1
+	    export SBOX_MAPPING_LOGLEVEL=debug ;;
+	(L) export SBOX_MAPPING_DEBUG=1
+	    export SBOX_MAPPING_LOGLEVEL=$OPTARG ;;
 	(h) usage ;;
 	(t) export SBOX_TARGET=$OPTARG ;;
 	(e) export SBOX_MAPMODE=emulate ;;
@@ -125,6 +132,14 @@ do
 	esac
 done
 shift $(($OPTIND - 1))
+
+if [ "$SBOX_MAPPING_DEBUG" == "1" ]; then
+	# check that loglevel is valid
+	case $SBOX_MAPPING_LOGLEVEL in
+	(error|warning|info|debug|noise)	;; # OK
+	(*) usage ;;
+	esac
+fi
 
 # read commands to execute from stdin - not yet implemented
 if [ "$1" = "-" ] ; then

@@ -519,7 +519,6 @@ static int     (*next_uname) (struct utsname *buf) = NULL;
 void libsb2_init (void) __attribute((constructor));
 void libsb2_init (void)
 {
-	//DBGOUT("libsb2 init start: %i\n", getpid());
 #ifdef HAVE___LXSTAT
 	nextsym(__lxstat, "__lxstat");
 #endif
@@ -2019,33 +2018,16 @@ int mkdirat(int dirfd, const char *pathname, mode_t mode)
 /* #include <stdlib.h> */
 char *mkdtemp (char *template)
 {
-	//    char tmp[FAKECHROOT_MAXPATH], *oldtemplate, *ptr;
-	//    SBOX_MAP_PROLOGUE();
-
-	//    oldtemplate = template;
-
-	//    SBOX_MAP_PATH(template, sbox_path);
-
 	if (next_mkdtemp == NULL) libsb2_init();
 
 	if (next_mkdtemp(template) == NULL) {
 		return NULL;
 	}
-	//    ptr = tmp;
-	//    strcpy(ptr, template);
-	//    narrow_chroot_path(ptr, sbox_path);
-	//    if (ptr == NULL) {
-	//        return NULL;
-	//    }
-	//    strcpy(oldtemplate, ptr);
-	//    DBGOUT("before returning from mkdtemp\n");
 	return template;
 }
 #endif
 
 
-/* #include <sys/types.h> */
-/* #include <sys/stat.h> */
 int mkfifo (const char *pathname, mode_t mode)
 {
 	SBOX_MAP_PROLOGUE();
@@ -2073,10 +2055,6 @@ int mkfifoat(int dirfd, const char *pathname, mode_t mode)
 }
 #endif
 
-/* #include <sys/types.h> */
-/* #include <sys/stat.h> */
-/* #include <fcntl.h> */
-/* #include <unistd.h> */
 int mknod (const char *pathname, mode_t mode, dev_t dev)
 {
 	SBOX_MAP_PROLOGUE();
@@ -2103,7 +2081,6 @@ int mknodat(int dirfd, const char *pathname, mode_t mode, dev_t dev)
 }
 #endif
 
-/* #include <stdlib.h> */
 int mkstemp (char *template)
 {
 	if (next_mkstemp == NULL) libsb2_init();
@@ -2111,7 +2088,6 @@ int mkstemp (char *template)
 }
 
 
-/* #include <stdlib.h> */
 int mkstemp64 (char *template)
 {
 	if (next_mkstemp64 == NULL) libsb2_init();
@@ -2119,7 +2095,6 @@ int mkstemp64 (char *template)
 }
 
 
-/* #include <stdlib.h> */
 char *mktemp (char *template)
 {
 	if (next_mktemp == NULL) libsb2_init();
@@ -2128,7 +2103,6 @@ char *mktemp (char *template)
 
 
 #ifdef HAVE_NFTW
-/* #include <ftw.h> */
 int nftw (const char *dir, int (*fn)(const char *file, const struct stat *sb, int flag, struct FTW *s), int nopenfd, int flags)
 {
 	SBOX_MAP_PROLOGUE();
@@ -2144,7 +2118,6 @@ int nftw (const char *dir, int (*fn)(const char *file, const struct stat *sb, in
 
 
 #ifdef HAVE_NFTW64
-/* #include <ftw.h> */
 int nftw64 (const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag, struct FTW *s), int nopenfd, int flags)
 {
 	SBOX_MAP_PROLOGUE();
@@ -2159,9 +2132,6 @@ int nftw64 (const char *dir, int (*fn)(const char *file, const struct stat64 *sb
 #endif
 
 
-/* #include <sys/types.h> */
-/* #include <sys/stat.h> */
-/* #include <fcntl.h> */
 int open(const char *pathname, int flags, ...) 
 {
 	SBOX_MAP_PROLOGUE();
@@ -2187,16 +2157,13 @@ int open(const char *pathname, int flags, ...)
  * calls the "raw" open() function without logging anything,
  * this is needed e.g. for opening the log file from logging code.
 */
-int sb_call_open_without_logging(const char *pathname, int flags, int mode)
+int sb_open_nolog(const char *pathname, int flags, int mode)
 {
 	if (next_open == NULL) libsb2_init();
-	return(next_open(pathname, flags, mode));
+	return (next_open(pathname, flags, mode));
 }
 
-/* #include <sys/types.h> */
-/* #include <sys/stat.h> */
-/* #include <fcntl.h> */
-int open64 (const char *pathname, int flags, ...)
+int open64(const char *pathname, int flags, ...)
 {
 	SBOX_MAP_PROLOGUE();
 	int ret;
@@ -2266,8 +2233,6 @@ int openat64(int dirfd, const char *pathname, int flags, ...)
 #endif
 
 #if !defined(HAVE___OPENDIR2)
-/* #include <sys/types.h> */
-/* #include <dirent.h> */
 DIR *opendir (const char *name)
 {
 	SBOX_MAP_PROLOGUE();
@@ -2282,7 +2247,6 @@ DIR *opendir (const char *name)
 #endif
 
 
-/* #include <unistd.h> */
 long pathconf (const char *path, int name)
 {
 	SBOX_MAP_PROLOGUE();
@@ -2296,9 +2260,7 @@ long pathconf (const char *path, int name)
 }
 
 
-/* #include <unistd.h> */
 /* XXX: add proc pid/exe wrapper from libsb to here */
-
 READLINK_TYPE readlink (const char *path, char *buf, size_t bufsize)
 {
 	SBOX_MAP_PROLOGUE();
@@ -2327,7 +2289,6 @@ READLINK_TYPE readlinkat(int dirfd, const char *pathname, char *buf, size_t bufs
 }
 #endif
 
-/* #include <stdlib.h> */
 char *realpath (const char *name, char *resolved)
 {
 	SBOX_MAP_PROLOGUE();
@@ -2341,7 +2302,6 @@ char *realpath (const char *name, char *resolved)
 }
 
 
-/* #include <stdio.h> */
 int remove(const char *pathname)
 {
 	SBOX_MAP_PROLOGUE();
@@ -2356,7 +2316,6 @@ int remove(const char *pathname)
 
 
 #ifdef HAVE_REMOVEXATTR
-/* #include <sys/xattr.h> */
 int removexattr(const char *path, const char *name)
 {
 	SBOX_MAP_PROLOGUE();
@@ -2371,7 +2330,6 @@ int removexattr(const char *path, const char *name)
 #endif
 
 
-/* #include <stdio.h> */
 int rename(const char *oldpath, const char *newpath)
 {
 	char *sbox_path_old = NULL, *sbox_path_new = NULL;
@@ -2405,7 +2363,6 @@ int renameat(int olddirfd, const char *oldpath, int newdirfd, const char *newpat
 #endif
 
 #ifdef HAVE_REVOKE
-/* #include <unistd.h> */
 int revoke(const char *file)
 {
 	SBOX_MAP_PROLOGUE();
@@ -2420,7 +2377,6 @@ int revoke(const char *file)
 #endif
 
 
-/* #include <unistd.h> */
 int rmdir(const char *pathname)
 {
 	SBOX_MAP_PROLOGUE();
@@ -2435,7 +2391,6 @@ int rmdir(const char *pathname)
 
 
 #ifdef HAVE_SCANDIR
-/* #include <dirent.h> */
 int scandir (const char *dir, struct dirent ***namelist, SCANDIR_TYPE_ARG3, int(*compar)(const void *, const void *))
 {
 	SBOX_MAP_PROLOGUE();
@@ -2451,7 +2406,6 @@ int scandir (const char *dir, struct dirent ***namelist, SCANDIR_TYPE_ARG3, int(
 
 
 #ifdef HAVE_SCANDIR64
-/* #include <dirent.h> */
 int scandir64 (const char *dir, struct dirent64 ***namelist, int(*filter)(const struct dirent64 *), int(*compar)(const void *, const void *))
 {
 	SBOX_MAP_PROLOGUE();
@@ -2467,7 +2421,6 @@ int scandir64 (const char *dir, struct dirent64 ***namelist, int(*filter)(const 
 
 
 #ifdef HAVE_SETXATTR
-/* #include <sys/xattr.h> */
 int setxattr (const char *path, const char *name, const void *value, size_t size, int flags)
 {
 	SBOX_MAP_PROLOGUE();
@@ -2483,8 +2436,6 @@ int setxattr (const char *path, const char *name, const void *value, size_t size
 
 
 #if !defined(HAVE___XSTAT)
-/* #include <sys/stat.h> */
-/* #include <unistd.h> */
 int stat(const char *file_name, struct stat *buf)
 {
 	SBOX_MAP_PROLOGUE();
@@ -2501,8 +2452,6 @@ int stat(const char *file_name, struct stat *buf)
 
 #ifdef HAVE_STAT64
 #if !defined(HAVE___XSTAT64)
-/* #include <sys/stat.h> */
-/* #include <unistd.h> */
 int stat64(const char *file_name, struct stat64 *buf)
 {
 	SBOX_MAP_PROLOGUE();
@@ -2518,7 +2467,6 @@ int stat64(const char *file_name, struct stat64 *buf)
 #endif
 
 
-/* #include <unistd.h> */
 int symlink(const char *oldpath, const char *newpath)
 {
 	char *sbox_path_old, *sbox_path_new;
@@ -2551,7 +2499,6 @@ int symlinkat(const char *oldpath, int newdirfd, const char *newpath)
 }
 #endif
 
-/* #include <stdio.h> */
 char *tempnam (const char *dir, const char *pfx)
 {
 	SBOX_MAP_PROLOGUE();
@@ -2565,7 +2512,6 @@ char *tempnam (const char *dir, const char *pfx)
 }
 
 
-/* #include <stdio.h> */
 char *tmpnam (char *s)
 {
 	if (next_tmpnam == NULL) libsb2_init();
@@ -2573,8 +2519,6 @@ char *tmpnam (char *s)
 }
 
 
-/* #include <unistd.h> */
-/* #include <sys/types.h> */
 int truncate (const char *path, off_t length)
 {
 	SBOX_MAP_PROLOGUE();
@@ -2589,8 +2533,6 @@ int truncate (const char *path, off_t length)
 
 
 #ifdef HAVE_TRUNCATE64
-/* #include <unistd.h> */
-/* #include <sys/types.h> */
 int truncate64 (const char *path, off64_t length)
 {
 	SBOX_MAP_PROLOGUE();
@@ -2606,7 +2548,6 @@ int truncate64 (const char *path, off64_t length)
 
 
 #ifdef HAVE_ULCKPWDF
-/* #include <shadow.h> */
 int ulckpwdf (void)
 {
 	return 0;
@@ -2614,7 +2555,6 @@ int ulckpwdf (void)
 #endif
 
 
-/* #include <unistd.h> */
 int unlink(const char *pathname)
 {
 	SBOX_MAP_PROLOGUE();
@@ -2642,8 +2582,6 @@ int unlinkat(int dirfd, const char *pathname, int flags)
 }
 #endif
 
-/* #include <sys/types.h> */
-/* #include <utime.h> */
 int utime (const char *filename, const struct utimbuf *buf)
 {
 	SBOX_MAP_PROLOGUE();
@@ -2657,7 +2595,6 @@ int utime (const char *filename, const struct utimbuf *buf)
 }
 
 
-/* #include <sys/time.h> */
 int utimes (const char *filename, const struct timeval tv[2])
 {
 	SBOX_MAP_PROLOGUE();
@@ -2683,7 +2620,8 @@ int uname(struct utsname *buf)
 		char *uname_machine = getenv("SBOX_UNAME_MACHINE");
 
 		if(uname_machine)
-			snprintf(buf->machine, sizeof(buf->machine), "%s", uname_machine);
+			snprintf(buf->machine, sizeof(buf->machine),
+					"%s", uname_machine);
 	}
 	return 0;
 }

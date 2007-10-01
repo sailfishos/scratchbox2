@@ -394,7 +394,6 @@ int do_exec(const char *orig_file, const char *file,
 
 	i = 0;
 	for (p=(char **)envp; *p; p++) {
-		/* DBGOUT("ENV: [%s]\n", *p); */
 		if (strncmp(*p, "__SB2_BINARYNAME=",
 				strlen("__SB2_BINARYNAME=")) == 0) {
 			/* already set, skip it */
@@ -462,7 +461,8 @@ int do_exec(const char *orig_file, const char *file,
 					(char **)my_argv, my_envp);
 		case BIN_NONE:
 		case BIN_UNKNOWN:
-			DBGOUT("unknown\n");
+			SB_LOG(SB_LOGLEVEL_ERROR,
+					"Unidentified executable detected\n");
 			break;
 	}
 

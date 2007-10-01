@@ -53,7 +53,7 @@ static void make_log_timestamp(char *buf, size_t bufsize)
 	struct timeval	now;
 	struct tm	tm;
 
-	if(gettimeofday(&now, (struct timezone *)NULL) < 0) {
+	if (gettimeofday(&now, (struct timezone *)NULL) < 0) {
 		*buf = '\0';
 		return;
 	}
@@ -75,13 +75,12 @@ static void make_log_timestamp(char *buf, size_t bufsize)
  * to the running program and having an extra open fd hanging around might
  * introduce really peculiar problems with some programs.
 */
-static void	write_to_logfile(const char *msg, int msglen)
+static void write_to_logfile(const char *msg, int msglen)
 {
 	int logfd;
 
 	if (sb_log_state.sbl_logfile) {
-		if ((logfd = sb_call_open_without_logging(
-					sb_log_state.sbl_logfile,
+		if ((logfd = sb_open_nolog(sb_log_state.sbl_logfile,
 					O_APPEND | O_RDWR | O_CREAT,
 					S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP
 					| S_IROTH | S_IWOTH)) > 0) {
@@ -93,19 +92,19 @@ static void	write_to_logfile(const char *msg, int msglen)
 
 /* ===================== public functions ===================== */
 
-void sblog_init_logging(void)
+void sblog_init(void)
 {
-	if(sb_loglevel__ == SB_LOGLEVEL_uninitialized) {
+	if (sb_loglevel__ == SB_LOGLEVEL_uninitialized) {
 		const char	*level_str;
 		const char	*bin;
 
 		bin = getenv("__SB2_BINARYNAME");
-		if(bin) sb_log_state.sbl_binary_name = bin;
+		if (bin) sb_log_state.sbl_binary_name = bin;
 
 		sb_log_state.sbl_logfile = getenv("SBOX_MAPPING_LOGFILE");
 		level_str = getenv("SBOX_MAPPING_LOGLEVEL");
-		if(sb_log_state.sbl_logfile) {
-			if(level_str) {
+		if (sb_log_state.sbl_logfile) {
+			if (level_str) {
 				/* Both logfile and loglevel have been set. */
 				switch(*level_str) {
 				case 'e': case 'E':
@@ -160,7 +159,7 @@ void sblog_vprintf_line_to_logfile(
 	char	*forbidden_chrp;
 	char	*optional_src_location;
 
-	if(sb_loglevel__ == SB_LOGLEVEL_uninitialized) sb_log_init_logging();
+	if (sb_loglevel__ == SB_LOGLEVEL_uninitialized) sblog_init();
 
 	/* first, the timestamp: */
 	make_log_timestamp(tstamp, sizeof(tstamp));
@@ -180,13 +179,13 @@ void sblog_vprintf_line_to_logfile(
 	 * as above. We'll use tabs to separate the pre-defined fields below.
 	*/
 	msglen = strlen(logmsg);
-	while((msglen > 0) && (logmsg[msglen-1] == '\n')) {
+	while ((msglen > 0) && (logmsg[msglen-1] == '\n')) {
 		logmsg[msglen--] = '\0';
 	}
-	while((forbidden_chrp = strchr(logmsg,'\n')) != NULL) {
+	while ((forbidden_chrp = strchr(logmsg,'\n')) != NULL) {
 		*forbidden_chrp = '$'; /* newlines to $ */
 	}
-	while((forbidden_chrp = strchr(logmsg,'\t')) != NULL) {
+	while ((forbidden_chrp = strchr(logmsg,'\t')) != NULL) {
 		*forbidden_chrp = ' '; /* tabs to spaces */
 	}
 
@@ -194,7 +193,7 @@ void sblog_vprintf_line_to_logfile(
 	 * here we use tabs to separate fields. Note that the location,
 	 * if present, should always be the last field (so that same
 	 * post-processing tools can be used in both cases)  */
-	if(sb_log_state.sbl_print_file_and_line) {
+	if (sb_log_state.sbl_print_file_and_line) {
 		asprintf(&optional_src_location, "\t[%s:%d]", file, line);
 	} else {
 		optional_src_location = strdup("");
@@ -218,7 +217,7 @@ void sblog_printf_line_to_logfile(
 {
 	va_list	ap;
 
-	if(sb_loglevel__ == SB_LOGLEVEL_uninitialized) sb_log_init_logging();
+	if (sb_loglevel__ == SB_LOGLEVEL_uninitialized) sblog_init();
 
 	va_start(ap, format);
 	sblog_vprintf_line_to_logfile(file, line, format, ap);

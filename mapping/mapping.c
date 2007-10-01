@@ -90,7 +90,7 @@ void sb2_mapping_init(void)
 	alloc_mapping();
 	dummy = "ok";
 
-	sblog_init_logging();
+	sblog_init();
 }
 
 struct path_entry {

@@ -10,9 +10,7 @@
 #include <syscall.h>
 #include <stdio.h>
 
-#define DBGOUT(fmt...) fprintf(stderr, fmt)
-
-int sb_call_open_without_logging(const char *pathname, int flags, int mode);
+int sb_open_nolog(const char *pathname, int flags, int mode);
 
 int sb_next_execve(const char *filename, char *const argv [],
 			char *const envp[]);
@@ -41,7 +39,7 @@ time_t get_sb2_timestamp(void);
 #define SB_LOGLEVEL_DEBUG	8
 #define SB_LOGLEVEL_NOISE	9
 
-extern void sblog_init_logging(void);
+extern void sblog_init(void);
 extern void sblog_vprintf_line_to_logfile(const char *file, int line,
 	const char *format, va_list ap);
 extern void sblog_printf_line_to_logfile(const char *file, int line,
@@ -55,6 +53,6 @@ extern int sb_loglevel__; /* do not access directly */
 			sblog_printf_line_to_logfile( \
 				__FILE__, __LINE__, __VA_ARGS__); \
 		} \
-	} while(0)
+	} while (0)
 
 #endif

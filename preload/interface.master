@@ -122,7 +122,8 @@ WRAP: int __xstat(int ver, const char *filename, struct stat *buf) : map(filenam
 WRAP: int __xstat64(int ver, const char *filename, struct stat64 *buf) : map(filename)
 WRAP: int _xftw(int mode, const char *dir, int (*fn)(const char *file, const struct stat *sb, int flag), int nopenfd) : map(dir)
 WRAP: int _xftw64(int mode, const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag), int nopenfd) : map(dir)
-WRAP: int access(const char *pathname, int mode) : map(pathname)
+WRAP: int access(const char *pathname, int mode) : map(pathname) \
+	create_nomap_nolog_version
 WRAP: int acct(const char *filename) : map(filename)
 WRAP: char *canonicalize_file_name(const char *name) : map(name)
 WRAP: int chdir(const char *path) : map(path)

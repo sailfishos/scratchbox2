@@ -26,6 +26,8 @@
 #include <sb2.h>
 #include <mapping.h>
 
+#include "libsb2.h"
+#include "exported.h"
 
 #if __BYTE_ORDER == __BIG_ENDIAN
 # define elf_endianness ELFDATA2MSB
@@ -245,7 +247,7 @@ static enum binary_type inspect_binary(const char *filename)
 #endif
 	retval = BIN_NONE;
 
-	fd = open(filename, O_RDONLY, 0);
+	fd = open_nomap_nolog(filename, O_RDONLY, 0);
 	if (fd < 0) {
 		goto _out;
 	}
@@ -431,13 +433,14 @@ static int is_gcc_tool(char *fname)
 }
 
 
-int do_exec(const char *orig_file, const char *file,
+int do_exec(const char *exec_fn_name, const char *orig_file, const char *file,
 		char *const *argv, char *const *envp)
 {
 	char **my_envp, **my_argv, **p;
 	char *binaryname, *tmp, *my_file;
 	int envc=0, argc=0, i, has_ld_preload=0;
 
+	(void)exec_fn_name; /* not yet used */
 
 	/* if we have LD_PRELOAD env var set, make sure the new my_envp
 	 * has it as well
@@ -549,7 +552,7 @@ int do_exec(const char *orig_file, const char *file,
 		case BIN_NONE:
 		case BIN_UNKNOWN:
 			SB_LOG(SB_LOGLEVEL_ERROR,
-					"Unidentified executable detected\n");
+					"Unidentified executable detected");
 			break;
 	}
 

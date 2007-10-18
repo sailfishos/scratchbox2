@@ -13,7 +13,7 @@
 int sb_next_execve(const char *filename, char *const argv [],
 			char *const envp[]);
 
-int do_exec(const char *orig_file, const char *file,
+int do_exec(const char *exec_fn_name, const char *orig_file, const char *file,
 		char *const *argv, char *const *envp);
 
 int ld_so_run_app(char *file, char **argv, char *const *envp);

@@ -60,6 +60,58 @@ int sb_next_execve(const char *file, char *const *argv, char *const *envp)
 }
 
 
+/* collect exec arguments from a varargs list to an array.
+ * returns an allocated array (use free() to free it if exec fails)
+*/
+static char **va_exec_args_to_argv(
+	const char *realfnname, 
+	const char *arg0, 
+	va_list args,
+	char ***envpp)	/* execlp needs to get envp, it is after the NULL.. */
+{
+	char *next_arg;
+	char **argv = NULL;
+	int  n_elem;	/* number of elements in argv array, including the
+			 * final NULL pointer */
+
+	/* first we'll need a small array for arg0 and a NULL: */
+	n_elem = 2;
+	argv = malloc (n_elem * sizeof(char*));
+	argv[0] = (char*)arg0;
+	argv[1] = NULL;
+
+	SB_LOG(SB_LOGLEVEL_NOISE, "%s/varargs: 0=%s", realfnname, arg0);
+
+	/* if there are any additional arguments, add them to argv
+	 * calling realloc() every time (depending on what king of allocator
+	 * is in use this might or might not be very efficient, but this 
+	 * strategy keeps the code simple AND we can be sure that the 
+	 * reallocation really works, unlike if this would reallocate 
+	 * only after every 1024 elements or so... and after all, this 
+	 * is used for exec-class functions, so this won't be executed 
+	 * too often anyway => efficiency is probably not our primary concern)
+	*/
+	next_arg = va_arg (args, char *);
+	while(next_arg) {
+		n_elem++;
+		argv = realloc (argv, n_elem * sizeof(char*));
+		argv[n_elem - 2] = next_arg;
+		argv[n_elem - 1] = NULL;
+
+		SB_LOG(SB_LOGLEVEL_NOISE, "%s/varargs: %d=%s", 
+			realfnname, n_elem-2, next_arg);
+
+		next_arg = va_arg (args, char *);
+	}
+	/* next_arg==NULL now, get an optional envp if requested: */	
+	if(envpp) {
+		*envpp = va_arg (args, char **);
+	}
+
+	return(argv);
+}
+
+
 /* #include <unistd.h> */
 int execl_gate(
 	int (*real_execl_ptr)(const char *path, const char *arg, ...),
@@ -68,33 +120,16 @@ int execl_gate(
 	const char *arg,
 	va_list args)
 {
-	size_t argv_max = 1024;
-	const char **argv = alloca (argv_max * sizeof (const char *));
-	unsigned int i;
+	char **argv;
+	int ret;
 
 	(void)real_execl_ptr; /* not used */
 
-	argv[0] = arg;
-
-	i = 0;
-	while (argv[i++] != NULL) {
-		if (i == argv_max) {
-			const char **nptr = alloca ((argv_max *= 2) * sizeof (const char *));
-
-			if ((char *) argv + i == (char *) nptr) {
-				/* Stack grows up.  */
-				argv_max += i;
-			} else {
-				/* We have a hole in the stack.  */
-				argv = (const char **) memcpy (nptr, argv,
-						i * sizeof (const char *));
-			}
-		}
-
-		argv[i] = va_arg (args, const char *);
-	}
-
-	return execve_gate (NULL, realfnname, path, (char *const *) argv, environ);
+	argv = va_exec_args_to_argv(realfnname, arg, args, NULL);
+	ret = execve_gate (NULL, realfnname, path, (char *const *) argv, 
+		environ);
+	free(argv);
+	return(ret);
 }
 
 
@@ -106,36 +141,17 @@ int execle_gate(
 	const char *arg,
 	va_list args)
 {
-	size_t argv_max = 1024;
-	const char **argv = alloca (argv_max * sizeof (const char *));
-	const char *const *envp;
-	unsigned int i;
+	char **argv;
+	int ret;
+	char **envp;
 
 	(void)real_execle_ptr; /* not used */
 
-	argv[0] = arg;
-
-	i = 0;
-	while (argv[i++] != NULL) {
-		if (i == argv_max) {
-			const char **nptr = alloca ((argv_max *= 2) * sizeof (const char *));
-
-			if ((char *) argv + i == (char *) nptr) {
-				/* Stack grows up.  */
-				argv_max += i;
-			} else {
-				/* We have a hole in the stack.  */
-				argv = (const char **) memcpy (nptr, argv,
-						i * sizeof (const char *));
-			}
-		}
-
-		argv[i] = va_arg (args, const char *);
-	}
-
-	envp = va_arg (args, const char *const *);
-
-	return execve_gate (NULL, realfnname, path, (char *const *) argv, (char *const *) envp);
+	argv = va_exec_args_to_argv(realfnname, arg, args, &envp);
+	ret = execve_gate (NULL, realfnname, path, (char *const *) argv, 
+		(char *const *) envp);
+	free(argv);
+	return(ret);
 }
 
 /* Execute FILE, searching in the `PATH' environment variable if
@@ -148,48 +164,15 @@ int execlp_gate(
 	const char *arg,
 	va_list args)
 {
-	size_t argv_max = 1024;
-	const char **argv = alloca (argv_max * sizeof (const char *));
-	unsigned int i;
+	char **argv;
+	int ret;
 
 	(void)real_execlp_ptr;	/* not used */
 
-	argv[0] = arg;
-
-	i = 0;
-	while (argv[i++] != NULL) {
-		if (i == argv_max) {
-			const char **nptr = alloca ((argv_max *= 2) * sizeof (const char *));
-
-#ifndef _STACK_GROWS_UP
-			if ((char *) nptr + argv_max == (char *) argv) {
-				/* Stack grows down.  */
-				argv = (const char **) memcpy (nptr, argv,
-						i * sizeof (const char *));
-				argv_max += i;
-			} else {
-#endif
-#ifndef _STACK_GROWS_DOWN
-				if ((char *) argv + i == (char *) nptr) {
-					/* Stack grows up.  */
-					argv_max += i;
-				} else {
-#endif
-					/* We have a hole in the stack.  */
-					argv = (const char **) memcpy (nptr, argv,
-							i * sizeof (const char *));
-#ifndef _STACK_GROWS_DOWN
-				}
-#endif
-#ifndef _STACK_GROWS_UP
-			}
-#endif
-		}
-
-		argv[i] = va_arg (args, const char *);
-	}
-
-	return execvp_gate (NULL, realfnname, file, (char *const *) argv);
+	argv = va_exec_args_to_argv(realfnname, arg, args, NULL);
+	ret = execvp_gate (NULL, realfnname, file, (char *const *) argv);
+	free(argv);
+	return(ret);
 }
 
 
@@ -230,16 +213,64 @@ int execve_gate(
 	char c;
 
 	(void)real_execve_ptr;	/* not used */
-	(void)realfnname;	/* not used */
 
-	SBOX_MAP_PATH(filename, sbox_path);
+	sbox_path = scratchbox_path(realfnname, filename);
 
-	if ((file = open(sbox_path, O_RDONLY)) == -1) {
-		errno = ENOENT;
-		if (sbox_path) free(sbox_path);
-		return -1;
+	/* First we need to find out if the file can be executed at all: */
+	if(access_nomap_nolog(sbox_path, X_OK) < 0) {
+		/* can't execute it. Possible errno codes from access() 
+		 * are all possible from execve(), too, so there is no
+		 * need to convert errno.
+		*/
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: no X permission for '%s'",
+			realfnname, sbox_path);
+		return(-1);
 	}
 
+	/* Now we know that the file exists and has execute permission set.
+	 *
+	 * FIXME: Next this will try to open it and determine if it is a script.
+	 * I think that this code should be moved to sb_exec.c and merged
+	 * with the binary type detection code that we currently have there
+	 * (in function inspect_binary()).
+	 *
+	 * In any case this *must* not fail if open() fails, because it
+	 * is perfectly valid to have files with e.g. "--x--x--x" permissions.
+	 * If the binary mode can not be determined, there are several 
+	 * possible strategies:
+	 * - Currently this assumes that the program is executable by the
+	 *   host system (since binary detection in do_exec() will fail to 
+	 *   open it, etc).
+	 *   of course, host's exec fails badly if it is a target binary.
+	 * - another possibility would be to try to set the "r" permission
+	 *   (either momentarily or permanently) if this process is running
+	 *   as the owner of the file. Obviously, this would present lots
+	 *   of "interesting" problems. (one possibility is to enable
+	 *   this strategy conditionally, for example if an environment
+	 *   variable is set etc). anyway, this has not been implemented.
+	 * - third possible solution would be to manually handle this kind
+	 *   of exceptions by lua scripts.
+	 * Unfortunately there is no perfect solution for this: The kernel
+	 * can have a look inside read-protected files, but this runs in
+	 * userspace...
+	*/
+	if ((file = open_nomap_nolog(sbox_path, O_RDONLY)) == -1) {
+		/* Failed to open, so we really can't know what it is.
+		 * do_exec() will perform default actions, which 
+		 * typically means calling host's execve() for it.
+		*/
+		SB_LOG(SB_LOGLEVEL_WARNING, 
+			"%s failed to determine type of '%s' (open failed)",
+			realfnname, sbox_path);
+
+		ret = do_exec(realfnname, filename, sbox_path, argv, envp);
+		if (sbox_path) free(sbox_path);
+		return ret;
+	}
+
+	/* Execution permitted and the file can be read. 
+	 * See if it begins with #!xxx, i.e. is a script for "xxx"
+	*/
 	k = read(file, hashbang, SBOX_MAXPATH-2);
 	close(file);
 	if (k == -1) {
@@ -249,7 +280,9 @@ int execve_gate(
 	}
 
 	if (hashbang[0] != '#' || hashbang[1] != '!') {
-		ret = do_exec(filename, sbox_path, argv, envp);
+		/* not a script. do_exec() will find out what type of
+		 * binary it is. */
+		ret = do_exec(realfnname, filename, sbox_path, argv, envp);
 		if (sbox_path) free(sbox_path);
 		return ret;
 	}
@@ -290,7 +323,7 @@ int execve_gate(
 		if (c == '\n' || c == 0) break;
 	}
 
-	SBOX_MAP_PATH(interp_filename, hb_sbox_path);
+	hb_sbox_path = scratchbox_path(realfnname, interp_filename);
 	//printf("hashbanging: %s, %s\n", interp_filename, hb_sbox_path);
 	newargv[n++] = filename; /* the unmapped script path */
 
@@ -303,7 +336,8 @@ int execve_gate(
 	SB_LOG(SB_LOGLEVEL_DEBUG, "exec script, interp=%s",
 		interp_filename);
 
-	ret = do_exec(interp_filename, hb_sbox_path, (char *const *)newargv, envp);
+	ret = do_exec(realfnname, interp_filename, hb_sbox_path, 
+		(char *const *)newargv, envp);
 	if (hb_sbox_path) free(hb_sbox_path);
 	if (sbox_path) free(sbox_path);
 	return ret;
@@ -318,7 +352,6 @@ int execvp_gate(
 	char *const argv [])
 {
 	(void)real_execvp_ptr;	/* not used */
-	(void)realfnname;	/* not used */
 
 	if (*file == '\0') {
 		/* We check the simple case first. */
@@ -426,8 +459,6 @@ FTS * fts_open_gate(FTS * (*real_fts_open_ptr)(char * const *path_argv,
 	char **np;
 	int n;
 
-	(void)realfnname; /* unused */
-
 	for (n=0, p=path_argv; *p; n++, p++);
 	if ((new_path_argv = malloc(n*(sizeof(char *)))) == NULL) {
 		return NULL;
@@ -435,7 +466,7 @@ FTS * fts_open_gate(FTS * (*real_fts_open_ptr)(char * const *path_argv,
 
 	for (n=0, p=path_argv, np=new_path_argv; *p; n++, p++, np++) {
 		path = *p;
-		SBOX_MAP_PATH(path, sbox_path);
+		sbox_path = scratchbox_path(realfnname, path);
 		*np = sbox_path;
 	}
 
@@ -638,14 +669,14 @@ void *sbox_find_next_symbol(int log_enabled, const char *fn_name)
 	void	*fn_ptr;
 
 	if(log_enabled)
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: %s\n", __func__, fn_name);
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: %s", __func__, fn_name);
 
 	fn_ptr = dlsym(RTLD_NEXT, fn_name);
 	if ((msg = dlerror()) != NULL) {
 		fprintf(stderr, "%s: dlsym(%s): %s\n",
 			PACKAGE_NAME, fn_name, msg);
 		if(log_enabled)
-			SB_LOG(SB_LOGLEVEL_ERROR, "ERROR: %s: dlsym(%s): %s\n",
+			SB_LOG(SB_LOGLEVEL_ERROR, "ERROR: %s: dlsym(%s): %s",
 				PACKAGE_NAME, fn_name, msg);
 		assert(0);
 	}

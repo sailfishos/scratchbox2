@@ -80,7 +80,7 @@ static void write_to_logfile(const char *msg, int msglen)
 	int logfd;
 
 	if (sb_log_state.sbl_logfile) {
-		if ((logfd = sb_open_nolog(sb_log_state.sbl_logfile,
+		if ((logfd = open_nomap_nolog(sb_log_state.sbl_logfile,
 					O_APPEND | O_RDWR | O_CREAT,
 					S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP
 					| S_IROTH | S_IWOTH)) > 0) {

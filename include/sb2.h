@@ -10,8 +10,6 @@
 #include <syscall.h>
 #include <stdio.h>
 
-int sb_open_nolog(const char *pathname, int flags, int mode);
-
 int sb_next_execve(const char *filename, char *const argv [],
 			char *const envp[]);
 

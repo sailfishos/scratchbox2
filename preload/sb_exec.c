@@ -220,6 +220,10 @@ static enum binary_type inspect_binary(const char *filename)
 		&& ehdr->e_machine == byte_swap(EM_MIPS_RS3_LE)) {
 		retval = BIN_TARGET;
 		goto _out_munmap;
+	} else if (!strncmp(target_cpu, "sh", 2)
+		&& ehdr->e_machine == byte_swap(EM_SH)) {
+		retval = BIN_TARGET;
+		goto _out_munmap;
 	}
 #else
 	if (!strcmp(target_cpu, "arm")
@@ -244,6 +248,10 @@ static enum binary_type inspect_binary(const char *filename)
 		goto _out_munmap;
 	} else if (!strcmp(target_cpu, "mipsel")
 		&& ehdr->e_machine == EM_MIPS_RS3_LE) {
+		retval = BIN_TARGET;
+		goto _out_munmap;
+	} else if (!strncmp(target_cpu, "sh", 2)
+		&& ehdr->e_machine == EM_SH) {
 		retval = BIN_TARGET;
 		goto _out_munmap;
 	}

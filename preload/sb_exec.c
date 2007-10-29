@@ -155,16 +155,6 @@ int run_sbrsh(char *sbrsh_bin, char *target_root, char *orig_file,
 	for (p = &argv[1]; *p; p++)
 		my_argv[i++] = *p;
 
-	i = 0;
-	for (p = (char **) envp; *p; ++p) {
-		if (strncmp("LD_PRELOAD=", *p, strlen("LD_PRELOAD=")) == 0)
-			++i;
-		if (i > 0)
-			*p = p[i];
-	}
-	if (i > 0)
-		*p = NULL;
-
 	return sb_next_execve(sbrsh_bin, my_argv, envp);
 }
 

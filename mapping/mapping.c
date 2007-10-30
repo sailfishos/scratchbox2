@@ -68,7 +68,7 @@ static void alloc_mapping_key(void)
 	pthread_key_create(&mapping_key, free_mapping);
 }
 
-void alloc_mapping(void)
+static void alloc_mapping(void)
 {
 	struct mapping *tmp;
 	tmp = malloc(sizeof(struct mapping));
@@ -77,7 +77,7 @@ void alloc_mapping(void)
 	pthread_setspecific(mapping_key, tmp);
 }
 
-struct mapping *get_mapping(void)
+static struct mapping *get_mapping(void)
 {
 	return (struct mapping *)pthread_getspecific(mapping_key);
 }
@@ -99,7 +99,7 @@ struct path_entry {
 	char name[PATH_MAX];
 };
 
-char *decolonize_path(const char *path)
+static char *decolonize_path(const char *path)
 {
 	char *cpath, *index, *start;
 	char cwd[PATH_MAX];

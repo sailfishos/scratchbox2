@@ -20,12 +20,12 @@ end
 debug = os.getenv("SBOX_MAPPING_DEBUG")
 
 
--- SBOX_REDIR_SCRIPTS environment variable controls where
+-- SBOX_LUA_SCRIPTS environment variable controls where
 -- we look for the scriptlets defining the path mappings
 
-rsdir = os.getenv("SBOX_REDIR_SCRIPTS")
+rsdir = os.getenv("SBOX_LUA_SCRIPTS")
 if (rsdir == nil) then
-	rsdir = "/scratchbox/redir_scripts"
+	rsdir = "/scratchbox/lua_scripts"
 end
 
 -- escape_string() prefixes the magic pattern matching
@@ -55,7 +55,7 @@ function escape_string(a)
 end
 
 function read_mode_part(mode, part)
-	filename = rsdir .. "/preload/" .. mode .. "/" .. part
+	filename = rsdir .. "/pathmaps/" .. mode .. "/" .. part
 	f, err = loadfile(filename)
 	if (f == nil) then
 		error("\nError while loading " .. filename .. ": \n" .. err .. "\n")
@@ -101,10 +101,10 @@ modes = {}
 
 -- sb.getdirlisting is provided by lua_bindings.c
 -- it returns a table listing all files in a directory
-mm = sb.getdirlisting(rsdir .. "/preload")
+mm = sb.getdirlisting(rsdir .. "/pathmaps")
 table.sort(mm);
 for m = 1, table.maxn(mm) do
-	local t = sb.getdirlisting(rsdir .. "/preload/" .. mm[m])
+	local t = sb.getdirlisting(rsdir .. "/pathmaps/" .. mm[m])
 	local i = 0
 	local r = 0
 	if (mm[m] ~= "." and mm[m] ~= "..") then

@@ -51,7 +51,7 @@ static int lua_bind_sb_functions(lua_State *l);
 struct mapping {
 	lua_State *lua;
 	char *script_dir;
-	char *main_lua_script;
+	char *mapping_lua_script;
 	int mapping_disabled;
 };
 
@@ -386,18 +386,18 @@ char *scratchbox_path2(const char *binary_name,
 	decolon_path = decolonize_path(path);
 
 	if (!m->script_dir) {
-		m->script_dir = getenv("SBOX_REDIR_SCRIPTS");
+		m->script_dir = getenv("SBOX_LUA_SCRIPTS");
 		if (!m->script_dir) {
-			m->script_dir = "/scratchbox/redir_scripts";
+			m->script_dir = "/scratchbox/lua_scripts";
 		} else {
 			m->script_dir = strdup(m->script_dir);
 		}
 		
-		m->main_lua_script = calloc(strlen(m->script_dir)
-				+ strlen("/main.lua") + 1, sizeof(char));
+		m->mapping_lua_script = calloc(strlen(m->script_dir)
+				+ strlen("/mapping.lua") + 1, sizeof(char));
 
-		strcpy(m->main_lua_script, m->script_dir);
-		strcat(m->main_lua_script, "/main.lua");
+		strcpy(m->mapping_lua_script, m->script_dir);
+		strcat(m->mapping_lua_script, "/mapping.lua");
 
 		SB_LOG(SB_LOGLEVEL_DEBUG, "script_dir: '%s'",
 			m->script_dir);
@@ -407,7 +407,7 @@ char *scratchbox_path2(const char *binary_name,
 	snprintf(pidlink, sizeof(pidlink), "/proc/%i/exe", getpid());
 	getcwd(work_dir, PATH_MAX);
 
-	/* redir_scripts RECURSIVE CALL BREAK */
+	/* lua_scripts RECURSIVE CALL BREAK */
 	if (strncmp(decolon_path, m->script_dir,
 			strlen(m->script_dir)) == 0) {
 		enable_mapping(m);
@@ -419,18 +419,18 @@ char *scratchbox_path2(const char *binary_name,
 		
 		luaL_openlibs(m->lua);
 		lua_bind_sb_functions(m->lua); /* register our sb_ functions */
-		switch(luaL_loadfile(m->lua, m->main_lua_script)) {
+		switch(luaL_loadfile(m->lua, m->mapping_lua_script)) {
 		case LUA_ERRFILE:
 			fprintf(stderr, "Error loading %s\n",
-					m->main_lua_script);
+					m->mapping_lua_script);
 			exit(1);
 		case LUA_ERRSYNTAX:
 			fprintf(stderr, "Syntax error in %s\n",
-					m->main_lua_script);
+					m->mapping_lua_script);
 			exit(1);
 		case LUA_ERRMEM:
 			fprintf(stderr, "Memory allocation error while "
-					"loading %s\n", m->main_lua_script);
+					"loading %s\n", m->mapping_lua_script);
 			exit(1);
 		default:
 			;

@@ -37,7 +37,11 @@
 # error Invalid __BYTE_ORDER
 #endif
 
-uint16_t byte_swap(uint16_t a)
+static int elf_hdr_match(uint16_t e_machine, uint16_t match,
+			 int target_little_endian);
+static uint16_t byte_swap(uint16_t a);
+
+static uint16_t byte_swap(uint16_t a)
 {
 	uint16_t b;
 	uint8_t *r;
@@ -234,6 +238,23 @@ int run_app(char *file, char **argv, char *const *envp)
 	return -12;
 }
 
+static int elf_hdr_match(uint16_t e_machine, uint16_t match,
+			 int target_little_endian)
+{
+	int swap;
+
+#ifdef WORDS_BIGENDIAN
+	swap = target_little_endian;
+#else
+	swap = !target_little_endian;
+#endif
+
+	if (swap)
+		return e_machine == byte_swap(match);
+
+	return e_machine == match;
+}
+
 static enum binary_type inspect_binary(const char *filename)
 {
 	enum binary_type retval;
@@ -276,67 +297,35 @@ static enum binary_type inspect_binary(const char *filename)
 	target_cpu = getenv("SBOX_CPU");
 	if (!target_cpu) target_cpu = "arm";
 
-#ifdef WORDS_BIGENDIAN
 	if (!strcmp(target_cpu, "arm")
-		&& ehdr->e_machine == byte_swap(EM_ARM)) {
+		&& elf_hdr_match(ehdr->e_machine, EM_ARM, 1)) {
 		retval = BIN_TARGET;
 		goto _out_munmap;
 	} else if (!strcmp(target_cpu, "armel")
-		&& ehdr->e_machine == byte_swap(EM_ARM)) {
+		&& elf_hdr_match(ehdr->e_machine, EM_ARM, 1)) {
 		retval = BIN_TARGET;
 		goto _out_munmap;
 	} else if (!strcmp(target_cpu, "armeb")
-		&& ehdr->e_machine == EM_ARM) {
+		&& elf_hdr_match(ehdr->e_machine, EM_ARM, 0)) {
 		retval = BIN_TARGET;
 		goto _out_munmap;
 	} else if (!strcmp(target_cpu, "ppc")
-		&& ehdr->e_machine == EM_PPC) {
+		&& elf_hdr_match(ehdr->e_machine, EM_PPC, 0)) {
 		retval = BIN_TARGET;
 		goto _out_munmap;
 	} else if (!strcmp(target_cpu, "mips")
-		&& ehdr->e_machine == EM_MIPS) {
+		&& elf_hdr_match(ehdr->e_machine, EM_MIPS, 0)) {
 		retval = BIN_TARGET;
 		goto _out_munmap;
 	} else if (!strcmp(target_cpu, "mipsel")
-		&& ehdr->e_machine == byte_swap(EM_MIPS_RS3_LE)) {
+		&& elf_hdr_match(ehdr->e_machine, EM_MIPS_RS3_LE, 1)) {
 		retval = BIN_TARGET;
 		goto _out_munmap;
 	} else if (!strncmp(target_cpu, "sh", 2)
-		&& ehdr->e_machine == byte_swap(EM_SH)) {
+		&& elf_hdr_match(ehdr->e_machine, EM_SH, 0)) {
 		retval = BIN_TARGET;
 		goto _out_munmap;
 	}
-#else
-	if (!strcmp(target_cpu, "arm")
-		&& ehdr->e_machine == EM_ARM) {
-		retval = BIN_TARGET;
-		goto _out_munmap;
-	} else if (!strcmp(target_cpu, "armel")
-		&& ehdr->e_machine == EM_ARM) {
-		retval = BIN_TARGET;
-		goto _out_munmap;
-	} else if (!strcmp(target_cpu, "armeb")
-		&& ehdr->e_machine == byte_swap(EM_ARM)) {
-		retval = BIN_TARGET;
-		goto _out_munmap;
-	} else if (!strcmp(target_cpu, "ppc")
-		&& ehdr->e_machine == byte_swap(EM_PPC)) {
-		retval = BIN_TARGET;
-		goto _out_munmap;
-	} else if (!strcmp(target_cpu, "mips")
-		&& ehdr->e_machine == byte_swap(EM_MIPS)) {
-		retval = BIN_TARGET;
-		goto _out_munmap;
-	} else if (!strcmp(target_cpu, "mipsel")
-		&& ehdr->e_machine == EM_MIPS_RS3_LE) {
-		retval = BIN_TARGET;
-		goto _out_munmap;
-	} else if (!strncmp(target_cpu, "sh", 2)
-		&& ehdr->e_machine == EM_SH) {
-		retval = BIN_TARGET;
-		goto _out_munmap;
-	}
-#endif
 
 	retval = BIN_HOST;
 _out_munmap:

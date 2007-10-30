@@ -783,7 +783,7 @@ if(defined $wrappers_c_output_file) {
 	write_output_file($wrappers_c_output_file,
 		$file_header_comment.
 		'#include "libsb2.h"'."\n".
-		'#include "'.$export_h_output_file.'"'."\n".
+		'#include "exported.h"'."\n".
 		$wrappers_c_buffer);
 }
 if(defined $export_h_output_file) {

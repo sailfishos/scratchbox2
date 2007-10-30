@@ -17,4 +17,6 @@ autom4te.cache
 aclocal.*
 *.a
 config.mak
-
+preload/exported.h
+preload/ldexportlist
+preload/wrappers.c

@@ -28,7 +28,7 @@
 */
 
 #include "libsb2.h"
-#include "generated/exported.h"
+#include "exported.h"
 
 
 /* strchrnul(): Find the first occurrence of C in S or the final NUL byte.

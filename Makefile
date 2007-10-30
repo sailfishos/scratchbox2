@@ -130,7 +130,7 @@ install-multilib: install-noarch
 	/sbin/ldconfig -n $(prefix)/lib32/libsb2 $(prefix)/lib64/libsb2
 
 
-CLEAN_FILES = $(targets) config.status config.log
+CLEAN_FILES += $(targets) config.status config.log
 
 # make all object files depend on include/config.h
 

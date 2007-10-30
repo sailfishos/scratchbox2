@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -167,6 +168,27 @@ int run_sbrsh(char *sbrsh_bin, char *target_root, char *orig_file,
 
 	for (p = &argv[1]; *p; p++)
 		my_argv[i++] = *p;
+
+	for (p = (char **) envp; *p; ++p) {
+		char *start, *end;
+
+		if (strncmp("LD_PRELOAD=", *p, strlen("LD_PRELOAD=")) != 0)
+			continue;
+
+		start = strstr(*p, LIBSB2);
+		if (!start)
+			break;
+
+		end = start + strlen(LIBSB2);
+
+		while (start[-1] != '=' && !isspace(start[-1]))
+			start--;
+
+		while (*end != '\0' && isspace(*end))
+			end++;
+
+		memmove(start, end, strlen(end) + 1);
+	}
 
 	return sb_next_execve(sbrsh_bin, my_argv, envp);
 }

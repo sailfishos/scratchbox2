@@ -55,4 +55,6 @@ extern int sb_loglevel__; /* do not access directly */
 		} \
 	} while (0)
 
+#define LIBSB2 "libsb2.so.1"
+
 #endif

@@ -103,6 +103,17 @@ int run_cputransparency(char *orig_file, char *file, char **argv,
 	return -1;
 }
 
+static int is_subdir(const char *root, const char *subdir)
+{
+	size_t sublen;
+
+	if (strstr(subdir, root) != subdir)
+		return 0;
+
+	sublen = strlen(subdir);
+	return root[sublen] == '/' || root[sublen] == '\0';
+}
+
 int run_sbrsh(char *sbrsh_bin, char *target_root, char *orig_file,
               char **argv, char *const *envp)
 {
@@ -132,12 +143,14 @@ int run_sbrsh(char *sbrsh_bin, char *target_root, char *orig_file,
 	}
 
 	dir = get_current_dir_name();
-	if (strstr(dir, target_root) == dir) {
+	if (is_subdir(target_root, dir)) {
 		dir += len;
+	} else if (is_subdir(getenv("HOME"), dir)) {
+		/* no change */
 	} else {
 		fprintf(stderr, "Warning: Executing binary with bogus working"
-		        " directory (/tmp) because sbrsh can only see %s\n",
-		        target_root);
+		        " directory (/tmp) because sbrsh can only see %s and"
+		         "%s\n", target_root, getenv("HOME"));
 		dir = "/tmp";
 	}
 

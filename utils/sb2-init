@@ -90,7 +90,7 @@ function write_sbrsh_config()
 
 $TARGET  $REMOTEHOST
   nfs   $LOCALHOST:$SBOX_TARGET_ROOT  /  rw,nolock,noac,tcp
-  nfs   $LOCALHOST:$HOME  /home  rw,nolock,noac,tcp
+  nfs   $LOCALHOST:$HOME  $HOME  rw,nolock,noac,tcp
   bind  /tmp      /tmp
   bind  /proc     /proc
   bind  /sys      /sys

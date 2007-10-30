@@ -1,6 +1,6 @@
 # ll build system
 #
-# Copyright (C) 2006 Lauri Leukkunen <lle@rahina.org>
+# Copyright (C) 2006-2007 Lauri Leukkunen <lle@rahina.org>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,6 @@ __kicker_target: all
 TOPDIR := $(CURDIR)
 
 # a useful function to expand paths
-
 define O
 $(patsubst %,$(D)/%,$(1))
 endef
@@ -54,9 +53,7 @@ endef
 $(foreach dir,$(subdirs),$(eval $(call import_dir,$(dir))))
 
 
-built_in_target := built-in.o
-
-all_objects := $(obj-builtin)
+all_objects := $(obj-y)
 all_objects += $(foreach t,$(extra_targets),$($(t)))
 
 MKOUTPUTDIR = @mkdir -p $(dir $@)
@@ -109,15 +106,6 @@ built-in.o:: %.o
 %:: %.c
 
 %:: %.o
-
-
-#%Makefile.include:: $(SRCDIR)/$@
-#	$(MKOUTPUTDIR)
-#	cp $(SRCDIR)/$@ $@
-
-#%Makefile:: $(SRCDIR)/$@
-#	$(MKOUTPUTDIR)
-#	cp $(SRCDIR)/$@ $@
 
 
 define ll_clean

@@ -151,7 +151,7 @@ int run_sbrsh(char *sbrsh_bin, char *target_root, char *orig_file,
 	} else {
 		fprintf(stderr, "Warning: Executing binary with bogus working"
 		        " directory (/tmp) because sbrsh can only see %s and"
-		         "%s\n", target_root, getenv("HOME"));
+		        " %s\n", target_root, getenv("HOME"));
 		dir = "/tmp";
 	}
 

@@ -52,8 +52,10 @@ GATE: char * getwd (char *buf)
 GATE: char *mkdtemp (char *template)
 GATE: int uname(struct utsname *buf)
 
+#ifdef HAVE_FTS_H
 GATE: FTS * fts_open (char * const *path_argv, int options, \
 	int (*compar)(const FTSENT **, const FTSENT **))
+#endif
 GATE: int glob (const char *pattern, int flags, \
 	int (*errfunc) (const char *, int), glob_t *pglob) : \
 	map(pattern)
@@ -131,7 +133,9 @@ WRAP: int chmod(const char *path, mode_t mode) : map(path)
 WRAP: int chown(const char *path, uid_t owner, gid_t group) : map(path)
 WRAP: int creat(const char *pathname, mode_t mode) : map(pathname)
 WRAP: int creat64(const char *pathname, mode_t mode) : map(pathname)
+#ifdef __USE_GNU
 WRAP: void *dlmopen(Lmid_t nsid, const char *filename, int flag) : map(filename)
+#endif
 WRAP: void *dlopen(const char *filename, int flag) : map(filename)
 WRAP: int euidaccess(const char *pathname, int mode) : map(pathname)
 WRAP: int faccessat(int dirfd, const char *pathname, int mode, int flags) : map_at(dirfd,pathname)

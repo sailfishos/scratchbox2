@@ -444,6 +444,7 @@ int execvp_gate(
 }
 
 
+#ifdef HAVE_FTS_H
 /* FIXME: why there was #if !defined(HAVE___OPENDIR2) around fts_open() ???? */
 FTS * fts_open_gate(FTS * (*real_fts_open_ptr)(char * const *path_argv,
 		int options, int (*compar)(const FTSENT **,const FTSENT **)),
@@ -472,7 +473,7 @@ FTS * fts_open_gate(FTS * (*real_fts_open_ptr)(char * const *path_argv,
 
 	return (*real_fts_open_ptr)(new_path_argv, options, compar);
 }
-
+#endif
 
 char * get_current_dir_name_gate(
 	char * (*real_get_current_dir_name_ptr)(void),

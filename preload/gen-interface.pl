@@ -736,27 +736,50 @@ sub command_export {
 # Reads lines from standard input and call the above functions
 # to perform actions.
 my $line;
+my $token_cache;		# cached pre-processor token
+
 while ($line = <STDIN>) {
-	next if ($line =~ m/^\s*#/);	# skip comment lines
 	next if ($line =~ m/^\s*$/);	# skip empty lines
 
 	while($line =~ s/\\$//) {
+		# Kill trailing whitespace when joining lines
+		$line =~ s/\s$//;
 		# line ends with \, glue next line to this one
 		my $nextline = <STDIN>;
 		$line .= $nextline;
 		if($debug) { printf "Continued: '%s'\n", $nextline; }
 	}
 
+	# '#' lines are special cased, they will either be comments
+	# or pre-processor directives.
+	if ($line =~ m/^\s*#/) {
+		# skip anything that's an obvious comment
+		next if ($line =~ m/^\s*#\s/);
+		next if ($line =~ m/^\s*#[A-Z]/);
+		next if ($line =~ m/^\s*#\s*$/);
+		$wrappers_c_buffer .= $token_cache = $line;
+		next
+	}
+
 	# Add the line as comment to the output C file
 	my $src_comment = $line;
-	$src_comment =~ s/\n/\n * /g;
+	$src_comment =~ s/\n/\n */g;
 	$wrappers_c_buffer .= "/*$src_comment\n*/\n";
 
 	# replace multiple whitespaces by single spaces:
 	$line =~ s/\s+/ /g;
 
+	# Kill off trailing whitespace.
+	$line =~ s/\s$//;
+
 	# Split to fields. 1st=command, 2nd=function, 3rd=modifiers
 	my @field = split(/\s*:\s*/, $line);
+
+	# Order the cached pre-processor token first
+	if ($token_cache) {
+		$export_h_buffer .= $token_cache;
+		$token_cache = "";
+	}
 
 	if(($field[0] eq 'WRAP') || ($field[0] eq 'GATE')) {
 		# Generate a wrapper of a gate

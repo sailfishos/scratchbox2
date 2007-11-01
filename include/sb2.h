@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <time.h>
+#include <stdarg.h>
 
 #include <lua.h>
 #include <lualib.h>

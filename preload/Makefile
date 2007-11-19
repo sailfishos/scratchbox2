@@ -7,10 +7,10 @@ ifeq ($(shell uname -s),Linux)
 LIBSB2_LDFLAGS = -Wl,-soname=$(LIBSB2_SONAME) \
 		-Wl,--retain-symbols-file=preload/ldexportlist
 LIBSB2_LIBS = -lrt
-SHLIBEXT = dylib
+SHLIBEXT = so
 else
 #LIBSB2_LDFLAGS = -dynamiclib
-SHLIBEXT = so
+SHLIBEXT = dylib
 endif
 
 

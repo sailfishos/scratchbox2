@@ -4,8 +4,6 @@
  * Licensed under LGPL version 2.1, see top level LICENSE file for details.
  */
 
-#define _GNU_SOURCE
-
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>

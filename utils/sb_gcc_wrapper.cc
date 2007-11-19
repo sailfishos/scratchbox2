@@ -203,7 +203,7 @@ static Program *detect_program(const char *const name, const Group group)
 static const Program &detect_program(const char *const absname)
 {
 	// GNU basename never modifies its argument
-	const char *const name = basename(absname);
+	const char *const name = basename((char *)absname);
 
 	const Program *prog;
 	if ((prog = detect_program(name, compilers)) ||

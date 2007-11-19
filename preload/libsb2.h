@@ -32,7 +32,6 @@
 #include "config.h"
 #include "config_hardcoded.h"
 
-#define _GNU_SOURCE
 #define __BSD_VISIBLE
 
 #include <assert.h>
@@ -121,11 +120,7 @@
 }
 
 
-
-#ifndef __GLIBC__
-extern char **environ;
-#endif
-
 extern void *sbox_find_next_symbol(int log_enabled, const char *functname);
 
 #endif /* ifndef LIBSB2_H_INCLUDED_ */
+

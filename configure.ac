@@ -172,7 +172,7 @@ AH_TEMPLATE([SUPPORT_XATTRS],
 [Define to 1 to add support for extended attributes])
 
 case "$(uname -s)" in
-*linux*)
+*Linux*)
 	AC_MSG_RESULT(Using Linux xattrs)
 	AC_DEFINE(HAVE_LINUX_XATTRS, 1, [True if you have Linux xattrs])
 	AC_DEFINE(SUPPORT_XATTRS, 1)

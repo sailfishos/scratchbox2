@@ -28,9 +28,10 @@
 */
 
 #include <unistd.h>
+#include <config.h>
+#include <config_hardcoded.h>
 #include "libsb2.h"
 #include "exported.h"
-
 
 /* strchrnul(): Find the first occurrence of C in S or the final NUL byte.
  * This is not present on all systems, so we'll use our own version in sb2.

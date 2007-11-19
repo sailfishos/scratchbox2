@@ -22,6 +22,8 @@
 #include <cctype>
 #include <cerrno>
 
+#include <libgen.h>
+
 using namespace std;
 
 /*

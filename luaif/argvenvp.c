@@ -12,7 +12,7 @@
 #include <lauxlib.h>
 
 extern char *dummy;
-char *argvenvp_mode;
+static char *argvenvp_mode;
 
 int sb_argvenvp(const char *binary_name, const char *func_name,
 		char **argv, char **envp)

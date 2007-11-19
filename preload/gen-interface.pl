@@ -256,9 +256,9 @@ sub add_function_name_to_symbol_table {
 	my $fn_name = shift;
 
 	if(defined($all_function_names{$fn_name})) {
-		printf "ERROR: Multiple references to function '%s'\n",
+		printf "Warning: Multiple references to function '%s'\n",
 			$fn_name;
-		$num_errors++;
+		#$num_errors++;
 		return;
 	}
 	$all_function_names{$fn_name} = 1;
@@ -739,6 +739,8 @@ my $line;
 my $token_cache;		# cached pre-processor token
 
 while ($line = <STDIN>) {
+	$line =~ s/^--.*$//;
+	#printf "VITTU: %s\n" , $line;
 	next if ($line =~ m/^\s*$/);	# skip empty lines
 
 	while($line =~ s/\\$//) {
@@ -750,21 +752,21 @@ while ($line = <STDIN>) {
 		if($debug) { printf "Continued: '%s'\n", $nextline; }
 	}
 
-	# '#' lines are special cased, they will either be comments
-	# or pre-processor directives.
-	if ($line =~ m/^\s*#/) {
-		# skip anything that's an obvious comment
-		next if ($line =~ m/^\s*#\s/);
-		next if ($line =~ m/^\s*#[A-Z]/);
-		next if ($line =~ m/^\s*#\s*$/);
+	# lines starting with -- are comments
+	if ($line =~ m/^\s*--/) {
 		$wrappers_c_buffer .= $token_cache = $line;
 		next
 	}
 
-	# Add the line as comment to the output C file
+	# Add the line to the output files if it's not a WRAP, EXPORT or
+	# GATE line
 	my $src_comment = $line;
-	$src_comment =~ s/\n/\n */g;
-	$wrappers_c_buffer .= "/*$src_comment\n*/\n";
+	if (not ($line =~ m/^(WRAP|EXPORT|GATE)/i)) {
+		$wrappers_c_buffer .= "$src_comment\n";
+
+		# Add the line to the output H file
+		$export_h_buffer .= "$src_comment\n";
+	}
 
 	# replace multiple whitespaces by single spaces:
 	$line =~ s/\s+/ /g;
@@ -788,8 +790,7 @@ while ($line = <STDIN>) {
 		# don't generate anything, but tell ld to export a function
 		command_export(@field);
 	} else {
-		print "ERROR: $line";
-		$num_errors++;
+		# just pass it through to the generated file
 	}
 }
 

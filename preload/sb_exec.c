@@ -16,15 +16,16 @@
 #include <sys/stat.h>
 #include <limits.h>
 #include <fcntl.h>
+#include <libgen.h>
 
 #include <sys/utsname.h>
-#include <elf.h>
 #include <sys/user.h>
 #include <sys/mman.h>
 
 #include <config.h>
 #include <sb2.h>
 #include <mapping.h>
+#include <elf.h>
 
 #include "libsb2.h"
 #include "exported.h"

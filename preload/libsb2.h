@@ -66,7 +66,7 @@
 #include <sys/xattr.h>
 #endif
 
-#include <elf.h>
+//#include <elf.h>
 #include <sys/user.h>
 #include <sys/mman.h>
 

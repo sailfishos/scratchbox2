@@ -66,6 +66,11 @@ P = @printf "[%s] $@\n" # <- space before hash is important!!!
 Q = @
 endif
 
+%.dylib:
+	$(MKOUTPUTDIR)
+	$(P)DYLIB
+	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -dynamiclib -o $@ $^ $(LIBS)
+
 %.so::
 	$(MKOUTPUTDIR)
 	$(P)SHLIB

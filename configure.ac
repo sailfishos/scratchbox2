@@ -168,6 +168,33 @@ ssize_t readlink(const char *path, char *buf, size_t bufsize)
 readlink_type="ssize_t", readlink_type="int")
 AC_DEFINE_UNQUOTED(READLINK_TYPE, ${readlink_type})
 
+AH_TEMPLATE([SUPPORT_XATTRS],
+[Define to 1 to add support for extended attributes])
+
+case "$(uname -s)" in
+*linux*)
+	AC_MSG_RESULT(Using Linux xattrs)
+	AC_DEFINE(HAVE_LINUX_XATTRS, 1, [True if you have Linux xattrs])
+	AC_DEFINE(SUPPORT_XATTRS, 1)
+	AC_DEFINE(HAVE_LINUX_SCANDIR, 1, [True if you have Linux scandir])
+	;;
+Darwin*)
+	AC_MSG_RESULT(Using OS X xattrs)
+	AC_DEFINE(HAVE_OSX_XATTRS, 1, [True if you have Mac OS X xattrs])
+	AC_DEFINE(SUPPORT_XATTRS, 1)
+	AC_DEFINE(HAVE_OSX_SCANDIR, 1, [True if you have OS X scandir])
+	;;
+freebsd*)
+	AC_MSG_RESULT(Using FreeBSD extattrs)
+	AC_DEFINE(HAVE_FREEBSD_XATTRS, 1, [True if you have FreeBSD xattrs])
+	AC_DEFINE(SUPPORT_XATTRS, 1)
+	AC_DEFINE(HAVE_FREEBSD_SCANDIR, 1, [True if you have FreeBSD scandir])
+	;;
+*)
+	AC_MSG_ERROR(Failed to identify xattr style for your host)
+	;;
+esac
+
 AC_C_BIGENDIAN()
 
 AC_SUBST(WORDS_BIGENDIAN, ${WORDS_BIGENDIAN})

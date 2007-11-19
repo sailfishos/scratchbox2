@@ -27,6 +27,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 */
 
+#include <unistd.h>
 #include "libsb2.h"
 #include "exported.h"
 
@@ -579,7 +580,7 @@ int glob_gate(
 	return rc;
 }
 
-
+#ifdef HAVE_GLOB64
 int glob64_gate(
 	int (*real_glob64_ptr)(const char *pattern,
 		int flags, int (*errfunc) (const char *,int), glob64_t *pglob),
@@ -607,7 +608,7 @@ int glob64_gate(
 	}
 	return rc;
 }
-
+#endif
 
 /* FIXME: The following two functions do not have anything to do with path
  * remapping. Instead these implementations prevent locking of the shadow

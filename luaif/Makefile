@@ -1,10 +1,9 @@
-LUASRC = mapping/lua-5.1.2/src
+LUASRC = luaif/lua-5.1.2/src
 
-objs := $(D)/luaif.o $(D)/sb_log.o $(D)/paths.o $(D)argvenvp.o
+objs := $(D)/luaif.o $(D)/sb_log.o $(D)/paths.o $(D)/argvenvp.o
 
 luaif/libluaif.a: $(objs)
-luaif/libluaif.a: override CFLAGS := -O2 -g -fPIC -Wall -W \
-			-I$(SRCDIR)/$(LUASRC) $(CFLAGS)
+luaif/libluaif.a: override CFLAGS := $(CFLAGS) -O2 -g -fPIC -Wall -W -I$(SRCDIR)/$(LUASRC)
 luaif/libluaif.a: override LDFLAGS := $(LDFLAGS)
 luaif/libluaif.a: override LIBS := 
 

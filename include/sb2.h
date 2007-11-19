@@ -7,8 +7,23 @@
 #ifndef __SB2_H
 #define __SB2_H
 
-#include <syscall.h>
 #include <stdio.h>
+#include <time.h>
+
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
+
+struct lua_instance {
+	lua_State *lua;
+	char *script_dir;
+	char *main_lua_script;
+	int mapping_disabled;
+};
+
+void sb2_lua_init(void);
+struct lua_instance *get_lua(void);
+char *sb_decolonize_path(const char *path);
 
 int sb_next_execve(const char *filename, char *const argv [],
 			char *const envp[]);

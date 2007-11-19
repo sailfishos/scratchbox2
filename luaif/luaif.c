@@ -40,16 +40,8 @@
 
 #define __set_errno(e) errno = e
 
-
 void mapping_log_write(char *msg);
 static int lua_bind_sb_functions(lua_State *l);
-
-struct lua_instance {
-	lua_State *lua;
-	char *script_dir;
-	char *main_lua_script;
-	int mapping_disabled;
-};
 
 static pthread_key_t lua_key;
 static pthread_once_t lua_key_once = PTHREAD_ONCE_INIT;
@@ -77,18 +69,17 @@ static void alloc_lua(void)
 	if (!tmp->script_dir) {
 		tmp->script_dir = "/scratchbox/lua_scripts";
 	} else {
-		tmp->script_dir = strdup(m->script_dir);
+		tmp->script_dir = strdup(tmp->script_dir);
 	}
 		
-		tmp->main_lua_script = calloc(strlen(m->script_dir)
-				+ strlen("/main.lua") + 1, sizeof(char));
+	tmp->main_lua_script = calloc(strlen(tmp->script_dir)
+			+ strlen("/main.lua") + 1, sizeof(char));
 
-		strcpy(tmp->main_lua_script, tmp->script_dir);
-		strcat(tmp->main_lua_script, "/main.lua");
+	strcpy(tmp->main_lua_script, tmp->script_dir);
+	strcat(tmp->main_lua_script, "/main.lua");
 
-		SB_LOG(SB_LOGLEVEL_DEBUG, "script_dir: '%s'",
+	SB_LOG(SB_LOGLEVEL_DEBUG, "script_dir: '%s'",
 			tmp->script_dir);
-	}
 
 	tmp->lua = luaL_newstate();
 		
@@ -119,7 +110,7 @@ struct lua_instance *get_lua(void)
 	return (struct lua_instance *)pthread_getspecific(lua_key);
 }
 
-static char *dummy = NULL;
+char *dummy = NULL;
 
 void sb2_lua_init(void) __attribute((constructor));
 void sb2_lua_init(void)

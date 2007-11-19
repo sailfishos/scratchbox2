@@ -3,7 +3,7 @@ objs := wrappers.o libsb2.o sb_exec.o
 PROTOTYPEWARNINGS=-Wmissing-prototypes -Wstrict-prototypes
 
 $(D)/libsb2.so: $(call O,$(objs))
-$(D)/libsb2.so: mapping/libmapping.a mapping/liblua.a
+$(D)/libsb2.so: luaif/libluaif.a luaif/liblua.a
 $(D)/libsb2.so: CFLAGS := $(CFLAGS) -fPIC -Wall -W \
 		$(PROTOTYPEWARNINGS)
 $(D)/libsb2.so: LDFLAGS := $(LDFLAGS) -Wl,-soname=$(LIBSB2_SONAME) \

@@ -45,7 +45,7 @@
 #include <sys/stat.h>
 #include <sys/times.h>
 #include <sys/utsname.h>
-#include <asm/unistd.h>
+//#include <asm/unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <stdarg.h>

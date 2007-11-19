@@ -213,7 +213,6 @@ int run_qemu(char *qemu_bin, char *orig_file,char *file,
 	my_argv[i++] = qemu_bin;
 	my_argv[i++] = "-drop-ld-preload";
 	my_argv[i++] = "-L";
-
 	my_argv[i++] = "/";
 	my_argv[i++] = orig_file; /* we're passing the unmapped file
 				   * here, it works because qemu will

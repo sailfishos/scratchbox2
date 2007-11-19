@@ -1,0 +1,12 @@
+/* Automatically generated file. Do not edit. */
+## ^^^(Not this one, but the one this emits) ^^^
+
+extern void _init(void) ;
+extern void _fini(void) ;
+#for $f in $funcs:
+extern $f.ret $(f.name)($f.args);
+#end for
+#for $f in $gates:
+extern $f.ret $(f.name)($f.args);
+#end for
+

@@ -1,0 +1,136 @@
+/* Automatically generated file. Do not edit. */
+## ^^^(Not this one, but the one this emits) ^^^
+
+\#include "libsb2.h"
+\#include "exported.h"
+
+
+#def map_defs(key): char *mapped__$key = NULL;
+#def map_pre(key): SBOX_MAP_PATH($key, mapped__$key);
+#def map_post(key): if(mapped__$key) free(mapped__$key);
+#def mapat_pre(f): SBOX_MAP_PATH_AT($f.mapfd,$f.mapkey, mapped__$f.mapkey);
+
+
+#def optarg_defs(): int mode = 0;
+#def optarg_pre(f)
+    if($f.optarg_cond) {
+      va_list arg;
+      va_start (arg, $f.optarg_prev);
+      mode = va_arg (arg, int);
+      va_end (arg);
+    }
+#end def
+
+
+#def HEADER(f,domap)
+	#set global $f = $f
+	#for $ext in f.extra
+	#if domap or 'nomap' in $ext: #include source=$ext.defs
+
+	#end for
+	#for $ext in f.extra
+        #if domap or 'nomap' in $ext: #include source=$ext.pre
+
+	#end for
+
+#end def
+
+#def FOOTER(f,domap)
+	#for $ext in f.extra
+	#if domap or 'nomap' in $ext: #include source=$ext.post
+	#end for
+#end def
+
+
+############################# WRAPS
+
+#for $f in $funcs:
+#set $fnext = $f.name+'_next__'
+/*WRAP: $f.ret $(f.name)($f.args): $f.extra
+ * 
+*/
+static $f.ret (*$fnext)($f.args);
+
+$f.ret $f.name ($f.args)
+{
+	$f.ret ret;
+
+  $HEADER($f,True)
+	
+        if($fnext == NULL) {
+                $fnext = sbox_find_next_symbol(1, "$f.name");
+        }
+        ret = (*$fnext)(${', '.join(f.argnames)});
+	$FOOTER($f,True)
+
+        return(ret);
+
+}
+
+#if f.emit_nomap:
+$f.ret ${f.name}_nomap($f.args)
+{
+	$f.ret ret;
+
+  $HEADER($f,False)
+
+        if($fnext == NULL) {
+                $fnext = sbox_find_next_symbol(1, "$f.name");
+        }
+        ret = (*$fnext)(${', '.join(f.argnames_orig)});
+  $FOOTER($f,False)
+
+        return(ret);
+
+}
+#end if
+
+#if f.emit_nomap_nolog:
+$f.ret ${f.name}_nomap_nolog($f.args)
+{
+	$f.ret ret;
+
+  $HEADER($f,False)
+
+        if($fnext == NULL) {
+                $fnext = sbox_find_next_symbol(0, "$f.name");
+        }
+        ret = (*$fnext)(${', '.join(f.argnames_orig)});
+  $FOOTER($f,False)
+
+        return(ret);
+
+}
+#end if
+
+#end for
+
+############################# GATES
+
+#def vaskip_defs(): va_list ap;
+#def vaskip_pre(f): va_start(ap,$f.optarg_prev);
+#def vaskip_post(): va_end ap;
+
+
+#for $f in $gates:
+#set $fnext = $f.name+'_next__'
+/*GATE: $f.ret $(f.name)($f.args): $f.extra
+ * 
+*/
+static $f.ret (*$fnext)($f.args);
+
+$f.ret $f.name ($f.args)
+{
+	$f.ret ret;
+  $HEADER($f,True)
+
+        if($fnext == NULL) {
+                $fnext = sbox_find_next_symbol(1, "$f.name");
+        }
+  ret = ${f.name}_gate(${', '.join([$fnext,'__func__']+f.argnames)});
+
+  $FOOTER($f,True)
+        return(ret);
+}
+
+#end for

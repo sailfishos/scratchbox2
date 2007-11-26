@@ -57,6 +57,7 @@ static void alloc_lua_key(void)
 static void alloc_lua(void)
 {
 	struct lua_instance *tmp;
+
 	tmp = malloc(sizeof(struct lua_instance));
 	memset(tmp, 0, sizeof(struct lua_instance));
 	pthread_once(&lua_key_once, alloc_lua_key);
@@ -80,7 +81,8 @@ static void alloc_lua(void)
 			tmp->script_dir);
 
 	tmp->lua = luaL_newstate();
-		
+
+	disable_mapping(tmp);
 	luaL_openlibs(tmp->lua);
 	lua_bind_sb_functions(tmp->lua); /* register our sb_ functions */
 	switch(luaL_loadfile(tmp->lua, tmp->main_lua_script)) {
@@ -100,6 +102,7 @@ static void alloc_lua(void)
 		;
 	}
 	lua_call(tmp->lua, 0, 0);
+	enable_mapping(tmp);
 	SB_LOG(SB_LOGLEVEL_DEBUG, "lua initialized.");
 }
 
@@ -108,15 +111,15 @@ struct lua_instance *get_lua(void)
 	return (struct lua_instance *)pthread_getspecific(lua_key);
 }
 
-char *dummy = NULL;
+int lua_engine_state = 0;
 
 void sb2_lua_init(void) __attribute((constructor));
 void sb2_lua_init(void)
 {
-	alloc_lua();
-	dummy = "ok";
-
+	lua_engine_state = LES_INIT_IN_PROCESS;
 	sblog_init();
+	alloc_lua();
+	lua_engine_state = LES_READY;
 }
 
 /* "sb.decolonize_path", to be called from lua code */

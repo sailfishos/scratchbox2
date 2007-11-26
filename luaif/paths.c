@@ -36,10 +36,7 @@
 #include <mapping.h>
 #include <sb2.h>
 
-#define enable_mapping(a) a->mapping_disabled--
-#define disable_mapping(a) a->mapping_disabled++
-
-extern char *dummy;
+extern int lua_engine_state;
 
 struct path_entry {
 	struct path_entry *prev;
@@ -174,11 +171,21 @@ char *scratchbox_path2(const char *binary_name,
 	char pidlink[17]; /* /proc/2^8/exe */
 	struct lua_instance *luaif;
 
-	if (!dummy) sb2_lua_init();
+	switch (lua_engine_state) {
+	case LES_NOT_INITIALIZED:
+		sb2_lua_init();
+		break;
+	case LES_INIT_IN_PROCESS:
+		return strdup(path);
+	case LES_READY:
+	default:
+		/* Do nothing */
+		break;
+	}
 
 	luaif = get_lua();
 	if (!luaif) {
-		printf("Something's wrong with"
+		fprintf(stderr, "Something's wrong with"
 			" the pthreads support.\n");
 		exit(1);
 	}

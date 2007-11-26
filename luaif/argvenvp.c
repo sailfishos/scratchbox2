@@ -7,11 +7,12 @@
 #include <stdlib.h>
 
 #include <sb2.h>
+#include <mapping.h>
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
 
-extern char *dummy;
+extern int lua_engine_state;
 static char *argvenvp_mode;
 
 int sb_argvenvp(const char *binary_name, const char *func_name,
@@ -19,11 +20,21 @@ int sb_argvenvp(const char *binary_name, const char *func_name,
 {
 	struct lua_instance *luaif;
 
-	if (!dummy) sb2_lua_init();
+	switch (lua_engine_state) {
+	case LES_NOT_INITIALIZED:
+		sb2_lua_init();
+		break;
+	case LES_INIT_IN_PROCESS:
+		return 0;
+	case LES_READY:
+	default:
+		/* Do nothing */
+		break;
+	}
 
 	luaif = get_lua();
 	if (!luaif) {
-		printf("Something's wrong with"
+		fprintf(stderr, "Something's wrong with"
 			" the pthreads support.\n");
 		exit(1);
 	}

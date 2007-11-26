@@ -739,9 +739,8 @@ my $line;
 my $token_cache;		# cached pre-processor token
 
 while ($line = <STDIN>) {
-	$line =~ s/^--.*$//;
-	#printf "VITTU: %s\n" , $line;
-	next if ($line =~ m/^\s*$/);	# skip empty lines
+	$line =~ s/^--.*$//; # cut off comments
+	next if ($line =~ m/^\s*$/); # skip empty lines
 
 	while($line =~ s/\\$//) {
 		# Kill trailing whitespace when joining lines

@@ -119,6 +119,9 @@
 	} \
 }
 
+#ifndef __GLIBC__
+extern char **environ;
+#endif
 
 extern void *sbox_find_next_symbol(int log_enabled, const char *functname);
 

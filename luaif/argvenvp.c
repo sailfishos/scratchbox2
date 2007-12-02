@@ -5,6 +5,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 
 #include <sb2.h>
 #include <mapping.h>
@@ -15,10 +16,11 @@
 extern int lua_engine_state;
 static char *argvenvp_mode;
 
-int sb_argvenvp(const char *binary_name, const char *func_name,
-		char **argv, char **envp)
+int sb_argvenvp(const char *binary_name, char ***argv, char ***envp)
 {
 	struct lua_instance *luaif;
+	char **p;
+	int i, res, new_argc, new_envc;
 
 	switch (lua_engine_state) {
 	case LES_NOT_INITIALIZED:
@@ -46,13 +48,61 @@ int sb_argvenvp(const char *binary_name, const char *func_name,
 	if (!argv || !envp) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"ERROR: sb_argvenvp: (argv || envp) == NULL");
-		return 1;
+		return -1;
 	}
 
 	if (getenv("SBOX_DISABLE_ARGVENVP")) {
 		SB_LOG(SB_LOGLEVEL_DEBUG, "sb_argvenvp disabled(E):");
 		return 0;
 	}
+
+	lua_getfield(luaif->lua, LUA_GLOBALSINDEX, "sbox_argvenvp");
+	lua_pushstring(luaif->lua, binary_name);
+
+	lua_newtable(luaif->lua);
+	for (p = *argv, i = 1; *p; p++, i++) {
+		lua_pushnumber(luaif->lua, i);
+		lua_pushstring(luaif->lua, *p);
+		lua_settable(luaif->lua, -3);
+		free(*p);
+	}
+	free(*argv);
+
+	lua_newtable(luaif->lua);
+	for (p = *envp, i = 1; *p; p++, i++) {
+		lua_pushnumber(luaif->lua, i);
+		lua_pushstring(luaif->lua, *p);
+		lua_settable(luaif->lua, -3);
+		free(*p);
+	}
+	free(*envp);
+
+	/* args:    binaryname, argv, envp
+	 * returns: err, argc, argv, envc, envp */
+	lua_call(luaif->lua, 3, 5);
+
+	res = lua_tointeger(luaif->lua, -5);
+	new_argc = lua_tointeger(luaif->lua, -4);
+	new_envc = lua_tointeger(luaif->lua, -2);
+
+	*argv = (char **)calloc(new_argc + 1, sizeof(char *));
+	*envp = (char **)calloc(new_envc + 1, sizeof(char *));
+
+	for (i = 0; i < new_argc; i++) {
+		lua_rawgeti(luaif->lua, -3, i + 1);
+		(*argv)[i] = strdup(lua_tostring(luaif->lua, -1));
+		lua_pop(luaif->lua, 1); /* return stack state to what it
+					 * was before lua_rawgeti() */
+	}
+	(*argv)[i] = NULL;
+
+	for (i = 0; i < new_envc; i++) {
+		lua_rawgeti(luaif->lua, -1, i + 1);
+		(*envp)[i] = strdup(lua_tostring(luaif->lua, -1));
+		lua_pop(luaif->lua, 1); /* return stack state to what it
+					 * was before lua_rawgeti() */
+	}
+	(*envp)[i] = NULL;
 
 	return 0;
 }

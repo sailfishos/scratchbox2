@@ -423,9 +423,9 @@ static int is_gcc_tool(char *fname)
 int do_exec(const char *exec_fn_name, const char *orig_file, const char *file,
 		char *const *argv, char *const *envp)
 {
-	char **my_envp, **my_argv, **p;
+	char ***my_envp, ***my_argv, **p;
 	char *binaryname, *tmp, *my_file;
-	int envc=0, argc=0, i, has_ld_preload=0;
+	int envc = 0, argc = 0, i, has_ld_preload = 0, err = 0;
 
 	(void)exec_fn_name; /* not yet used */
 
@@ -458,10 +458,13 @@ int do_exec(const char *exec_fn_name, const char *orig_file, const char *file,
 	for (p=(char **)argv; *p; p++, argc++)
 		;
 
+	my_envp = malloc(sizeof(char **));
+	my_argv = malloc(sizeof(char **));
+
 	if (has_ld_preload || !getenv("LD_PRELOAD")) {
-		my_envp = (char **)calloc(envc + 2, sizeof(char *));
+		*my_envp = (char **)calloc(envc + 2, sizeof(char *));
 	} else {
-		my_envp = (char **)calloc(envc + 3, sizeof(char *));
+		*my_envp = (char **)calloc(envc + 3, sizeof(char *));
 	}
 
 	i = strlen(binaryname) + strlen("__SB2_BINARYNAME=") + 1;
@@ -482,10 +485,10 @@ int do_exec(const char *exec_fn_name, const char *orig_file, const char *file,
 			/* don't pass this onwards */
 			continue;
 		}
-		my_envp[i++] = *p;
+		(*my_envp)[i++] = strdup(*p);
 	}
 
-	my_envp[i++] = strdup(tmp);
+	(*my_envp)[i++] = strdup(tmp);
 	free(tmp);
 	if (!has_ld_preload && getenv("LD_PRELOAD")) {
 		tmp = malloc(strlen(getenv("LD_PRELOAD")) 
@@ -494,15 +497,13 @@ int do_exec(const char *exec_fn_name, const char *orig_file, const char *file,
 			exit(1);
 		strcpy(tmp, "LD_PRELOAD=");
 		strcat(tmp, getenv("LD_PRELOAD"));
-		my_envp[i++] = strdup(tmp);
+		(*my_envp)[i++] = strdup(tmp);
 		free(tmp);
 	}
 
-	my_envp[i] = NULL;
+	(*my_envp)[i] = NULL;
 
-	char const* const* new_env=(char const* const*)my_envp;
-
-	my_argv = (char **)calloc(argc + 1, sizeof(char *));
+	*my_argv = (char **)calloc(argc + 1, sizeof(char *));
 	i = 0;
 
 	my_file = strdup(file);
@@ -519,23 +520,27 @@ int do_exec(const char *exec_fn_name, const char *orig_file, const char *file,
 	}
 
 	for (p = (char **)argv; *p; p++) {
-		my_argv[i++] = *p;
+		(*my_argv)[i++] = strdup(*p);
 	}
-	my_argv[i] = NULL;
+	(*my_argv)[i] = NULL;
+
+	if (!(err = sb_argvenvp(binaryname, my_argv, my_envp))) {
+		SB_LOG(SB_LOGLEVEL_ERROR, "argvenvp processing error %i", err);
+	}
 
 	switch (type) {
 		case BIN_HOST:
 			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/host %s",
 				(char *)my_file);
 
-			return run_app((char *)my_file, (char **)my_argv,
-					my_envp);
+			return run_app((char *)my_file, (char **)*my_argv,
+					*my_envp);
 		case BIN_TARGET:
 			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/target %s",
 				(char *)my_file);
 
 			return run_cputransparency((char *)orig_file, my_file,
-					(char **)my_argv, my_envp);
+					(char **)*my_argv, *my_envp);
 		case BIN_NONE:
 		case BIN_UNKNOWN:
 			SB_LOG(SB_LOGLEVEL_ERROR,
@@ -543,6 +548,6 @@ int do_exec(const char *exec_fn_name, const char *orig_file, const char *file,
 			break;
 	}
 
-	return sb_next_execve(my_file, my_argv, (char *const*)new_env);
+	return sb_next_execve(my_file, *my_argv, *my_envp);
 }
 

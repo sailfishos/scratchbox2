@@ -1,6 +1,5 @@
-* SBRSH support
-
 * libtool: kdrive x server fails to build because of libtool
 
-* apt and dpkg may still need a little bit of care
-
+* apt/dpkg build dependency checks for host and target need to be dealt
+  appropriately. Currently full checks are done against both, which is not
+  necessarily correct.

@@ -123,10 +123,11 @@ To try it out you can build for example fontconfig like this:
 
 $ sb2 apt-get source fontconfig
 $ cd fontconfig-2.4.1
-$ sb2 dpkg-buildpackage -rfakeroot
+$ sb2 dpkg-buildpackage -rfakeroot -d
 
 You don't need to be in $HOME/maemo-root to do that, I typically do all
-development work in $HOME/src.
+development work in $HOME/src. The "-d" switch is needed to skip checking build
+dependencies, this is one of the remaining TODO items of SB2.
 
 
 That's all folks, enjoy!

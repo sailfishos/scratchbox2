@@ -320,7 +320,7 @@ static enum binary_type inspect_binary(const char *filename)
 		retval = BIN_TARGET;
 		goto _out_munmap;
 	} else if (!strncmp(target_cpu, "sh", 2)
-		&& elf_hdr_match(ehdr->e_machine, EM_SH, 0)) {
+		&& elf_hdr_match(ehdr->e_machine, EM_SH, 1)) {
 		retval = BIN_TARGET;
 		goto _out_munmap;
 	}

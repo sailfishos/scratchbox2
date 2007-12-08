@@ -277,7 +277,7 @@ fi
 
 if [ $with_libtool == 1 ]; then
 	$SBOX_DIR/bin/sb2 -t $TARGET $SBOX_DIR/bin/sb2-build-libtool
-
+	printf "\n\n"
 	if [ $? == 0 ]; then
 		echo "sb2-init completed successfully, have fun!"
 	else

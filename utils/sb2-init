@@ -168,6 +168,15 @@ TARGET=$1
 SBOX_TARGET_ROOT=$PWD
 GCC=$2
 
+if [ -z "$GCC" ]; then
+	echo "Error: no compiler given"
+	exit 1
+fi
+
+if [ -z "$TARGET" ]; then
+	echo "Error: no target given"
+	exit 1
+fi
 
 GCC_FULLPATH=$(which $GCC)
 # test that gcc exists and can be executed
@@ -236,16 +245,9 @@ sbrsh)
 	;;
 esac
 
-if [ -z "$GCC" -o -z "$TARGET" ]; then
-	usage
-	exit 1
-fi
-
 if [ ! $skip_checks ]; then
 	check_buildroot_sanity
 fi
-
-
 
 
 mkdir -p $HOME/.scratchbox2

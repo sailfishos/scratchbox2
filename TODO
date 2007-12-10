@@ -7,3 +7,8 @@
 * Cleanup lua_scripts/argvenvp.lua, there's duplicate code in it at the
   moment. Naming should be changed to indicate it's really about
   controlling execve.
+
+* hashbang detection should probably be moved later in the exec-pipeline,
+  and maybe the pipeline should be travelled twice, first for the script, then
+  for the interpreter? Currently it's all done in one pass which makes it
+  relatively convoluted.

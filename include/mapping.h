@@ -22,7 +22,7 @@ enum lua_engine_states {
 char *scratchbox_path(const char *func_name, const char *path);
 char *scratchbox_path2(const char *binary_name, const char *func_name,
 			const char *path);
-int sb_argvenvp(const char *binary_name, char ***argv, char ***envp);
+int sb_execve_mod(char **file, char ***argv, char ***envp);
 char *emumode_map(const char *path);
 
 #endif

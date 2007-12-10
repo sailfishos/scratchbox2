@@ -31,7 +31,7 @@ LLBUILD ?= $(SRCDIR)/llbuild
 
 # targets variable will be filled by llbuild
 targets = 
-subdirs = luaif preload utils
+subdirs = luaif preload
 
 -include config.mak
 
@@ -94,7 +94,6 @@ install-noarch: $(BUILD_TARGET)
 	install -c -m 755 $(SRCDIR)/utils/sb2-config $(prefix)/bin/sb2-config
 	install -c -m 755 $(SRCDIR)/utils/sb2-build-libtool $(prefix)/bin/sb2-build-libtool
 	install -c -m 755 $(SRCDIR)/utils/dpkg-checkbuilddeps $(prefix)/share/scratchbox2/scripts/dpkg-checkbuilddeps
-	install -c -m 755 $(SRCDIR)/utils/dpkg-architecture $(prefix)/share/scratchbox2/scripts/dpkg-architecture
 	install -c -m 644 $(SRCDIR)/lua_scripts/main.lua $(prefix)/share/scratchbox2/lua_scripts/main.lua
 	install -c -m 644 $(SRCDIR)/lua_scripts/mapping.lua $(prefix)/share/scratchbox2/lua_scripts/mapping.lua
 	install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp.lua $(prefix)/share/scratchbox2/lua_scripts/argvenvp.lua
@@ -114,10 +113,6 @@ install: install-noarch
 	install -d -m 755 $(prefix)/lib
 	install -d -m 755 $(prefix)/lib/libsb2
 	install -c -m 755 $(OBJDIR)/preload/libsb2.so $(prefix)/lib/libsb2/libsb2.so.$(PACKAGE_VERSION)
-	install -c -m 755 $(OBJDIR)/utils/sb_gcc_wrapper $(prefix)/bin/sb_gcc_wrapper
-	@for f in $(gcc_bins_expanded); do \
-		ln -sf sb_gcc_wrapper $$f; \
-	done
 	/sbin/ldconfig -n $(prefix)/lib/libsb2
 
 
@@ -128,10 +123,6 @@ install-multilib: install-noarch
 	install -d -m 755 $(prefix)/lib64/libsb2
 	install -c -m 755 obj-32/preload/libsb2.so $(prefix)/lib32/libsb2/libsb2.so.$(PACKAGE_VERSION)
 	install -c -m 755 obj-64/preload/libsb2.so $(prefix)/lib64/libsb2/libsb2.so.$(PACKAGE_VERSION)
-	install -c -m 755 $(PRI_OBJDIR)/utils/sb_gcc_wrapper $(prefix)/bin/sb_gcc_wrapper
-	@for f in $(gcc_bins_expanded); do \
-		ln -sf sb_gcc_wrapper $$f; \
-	done
 	/sbin/ldconfig -n $(prefix)/lib32/libsb2 $(prefix)/lib64/libsb2
 
 

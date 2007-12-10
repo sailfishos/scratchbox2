@@ -210,7 +210,7 @@ int execve_gate(
 	const char **newargv;
 	char interp_filename[SBOX_MAXPATH];
 	char *ptr, **p;
-	int k;
+	int k, hb_script_index;
 	unsigned int i, j, n;
 	char c;
 
@@ -265,7 +265,7 @@ int execve_gate(
 			"%s failed to determine type of '%s' (open failed)",
 			realfnname, sbox_path);
 
-		ret = do_exec(realfnname, filename, sbox_path, argv, envp);
+		ret = do_exec(realfnname, filename, sbox_path, argv, envp, 0);
 		if (sbox_path) free(sbox_path);
 		return ret;
 	}
@@ -284,7 +284,7 @@ int execve_gate(
 	if (hashbang[0] != '#' || hashbang[1] != '!') {
 		/* not a script. do_exec() will find out what type of
 		 * binary it is. */
-		ret = do_exec(realfnname, filename, sbox_path, argv, envp);
+		ret = do_exec(realfnname, filename, sbox_path, argv, envp, 0);
 		if (sbox_path) free(sbox_path);
 		return ret;
 	}
@@ -327,6 +327,7 @@ int execve_gate(
 
 	hb_sbox_path = scratchbox_path(realfnname, interp_filename);
 	//printf("hashbanging: %s, %s\n", interp_filename, hb_sbox_path);
+	hb_script_index = n;
 	newargv[n++] = filename; /* the unmapped script path */
 
 	for (i = 1; argv[i] != NULL && i < argc; ) {
@@ -339,7 +340,7 @@ int execve_gate(
 		interp_filename);
 
 	ret = do_exec(realfnname, interp_filename, hb_sbox_path, 
-		(char *const *)newargv, envp);
+		(char *const *)newargv, envp, hb_script_index);
 	if (hb_sbox_path) free(hb_sbox_path);
 	if (sbox_path) free(sbox_path);
 	return ret;

@@ -70,6 +70,7 @@ static int elem_count(char **elems)
 	return count;
 }
 
+/* orig_file is the unmangled filename, file is mangled */
 int run_cputransparency(char *orig_file, char *file, char **argv,
 			char *const *envp)
 {
@@ -218,7 +219,7 @@ int run_qemu(char *qemu_bin, char *orig_file,char *file,
 				   * do open() on it, and that gets
 				   * mapped again.
 				   */
-	for (p=&argv[1]; *p; p++) {
+	for (p = &argv[1]; *p; p++) {
 		my_argv[i++] = *p;
 	}
 
@@ -421,11 +422,12 @@ static int is_gcc_tool(char *fname)
 
 
 int do_exec(const char *exec_fn_name, const char *orig_file, const char *file,
-		char *const *argv, char *const *envp)
+		char *const *argv, char *const *envp, int hashbang)
 {
-	char ***my_envp, ***my_argv, **p;
-	char *binaryname, *tmp, *my_file;
+	char ***my_envp, ***my_argv, **my_file, **p;
+	char *binaryname, *tmp;
 	int envc = 0, argc = 0, i, has_ld_preload = 0, err = 0;
+	enum binary_type type;
 
 	(void)exec_fn_name; /* not yet used */
 
@@ -437,15 +439,22 @@ int do_exec(const char *exec_fn_name, const char *orig_file, const char *file,
 		/* just run it, don't worry, be happy! */
 		return sb_next_execve(file, argv, envp);
 	}
-	enum binary_type type = inspect_binary(file);
+	
+	type = inspect_binary(file);
 
-	if (type == BIN_TARGET) {
-		binaryname = strdup(getenv("SBOX_CPUTRANSPARENCY_METHOD"));
-	} else {
+	if (!hashbang)
 		tmp = strdup(file);
-		binaryname = strdup(basename(tmp));
-		free(tmp);
-	}
+	else
+		tmp = strdup(argv[hashbang]);
+
+	binaryname = strdup(basename(tmp));
+	free(tmp);
+	
+	my_file = malloc(sizeof(char *));
+	if (!hashbang)
+		*my_file = strdup(file);
+	else
+		*my_file = strdup(argv[hashbang]);
 
 	/* count the environment variables and arguments, also check
 	 * for LD_PRELOAD
@@ -467,32 +476,33 @@ int do_exec(const char *exec_fn_name, const char *orig_file, const char *file,
 		*my_envp = (char **)calloc(envc + 3, sizeof(char *));
 	}
 
+	/* __SB2_BINARYNAME is used to communicate the binary name
+	 * to the new process so that it's available even before
+	 * its main function is called
+	 */
 	i = strlen(binaryname) + strlen("__SB2_BINARYNAME=") + 1;
 	tmp = malloc(i * sizeof(char));
 	strcpy(tmp, "__SB2_BINARYNAME=");
 	strcat(tmp, binaryname);
 
-	i = 0;
-	for (p=(char **)envp; *p; p++) {
+	for (i = 0, p=(char **)envp; *p; p++) {
 		if (strncmp(*p, "__SB2_BINARYNAME=",
 				strlen("__SB2_BINARYNAME=")) == 0) {
-			/* already set, skip it */
+			/* this is current process' name, skip it */
 			continue;
 		}
 
-		if (strncmp(*p, "__SBOX_GCCWRAPPER_RUN=",
-				strlen("__SBOX_GCCWRAPPER_RUN")) == 0) {
-			/* don't pass this onwards */
-			continue;
-		}
 		(*my_envp)[i++] = strdup(*p);
 	}
+	(*my_envp)[i++] = tmp; /* add the new process' name */
+	tmp = NULL;
 
-	(*my_envp)[i++] = strdup(tmp);
-	free(tmp);
+	/* If our environ has LD_PRELOAD, but the given envp doesn't,
+	 * add it.
+	 */
 	if (!has_ld_preload && getenv("LD_PRELOAD")) {
-		tmp = malloc(strlen(getenv("LD_PRELOAD")) 
-				+ strlen("LD_PRELOAD=") + 1);
+		tmp = malloc(strlen("LD_PRELOAD=")
+				+ strlen(getenv("LD_PRELOAD")) + 1);
 		if (!tmp)
 			exit(1);
 		strcpy(tmp, "LD_PRELOAD=");
@@ -500,46 +510,30 @@ int do_exec(const char *exec_fn_name, const char *orig_file, const char *file,
 		(*my_envp)[i++] = strdup(tmp);
 		free(tmp);
 	}
-
 	(*my_envp)[i] = NULL;
 
 	*my_argv = (char **)calloc(argc + 1, sizeof(char *));
-	i = 0;
-
-	my_file = strdup(file);
-
-	if (!getenv("__SBOX_GCCWRAPPER_RUN") && is_gcc_tool(binaryname)) {
-		/* unset the env variable */
-		char *sb_gcc_wrapper;
-		sb_gcc_wrapper = getenv("SBOX_GCCWRAPPER");
-		if (!sb_gcc_wrapper) {
-			my_file = "/usr/bin/sb_gcc_wrapper";
-		} else {
-			my_file = strdup(sb_gcc_wrapper);
-		}
-	}
-
-	for (p = (char **)argv; *p; p++) {
+	for (i = 0, p = (char **)argv; *p; p++) {
 		(*my_argv)[i++] = strdup(*p);
 	}
 	(*my_argv)[i] = NULL;
 
-	if (!(err = sb_argvenvp(binaryname, my_argv, my_envp))) {
+	if (!(err = sb_execve_mod(my_file, my_argv, my_envp))) {
 		SB_LOG(SB_LOGLEVEL_ERROR, "argvenvp processing error %i", err);
 	}
 
 	switch (type) {
 		case BIN_HOST:
 			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/host %s",
-				(char *)my_file);
+				(char *)*my_file);
 
-			return run_app((char *)my_file, (char **)*my_argv,
+			return run_app((char *)*my_file, (char **)*my_argv,
 					*my_envp);
 		case BIN_TARGET:
 			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/target %s",
-				(char *)my_file);
+				(char *)*my_file);
 
-			return run_cputransparency((char *)orig_file, my_file,
+			return run_cputransparency((char *)orig_file, *my_file,
 					(char **)*my_argv, *my_envp);
 		case BIN_NONE:
 		case BIN_UNKNOWN:
@@ -548,6 +542,6 @@ int do_exec(const char *exec_fn_name, const char *orig_file, const char *file,
 			break;
 	}
 
-	return sb_next_execve(my_file, *my_argv, *my_envp);
+	return sb_next_execve(*my_file, *my_argv, *my_envp);
 }
 

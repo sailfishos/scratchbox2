@@ -248,6 +248,19 @@ static int lua_sb_log(lua_State *luastate)
 	return 1;
 }
 
+static int lua_sb_setenv(lua_State *luastate)
+{
+	int	n = lua_gettop(luastate);
+
+	if (n != 2) {
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"sb_log_from_lua: wrong number of params (%d)", n);
+		lua_pushstring(luastate, NULL);
+		return 1;
+	}
+	setenv(strdup(lua_tostring(luastate, 1)), strdup(lua_tostring(luastate, 2)), 1);
+	return 1;
+}
 
 /* mappings from c to lua */
 static const luaL_reg reg[] =
@@ -256,6 +269,7 @@ static const luaL_reg reg[] =
 	{"readlink",			lua_sb_readlink},
 	{"decolonize_path",		lua_sb_decolonize_path},
 	{"log",				lua_sb_log},
+	{"setenv",			lua_sb_setenv},
 	{NULL,				NULL}
 };
 

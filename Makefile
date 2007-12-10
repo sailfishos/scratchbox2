@@ -106,6 +106,9 @@ install-noarch: $(BUILD_TARGET)
 	install -c -m 644 $(SRCDIR)/docs/sb2.1 $(prefix)/share/man/man1/sb2.1
 	rm -f $(prefix)/share/scratchbox2/host_usr
 	ln -sf /usr $(prefix)/share/scratchbox2/host_usr
+	@for f in $(gcc_bins_expanded); do \
+		ln -sf /bin/true $$f; \
+	done
 
 
 # remember to keep install and install-multilib in sync!

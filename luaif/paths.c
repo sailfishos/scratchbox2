@@ -36,6 +36,10 @@
 #include <mapping.h>
 #include <sb2.h>
 
+#ifdef EXTREME_DEBUGGING
+#include <execinfo.h>
+#endif
+
 extern int lua_engine_state;
 
 struct path_entry {
@@ -170,6 +174,18 @@ char *scratchbox_path2(const char *binary_name,
 	char *tmp = NULL, *decolon_path = NULL, *mapping_mode = NULL;
 	char pidlink[17]; /* /proc/2^8/exe */
 	struct lua_instance *luaif;
+
+#ifdef EXTREME_DEBUGGING
+	#define SIZE 100
+	void *buffer[SIZE];
+	char **strings;
+	int i, nptrs;
+
+	nptrs = backtrace(buffer, SIZE);
+	strings = backtrace_symbols(buffer, nptrs);
+	for (i = 0; i < nptrs; i++)
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s\n", strings[i]);
+#endif
 
 	switch (lua_engine_state) {
 	case LES_NOT_INITIALIZED:

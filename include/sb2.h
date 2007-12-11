@@ -29,18 +29,18 @@ char *sb_decolonize_path(const char *path);
 int sb_next_execve(const char *filename, char *const argv [],
 			char *const envp[]);
 
-int do_exec(const char *exec_fn_name, const char *orig_file, const char *file,
-		char *const *argv, char *const *envp, int hashbang);
+int do_exec(const char *exec_fn_name, const char *file,
+		char *const *argv, char *const *envp);
 
 int ld_so_run_app(char *file, char **argv, char *const *envp);
-int run_app(char *file, char **argv, char *const *envp);
-int run_cputransparency(char *orig_file, char *file,
-		char **argv, char *const *envp);
+int run_hashbang(const char *file, char *const *argv, char *const *envp);
+int run_app(const char *file, char *const *argv, char *const *envp);
+int run_cputransparency(const char *file, char *const *argv, char *const *envp);
 
-int run_sbrsh(char *sbrsh_bin, char *target_root, char *orig_file,
-              char **argv, char *const *envp);
-int run_qemu(char *qemu_bin, char *orig_file, char *file,
-		char **argv, char *const *envp);
+int run_sbrsh(const char *sbrsh_bin, const char *target_root, const char *file,
+              char *const *argv, char *const *envp);
+int run_qemu(const char *qemu_bin, const char *file, char *const *argv,
+		char *const *envp);
 
 time_t get_sb2_timestamp(void);
 

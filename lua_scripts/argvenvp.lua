@@ -50,11 +50,11 @@ for prefix in string.gmatch(":" .. os.getenv("SBOX_CROSS_GCC_PREFIX_LIST"), "[^:
 		tmp = {}
 		tmp.name = prefix .. gcc_compilers[i]
 		tmp.new_filename = gcc_bindir .. "/" .. gcc_subst_prefix .. gcc_compilers[i]
-		tmp.add = {}
+		tmp.add_tail = {}
 		tmp.remove = {}
 		if (gcc_extra_args) then
 			for gcc_extra in string.gmatch(gcc_extra_args, "[^ ]+") do
-				table.insert(tmp.add, gcc_extra)
+				table.insert(tmp.add_tail, gcc_extra)
 			end
 		end
 		if (gcc_block_args) then
@@ -87,12 +87,12 @@ for prefix in string.gmatch(os.getenv("SBOX_HOST_GCC_PREFIX_LIST"), "[^:]+") do
 		tmp = {}
 		tmp.name = prefix .. gcc_compilers[i]
 		tmp.new_filename = host_gcc_bindir .. "/" .. host_gcc_subst_prefix .. gcc_compilers[i]
-		tmp.add = {}
+		tmp.add_tail = {}
 		tmp.remove = {}
 		tmp.disable_mapping = 1
 		if (host_gcc_extra_args) then
 			for gcc_extra in string.gmatch(host_gcc_extra_args, "[^ ]+") do
-				table.insert(tmp.add, gcc_extra)
+				table.insert(tmp.add_tail, gcc_extra)
 			end
 		end
 		if (host_gcc_block_args) then
@@ -134,16 +134,22 @@ function sbox_execve_mod(filename, argv, envp)
 	local binaryname = string.match(filename, "[^/]+$")
 	local new_filename = filename
 
-	--print(string.format("sbox_execve_mod(): %s\n", filename))
+	-- print(string.format("sbox_execve_mod(): %s\n", filename))
 	
 	new_envp = envp
 
 	am = argvmods[binaryname]
 	if (am and not am.remove) then am.remove = {} end
-	if (am and not am.add) then am.add = {} end
+	if (am and not am.add_head) then am.add_head = {} end
+	if (am and not am.add_tail) then am.add_tail = {} end
 
 	if (am ~= nil) then
-		-- check removals
+		-- head additions
+		for i = 1, table.maxn(am.add_head) do
+			table.insert(new_argv, am.add_head[i])
+		end
+	
+		-- populate new_argv, skip those that are to be removed
 		for i = 1, table.maxn(argv) do
 			local match = 0
 			for j = 1, table.maxn(am.remove) do
@@ -155,10 +161,12 @@ function sbox_execve_mod(filename, argv, envp)
 				table.insert(new_argv, argv[i])
 			end
 		end
-		-- additions
-		for i = 1, table.maxn(am.add) do
-			table.insert(new_argv, am.add[i])
+		
+		-- tail additions
+		for i = 1, table.maxn(am.add_tail) do
+			table.insert(new_argv, am.add_tail[i])
 		end
+
 		if (am.new_filename) then
 			-- print(string.format("changing to: %s\n", am.new_filename))
 			new_filename = am.new_filename

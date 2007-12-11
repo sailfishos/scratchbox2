@@ -87,8 +87,8 @@ int sb_execve_mod(char **file, char ***argv, char ***envp)
 	new_argc = lua_tointeger(luaif->lua, -4);
 	new_envc = lua_tointeger(luaif->lua, -2);
 
-	*argv = (char **)calloc(new_argc + 1, sizeof(char *));
-	*envp = (char **)calloc(new_envc + 1, sizeof(char *));
+	*argv = calloc(new_argc + 1, sizeof(char *));
+	*envp = calloc(new_envc + 1, sizeof(char *));
 
 	for (i = 0; i < new_argc; i++) {
 		lua_rawgeti(luaif->lua, -3, i + 1);

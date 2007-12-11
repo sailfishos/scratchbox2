@@ -54,16 +54,18 @@ static uint16_t byte_swap(uint16_t a)
 
 enum binary_type {
 	BIN_NONE, 
-	BIN_UNKNOWN, 
+	BIN_UNKNOWN,
+	BIN_INVALID,
 	BIN_HOST,
-	BIN_TARGET
+	BIN_TARGET,
+	BIN_HASHBANG,
 };
 
 
-static int elem_count(char **elems)
+static int elem_count(char *const *elems)
 {
 	int count = 0;
-	char **p = elems;
+	char **p = (char **)elems;
 	while (*p) {
 		p++; count++;
 	}
@@ -71,7 +73,7 @@ static int elem_count(char **elems)
 }
 
 /* orig_file is the unmangled filename, file is mangled */
-int run_cputransparency(char *orig_file, char *file, char **argv,
+int run_cputransparency(const char *file, char *const *argv,
 			char *const *envp)
 {
 	char *cputransp_bin, *target_root;
@@ -96,10 +98,10 @@ int run_cputransparency(char *orig_file, char *file, char **argv,
 
 	if (strstr(bname, "qemu")) {
 		free(basec);
-		return run_qemu(cputransp_bin, orig_file, file, argv, envp);
+		return run_qemu(cputransp_bin, file, argv, envp);
 	} else if (strstr(bname, "sbrsh")) {
 		free(basec);
-		return run_sbrsh(cputransp_bin, target_root, orig_file,
+		return run_sbrsh(cputransp_bin, target_root, file,
 		                 argv, envp);
 	}
 
@@ -121,8 +123,8 @@ static int is_subdir(const char *root, const char *subdir)
 	return root[sublen] == '/' || root[sublen] == '\0';
 }
 
-int run_sbrsh(char *sbrsh_bin, char *target_root, char *orig_file,
-              char **argv, char *const *envp)
+int run_sbrsh(const char *sbrsh_bin, const char *target_root,
+		const char *orig_file, char *const *argv, char *const *envp)
 {
 	char *config, *file, *dir, **my_argv, **p;
 	int len, i = 0;
@@ -138,12 +140,13 @@ int run_sbrsh(char *sbrsh_bin, char *target_root, char *orig_file,
 	if (len > 0 && target_root[len - 1] == '/')
 		--len;
 
-	file = orig_file;
+	file = strdup(orig_file);
 	if (file[0] == '/') {
 		if (strstr(file, target_root) != file) {
 			fprintf(stderr, "Binary must be under target (%s)"
 			        " when using sbrsh\n", target_root);
 			errno = ENOTDIR;
+			free(file);
 			return -1;
 		}
 		file += len;
@@ -163,7 +166,7 @@ int run_sbrsh(char *sbrsh_bin, char *target_root, char *orig_file,
 
 	my_argv = calloc(6 + elem_count(argv) + 1, sizeof (char *));
 
-	my_argv[i++] = sbrsh_bin;
+	my_argv[i++] = strdup(sbrsh_bin);
 	if (config) {
 		my_argv[i++] = "--config";
 		my_argv[i++] = config;
@@ -172,8 +175,8 @@ int run_sbrsh(char *sbrsh_bin, char *target_root, char *orig_file,
 	my_argv[i++] = dir;
 	my_argv[i++] = file;
 
-	for (p = &argv[1]; *p; p++)
-		my_argv[i++] = *p;
+	for (p = (char **)&argv[1]; *p; p++)
+		my_argv[i++] = strdup(*p);
 
 	for (p = (char **) envp; *p; ++p) {
 		char *start, *end;
@@ -199,28 +202,28 @@ int run_sbrsh(char *sbrsh_bin, char *target_root, char *orig_file,
 	return sb_next_execve(sbrsh_bin, my_argv, envp);
 }
 
-int run_qemu(char *qemu_bin, char *orig_file,char *file,
-		char **argv, char *const *envp)
+int run_qemu(const char *qemu_bin, const char *file,
+		char *const *argv, char *const *envp)
 {
 	char **my_argv, **p;
 	int i = 0;
 
-	SB_LOG(SB_LOGLEVEL_INFO, "Exec:qemu (%s,%s,%s)",
-		qemu_bin, orig_file, file);
+	SB_LOG(SB_LOGLEVEL_INFO, "Exec:qemu (%s,%s)",
+		qemu_bin, file);
 
 	my_argv = (char **)calloc(elem_count(argv) + 5 + 1, sizeof(char *));
 
-	my_argv[i++] = qemu_bin;
+	my_argv[i++] = strdup(qemu_bin);
 	my_argv[i++] = "-drop-ld-preload";
 	my_argv[i++] = "-L";
 	my_argv[i++] = "/";
-	my_argv[i++] = orig_file; /* we're passing the unmapped file
-				   * here, it works because qemu will
-				   * do open() on it, and that gets
-				   * mapped again.
-				   */
-	for (p = &argv[1]; *p; p++) {
-		my_argv[i++] = *p;
+	my_argv[i++] = strdup(file); /* we're passing the unmapped file
+				      * here, it works because qemu will
+				      * do open() on it, and that gets
+				      * mapped again.
+				      */
+	for (p = (char **)&argv[1]; *p; p++) {
+		my_argv[i++] = strdup(*p);
 	}
 
 	my_argv[i] = NULL;
@@ -228,7 +231,7 @@ int run_qemu(char *qemu_bin, char *orig_file,char *file,
 	return sb_next_execve(qemu_bin, my_argv, envp);
 }
 
-int run_app(char *file, char **argv, char *const *envp)
+int run_app(const char *file, char *const *argv, char *const *envp)
 {
 	sb_next_execve(file, argv, envp);
 
@@ -266,9 +269,20 @@ static enum binary_type inspect_binary(const char *filename)
 	Elf32_Ehdr *ehdr;
 #endif
 	retval = BIN_NONE;
+	if (access_nomap_nolog(filename, X_OK) < 0) {
+		/* can't execute it. Possible errno codes from access() 
+		 * are all possible from execve(), too, so there is no
+		 * need to convert errno.
+		*/
+		SB_LOG(SB_LOGLEVEL_DEBUG, "no X permission for '%s'",
+			filename);
+		retval = BIN_INVALID;
+		goto _out;
+	}
 
 	fd = open_nomap_nolog(filename, O_RDONLY, 0);
 	if (fd < 0) {
+		retval = BIN_HOST; /* can't peek in to look, assume host */
 		goto _out;
 	}
 
@@ -285,6 +299,13 @@ static enum binary_type inspect_binary(const char *filename)
 	region = mmap(0, status.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (!region) {
 		goto _out_close;
+	}
+
+	/* check for hashbang */
+
+	if (region[0] == '#' && region[1] == '!') {
+		retval = BIN_HASHBANG;
+		goto _out_munmap;
 	}
 
 #ifdef __x86_64__
@@ -335,94 +356,83 @@ _out:
 	return retval;
 }
 
-static int is_gcc_tool(char *fname)
+int run_hashbang(const char *file, char *const *argv, char *const *envp)
 {
-	unsigned int i, index, start, c, len;
-	char *t;
-	char **gcc_prefixes;
-	char **p;
-	char *gcc_tools[] = {
-		"addr2line",
-		"ar",
-		"as",
-		"cc",
-		"c++",
-		"c++filt",
-		"cpp",
-		"g++",
-		"gcc",
-		"gcov",
-		"gdb",
-		"gdbtui",
-		"gprof",
-		"ld",
-		"nm",
-		"objcopy",
-		"objdump",
-		"ranlib",
-		"rdi-stub",
-		"readelf",
-		"run",
-		"size",
-		"strings",
-		"strip",
-		NULL
-	};
-	char **tmp;
-	if (!getenv("SBOX_CROSS_GCC_PREFIX_LIST")
-		||!getenv("SBOX_HOST_GCC_PREFIX_LIST")) {
-		return 0;
+	int argc, fd, c, i, j, n, ret;
+	char ch;
+	char **p, *ptr, *mapped_interpreter;
+	char **new_argv;
+	char hashbang[SBOX_MAXPATH]; /* only 60 needed on linux, just be safe */
+	char interpreter[SBOX_MAXPATH];
+
+	if ((fd = open(file, O_RDONLY)) < 0) {
+		/* unexpected error, just run it */
+		return run_app(file, argv, envp);
 	}
 
-	len = strlen(getenv("SBOX_CROSS_GCC_PREFIX_LIST"));
-	len += 1 + strlen(getenv("SBOX_HOST_GCC_PREFIX_LIST"));
-	t = malloc((len + 1) * sizeof(char));
-
-	strcpy(t, getenv("SBOX_CROSS_GCC_PREFIX_LIST"));
-	strcat(t, ":");
-	strcat(t, getenv("SBOX_HOST_GCC_PREFIX_LIST"));
-
-	if (!t) {
-		return 0;
-	}
-	t = strdup(t);
-
-	for (i = 0, c = 0; i < strlen(t); i++) {
-		if (t[i] == ':') {
-			c++;
-		}
+	if ((c = read(fd, &hashbang[0], SBOX_MAXPATH - 1)) < 2) {
+		/* again unexpected error, close fd and run it */
+		close(fd);
+		return run_app(file, argv, envp);
 	}
 
-	gcc_prefixes = (char **)calloc(c + 2, sizeof(char *));
-	p = gcc_prefixes;
+	for (argc = 0, p = (char **)argv; *p; p++)
+		argc++;
 
-	for (start = 0, index = 0; index < strlen(t); index++) {
-		if (t[index] == ':') {
-			*p = malloc((index - start + 1) * sizeof(char));
-			strncpy(*p, &t[start], index - start);
-			(*p)[index - start] = '\0';
-			p++;
-			start = index + 1;
-		}
-	}
-	p = NULL;
+	/* extra element for hashbang argument */
+	new_argv = calloc(argc + 3, sizeof(char *));
 
-	for (tmp = gcc_tools; *tmp; tmp++) {
-		for (p = gcc_prefixes; *p; p++) {
-			char s[PATH_MAX];
-			strcpy(s, *p);
-			strcat(s, *tmp);
-			if (!strcmp(*tmp, fname) || (!strcmp(s, fname))) {
-				return 1;
+	/* skip any initial whitespace following "#!" */
+	for (i = 2; (hashbang[i] == ' ' 
+			|| hashbang[i] == '\t') && i < c; i++)
+		;
+
+	for (n = 0, j = i; i < c; i++) {
+		ch = hashbang[i];
+		if (hashbang[i] == 0
+			|| hashbang[i] == ' '
+			|| hashbang[i] == '\t'
+			|| hashbang[i] == '\n') {
+			hashbang[i] = 0;
+			if (i > j) {
+				if (n == 0) {
+					ptr = &hashbang[j];
+					strcpy(interpreter, ptr);
+					new_argv[n++] = strdup(file);
+				} else {
+					new_argv[n++] = strdup(&hashbang[j]);
+					/* this was the one and only
+					 * allowed argument for the
+					 * interpreter
+					 */
+					break;
+				}
 			}
+			j = i + 1;
 		}
+		if (ch == '\n' || ch == 0) break;
 	}
-	return 0;
+
+	mapped_interpreter = scratchbox_path("execve", interpreter);
+	new_argv[n++] = strdup(file); /* the unmapped script path */
+
+	for (i = 1; argv[i] != NULL && i < argc; ) {
+		new_argv[n++] = argv[i++];
+	}
+
+	new_argv[n] = NULL;
+
+	SB_LOG(SB_LOGLEVEL_DEBUG, "exec script, interp=%s",
+		interpreter);
+
+	ret = run_app(mapped_interpreter, new_argv, envp);
+
+	if (mapped_interpreter) free(mapped_interpreter);
+	return ret;
 }
 
-
-int do_exec(const char *exec_fn_name, const char *orig_file, const char *file,
-		char *const *argv, char *const *envp, int hashbang)
+int do_exec(const char *exec_fn_name, const char *file,
+		char *const *argv, char *const *envp)
 {
 	char ***my_envp, ***my_argv, **my_file, **p;
 	char *binaryname, *tmp;
@@ -440,21 +450,13 @@ int do_exec(const char *exec_fn_name, const char *orig_file, const char *file,
 		return sb_next_execve(file, argv, envp);
 	}
 	
-	type = inspect_binary(file);
 
-	if (!hashbang)
-		tmp = strdup(file);
-	else
-		tmp = strdup(argv[hashbang]);
-
+	tmp = strdup(file);
 	binaryname = strdup(basename(tmp));
 	free(tmp);
 	
 	my_file = malloc(sizeof(char *));
-	if (!hashbang)
-		*my_file = strdup(file);
-	else
-		*my_file = strdup(argv[hashbang]);
+	*my_file = strdup(file);
 
 	/* count the environment variables and arguments, also check
 	 * for LD_PRELOAD
@@ -495,7 +497,6 @@ int do_exec(const char *exec_fn_name, const char *orig_file, const char *file,
 		(*my_envp)[i++] = strdup(*p);
 	}
 	(*my_envp)[i++] = tmp; /* add the new process' name */
-	tmp = NULL;
 
 	/* If our environ has LD_PRELOAD, but the given envp doesn't,
 	 * add it.
@@ -522,20 +523,24 @@ int do_exec(const char *exec_fn_name, const char *orig_file, const char *file,
 		SB_LOG(SB_LOGLEVEL_ERROR, "argvenvp processing error %i", err);
 	}
 
-	switch (type) {
-		case BIN_HOST:
-			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/host %s",
-				(char *)*my_file);
+	type = inspect_binary(*my_file); /* inspect the mangled filename */
 
-			return run_app((char *)*my_file, (char **)*my_argv,
+	switch (type) {
+		case BIN_HASHBANG:
+			return run_hashbang((char *)*my_file, (char **)*my_argv,
 					*my_envp);
+		case BIN_HOST:
+			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/host %s", *my_file);
+
+			return run_app(*my_file, *my_argv, *my_envp);
 		case BIN_TARGET:
 			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/target %s",
 				(char *)*my_file);
 
-			return run_cputransparency((char *)orig_file, *my_file,
+			return run_cputransparency((char *)*my_file,
 					(char **)*my_argv, *my_envp);
 		case BIN_NONE:
+		case BIN_INVALID:
 		case BIN_UNKNOWN:
 			SB_LOG(SB_LOGLEVEL_ERROR,
 					"Unidentified executable detected");

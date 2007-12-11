@@ -73,8 +73,8 @@ static int elem_count(char *const *elems)
 }
 
 /* orig_file is the unmangled filename, file is mangled */
-int run_cputransparency(const char *file, char *const *argv,
-			char *const *envp)
+int run_cputransparency(const char *file, const char *unmapped_file,
+			char *const *argv, char *const *envp)
 {
 	char *cputransp_bin, *target_root;
 	char *basec, *bname;
@@ -98,7 +98,7 @@ int run_cputransparency(const char *file, char *const *argv,
 
 	if (strstr(bname, "qemu")) {
 		free(basec);
-		return run_qemu(cputransp_bin, file, argv, envp);
+		return run_qemu(cputransp_bin, unmapped_file, argv, envp);
 	} else if (strstr(bname, "sbrsh")) {
 		free(basec);
 		return run_sbrsh(cputransp_bin, target_root, file,
@@ -531,8 +531,6 @@ int do_exec(const char *exec_fn_name, const char *file,
 	 */
 
 	mapped_file = scratchbox_path("do_exec", *my_file);
-	free(*my_file);
-	free(my_file);
 
 	type = inspect_binary(mapped_file); /* inspect the completely mangled 
 					     * filename */
@@ -550,7 +548,7 @@ int do_exec(const char *exec_fn_name, const char *file,
 			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/target %s",
 					mapped_file);
 
-			return run_cputransparency(mapped_file,
+			return run_cputransparency(mapped_file, *my_file,
 					*my_argv, *my_envp);
 		case BIN_NONE:
 		case BIN_INVALID:

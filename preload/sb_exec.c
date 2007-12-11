@@ -425,7 +425,10 @@ int run_hashbang(const char *file, char *const *argv, char *const *envp)
 	SB_LOG(SB_LOGLEVEL_DEBUG, "exec script, interp=%s",
 		interpreter);
 
-	ret = run_app(mapped_interpreter, new_argv, envp);
+	/* feed this through do_exec to let it deal with
+	 * cpu transparency etc.
+	 */
+	ret = do_exec("run_hashbang", mapped_interpreter, new_argv, envp);
 
 	if (mapped_interpreter) free(mapped_interpreter);
 	return ret;
@@ -435,7 +438,7 @@ int do_exec(const char *exec_fn_name, const char *file,
 		char *const *argv, char *const *envp)
 {
 	char ***my_envp, ***my_argv, **my_file, **p;
-	char *binaryname, *tmp;
+	char *binaryname, *tmp, *mapped_file;
 	int envc = 0, argc = 0, i, has_ld_preload = 0, err = 0;
 	enum binary_type type;
 
@@ -523,22 +526,32 @@ int do_exec(const char *exec_fn_name, const char *file,
 		SB_LOG(SB_LOGLEVEL_ERROR, "argvenvp processing error %i", err);
 	}
 
-	type = inspect_binary(*my_file); /* inspect the mangled filename */
+	/* now we have to do path mapping for *my_file to find exactly
+	 * what is the path we're supposed to deal with
+	 */
+
+	mapped_file = scratchbox_path("do_exec", *my_file);
+	free(*my_file);
+	free(my_file);
+
+	type = inspect_binary(mapped_file); /* inspect the completely mangled 
+					     * filename */
 
 	switch (type) {
 		case BIN_HASHBANG:
-			return run_hashbang((char *)*my_file, (char **)*my_argv,
+			return run_hashbang(mapped_file, *my_argv,
 					*my_envp);
 		case BIN_HOST:
-			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/host %s", *my_file);
+			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/host %s",
+					mapped_file);
 
-			return run_app(*my_file, *my_argv, *my_envp);
+			return run_app(mapped_file, *my_argv, *my_envp);
 		case BIN_TARGET:
 			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/target %s",
-				(char *)*my_file);
+					mapped_file);
 
-			return run_cputransparency((char *)*my_file,
-					(char **)*my_argv, *my_envp);
+			return run_cputransparency(mapped_file,
+					*my_argv, *my_envp);
 		case BIN_NONE:
 		case BIN_INVALID:
 		case BIN_UNKNOWN:
@@ -547,6 +560,6 @@ int do_exec(const char *exec_fn_name, const char *file,
 			break;
 	}
 
-	return sb_next_execve(*my_file, *my_argv, *my_envp);
+	return sb_next_execve(mapped_file, *my_argv, *my_envp);
 }
 

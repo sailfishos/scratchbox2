@@ -85,6 +85,8 @@ install-noarch: $(BUILD_TARGET)
 	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/complex
 	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/emulate
 	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/simple
+	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/maemo
+
 	install -d -m 755 $(prefix)/share/scratchbox2/scripts
 	install -d -m 755 $(prefix)/share/scratchbox2/tests
 	install -d -m 755 $(prefix)/share/man/man1
@@ -100,6 +102,7 @@ install-noarch: $(BUILD_TARGET)
 	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/complex/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/complex/
 	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/emulate/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/emulate/
 	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/simple/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/simple/
+	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/maemo/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/maemo/
 	install -c -m 644 $(SRCDIR)/tests/* $(prefix)/share/scratchbox2/tests
 	chmod a+x $(prefix)/share/scratchbox2/tests/run.sh
 

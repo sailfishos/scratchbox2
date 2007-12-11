@@ -22,6 +22,7 @@ Options:
     -r [hostname]     generate sbrsh config using remote device address
     -l [hostname]     NFS server/localhost address seen by remote device
     -d                set target as default scratchbox2 target
+    -m mapping_mode   use mapping_mode as default
     -h                print this help
     -n                don't build libtool for the target
     -s                skip checks for target root's /usr/include etc.
@@ -29,6 +30,7 @@ Options:
 
 Examples:
     sb2-init ARM arm-linux-gcc
+    sb2-init -m maemo ARM arm-linux-gcc
     sb2-init -sn -c sbrsh armel-debian /path/to/arm-linux-gcc
 EOF
 	exit 2
@@ -79,6 +81,10 @@ export SBOX_HOST_GCC_DIR=/usr/bin
 export SBOX_HOST_GCC_LD_ARGS=
 
 export SBRSH_CONFIG=$HOME/.scratchbox2/$TARGET/sbrsh.config
+
+if [ -z "\$SBOX_MAPMODE" ]; then
+	export SBOX_MAPMODE=$MAPPING_MODE
+fi
 EOF
 	echo "Finished writing sb2.config"
 }
@@ -144,7 +150,7 @@ if [ -z "$*" ]; then
 	usage
 fi
 
-while getopts c:r:l:dhnsv foo
+while getopts c:r:l:m:dhnsv foo
 do
 	case $foo in
 	(c) cputransparency=$OPTARG ;;
@@ -152,6 +158,7 @@ do
 	(l) LOCALHOST=$OPTARG ;;
 	(d) set_as_default=1 ;;
 	(h) usage ;;
+	(m) MAPPING_MODE=$OPTARG ;;
 	(n) with_libtool=0 ;;
 	(s) skip_checks=true ;;
 	(v) version ;;
@@ -244,6 +251,16 @@ sbrsh)
 	fi
 	;;
 esac
+
+if [ -z "$MAPPING_MODE" ]; then
+	MAPPING_MODE="simple"
+fi
+
+if [ ! -d $SBOX_DIR/share/scratchbox2/lua_scripts/pathmaps/$MAPPING_MODE ]; then
+	echo "Invalid mapping mode: $MAPPING_MODE"
+	exit 1
+fi
+
 
 if [ ! $skip_checks ]; then
 	check_buildroot_sanity

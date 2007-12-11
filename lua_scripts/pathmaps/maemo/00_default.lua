@@ -73,6 +73,10 @@ simple_chain = {
 		{path = "^/var/.*/apt.*", map_to = "="},
 		{path = "^/var/.*/dpkg.*", map_to = "="},
 		{path = "^/host_usr", map_to = "="},
+		{path = "^/tmp", map_to = nil},
+		{path = "^/dev", map_to = nil},
+		{path = "^/proc", map_to = nil},
+		{path = "^/sys", map_to = nil},
 		{path = ".*", map_to = tool_root}
 	}
 }
@@ -84,6 +88,10 @@ qemu_chain = {
 		{path = "^/lib.*", map_to = "="},
 		{path = "^/usr/lib.*", map_to = "="},
 		{path = "^/usr/local/lib.*", map_to = "="},
+		{path = "^/tmp", map_to = nil},
+		{path = "^/dev", map_to = nil},
+		{path = "^/proc", map_to = nil},
+		{path = "^/sys", map_to = nil},
 		{path = ".*", map_to = tool_root}
 	}
 }

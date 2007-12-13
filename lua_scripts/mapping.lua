@@ -3,9 +3,11 @@
 -- Licensed under MIT license.
 
 tools_root = os.getenv("SBOX_TOOLS_ROOT")
-if (not tools_root) then
-	tools_root = "/scratchbox/sarge"
+if (tools_root == "") then
+	tools_root = nil
 end
+
+
 
 target_root = os.getenv("SBOX_TARGET_ROOT")
 if (not target_root) then
@@ -52,6 +54,10 @@ function escape_string(a)
 		b = b .. c
 	end
 	return b
+end
+
+if (tools_root) then
+	tools_root = escape_string(tools_root)
 end
 
 function read_mode_part(mode, part)
@@ -151,12 +157,19 @@ end
 
 
 function isprefix(a, b)
+	if (not a or not b) then return false end
 	return string.sub(b, 1, string.len(a)) == a
 end
 
-function adjust_for_mapping_leakage(path)
+function adjust_for_mapping_leakage(path, leakage_prefix)
 	if (not path) then 
 		return nil
+	end
+
+	if (not isprefix(leakage_prefix, path)) then
+		-- The mapping result is not
+		-- expected to be inside leakage_prefix.
+		return path
 	end
 
 	local tmp = sb.readlink(path)
@@ -165,23 +178,23 @@ function adjust_for_mapping_leakage(path)
 		return path
 	end
 
-	if (sb.decolonize_path(tmp) == sb.decolonize_path(path)) then
-		-- symlink refers to itself
-		return path
-	end
-
 	-- make it an absolute path if it's not
 	if (string.sub(tmp, 1, 1) ~= "/") then
 		tmp = dirname(path) .. "/" .. tmp
 	end
 
+	if (sb.decolonize_path(tmp) == sb.decolonize_path(path)) then
+		-- symlink refers to itself
+		return path
+	end
+
 	tmp = sb.decolonize_path(tmp)
 
-	if (not isprefix(target_root, tmp)) then
+	if (not isprefix(leakage_prefix, tmp)) then
 		-- aha! tried to get out of there, now map it right back in
-		return adjust_for_mapping_leakage(target_root .. tmp)
+		return adjust_for_mapping_leakage(leakage_prefix .. tmp, leakage_prefix)
 	else
-		return adjust_for_mapping_leakage(tmp)
+		return adjust_for_mapping_leakage(tmp, leakage_prefix)
 	end
 end
 
@@ -225,23 +238,19 @@ function sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
 		else
 			ret = rule.map_to .. path
 		end
-		if (should_adjust(func_name)) then
-			return adjust_for_mapping_leakage(ret)
-		else
-			return ret
-		end
-	end
-	-- if not mapping, check if we're within the 
-	-- target_root and adjust for mapping leakage if so
-	if (isprefix(target_root, path)) then
-		if (should_adjust(func_name)) then
-			return adjust_for_mapping_leakage(path)
-		else
-			return path
-		end
 	else
-		return path
+		ret = path
 	end
+	
+	if (should_adjust(func_name)) then
+		if (isprefix(target_root, ret)) then
+			ret = adjust_for_mapping_leakage(ret, target_root)
+		elseif (isprefix(tools_root, ret)) then
+			ret = adjust_for_mapping_leakage(ret, tools_root)
+		end
+	end
+
+	return ret
 end
 
 
@@ -280,9 +289,9 @@ function map_using_chain(chain, binary_name, func_name, work_dir, path)
 		ret = sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
 		if (debug) then
 			if(path == ret) then
-				--sb.log("debug", string.format("[%s][%s] %s(%s) [==]", basename(rule.lua_script), rule.binary_name, func_name, path))
+				-- sb.log("debug", string.format("[%s][%s] %s(%s) [==]", basename(rule.lua_script), rule.binary_name, func_name, path))
 			else
-				--sb.log("debug", string.format("[%s][%s] %s(%s) -> (%s)", basename(rule.lua_script), rule.binary_name, func_name, path, ret))
+				-- sb.log("debug", string.format("[%s][%s] %s(%s) -> (%s)", basename(rule.lua_script), rule.binary_name, func_name, path, ret))
 			end
 		end
 	end

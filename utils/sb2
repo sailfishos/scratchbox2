@@ -70,11 +70,13 @@ function sboxify_environment()
 		exit 2
 	fi
 	export SBOX_TARGET
+	
+	LD_LIBRARY_PATH=$SBOX_DIR/lib/libsb2:$SBOX_DIR/lib64/libsb2:$SBOX_DIR/lib32/libsb2
+	SBOX_LIBSB2="libsb2.so.1"
+	
 	. ~/.scratchbox2/$SBOX_TARGET/sb2.config
 
 	if [ -n "$SBOX_DIR" ]; then
-		LD_LIBRARY_PATH=$SBOX_DIR/lib/libsb2:$SBOX_DIR/lib64/libsb2:$SBOX_DIR/lib32/libsb2
-		SBOX_LIBSB2="libsb2.so.1"
 		if [ -z "$SBOX_LUA_SCRIPTS" ]; then
 			SBOX_LUA_SCRIPTS="$SBOX_DIR/share/scratchbox2/lua_scripts"
 		fi
@@ -105,8 +107,9 @@ function sboxify_environment()
 		echo "SBOX_LIBSB2 = $SBOX_LIBSB2"
 		echo "SBOX_LUA_SCRIPTS = $SBOX_LUA_SCRIPTS"
 		echo "SBOX_GCCWRAPPER = $SBOX_GCCWRAPPER"
-		echo "REDIR_LD_SO = $REDIR_LD_SO"
-		echo "REDIR_LD_LIBRARY_PATH = $REDIR_LD_LIBRARY_PATH"
+		echo "SBOX_TOOLS_ROOT = $SBOX_TOOLS_ROOT"
+		echo "SBOX_REDIR_LD_SO = $SBOX_REDIR_LD_SO"
+		echo "SBOX_REDIR_LD_LIBRARY_PATH = $SBOX_REDIR_LD_LIBRARY_PATH"
 		echo "SBOX_TARGET_ROOT = $SBOX_TARGET_ROOT"
 		echo "SBOX_MAPPING_LOGFILE = $SBOX_MAPPING_LOGFILE"
 		echo "SBOX_MAPPING_LOGLEVEL = $SBOX_MAPPING_LOGLEVEL"

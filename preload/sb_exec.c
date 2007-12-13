@@ -56,7 +56,8 @@ enum binary_type {
 	BIN_NONE, 
 	BIN_UNKNOWN,
 	BIN_INVALID,
-	BIN_HOST,
+	BIN_HOST_STATIC,
+	BIN_HOST_DYNAMIC,
 	BIN_TARGET,
 	BIN_HASHBANG,
 };
@@ -240,6 +241,87 @@ int run_app(const char *file, char *const *argv, char *const *envp)
 	return -12;
 }
 
+int ld_so_run_app(const char *file, char *const *argv, char *const *envp)
+{
+	char *binaryname, **my_argv;
+	char *host_libs, *ld_so;
+	char **p;
+	char *tmp;
+	char ld_so_buf[PATH_MAX + 1];
+	char ld_so_basename[PATH_MAX + 1];
+	int argc;
+	int i = 0;
+	
+	tmp = getenv("SBOX_REDIR_LD_LIBRARY_PATH");
+
+	if (!tmp) {
+		fprintf(stderr, "Total failure to execute tools"
+				"SBOX_REDIR_LD_LIBRARY_PATH not specified\n");
+		exit(1);
+	} else {
+		host_libs = strdup(tmp);
+	}
+
+	tmp = getenv("SBOX_REDIR_LD_SO");
+	if (!tmp) {
+		fprintf(stderr, "Total failure to execute tools"
+				"SBOX_REDIR_LD_SO not specified\n");
+		exit(1);
+	} else {
+		ld_so = strdup(tmp);
+	}
+
+	memset(ld_so_buf, '\0', PATH_MAX + 1);
+	memset(ld_so_basename, '\0', PATH_MAX + 1);
+
+	if (readlink_nomap(ld_so, ld_so_buf, PATH_MAX) < 0) {
+		if (errno == EINVAL) {
+			/* it's not a symbolic link, so use it directly */
+			strcpy(ld_so_basename, basename(ld_so));
+
+		} else {
+			/* something strange, bail out */
+			perror("readlink(ld_so) failed badly. aborting\n");
+			return -1;
+		}
+	} else {
+		strcpy(ld_so_basename, basename(ld_so_buf));
+	}
+
+	binaryname = basename(strdup(file));
+	
+	/* if the file to be run is the dynamic loader itself, 
+	 * run it straight
+	 */
+
+	if (strcmp(binaryname, ld_so_basename) == 0) {
+		sb_next_execve(file, argv, envp);
+		perror("failed to directly run the dynamic linker!\n");
+		return -1;
+	}
+
+	argc = elem_count(argv);
+
+	my_argv = (char **)calloc(4 + argc - 1 + 1, sizeof (char *));
+	i = 0;
+	my_argv[i++] = strdup(ld_so);
+	my_argv[i++] = "--library-path";
+	my_argv[i++] = host_libs;
+	my_argv[i++] = strdup(file);
+
+	for (p = (char **)argv + 1; *p; p++)
+		my_argv[i++] = strdup(*p);
+
+	my_argv[i] = NULL;
+
+	//printf("about to execute: %s, %s, %s, %s\n", my_argv[0], my_argv[1], my_argv[2], my_argv[3]);
+	
+	sb_next_execve(ld_so, my_argv, envp);
+
+	fprintf(stderr, "sb_alien (running %s): %s\n", file, strerror(errno));
+	return -11;
+}
+
 static int elf_hdr_match(uint16_t e_machine, uint16_t match,
 			 int target_little_endian)
 {
@@ -260,13 +342,18 @@ static int elf_hdr_match(uint16_t e_machine, uint16_t match,
 static enum binary_type inspect_binary(const char *filename)
 {
 	enum binary_type retval;
-	int fd;
+	int fd, phnum, j;
 	struct stat status;
 	char *region, *target_cpu;
+	unsigned int ph_base, ph_frag;
 #ifdef __x86_64__
+	int64_t reloc0;
 	Elf64_Ehdr *ehdr;
+	Elf64_Phdr *phdr;
 #else
+	int reloc0;
 	Elf32_Ehdr *ehdr;
+	Elf32_Phdr *phdr;
 #endif
 	retval = BIN_NONE;
 	if (access_nomap_nolog(filename, X_OK) < 0) {
@@ -282,7 +369,7 @@ static enum binary_type inspect_binary(const char *filename)
 
 	fd = open_nomap_nolog(filename, O_RDONLY, 0);
 	if (fd < 0) {
-		retval = BIN_HOST; /* can't peek in to look, assume host */
+		retval = BIN_HOST_DYNAMIC; /* can't peek in to look, assume dynamic */
 		goto _out;
 	}
 
@@ -347,7 +434,35 @@ static enum binary_type inspect_binary(const char *filename)
 		goto _out_munmap;
 	}
 
-	retval = BIN_HOST;
+	retval = BIN_HOST_STATIC;
+
+	phnum = ehdr->e_phnum;
+	reloc0 = ~0;
+	ph_base = ehdr->e_phoff & PAGE_MASK;
+	ph_frag = ehdr->e_phoff - ph_base;
+
+#ifdef __x86_64__
+	phdr = (Elf64_Phdr *) (region + ph_base + ph_frag);
+#else
+	phdr = (Elf32_Phdr *) (region + ph_base + ph_frag);
+#endif
+
+	for (j = phnum; --j >= 0; ++phdr) {
+		if (PT_LOAD == phdr->p_type && ~0 == reloc0) {
+			reloc0 = phdr->p_vaddr - phdr->p_offset;
+		}
+	}
+
+	phdr -= phnum;
+
+	for (j = phnum; --j >= 0; ++phdr) {
+		if (PT_DYNAMIC != phdr->p_type) {
+			continue;
+		}
+
+		retval = BIN_HOST_DYNAMIC;
+	}
+
 _out_munmap:
 	munmap(region, status.st_size);
 _out_close:
@@ -365,7 +480,7 @@ int run_hashbang(const char *file, char *const *argv, char *const *envp)
 	char hashbang[SBOX_MAXPATH]; /* only 60 needed on linux, just be safe */
 	char interpreter[SBOX_MAXPATH];
 
-	if ((fd = open(file, O_RDONLY)) < 0) {
+	if ((fd = open_nomap(file, O_RDONLY)) < 0) {
 		/* unexpected error, just run it */
 		return run_app(file, argv, envp);
 	}
@@ -414,6 +529,7 @@ int run_hashbang(const char *file, char *const *argv, char *const *envp)
 	}
 
 	mapped_interpreter = scratchbox_path("execve", interpreter);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "run_hashbang(): interpreter=%s, mapped_interpreter=%s", interpreter, mapped_interpreter);
 	new_argv[n++] = strdup(file); /* the unmapped script path */
 
 	for (i = 1; argv[i] != NULL && i < argc; ) {
@@ -421,9 +537,6 @@ int run_hashbang(const char *file, char *const *argv, char *const *envp)
 	}
 
 	new_argv[n] = NULL;
-
-	SB_LOG(SB_LOGLEVEL_DEBUG, "exec script, interp=%s",
-		interpreter);
 
 	/* feed this through do_exec to let it deal with
 	 * cpu transparency etc.
@@ -531,18 +644,28 @@ int do_exec(const char *exec_fn_name, const char *file,
 	 */
 
 	mapped_file = scratchbox_path("do_exec", *my_file);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "do_exec(): *my_file = %s, mapped_file = %s", *my_file, mapped_file);
 
 	type = inspect_binary(mapped_file); /* inspect the completely mangled 
 					     * filename */
 
 	switch (type) {
 		case BIN_HASHBANG:
+			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/hashbang %s", mapped_file);
 			return run_hashbang(mapped_file, *my_argv,
 					*my_envp);
-		case BIN_HOST:
-			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/host %s",
+		case BIN_HOST_DYNAMIC:
+			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/host-dynamic %s",
 					mapped_file);
+			tmp = getenv("SBOX_TOOLS_ROOT");
+			if (tmp && strlen(tmp) > 0)
+				return ld_so_run_app(mapped_file, *my_argv, *my_envp);
+			else
+				return run_app(mapped_file, *my_argv, *my_envp);
 
+		case BIN_HOST_STATIC:
+			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/host-static %s",
+					mapped_file);
 			return run_app(mapped_file, *my_argv, *my_envp);
 		case BIN_TARGET:
 			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/target %s",

@@ -22,10 +22,11 @@ Options:
     -r [hostname]     generate sbrsh config using remote device address
     -l [hostname]     NFS server/localhost address seen by remote device
     -d                set target as default scratchbox2 target
-    -m mapping_mode   use mapping_mode as default
+    -m [mapping_mode] use mapping_mode as default
     -h                print this help
     -n                don't build libtool for the target
     -s                skip checks for target root's /usr/include etc.
+    -t [tools_dir]    set directory containing the build tools distribution
     -v                display version
 
 Examples:
@@ -85,6 +86,10 @@ export SBRSH_CONFIG=$HOME/.scratchbox2/$TARGET/sbrsh.config
 if [ -z "\$SBOX_MAPMODE" ]; then
 	export SBOX_MAPMODE=$MAPPING_MODE
 fi
+
+export SBOX_TOOLS_ROOT=$TOOLS_ROOT
+export SBOX_REDIR_LD_SO=$REDIR_LD_SO
+export SBOX_REDIR_LD_LIBRARY_PATH=$REDIR_LD_LIBRARY_PATH
 EOF
 	echo "Finished writing sb2.config"
 }
@@ -150,7 +155,7 @@ if [ -z "$*" ]; then
 	usage
 fi
 
-while getopts c:r:l:m:dhnsv foo
+while getopts c:r:l:m:dhnst:v foo
 do
 	case $foo in
 	(c) cputransparency=$OPTARG ;;
@@ -161,6 +166,7 @@ do
 	(m) MAPPING_MODE=$OPTARG ;;
 	(n) with_libtool=0 ;;
 	(s) skip_checks=true ;;
+	(t) TOOLS_ROOT=$OPTARG ;;
 	(v) version ;;
 	(*) usage ;;
 	esac
@@ -273,6 +279,20 @@ if [ -z "$(sb2-config -l)" ]; then
 # force this as default anyway as there are no
 # other existing targets
 	set_as_default=1
+fi
+
+if [ -n "$TOOLS_ROOT" ]; then
+	if [ -e "$TOOLS_ROOT/etc/scratchbox-version" ]; then
+		# this is a scratchbox 1.x directory, tread carefully
+		# sb1 is not FHS, *sigh*
+		REDIR_LD_SO=$TOOLS_ROOT/host_shared/lib/ld-linux.so.2
+		REDIR_LD_LIBRARY_PATH=$TOOLS_ROOT/host_shared/lib:$TOOLS_ROOT/tools/lib:\$LD_LIBRARY_PATH
+		TOOLS_ROOT=$TOOLS_ROOT/tools
+	else
+		# assume standard FHS system
+		REDIR_LD_SO=$TOOLS_ROOT/lib/ld-linux.so.2
+		REDIR_LD_LIBRARY_PATH=$TOOLS_ROOT/usr/local/lib:$TOOLS_ROOT/usr/lib:$TOOLS_ROOT/lib:\$LD_LIBRARY_PATH
+	fi
 fi
 
 mkdir -p $HOME/.scratchbox2/$TARGET/bin

@@ -118,17 +118,17 @@ WRAP: int linkat(int olddirfd, const char *oldpath, \
 --     libsb2.c's original code:
 
 WRAP: int __lxstat(int ver, const char *filename, struct stat *buf) : map(filename)
-#ifdef __LXSTAT64
+#ifdef HAVE___LXSTAT64
 WRAP: int __lxstat64(int ver, const char *filename, struct stat64 *buf) : map(filename)
 #endif
 WRAP: DIR *__opendir2(const char *name, int flags) : map(name)
 WRAP: int __xmknod(int ver, const char *path, mode_t mode, dev_t *dev) : map(path)
 WRAP: int __xstat(int ver, const char *filename, struct stat *buf) : map(filename)
-#ifdef __XSTAT64
+#ifdef HAVE___XSTAT64
 WRAP: int __xstat64(int ver, const char *filename, struct stat64 *buf) : map(filename)
 #endif
 WRAP: int _xftw(int mode, const char *dir, int (*fn)(const char *file, const struct stat *sb, int flag), int nopenfd) : map(dir)
-#ifdef _XFTW64
+#ifdef HAVE__XFTW64
 WRAP: int _xftw64(int mode, const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag), int nopenfd) : map(dir)
 #endif
 WRAP: int access(const char *pathname, int mode) : map(pathname) \
@@ -154,7 +154,7 @@ WRAP: FILE *freopen(const char *path, const char *mode, FILE *stream) : map(path
 WRAP: FILE *freopen64(const char *path, const char *mode, FILE *stream) : map(path)
 WRAP: int fstatat(int dirfd, const char *pathname, struct stat *buf, int flags) : map_at(dirfd,pathname)
 WRAP: int ftw(const char *dir, int (*fn)(const char *file, const struct stat *sb, int flag), int nopenfd) : map(dir)
-#ifdef FTW64
+#ifdef HAVE_FTW64
 WRAP: int ftw64(const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag), int nopenfd) : map(dir)
 #endif
 WRAP: int futimesat(int dirfd, const char *pathname, const struct timeval times[2]) : map_at(dirfd,pathname)
@@ -189,7 +189,7 @@ WRAP: int lremovexattr(const char *path, const char *name) : map(path)
 WRAP: int lsetxattr(const char *path, const char *name, const void *value, size_t size, int flags) : map(path)
 #endif
 WRAP: int lstat(const char *file_name, struct stat *buf) : map(file_name)
-#ifdef LSTAT64
+#ifdef HAVE_LSTAT64
 WRAP: int lstat64(const char *file_name, struct stat64 *buf) : map(file_name)
 #endif
 WRAP: int lutimes(const char *filename, const struct timeval tv[2]) : map(filename)
@@ -240,7 +240,7 @@ WRAP: int setxattr(const char *path, const char *name, const void *value, size_t
 #endif
 #endif
 WRAP: int stat(const char *file_name, struct stat *buf) : map(file_name)
-#ifdef STAT64
+#ifdef HAVE_STAT64
 WRAP: int stat64(const char *file_name, struct stat64 *buf) : map(file_name)
 #endif
 WRAP: int symlink(const char *oldpath, const char *newpath) : map(oldpath) map(newpath)

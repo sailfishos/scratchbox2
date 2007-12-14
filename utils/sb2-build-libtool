@@ -20,7 +20,9 @@ DLHOST="http://ftp.funet.fi/pub/mirrors/ftp.gnu.org/pub/gnu/libtool"
 SOURCEFILE=$NAME-$VERSION.tar.gz
 LOCAL_SOURCEFILE=$HOME/.scratchbox2/$SOURCEFILE
 COMPILERDIR=
-WORKDIR=$(mktemp -d -t sb2_libtool_build.XXXXXXX) || exit 1
+WORKDIR=$HOME/.scratchbox2/libtool_build
+rm -rf $WORKDIR
+mkdir -p $WORKDIR
 cd $WORKDIR
 
 if [ ! -e $LOCAL_SOURCEFILE ]; then

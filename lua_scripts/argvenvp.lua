@@ -39,6 +39,8 @@ gcc_bindir = os.getenv("SBOX_CROSS_GCC_DIR")
 gcc_subst_prefix = os.getenv("SBOX_CROSS_GCC_SUBST_PREFIX")
 gcc_extra_args = os.getenv("SBOX_EXTRA_CROSS_COMPILER_ARGS")
 gcc_block_args = os.getenv("SBOX_BLOCK_CROSS_COMPILER_ARGS")
+ld_extra_args = os.getenv("SBOX_EXTRA_CROSS_LD_ARGS")
+ld_block_args = os.getenv("SBOX_BLOCK_CROSS_LD_ARGS")
 host_gcc_bindir = os.getenv("SBOX_HOST_GCC_DIR")
 host_gcc_subst_prefix = os.getenv("SBOX_HOST_GCC_SUBST_PREFIX")
 host_gcc_extra_args = os.getenv("SBOX_EXTRA_HOST_COMPILER_ARGS")
@@ -70,6 +72,18 @@ for prefix in string.gmatch(":" .. os.getenv("SBOX_CROSS_GCC_PREFIX_LIST"), "[^:
 		tmp = {}
 		tmp.name = prefix .. gcc_linkers[i]
 		tmp.new_filename = gcc_bindir .. "/" .. gcc_subst_prefix .. gcc_linkers[i]
+		tmp.add_tail = {}
+		tmp.remove = {}
+		if (ld_extra_args) then
+			for ld_extra in string.gmatch(ld_extra_args, "[^ ]+") do
+				table.insert(tmp.add_tail, ld_extra)
+			end
+		end
+		if (ld_block_args) then
+			for ld_block in string.gmatch(ld_block_args, "[^ ]+") do
+				table.insert(tmp.remove, ld_block)
+			end
+		end
 		argvmods[tmp.name] = tmp
 	end
 	for i = 1, table.maxn(gcc_tools) do

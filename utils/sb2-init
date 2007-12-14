@@ -90,6 +90,9 @@ fi
 export SBOX_TOOLS_ROOT=$TOOLS_ROOT
 export SBOX_REDIR_LD_SO=$REDIR_LD_SO
 export SBOX_REDIR_LD_LIBRARY_PATH=$REDIR_LD_LIBRARY_PATH
+if [ -n "\$SBOX_TOOLS_ROOT ]; then
+	export LD_LIBRARY_PATH=\$SBOX_TOOLS_ROOT/usr/lib/libfakeroot:\$SBOX_TOOLS_ROOT/usr/lib64/libfakeroot:\$SBOX_TOOLS_ROOT/usr/lib32/libfakeroot:\$SBOX_REDIR_LD_LIBRARY_PATH:\$LD_LIBRARY_PATH
+fi
 EOF
 	echo "Finished writing sb2.config"
 }
@@ -290,7 +293,7 @@ if [ -n "$TOOLS_ROOT" ]; then
 		TOOLS_ROOT=$TOOLS_ROOT/tools
 	else
 		# assume standard FHS system
-		REDIR_LD_SO=$TOOLS_ROOT/lib/ld-linux.so.2
+		REDIR_LD_SO=
 		REDIR_LD_LIBRARY_PATH=$TOOLS_ROOT/usr/local/lib:$TOOLS_ROOT/usr/lib:$TOOLS_ROOT/lib:\$LD_LIBRARY_PATH
 	fi
 fi

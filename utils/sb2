@@ -80,7 +80,6 @@ function sboxify_environment()
 		if [ -z "$SBOX_LUA_SCRIPTS" ]; then
 			SBOX_LUA_SCRIPTS="$SBOX_DIR/share/scratchbox2/lua_scripts"
 		fi
-		SBOX_GCCWRAPPER="$SBOX_DIR/bin/sb_gcc_wrapper"
 	else
 		exit_error "Incorrect target config in ~/.scratchbox2/$SBOX_TARGET/sb2.config"
 	fi
@@ -94,7 +93,16 @@ function sboxify_environment()
 
 	export LD_PRELOAD=$SBOX_LIBSB2
 	export SBOX_EXTRA_HOST_COMPILER_ARGS="$HOST_GCC_INC_DIR"
-	export SBOX_EXTRA_CROSS_COMPILER_ARGS="--sysroot=$SBOX_TARGET_ROOT -I$SBOX_TARGET_ROOT/usr/include -L$SBOX_TARGET_ROOT/usr/lib -L$SBOX_TARGET_ROOT/lib"
+	
+	# test if the cross compiler needs to be silenced about /usr/include
+	# usage
+	echo "" | $SBOX_CROSS_GCC_DIR/${SBOX_CROSS_GCC_SUBST_PREFIX}gcc -E - -Wno-poison-system-directories > /dev/null 2>&1
+	if [ $? ] ; then
+		export SBOX_EXTRA_CROSS_COMPILER_ARGS="-I/usr/include -L$SBOX_TARGET_ROOT/usr/lib -L$SBOX_TARGET_ROOT/lib -Wno-poison-system-directories"
+	else
+		export SBOX_EXTRA_CROSS_COMPILER_ARGS="-I/usr/include -L$SBOX_TARGET_ROOT/usr/lib -L$SBOX_TARGET_ROOT/lib"
+	fi
+	export SBOX_EXTRA_CROSS_LD_ARGS="-rpath-link $SBOX_TARGET_ROOT/usr/lib:$SBOX_TARGET_ROOT/lib"
 	export SBOX_SCRATCHBOX_CONFIG=$HOME/.scratchbox2/$SBOX_TARGET/sb2.config
 	export PS1="[SB2] \u@\h \w \$ "
 

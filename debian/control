@@ -8,7 +8,7 @@ XS-Vcs-Git: git://anongit.freedesktop.org/git/sbox2
 XS-Vcs-Browser: http://gitweb.freedesktop.org/?p=sbox2.git
 
 Package: scratchbox2
-Architecture: i386 amd64
+Architecture: i386 amd64 powerpc ia64
 Depends: ${shlibs:Depends}
 Recommends: qemu, fakeroot
 Suggests: sbrsh

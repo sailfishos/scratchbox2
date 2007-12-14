@@ -1,8 +1,30 @@
-scratchbox2 (1.99.0.16.1) unstable; urgency=low
+scratchbox2 (1.99.0.20) unstable; urgency=low
 
   * New upstream version
+  * Replaced hardcoded gcc/ld wrapper with generic lua-based
+    argument remapper. Tthus stopped using c++, closes: #455127
+  * Tool distro support
+  * sbrsh support
+  * various fixes and cleanups
 
- -- Riku Voipio <riku.voipio@iki.fi>  Wed, 05 Sep 2007 21:40:35 +0300
+ -- Riku Voipio <riku.voipio@iki.fi>  Fri, 14 Dec 2007 10:36:33 +0200
+
+scratchbox2 (1.99.0.19) unstable; urgency=low
+
+  * New upstream version
+  * reworked sb2 target setup
+  * improved dpkg-architecture handling
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Thu, 20 Sep 2007 00:03:48 +0300
+
+scratchbox2 (1.99.0.18) unstable; urgency=low
+
+  * New upstream version
+  * endianness fixes, thus add powerpc and ia64 host support
+  * add testsuite for debugging target problems
+  * buggy cache code removed completly
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Thu, 06 Sep 2007 11:06:48 +0300
 
 scratchbox2 (1.99.0.16) unstable; urgency=low
 

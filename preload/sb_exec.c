@@ -313,7 +313,7 @@ int ld_so_run_app(const char *file, char *const *argv, char *const *envp)
 	my_argv = (char **)calloc(4 + argc - 1 + 1, sizeof (char *));
 	i = 0;
 	my_argv[i++] = strdup(ld_so);
-	my_argv[i++] = "--library-path";
+	my_argv[i++] = strdup("--library-path");
 	my_argv[i++] = host_libs;
 	my_argv[i++] = strdup(file);
 
@@ -322,7 +322,7 @@ int ld_so_run_app(const char *file, char *const *argv, char *const *envp)
 
 	my_argv[i] = NULL;
 
-	sb_next_execve(ld_so, my_argv, envp);
+	sb_next_execve(strdup(ld_so), my_argv, envp);
 
 	fprintf(stderr, "sb2 ld_so_run_app(%s): %s\n", file, strerror(errno));
 	return -11;
@@ -542,7 +542,7 @@ int run_hashbang(const char *file, char *const *argv, char *const *envp)
 				if (n == 0) {
 					ptr = &hashbang[j];
 					strcpy(interpreter, ptr);
-					new_argv[n++] = strdup(file);
+					new_argv[n++] = strdup(interpreter);
 				} else {
 					new_argv[n++] = strdup(&hashbang[j]);
 					/* this was the one and only
@@ -688,7 +688,7 @@ int do_exec(const char *exec_fn_name, const char *file,
 		case BIN_HOST_DYNAMIC:
 			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/host-dynamic %s",
 					mapped_file);
-			tmp = getenv("SBOX_TOOLS_ROOT");
+			tmp = getenv("SBOX_REDIR_LD_SO");
 			if (tmp && strlen(tmp) > 0)
 				return ld_so_run_app(mapped_file, *my_argv, *my_envp);
 			else

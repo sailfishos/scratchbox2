@@ -82,6 +82,7 @@ simple_chain = {
 		{path = "^/proc.*", map_to = nil},
 		{path = "^/sys.*", map_to = nil},
 		{path = "^" .. tools .. ".*", map_to = nil},
+		{path = "^/$", map_to = nil},
 		{path = ".*", map_to = tools_root}
 	}
 }
@@ -98,6 +99,7 @@ qemu_chain = {
 		{path = "^/proc", map_to = nil},
 		{path = "^/sys", map_to = nil},
 		{path = "^" .. tools .. ".*", map_to = nil},
+		{path = "^/$", map_to = nil},
 		{path = ".*", map_to = tools_root}
 	}
 }

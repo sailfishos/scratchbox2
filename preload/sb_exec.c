@@ -81,7 +81,7 @@ static int elem_count(char *const *elems)
 	return count;
 }
 
-/* orig_file is the unmangled filename, file is mangled */
+/* file is mangled, unmapped_file is not */
 int run_cputransparency(const char *file, const char *unmapped_file,
 			char *const *argv, char *const *envp)
 {
@@ -322,11 +322,9 @@ int ld_so_run_app(const char *file, char *const *argv, char *const *envp)
 
 	my_argv[i] = NULL;
 
-	//printf("about to execute: %s, %s, %s, %s\n", my_argv[0], my_argv[1], my_argv[2], my_argv[3]);
-	
 	sb_next_execve(ld_so, my_argv, envp);
 
-	fprintf(stderr, "sb_alien (running %s): %s\n", file, strerror(errno));
+	fprintf(stderr, "sb2 ld_so_run_app(%s): %s\n", file, strerror(errno));
 	return -11;
 }
 
@@ -560,7 +558,9 @@ int run_hashbang(const char *file, char *const *argv, char *const *envp)
 	}
 
 	mapped_interpreter = scratchbox_path("execve", interpreter);
-	SB_LOG(SB_LOGLEVEL_DEBUG, "run_hashbang(): interpreter=%s, mapped_interpreter=%s", interpreter, mapped_interpreter);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "run_hashbang(): interpreter=%s,"
+			"mapped_interpreter=%s", interpreter,
+			mapped_interpreter);
 	new_argv[n++] = strdup(file); /* the unmapped script path */
 
 	for (i = 1; argv[i] != NULL && i < argc; ) {

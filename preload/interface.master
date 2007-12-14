@@ -200,7 +200,7 @@ WRAP: int mkfifoat(int dirfd, const char *pathname, mode_t mode) : map_at(dirfd,
 WRAP: int mknod(const char *pathname, mode_t mode, dev_t dev) : map(pathname)
 WRAP: int mknodat(int dirfd, const char *pathname, mode_t mode, dev_t dev) : map_at(dirfd,pathname)
 WRAP: int nftw(const char *dir, int (*fn)(const char *file, const struct stat *sb, int flag, struct FTW *s), int nopenfd, int flags) : map(dir)
-#ifdef NFTW64
+#ifdef HAVE_NFTW64
 WRAP: int nftw64(const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag, struct FTW *s), int nopenfd, int flags) : map(dir)
 #endif
 WRAP: DIR *opendir(const char *name) : map(name)

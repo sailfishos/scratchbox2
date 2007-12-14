@@ -1,7 +1,7 @@
 SCRATCHBOX 2 README
 
 author: Lauri Leukkunen <lle@rahina.org>
-date:   2007-09-11
+date:   2007-12-14
 
 
 
@@ -96,7 +96,9 @@ After that you can run sb2 easily from anywhere and it'll just do its magic.
 MAEMO DEVELOPMENT
 
 First install sb2 as described above, or if you're using debian testing or
-unstable you can simply "apt-get install scratchbox2".
+unstable you can simply "apt-get install scratchbox2". If you're running
+a non-debian system you need to debootstrap debian/etch to some directory,
+sb2 can use it as a tool distribution.
 
 Download the latest rootstrap from:
 
@@ -116,7 +118,10 @@ Then get a nice toolchain from the locations mentioned above.
 After that you can setup sb2 by running:
 
 $ cd $HOME/maemo-root
-$ sb2-init maemo /path/to/compiler/bin/arm-none-linux-gnueabi-gcc
+$ sb2-init -m maemo maemo /path/to/compiler/bin/arm-none-linux-gnueabi-gcc
+
+If you want to use a separate tool distribution, do this instead:
+$ sb2-init -m maemo -t /etch_root maemo /path/to/compiler/bin/arm-linux-gcc
 
 Now you should have a fully functioning development environment.
 To try it out you can build for example fontconfig like this:

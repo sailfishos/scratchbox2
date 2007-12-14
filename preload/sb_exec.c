@@ -36,8 +36,16 @@
 # error Invalid __BYTE_ORDER
 #endif
 
-static int elf_hdr_match(uint16_t e_machine, uint16_t match,
-			 int target_little_endian);
+#ifdef __x86_64__
+typedef Elf64_Ehdr Elf_Ehdr;
+typedef Elf64_Phdr Elf_Phdr;
+#else
+typedef Elf32_Ehdr Elf_Ehdr;
+typedef Elf32_Phdr Elf_Phdr;
+#endif
+
+static int elf_hdr_match(Elf_Ehdr *ehdr, uint16_t match, int ei_data);
+
 static uint16_t byte_swap(uint16_t a);
 
 static uint16_t byte_swap(uint16_t a)
@@ -322,21 +330,26 @@ int ld_so_run_app(const char *file, char *const *argv, char *const *envp)
 	return -11;
 }
 
-static int elf_hdr_match(uint16_t e_machine, uint16_t match,
-			 int target_little_endian)
+static int elf_hdr_match(Elf_Ehdr *ehdr, uint16_t match, int ei_data)
 {
 	int swap;
 
+	if (ehdr->e_ident[EI_DATA] != ei_data)
+		return BIN_UNKNOWN;
+
 #ifdef WORDS_BIGENDIAN
-	swap = target_little_endian;
+	swap = (ei_data == ELFDATA2LSB);
 #else
-	swap = !target_little_endian;
+	swap = (ei_data == ELFDATA2MSB);
 #endif
 
-	if (swap)
-		return e_machine == byte_swap(match);
+	if (swap && ehdr->e_machine == byte_swap(match))
+		return BIN_TARGET;
 
-	return e_machine == match;
+	if (!swap && ehdr->e_machine == match)
+		return BIN_TARGET;
+
+	return BIN_UNKNOWN;
 }
 
 static enum binary_type inspect_binary(const char *filename)
@@ -345,16 +358,16 @@ static enum binary_type inspect_binary(const char *filename)
 	int fd, phnum, j;
 	struct stat status;
 	char *region, *target_cpu;
-	unsigned int ph_base, ph_frag;
+	unsigned int ph_base, ph_frag, ei_data;
+	uint16_t e_machine;
 #ifdef __x86_64__
 	int64_t reloc0;
-	Elf64_Ehdr *ehdr;
-	Elf64_Phdr *phdr;
 #else
 	int reloc0;
-	Elf32_Ehdr *ehdr;
-	Elf32_Phdr *phdr;
 #endif
+	Elf_Ehdr *ehdr;
+	Elf_Phdr *phdr;
+
 	retval = BIN_NONE;
 	if (access_nomap_nolog(filename, X_OK) < 0) {
 		/* can't execute it. Possible errno codes from access() 
@@ -395,42 +408,64 @@ static enum binary_type inspect_binary(const char *filename)
 		goto _out_munmap;
 	}
 
-#ifdef __x86_64__
-	ehdr = (Elf64_Ehdr *) region;
-#else
-	ehdr = (Elf32_Ehdr *) region;
-#endif
+	ehdr = (Elf_Ehdr *) region;
 
 	target_cpu = getenv("SBOX_CPU");
 	if (!target_cpu) target_cpu = "arm";
 
-	if (!strcmp(target_cpu, "arm")
-		&& elf_hdr_match(ehdr->e_machine, EM_ARM, 1)) {
-		retval = BIN_TARGET;
+	ei_data = ELFDATANONE;
+	e_machine = EM_NONE;
+
+	do {
+		if (!strncmp(target_cpu, "arm", 3)) {
+			e_machine = EM_ARM;
+			ei_data = ELFDATA2LSB;  /* default little endian */
+		}
+		if (!strncmp(target_cpu, "mips", 4)) {
+			e_machine = EM_MIPS;
+			ei_data = ELFDATA2MSB;  /* default big endian */
+		}
+		if (!strncmp(target_cpu, "sh", 2)) {
+			e_machine = EM_SH;
+			ei_data = ELFDATA2LSB;  /* default little endian */
+		}
+		if (!strcmp(target_cpu, "ppc")) {
+			e_machine = EM_PPC;
+			ei_data = ELFDATA2MSB;  /* big endian only */
+			break; /* break to avoid endian check below */
+		}
+
+		/* check for "el" or "eb" suffix */
+
+		if (strlen(target_cpu) > 2) {
+			if (!strcmp(&target_cpu[strlen(target_cpu) - 2], "eb"))
+				ei_data = ELFDATA2MSB;
+			if (!strcmp(&target_cpu[strlen(target_cpu) - 2], "el"))
+				ei_data = ELFDATA2LSB;
+		}
+
+	} while(0);
+
+	retval = elf_hdr_match(ehdr, e_machine, ei_data);
+	if (retval == BIN_TARGET)
 		goto _out_munmap;
-	} else if (!strcmp(target_cpu, "armel")
-		&& elf_hdr_match(ehdr->e_machine, EM_ARM, 1)) {
-		retval = BIN_TARGET;
-		goto _out_munmap;
-	} else if (!strcmp(target_cpu, "armeb")
-		&& elf_hdr_match(ehdr->e_machine, EM_ARM, 0)) {
-		retval = BIN_TARGET;
-		goto _out_munmap;
-	} else if (!strcmp(target_cpu, "ppc")
-		&& elf_hdr_match(ehdr->e_machine, EM_PPC, 0)) {
-		retval = BIN_TARGET;
-		goto _out_munmap;
-	} else if (!strcmp(target_cpu, "mips")
-		&& elf_hdr_match(ehdr->e_machine, EM_MIPS, 0)) {
-		retval = BIN_TARGET;
-		goto _out_munmap;
-	} else if (!strcmp(target_cpu, "mipsel")
-		&& elf_hdr_match(ehdr->e_machine, EM_MIPS_RS3_LE, 1)) {
-		retval = BIN_TARGET;
-		goto _out_munmap;
-	} else if (!strncmp(target_cpu, "sh", 2)
-		&& elf_hdr_match(ehdr->e_machine, EM_SH, 1)) {
-		retval = BIN_TARGET;
+
+	ei_data = ELFDATANONE;
+	e_machine = EM_NONE;
+
+#ifdef WORDS_BIGENDIAN
+	ei_data = ELFDATA2MSB;
+#else
+	ei_data = ELFDATA2LSB;
+#endif
+#ifdef __i386__
+	e_machine = EM_386;
+#endif 
+#ifdef __x86_64__
+	e_machine = EM_X86_64;
+#endif 
+	if (elf_hdr_match(ehdr, e_machine, ei_data) != BIN_TARGET) {
+		retval = BIN_UNKNOWN;
 		goto _out_munmap;
 	}
 
@@ -441,11 +476,7 @@ static enum binary_type inspect_binary(const char *filename)
 	ph_base = ehdr->e_phoff & PAGE_MASK;
 	ph_frag = ehdr->e_phoff - ph_base;
 
-#ifdef __x86_64__
-	phdr = (Elf64_Phdr *) (region + ph_base + ph_frag);
-#else
-	phdr = (Elf32_Phdr *) (region + ph_base + ph_frag);
-#endif
+	phdr = (Elf_Phdr *) (region + ph_base + ph_frag);
 
 	for (j = phnum; --j >= 0; ++phdr) {
 		if (PT_LOAD == phdr->p_type && ~0 == reloc0) {

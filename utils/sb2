@@ -94,7 +94,7 @@ function sboxify_environment()
 
 	export LD_PRELOAD=$SBOX_LIBSB2
 	export SBOX_EXTRA_HOST_COMPILER_ARGS="$HOST_GCC_INC_DIR"
-	export SBOX_EXTRA_CROSS_COMPILER_ARGS="--sysroot=$SBOX_TARGET_ROOT"
+	export SBOX_EXTRA_CROSS_COMPILER_ARGS="--sysroot=$SBOX_TARGET_ROOT -I$SBOX_TARGET_ROOT/usr/include -L$SBOX_TARGET_ROOT/usr/lib -L$SBOX_TARGET_ROOT/lib"
 	export SBOX_SCRATCHBOX_CONFIG=$HOME/.scratchbox2/$SBOX_TARGET/sb2.config
 	export PS1="[SB2] \u@\h \w \$ "
 

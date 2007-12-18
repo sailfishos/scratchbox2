@@ -15,7 +15,7 @@ DEB_HOST_GNU_TYPE = $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
 
 ifeq (x86_64-linux-gnu,$(DEB_HOST_GNU_TYPE))
 BUILD_TARGET=multilib
-INSTALL_TARGET=install-multilib
+INSTALL_TARGET=install-multilib multilib_prefix="$(CURDIR)/debian/scratchbox2/emul"
 else
 BUILD_TARGET=all
 INSTALL_TARGET=install

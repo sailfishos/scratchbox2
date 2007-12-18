@@ -26,6 +26,7 @@ simple_chain = {
 		{path = "^/dev.*", map_to = nil},
 		{path = "^/proc.*", map_to = nil},
 		{path = "^/sys.*", map_to = nil},
+		{path = "^/etc/resolv.conf", map_to = nil},
 		{path = "^" .. tools .. ".*", map_to = nil},
 		{path = "^/$", map_to = nil},
 		{path = ".*", map_to = tools_root}
@@ -43,6 +44,7 @@ qemu_chain = {
 		{path = "^/dev", map_to = nil},
 		{path = "^/proc", map_to = nil},
 		{path = "^/sys", map_to = nil},
+		{path = "^/etc/resolv.conf", map_to = nil},
 		{path = "^" .. tools .. ".*", map_to = nil},
 		{path = "^/$", map_to = nil},
 		{path = ".*", map_to = tools_root}

@@ -122,14 +122,16 @@ install: install-noarch
 	/sbin/ldconfig -n $(prefix)/lib/libsb2
 
 
+multilib_prefix=$(prefix)
+
 install-multilib: install-noarch
-	install -d -m 755 $(prefix)/lib32
-	install -d -m 755 $(prefix)/lib32/libsb2
-	install -d -m 755 $(prefix)/lib64
-	install -d -m 755 $(prefix)/lib64/libsb2
-	install -c -m 755 obj-32/preload/libsb2.so $(prefix)/lib32/libsb2/libsb2.so.$(PACKAGE_VERSION)
-	install -c -m 755 obj-64/preload/libsb2.so $(prefix)/lib64/libsb2/libsb2.so.$(PACKAGE_VERSION)
-	/sbin/ldconfig -n $(prefix)/lib32/libsb2 $(prefix)/lib64/libsb2
+	install -d -m 755 $(multilib_prefix)/lib32
+	install -d -m 755 $(multilib_prefix)/lib32/libsb2
+	install -d -m 755 $(multilib_prefix)/lib64
+	install -d -m 755 $(multilib_prefix)/lib64/libsb2
+	install -c -m 755 obj-32/preload/libsb2.so $(multilib_prefix)/lib32/libsb2/libsb2.so.$(PACKAGE_VERSION)
+	install -c -m 755 obj-64/preload/libsb2.so $(multilib_prefix)/lib64/libsb2/libsb2.so.$(PACKAGE_VERSION)
+	/sbin/ldconfig -n $(multilib_prefix)/lib32/libsb2 $(multilib_prefix)/lib64/libsb2
 
 
 CLEAN_FILES += $(targets) config.status config.log

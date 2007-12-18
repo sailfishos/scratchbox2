@@ -29,9 +29,9 @@ $(D)/wrappers.c: preload/interface.master preload/gen-interface.pl
 	$(MKOUTPUTDIR)
 	$(P)PERL
 	$(Q)$(SRCDIR)/preload/gen-interface.pl \
-		-W $(TOPDIR)/preload/wrappers.c \
-		-E $(TOPDIR)/preload/exported.h \
-		-L $(TOPDIR)/preload/ldexportlist \
+		-W preload/wrappers.c \
+		-E preload/exported.h \
+		-L preload/ldexportlist \
 		<$(SRCDIR)/preload/interface.master
 
 generated := preload/wrappers.c preload/exported.h preload/ldexportlist

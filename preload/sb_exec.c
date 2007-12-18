@@ -36,6 +36,10 @@
 # error Invalid __BYTE_ORDER
 #endif
 
+#ifndef PAGE_MASK
+# define PAGE_MASK sysconf(_SC_PAGE_SIZE)
+#endif
+
 #ifdef __x86_64__
 typedef Elf64_Ehdr Elf_Ehdr;
 typedef Elf64_Phdr Elf_Phdr;
@@ -458,10 +462,13 @@ static enum binary_type inspect_binary(const char *filename)
 #endif
 #ifdef __i386__
 	e_machine = EM_386;
-#endif 
-#ifdef __x86_64__
+#elif defined(__x86_64__)
 	e_machine = EM_X86_64;
-#endif 
+#elif defined(__ia64__)
+	e_machine = EM_IA_64;
+#elif defined(__powerpc__)
+	e_machine = EM_PPC;
+#endif
 	if (elf_hdr_match(ehdr, e_machine, ei_data) != BIN_TARGET) {
 		retval = BIN_UNKNOWN;
 		goto _out_munmap;

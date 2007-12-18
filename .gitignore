@@ -20,3 +20,5 @@ config.mak
 preload/exported.h
 preload/ldexportlist
 preload/wrappers.c
+obj-32
+obj-64

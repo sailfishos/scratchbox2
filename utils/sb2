@@ -29,9 +29,9 @@ Options:
 
 Examples:
     sb2 ./configure
-	sb2 make
-	sb2 -e make install
-	sb2 -m emulate make install
+    sb2 make
+    sb2 -e make install
+    sb2 -m emulate make install
 EOF
 	exit 2
 }

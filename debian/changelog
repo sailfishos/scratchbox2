@@ -1,3 +1,11 @@
+scratchbox2 (1.99.0.22) unstable; urgency=low
+
+  * New upstream version
+  * Fix building on 386, closes: #456352
+  * Fix amd64 multilib install location, closes: #456528
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Tue, 18 Dec 2007 23:27:48 +0200
+
 scratchbox2 (1.99.0.20) unstable; urgency=low
 
   * New upstream version

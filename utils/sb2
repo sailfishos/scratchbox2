@@ -76,12 +76,14 @@ function sboxify_environment()
 	
 	. ~/.scratchbox2/$SBOX_TARGET/sb2.config
 
-	if [ "$SBOX_CONFIG_VERSION" != "2" ]; then
+	if [ "$SBOX_CONFIG_VERSION" != "3" ]; then
 		echo "Please run sb2-init for your target:"
 		echo "name: $SBOX_TARGET"
 		echo "dir:  $SBOX_TARGET_ROOT"
 		echo "gcc:  $SBOX_CROSS_GCC_DIR/${SBOX_CROSS_GCC_SUBST_PREFIX}gcc"
 		echo "to update its sb2.config to work with current version of sb2"
+		echo "for example: "
+		echo sb2-init $SBOX_TARGET $SBOX_CROSS_GCC_DIR/${SBOX_CROSS_GCC_SUBST_PREFIX}gcc""
 		exit 1
 	fi
 
@@ -95,26 +97,15 @@ function sboxify_environment()
 
 	export LD_LIBRARY_PATH SBOX_LIBSB2 SBOX_LUA_SCRIPTS SBOX_TARGET_ROOT SBOX_TARGET_COMPILER
 
-	# -Riku: I don't think we want to run this on every sb2 invocation..
-	HOST_GCC_INC_DIR=$(echo "#include <stdio.h>" | gcc -M -E - | perl -e 'while(<STDIN>) { $foo{$1} = 1 if m/\/usr([^[:space:]]*\/include)/;}; foreach my $k (keys %foo) {print " -isystem $ENV{SBOX_DIR}/share/scratchbox2/host_usr$k"};')
-
 	export PATH=$HOME/.scratchbox2/$SBOX_TARGET/bin:$SBOX_DIR/share/scratchbox2/scripts:$SBOX_DIR/bin:$PATH:/sbin:/usr/sbin:$SBOX_TARGET_ROOT/bin:$SBOX_TARGET_ROOT/usr/bin:$SBOX_TARGET_ROOT/usr/local/bin
 
 	export LD_PRELOAD=$SBOX_LIBSB2
-	export SBOX_EXTRA_HOST_COMPILER_ARGS="$HOST_GCC_INC_DIR"
-	
+
 	# test if the cross compiler needs to be silenced about /usr/include
 	# usage
-	echo "" | $SBOX_CROSS_GCC_DIR/${SBOX_CROSS_GCC_SUBST_PREFIX}gcc -E - -Wno-poison-system-directories > /dev/null 2>&1
-	if [ $? = 0 ] ; then
-		export SBOX_EXTRA_CROSS_COMPILER_ARGS="-I/usr/include -L$SBOX_TARGET_ROOT/usr/lib -L$SBOX_TARGET_ROOT/lib -Wno-poison-system-directories"
-	else
-		export SBOX_EXTRA_CROSS_COMPILER_ARGS="-I/usr/include -L$SBOX_TARGET_ROOT/usr/lib -L$SBOX_TARGET_ROOT/lib"
-	fi
-	export SBOX_EXTRA_CROSS_LD_ARGS="-rpath-link $SBOX_TARGET_ROOT/usr/lib:$SBOX_TARGET_ROOT/lib"
+
 	export PS1="[SB2 $SBOX_TARGET] \u@\h \w \$ "
 
-	export SBOX_COMPILER_ROOT=$(readlink -f $SBOX_CROSS_GCC_DIR/..)
 
 	if [ "$SBOX_MAPPING_DEBUG" == "1" ]; then
 		tstamp=`/bin/date +%Y%m%d-%H%M`

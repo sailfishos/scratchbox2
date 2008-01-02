@@ -158,10 +158,10 @@ WRAP: int ftw(const char *dir, int (*fn)(const char *file, const struct stat *sb
 WRAP: int ftw64(const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag), int nopenfd) : map(dir)
 #endif
 WRAP: int futimesat(int dirfd, const char *pathname, const struct timeval times[2]) : map_at(dirfd,pathname)
-#ifdef HAVE_LINUX_XATTR
+#ifdef HAVE_LINUX_XATTRS
 WRAP: ssize_t getxattr(const char *path, const char *name, void *value, size_t size) : map(path)
 #endif
-#ifdef HAVE_OSX_XATTR
+#ifdef HAVE_OSX_XATTRS
 WRAP: ssize_t getxattr(const char *path, const char *name, void *value, size_t size, u_int32_t position, int options) : map(path)
 #endif
 WRAP: int glob_pattern_p(const char *pattern, int quote) : map(pattern)
@@ -172,10 +172,10 @@ WRAP: ssize_t lgetxattr(const char *path, const char *name, void *value, size_t 
 #endif
 WRAP: int link(const char *oldpath, const char *newpath) : map(oldpath) map(newpath)
 #ifdef HAVE_LISTXATTR
-#ifdef HAVE_LINUX_XATTR
+#ifdef HAVE_LINUX_XATTRS
 WRAP: ssize_t listxattr(const char *path, char *list, size_t size) : map(path)
 #endif
-#ifdef HAVE_OSX_XATTR
+#ifdef HAVE_OSX_XATTRS
 WRAP: ssize_t listxattr(const char *path, char *list, size_t size, int options) : map(path)
 #endif
 #endif
@@ -210,10 +210,10 @@ WRAP: READLINK_TYPE readlinkat(int dirfd, const char *pathname, char *buf, size_
 WRAP: char *realpath(const char *name, char *resolved) : map(name)
 WRAP: int remove(const char *pathname) : map(pathname)
 #ifdef HAVE_REMOVEXATTR
-#ifdef HAVE_LINUX_XATTR
+#ifdef HAVE_LINUX_XATTRS
 WRAP: int removexattr(const char *path, const char *name) : map(path)
 #endif
-#ifdef HAVE_OSX_XATTR
+#ifdef HAVE_OSX_XATTRS
 WRAP: int removexattr(const char *path, const char *name, int options) : map(path)
 #endif
 #endif
@@ -232,10 +232,10 @@ WRAP: int scandir(const char *dirname, struct dirent ***namelist, int (*select)(
 WRAP: int scandir64(const char *dir, struct dirent64 ***namelist, int(*filter)(const struct dirent64 *), int(*compar)(const void *, const void *)) : map(dir)
 #endif
 #ifdef HAVE_SETXATTR
-#ifdef HAVE_LINUX_XATTR
+#ifdef HAVE_LINUX_XATTRS
 WRAP: int setxattr(const char *path, const char *name, const void *value, size_t size, int flags) : map(path)
 #endif
-#ifdef HAVE_OSX_XATTR
+#ifdef HAVE_OSX_XATTRS
 WRAP: int setxattr(const char *path, const char *name, const void *value, size_t size, u_int32_t position, int options) : map(path)
 #endif
 #endif

@@ -183,14 +183,20 @@ sboxify_environment
 # set the initial binary name for the mapping engine
 export __SB2_BINARYNAME="bash"
 
+if [ -n "$SBOX_TOOLS_ROOT" ]; then
+	SHELL=$SBOX_TOOLS_ROOT/bin/bash
+else
+	SHELL=/bin/bash
+fi
+
 if [ $# -gt 0 -o "$STDIN" = true ] ; then
 	binary="$1"
 	shift 1
 	args="$@"
 	initialize_sb_logging $binary $args
-	exec /bin/sh -c "$binary $args"
+	exec $SHELL -c "$binary $args"
 else
 	initialize_sb_logging sb2
-	exec /bin/bash --noprofile --norc
+	exec $SHELL --noprofile --norc
 fi
 

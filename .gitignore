@@ -8,10 +8,7 @@ include/config.h
 include/config.h.in
 configure
 config.status
-utils/chroot-uid
-utils/sb_gcc_wrapper
 .config
-*.lock
 *.d
 autom4te.cache
 aclocal.*
@@ -22,3 +19,4 @@ preload/ldexportlist
 preload/wrappers.c
 obj-32
 obj-64
+.configure-multilib

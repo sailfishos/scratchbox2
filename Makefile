@@ -23,7 +23,7 @@ endif
 CC = gcc
 CXX = g++
 LD = ld
-PACKAGE_VERSION = "1.99.0.22"
+PACKAGE_VERSION = "1.99.0.23"
 PACKAGE = "SB2"
 LIBSB2_SONAME = "libsb2.so.1"
 LLBUILD ?= $(SRCDIR)/llbuild
@@ -55,19 +55,19 @@ endif
 
 all: $(targets)
 
-
-multilib:
+.configure-multilib:
 	rm -rf obj-32 obj-64
 	mkdir -p obj-32
 	mkdir -p obj-64
-	
 	cd obj-32 && \
-	CFLAGS=-m32 LDFLAGS=-m32 ../configure $(CONFIGURE_ARGS) && \
-	$(MAKE) --include-dir=.. -f ../Makefile SRCDIR=..
-
+	CFLAGS=-m32 LDFLAGS=-m32 ../configure $(CONFIGURE_ARGS)
 	cd obj-64 && \
-	CFLAGS=-m64 LDFLAGS=-m64 ../configure $(CONFIGURE_ARGS) && \
-	$(MAKE) --include-dir=.. -f ../Makefile SRCDIR=..
+	CFLAGS=-m64 LDFLAGS=-m64 ../configure $(CONFIGURE_ARGS)
+	touch .configure-multilib
+
+multilib: .configure-multilib
+	$(MAKE) -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=..
+	$(MAKE) -C obj-64 --include-dir=.. -f ../Makefile SRCDIR=..
 
 
 gcc_bins = addr2line ar as cc c++ c++filt cpp g++ gcc gcov gdb gdbtui gprof ld nm objcopy objdump ranlib rdi-stub readelf run size strings strip
@@ -114,7 +114,7 @@ install-noarch: $(BUILD_TARGET)
 	done
 
 
-# remember to keep install and install-multilib in sync!
+# remember to keep install and do-install-multilib in sync!
 install: install-noarch
 	install -d -m 755 $(prefix)/lib
 	install -d -m 755 $(prefix)/lib/libsb2
@@ -125,16 +125,17 @@ install: install-noarch
 multilib_prefix=$(prefix)
 
 install-multilib: install-noarch
-	install -d -m 755 $(multilib_prefix)/lib32
-	install -d -m 755 $(multilib_prefix)/lib32/libsb2
-	install -d -m 755 $(multilib_prefix)/lib64
-	install -d -m 755 $(multilib_prefix)/lib64/libsb2
-	install -c -m 755 obj-32/preload/libsb2.so $(multilib_prefix)/lib32/libsb2/libsb2.so.$(PACKAGE_VERSION)
-	install -c -m 755 obj-64/preload/libsb2.so $(multilib_prefix)/lib64/libsb2/libsb2.so.$(PACKAGE_VERSION)
-	/sbin/ldconfig -n $(multilib_prefix)/lib32/libsb2 $(multilib_prefix)/lib64/libsb2
+	$(MAKE) -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. do-install-multilib bitness=32
+	$(MAKE) -C obj-64 --include-dir=.. -f ../Makefile SRCDIR=.. do-install-multilib bitness=64
+
+do-install-multilib:
+	install -d -m 755 $(multilib_prefix)/lib$(bitness)
+	install -d -m 755 $(multilib_prefix)/lib$(bitness)/libsb2
+	install -c -m 755 preload/libsb2.so $(multilib_prefix)/lib$(bitness)/libsb2/libsb2.so.$(PACKAGE_VERSION)
+	/sbin/ldconfig -n $(multilib_prefix)/lib$(bitness)/libsb2
 
 
-CLEAN_FILES += $(targets) config.status config.log
+CLEAN_FILES += $(targets) config.status config.log obj-32 obj-64 .configure-multilib
 
 # make all object files depend on include/config.h
 

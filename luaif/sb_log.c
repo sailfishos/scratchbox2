@@ -141,12 +141,13 @@ void sblog_init(void)
 }
 
 /* a vprintf-like routine for logging. This will
- * - prefix the line with current timestamp and PID
+ * - prefix the line with current timestamp, log level of the message, and PID
  * - add a newline, if the message does not already end to a newline.
 */
 void sblog_vprintf_line_to_logfile(
 	const char	*file,
 	int		line,
+	int		level,
 	const char	*format,
 	va_list		ap)
 {
@@ -156,6 +157,7 @@ void sblog_vprintf_line_to_logfile(
 	int	msglen;
 	char	*forbidden_chrp;
 	char	*optional_src_location;
+	char	*levelname = NULL;
 
 	if (sb_loglevel__ == SB_LOGLEVEL_uninitialized) sblog_init();
 
@@ -196,9 +198,22 @@ void sblog_vprintf_line_to_logfile(
 	} else {
 		optional_src_location = strdup("");
 	}
-	asprintf(&finalmsg, "%s\t%s[%d]\t%s%s\n",
-		tstamp, sb_log_state.sbl_binary_name, getpid(),
-		logmsg, optional_src_location);
+
+	switch(level) {
+	case SB_LOGLEVEL_ERROR:		levelname = "ERROR"; break;
+	case SB_LOGLEVEL_WARNING:	levelname = "WARNING"; break;
+	/* default is to pass level info as numbers */
+	}
+	
+	if(levelname) {
+		asprintf(&finalmsg, "%s (%s)\t%s[%d]\t%s%s\n",
+			tstamp, levelname, sb_log_state.sbl_binary_name, 
+			getpid(), logmsg, optional_src_location);
+	} else {
+		asprintf(&finalmsg, "%s (%d)\t%s[%d]\t%s%s\n",
+			tstamp, level, sb_log_state.sbl_binary_name, 
+			getpid(), logmsg, optional_src_location);
+	}
 
 	write_to_logfile(finalmsg, strlen(finalmsg));
 
@@ -210,6 +225,7 @@ void sblog_vprintf_line_to_logfile(
 void sblog_printf_line_to_logfile(
 	const char	*file,
 	int		line,
+	int		level,
 	const char	*format,
 	...)
 {
@@ -218,6 +234,6 @@ void sblog_printf_line_to_logfile(
 	if (sb_loglevel__ == SB_LOGLEVEL_uninitialized) sblog_init();
 
 	va_start(ap, format);
-	sblog_vprintf_line_to_logfile(file, line, format, ap);
+	sblog_vprintf_line_to_logfile(file, line, level, format, ap);
 	va_end(ap);
 }

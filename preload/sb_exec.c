@@ -673,7 +673,7 @@ int do_exec(const char *exec_fn_name, const char *file,
 	}
 	(*my_argv)[i] = NULL;
 
-	if (!(err = sb_execve_mod(my_file, my_argv, my_envp))) {
+	if ((err = sb_execve_mod(my_file, my_argv, my_envp)) != 0) {
 		SB_LOG(SB_LOGLEVEL_ERROR, "argvenvp processing error %i", err);
 	}
 
@@ -711,11 +711,15 @@ int do_exec(const char *exec_fn_name, const char *file,
 
 			return run_cputransparency(mapped_file, *my_file,
 					*my_argv, *my_envp);
+
+		case BIN_INVALID: /* = can't be executed, no X permission */
+			break;
+
 		case BIN_NONE:
-		case BIN_INVALID:
 		case BIN_UNKNOWN:
 			SB_LOG(SB_LOGLEVEL_ERROR,
-					"Unidentified executable detected");
+				"Unidentified executable detected (%s)",
+				mapped_file);
 			break;
 	}
 

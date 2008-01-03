@@ -217,12 +217,20 @@ char *scratchbox_path2(const char *binary_name,
 	}
 
 	if (getenv("SBOX_DISABLE_MAPPING")) {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "disabled(E): %s '%s'",
+		/* NOTE: Following SB_LOG() call is used by the log
+		 *       postprocessor script "sb2logz". Do not change
+		 *       without making a corresponding change to the script!
+		*/
+		SB_LOG(SB_LOGLEVEL_INFO, "disabled(E): %s '%s'",
 			func_name, path);
 		return strdup(path);
 	}
 	if (luaif->mapping_disabled) {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "disabled(%d): %s '%s'",
+		/* NOTE: Following SB_LOG() call is used by the log
+		 *       postprocessor script "sb2logz". Do not change
+		 *       without making a corresponding change to the script!
+		*/
+		SB_LOG(SB_LOGLEVEL_INFO, "disabled(%d): %s '%s'",
 			luaif->mapping_disabled, func_name, path);
 		return strdup(path);
 	}
@@ -254,11 +262,19 @@ char *scratchbox_path2(const char *binary_name,
 	if (strcmp(tmp, decolon_path) == 0) {
 		free(decolon_path);
 		free(tmp);
+		/* NOTE: Following SB_LOG() call is used by the log
+		 *       postprocessor script "sb2logz". Do not change
+		 *       without making a corresponding change to the script!
+		*/
 		SB_LOG(SB_LOGLEVEL_INFO, "pass: %s '%s'",
 			func_name, path);
 		return strdup(path);
 	} else {
 		free(decolon_path);
+		/* NOTE: Following SB_LOG() call is used by the log
+		 *       postprocessor script "sb2logz". Do not change
+		 *       without making a corresponding change to the script!
+		*/
 		SB_LOG(SB_LOGLEVEL_INFO, "mapped: %s '%s' -> '%s'",
 			func_name, path, tmp);
 		return tmp;

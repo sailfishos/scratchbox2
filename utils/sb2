@@ -105,11 +105,30 @@ function sboxify_environment()
 	# usage
 
 	export PS1="[SB2 $SBOX_TARGET] \u@\h \w \$ "
+}
 
 
+function initialize_sb_logging()
+{
+	cmd_param=$1
+	args_param=$2
 	if [ "$SBOX_MAPPING_DEBUG" == "1" ]; then
 		tstamp=`/bin/date +%Y%m%d-%H%M`
-		export SBOX_MAPPING_LOGFILE=$HOME/sb2_mapping_$tstamp.$$.log
+		if [ ! -d $HOME/sb2_logs ]
+		then
+			mkdir $HOME/sb2_logs 
+			echo "Created directory $HOME/sb2_logs for log files"
+		fi
+		MAPPING_LOGFILE=$HOME/sb2_logs/$cmd_param.$tstamp.$$.log
+
+		# log command:
+		echo "##Log from $cmd_param $args_param" >$MAPPING_LOGFILE
+
+		# log initial environment if logging is enabled
+		env | sed -e 's/^/#/' >>$MAPPING_LOGFILE
+
+		export SBOX_MAPPING_LOGFILE=$MAPPING_LOGFILE
+
 		echo "Running scratchbox with these settings:"
 		echo "SBOX_LIBSB2 = $SBOX_LIBSB2"
 		echo "SBOX_LUA_SCRIPTS = $SBOX_LUA_SCRIPTS"
@@ -119,6 +138,10 @@ function sboxify_environment()
 		echo "SBOX_TARGET_ROOT = $SBOX_TARGET_ROOT"
 		echo "SBOX_MAPPING_LOGFILE = $SBOX_MAPPING_LOGFILE"
 		echo "SBOX_MAPPING_LOGLEVEL = $SBOX_MAPPING_LOGLEVEL"
+		echo
+		echo "The logfile can be analyzed afterwards by"
+		echo "  $SBOX_DIR/share/scratchbox2/scripts/sb2logz < $MAPPING_LOGFILE"
+		echo
 	fi
 }
 
@@ -164,8 +187,10 @@ if [ $# -gt 0 -o "$STDIN" = true ] ; then
 	binary="$1"
 	shift 1
 	args="$@"
+	initialize_sb_logging $binary $args
 	exec /bin/sh -c "$binary $args"
 else
+	initialize_sb_logging sb2
 	exec /bin/bash --noprofile --norc
 fi
 

@@ -1,7 +1,7 @@
 SCRATCHBOX 2 README
 
 author: Lauri Leukkunen <lle@rahina.org>
-date:   2007-12-14
+date:   2008-01-03
 
 
 
@@ -135,5 +135,33 @@ development work in $HOME/src. The "-d" switch is needed to skip checking build
 dependencies, this is one of the remaining TODO items of SB2.
 
 
+
+DIAGNOSING PROBLEMS WITH SB2
+
+Sometimes everything does not work as expected, so it is good to know
+how to locate problems (typically problems are related to misconfigured
+mapping rules). Scratchbox 2 can produce extensive logs about all
+operations, but it does not do so by default. So the first step is
+to enable logging: Use the "-d" or "-L <level>" options of "sb2".
+
+For example,
+
+$ sb2 -L info dpkg-buildpackage -rfakeroot -d
+
+will produce a log of most important actions that were performed by
+"dpkg-buildpackage" and all subprocesses started by it. The log will
+be created under ~/sb2_logs/ (The above command will also print out the
+exact name and location of the logfile.)
+
+The produced logfile can be quite huge, especially when using the higher
+logging levels. A logfile analyzer script, sb2logz, can be used to extract
+essentials like error and warning messages and path mapping actions from
+the logged information; log level 'info' in enough for anything that
+sb2logz needs. Higher logging levels ('debug', etc) are mostly useful
+only for developers of scratchbox 2.
+
+
+
+-- 
 That's all folks, enjoy!
 

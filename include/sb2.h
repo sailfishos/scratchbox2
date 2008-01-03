@@ -56,9 +56,9 @@ time_t get_sb2_timestamp(void);
 
 extern void sblog_init(void);
 extern void sblog_vprintf_line_to_logfile(const char *file, int line,
-	const char *format, va_list ap);
+	int level, const char *format, va_list ap);
 extern void sblog_printf_line_to_logfile(const char *file, int line,
-	const char *format,...);
+	int level, const char *format,...);
 
 extern int sb_loglevel__; /* do not access directly */
 
@@ -66,7 +66,7 @@ extern int sb_loglevel__; /* do not access directly */
 	do { \
 		if ((level) <= sb_loglevel__) { \
 			sblog_printf_line_to_logfile( \
-				__FILE__, __LINE__, __VA_ARGS__); \
+				__FILE__, __LINE__, level, __VA_ARGS__); \
 		} \
 	} while (0)
 

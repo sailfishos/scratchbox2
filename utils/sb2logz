@@ -1,0 +1,490 @@
+#!/usr/bin/perl
+#
+# SB2 Log Analyzer.
+# Reads a logfile from stdin, collects data and then writes a summary to
+# stdout. Additionally, various details can be requested by command line
+# options (see descriptions below).
+#
+# Copyright (c) 2007 Nokia Corporation. All rights reserved.
+# Author: Lauri T. Aarnio
+# Licensed under LGPL version 2.1, see top level LICENSE file for details.
+
+use strict;
+use Data::Dumper;
+use Getopt::Std;
+
+sub usage {
+	print	"Usage:\n".
+		"\tsb2logz [options]\n".
+		"\t(stdin should be a logfile produced by the sb2 command,\n".
+		"\tsee options '-d' and '-L level' of sb2)\n".
+		"Options:\n".
+		"\t-b\tno blacklist: do not ignore log lines from __xstat etc\n".
+		"\t-B fn1,fn2,..\tblacklist funcions fn1,..: ignore log specific lines\n".
+		"\t-d level\tdebug mode, for debugging the script itself.\n".
+		"\t-h\tdisplay this help text\n".
+		"\t-i\tprint details about 'disabled' pathnames\n".
+		"\t\t(unmodifed paths, because mapping was disabled)\n".
+		"\t-l\tprint long details (affect output of -i,-m,-r,-p etc)\n".
+		"\t-m\tprint details about mapped pathnames (src->dest)\n".
+		"\t-p\tprint details about passed pathnames\n".
+		"\t\t('passed' path = not mapped)\n".
+		"\t-r\tprint reversed mappings (dest->src)\n".
+		"\t-s\tprint process statistics\n".
+		"\t-v\tverbose mode, prints dots while reading input etc.\n".
+		"";
+}
+
+#============================================
+#
+# Options:
+#
+our($opt_d,$opt_v,$opt_m,$opt_p,$opt_l,$opt_b,$opt_B,$opt_r,
+    $opt_s,$opt_i,$opt_h);
+if(!getopts("bB:d:hilmprsv")) {
+	usage();
+	exit(1);
+}
+if($opt_h) {
+	usage();
+	exit(0);
+}
+
+my $debug = $opt_d;
+my $verbose = $opt_v;
+my $print_mapped_paths = $opt_m;
+my $print_revmap_paths = $opt_r;
+my $print_passed_paths = $opt_p;
+my $print_disabled_passed_paths = $opt_i;
+my $print_full_details = $opt_l;
+my $no_blacklist = $opt_b;
+my $user_blacklist = $opt_B;
+my $print_process_statistics = $opt_s;
+
+#============================================
+# 
+# Initializations
+
+local $|;
+if($verbose) {
+	$| = 1;	# enable autoflush
+}
+
+# list of functions that should be ignored unless -b is specified:
+my %blacklisted_functions = (
+	'__xstat' => 1,
+	'__xstat64' => 1,
+	'__lxstat' => 1,
+	'__lxstat64' => 1,
+);
+
+if($no_blacklist) {
+	%blacklisted_functions = ();
+}
+if($user_blacklist) {
+	my $b;
+	foreach $b (split(',',$user_blacklist)) {
+		$blacklisted_functions{$b} = 1;
+	}
+}
+
+#============================================
+# Global variables
+
+my %all_processes;	# Indexed by processname[pid]
+my %argv0_counters;	# Indexed by processname, counts processes with the
+			# same argv[0]
+
+my %mapped_src_paths;	# this will hold mapped pathnames, indexed by the source
+			# path (=the original, unmapped path that was provided 
+			# by the caller). here a "reference" is the destination.
+
+my %mapped_dest_paths;	# this will hold mapped pathnames, indexed by the 
+			# desitnation pathname (result of mapping). here the
+			# "reference" is the source path.
+
+my %passed_paths;	# and here we'll get all pathnames that were not
+			# mapped.
+
+my %disabled_passed_paths; # for all pathnames that were not
+			# mapped because mapping was disabled.
+
+my $sbox_target_root = undef;
+my $sbox_tools_root = undef;
+my $sbox_mapmode = "UNKNOWN";
+
+my @errors;		# collect error messages to this array..
+my @warnings;		# ..and warnings here
+
+my %failed_process;	# processes with non-zero exit status
+
+#============================================
+
+# path_accessed() is the place that registers path objects to the
+# path data hashes (the four global .._paths hashes above)
+sub path_accessed {
+	my $r_pathhash = shift;
+	my $fn_name = shift;
+	my $procname = shift;
+	my $pathname = shift;
+	my $reference = shift;
+
+	my $r_path;
+
+	if(defined $sbox_target_root) {
+		# tentatively substitute target root path..
+		$pathname =~ s/^$sbox_target_root/<TARGET_ROOT>/;
+	}
+	if(defined $sbox_tools_root) {
+		# tentatively substitute...
+		$pathname =~ s/^$sbox_tools_root/<TOOLS_ROOT>/;
+	}
+
+	if(!defined($r_pathhash->{$pathname})) {
+		$r_path = $r_pathhash->{$pathname} = {
+			'count' => 1,
+			'procs' => {
+				$procname => 1,
+			},
+			'fn_names' => {
+				$fn_name => 1,
+			},
+			'refs' => { },
+		};
+	} else {
+		$r_path = $r_pathhash->{$pathname};
+		$r_path->{'count'}++;
+		$r_path->{'procs'}->{$procname} = 1;
+		$r_path->{'fn_names'}->{$fn_name} = 1;
+	}
+	if(defined $reference) {
+		$r_path->{'refs'}->{$reference} = 1;
+	}
+
+	return($r_path);
+}
+
+# print references and refering function names
+sub print_details {
+	my	$r_path = shift;
+	my	$arrow = shift;
+
+	my $r_refs = $r_path->{'refs'};
+	my @all_refs = sort(keys(%{$r_refs}));
+	my $r;
+	foreach $r (@all_refs) {
+		printf "    %2s\t%s\n", $arrow, $r;
+	}
+	my $r_fn_names = $r_path->{'fn_names'};
+	my @all_fn_names = sort(keys(%{$r_fn_names}));
+	print "\t[".join(',',@all_fn_names)."]\n";
+
+	my $r_procs = $r_path->{'procs'};
+	my @all_procs = sort(keys(%{$r_procs}));
+	print "\t[".join(',',@all_procs)."]\n";
+}
+
+sub check_multiple_refs {
+	my $r_pathnames_array = shift;
+	my $r_paths_data = shift;
+	my $name_txt = shift;
+	my $ref_txt = shift;
+	my $arrow = shift;
+
+	my @paths_with_multiple_refs;
+	my $p;
+	foreach $p (@{$r_pathnames_array}) {
+		my @refs = keys(%{$r_paths_data->{$p}->{'refs'}});
+		if(@refs > 1) {
+			push(@paths_with_multiple_refs, $p);
+		}
+	}
+	if(@paths_with_multiple_refs > 0) {
+		print "\nNOTICE: ".
+			"Following $name_txt have been mapped $ref_txt:\n";
+		foreach $p (@paths_with_multiple_refs) {
+			print "\t$p\n";
+			if($print_full_details) {
+				print_details($r_paths_data->{$p}, $arrow);
+				print "\n";
+			}
+		}
+	}
+}
+
+sub print_all_paths {
+	my $r_pathnames_array = shift;
+	my $r_paths_data = shift;
+	my $name_txt = shift;
+	my $arrow = shift;
+
+	print "\n$name_txt (#used, pathname):\n";
+	my $p;
+	foreach $p (@{$r_pathnames_array}) {
+		my $count = $r_paths_data->{$p}->{'count'};
+		if($debug) {
+			$Data::Dumper::Indent = 1;
+			print Dumper($r_paths_data->{$p});
+		}
+		printf "%d\t%s\n", $count, $p;
+
+		if($print_full_details) {
+			print_details($r_paths_data->{$p}, $arrow);
+			print "\n";
+		}
+	}
+}
+
+#============================================
+#
+# Read log lines from standard input.
+#
+my $linenum = 0;
+my $first_timestamp;
+my $last_timestamp;
+my $timestamp;
+my $loglevel;
+my $line;
+if($verbose) {
+	print "Reading log:\n";
+}
+while ($line = <STDIN>) {
+	$linenum++;
+	chomp($line);
+
+	if($verbose) {
+		if(!($linenum % 1000)) {
+			print(".");
+		}
+	}
+
+	if($line =~ /^#/) {
+		# A comment, or line containing environment variable
+		if($line =~ /^#SBOX_TARGET_ROOT=(\/.+)/) {
+			$sbox_target_root = $1;
+		} elsif($line =~ /^#SBOX_TOOLS_ROOT=(\/.+)/) {
+			$sbox_tools_root = $1;
+		} elsif($line =~ /^#SBOX_MAPMODE=(.*)/) {
+			$sbox_mapmode = $1;
+		}
+		next;
+	}
+
+	# The logger routine in sb2 uses tabs as separators and makes sure
+	# that the log messages do not contain extra tabs => safe to use split
+	my @msgfield = split(/\t/,$line);
+	if(@msgfield < 3) {
+		# not enough fields, malformed line?
+		next;
+	}
+
+	my $timestamp_and_level = $msgfield[0];
+	my $process_name_and_pid = $msgfield[1];
+	my $logmessage = $msgfield[2];
+	my $srclocation = $msgfield[3];	# optional (only if debug log from sb2)
+
+	if($timestamp_and_level =~ m/^(.*)\s\((.*)\)$/) {
+		$timestamp = $1;
+		$loglevel = $2;
+		if($debug > 1) {
+			print "t+d: $timestamp: $loglevel\n";
+		}
+	} else {
+		$timestamp = $timestamp_and_level;
+		$loglevel = undef;
+		if($debug > 1) {
+			print "t+no d: $timestamp\n";
+		}
+	}
+	if($loglevel eq "ERROR") {
+		push(@errors, $line);
+	} elsif($loglevel eq "WARNING") {
+		push(@warnings, $line);
+	}
+	$last_timestamp = $timestamp;
+	if(!defined($first_timestamp)) {
+		$first_timestamp = $last_timestamp;
+	}
+
+	my $procname = $process_name_and_pid;
+	my $pid = 0;
+	if($process_name_and_pid =~ m/^(.*)\[([0-9]+)\]$/) {
+		$procname = $1;
+		$pid = $2;
+	}
+
+	if(defined($all_processes{$process_name_and_pid})) {
+		# just increment number of lines from that process
+		$all_processes{$process_name_and_pid}++;
+	} else {
+		# found a new process!
+		# first set number of log lines from that process to 1:
+		$all_processes{$process_name_and_pid} = 1;
+		# and next count that there was yet another instance
+		# of $procname:
+		$argv0_counters{$procname}++;
+	}
+
+	if($logmessage =~ m/^mapped: ([a-zA-Z0-9_]+) '(.*)' -> '(.*)'/) {
+		my $fn_name = $1;
+		my $from_path = $2;
+		my $to_path = $3;
+		if($debug > 1) {
+			print "MAPPED: $fn_name: $from_path -> $to_path\n";
+		}
+		if(!defined($blacklisted_functions{$fn_name})) {
+			path_accessed(\%mapped_src_paths,
+				$fn_name, $procname, $from_path, $to_path);
+			path_accessed(\%mapped_dest_paths,
+				$fn_name, $procname, $to_path, $from_path);
+		}
+	} elsif($logmessage =~ m/^pass: ([a-zA-Z0-9_]+) '(.*)'$/) {
+		my $fn_name = $1;
+		my $path = $2;
+		if($debug > 1) {
+			print "PASS: $fn_name: $path\n";
+		}
+		if(!defined($blacklisted_functions{$fn_name})) {
+			path_accessed(\%passed_paths,
+				$fn_name, $procname, $path, undef);
+		}
+	} elsif($logmessage =~ m/^disabled\(\d*\): ([a-zA-Z0-9_]+) '(.*)'$/) {
+		my $fn_name = $1;
+		my $path = $2;
+		if($debug > 1) {
+			print "DISABLED/PASS: $fn_name: $path\n";
+		}
+		if(!defined($blacklisted_functions{$fn_name})) {
+			path_accessed(\%disabled_passed_paths,
+				$fn_name, $procname, $path, undef);
+		}
+	} elsif($logmessage =~ m/^_[Ee]xit: status=(\d*)/) {
+		my $process_exit_status = $1;
+		if($process_exit_status != 0) {
+			$failed_process{$process_name_and_pid} = $process_exit_status;
+		}
+	}
+}
+if($verbose) {
+	print("\nRead $linenum lines.\n");
+}
+
+#============================================
+#
+# Write report(s).
+#
+
+if($debug) {
+	$Data::Dumper::Indent = 1;
+	print "###### mapped_src_paths\n";
+	print Dumper(\%mapped_src_paths);
+	print "###### mapped_dest_paths\n";
+	print Dumper(\%mapped_dest_paths);
+	print "###### passed_paths\n";
+	print Dumper(\%passed_paths);
+	print "######.\n";
+}
+
+my $num_errors = @errors;
+if($num_errors > 0) {
+	print "\nErrors:\n";
+	print join("\n", @errors), "\n";
+}
+
+my $num_warnings = @warnings;
+if($num_warnings > 0) {
+	print "\nWarnings:\n";
+	print join("\n", @warnings), "\n";
+}
+
+my @mapped_src_paths = sort(keys(%mapped_src_paths));
+my $num_mapped_src_paths = @mapped_src_paths;
+
+my @mapped_dest_paths = sort(keys(%mapped_dest_paths));
+my $num_mapped_dest_paths = @mapped_dest_paths;
+
+my @passed_paths = sort(keys(%passed_paths));
+my $num_passed_paths = @passed_paths;
+
+my @disabled_passed_paths = sort(keys(%disabled_passed_paths));
+my $num_disabled_passed_paths = @disabled_passed_paths;
+
+print	"\nMapping mode = $sbox_mapmode,\n".
+	"\tTimeframe: $first_timestamp ... $last_timestamp,\n".
+	"\t$num_errors errors, $num_warnings warnings.\n";
+if(defined $sbox_target_root) {
+	print "\tTARGET_ROOT = $sbox_target_root\n";
+}
+if(defined $sbox_tools_root) {
+	print "\tTOOLS_ROOT = $sbox_tools_root\n";
+}
+
+my @process_names_with_pids = sort(keys(%all_processes));
+my $num_process_names_with_pids = @process_names_with_pids;
+print   "Number of processes: $num_process_names_with_pids\n";
+
+if($print_process_statistics) {
+	my $pname;
+	print "\tNumber of instances, process name:\n";
+	foreach $pname (sort(keys(%argv0_counters))) {
+		print "\t\t".$argv0_counters{$pname}."\t".$pname."\n";
+	}
+	my @failures = sort(keys(%failed_process));
+	my $num_failures = @failures;
+	if($num_failures > 0) {
+		print "\t$num_failures processes with non-zero exit status:\n";
+		foreach $pname (@failures) {
+			print "\t\t$pname:\t".$failed_process{$pname}."\n";
+		}
+	}
+}
+
+print   "Number of pathnames:\n".
+	"\tMapped $num_mapped_src_paths to $num_mapped_dest_paths".
+	" destinations\n".
+	"\tPassed $num_passed_paths pathnames without modifications\n".
+	"\tPassed $num_disabled_passed_paths because mapping was disabled\n";
+
+my @ignored = sort(keys(%blacklisted_functions));
+if(@ignored > 0) {
+	print   "Lines from following functions were ignored:\n".
+		"\t".join(',',@ignored)."\n";
+}
+
+my $p;
+
+#First, check if there are potentially problematic paths:
+check_multiple_refs(\@mapped_src_paths, \%mapped_src_paths,
+	"source paths", "to multiple destinations", "->");
+
+check_multiple_refs(\@mapped_dest_paths, \%mapped_dest_paths,
+	"destination paths", "from multiple sources", "<-");
+
+my $printed_path_details = 0;
+
+if($print_mapped_paths) {
+	print_all_paths(\@mapped_src_paths, \%mapped_src_paths,
+		"Mapped pathnames, by source path", "->");
+	$printed_path_details = 1;
+}
+if($print_revmap_paths) {
+	print_all_paths(\@mapped_dest_paths, \%mapped_dest_paths,
+		"Mapped pathnames, by destination path", "<-");
+	$printed_path_details = 1;
+}
+if($print_passed_paths) {
+	print_all_paths(\@passed_paths, \%passed_paths,
+		"Passed pathnames", "");
+	$printed_path_details = 1;
+}
+if($print_disabled_passed_paths) {
+	print_all_paths(\@disabled_passed_paths, \%disabled_passed_paths,
+		"Mapping disabled => passed pathnames", "");
+	$printed_path_details = 1;
+}
+
+if(!$printed_path_details) {
+	print "\n(use options -m, -r, -p and/or -i to print more information about\n".
+		"processed paths, and -l to get full details)\n";
+}
+

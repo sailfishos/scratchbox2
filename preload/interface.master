@@ -33,10 +33,6 @@ EXPORT: int ulckpwdf (void)
 --    -------
 --    Interfaces to functions that are too complex to be generated
 --    completely by the interface generator.
---
--- getcwd() is the first function that has been converted to use a "gate",
--- (other exported functions should follow..) getcwd() was selected to be used
--- as an example of this, since it is used frequently and is relatively simple.
 
 GATE: int execl (const char *path, const char *arg, ...) : pass_va_list
 GATE: int execle (const char *path, const char *arg, ...) : pass_va_list
@@ -64,6 +60,11 @@ GATE: int glob64 (const char *pattern, int flags, \
 	int (*errfunc) (const char *, int), glob64_t *pglob) : \
 	map(pattern)
 #endif
+
+--    These gates just log what happened:
+GATE: void _exit(int status)
+GATE: void _Exit(int status)
+
 --
 -- 4. Wrappers where the path is not mapped
 --    -------------------------------------

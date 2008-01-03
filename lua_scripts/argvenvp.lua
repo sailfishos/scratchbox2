@@ -142,6 +142,8 @@ dpkg_architecture = {
 argvmods[dpkg_architecture.name] = dpkg_architecture
 
 
+-- returns: err, file, argc, argv, envc, envp
+-- (zero as "err" means "OK")
 function sbox_execve_mod(filename, argv, envp)
 	local new_argv = {}
 	local new_envp = {}

@@ -524,6 +524,28 @@ int uname_gate(
 	return 0;
 }
 
+void _exit_gate(void (*real__exit_ptr)(int status),
+	const char *realfnname, int status)
+{
+	/* NOTE: Following SB_LOG() call is used by the log
+	 *       postprocessor script "sb2logz". Do not change
+	 *       without making a corresponding change to the script!
+	*/
+	SB_LOG(SB_LOGLEVEL_INFO, "%s: status=%d", realfnname, status);
+	(real__exit_ptr)(status);
+}
+
+void _Exit_gate(void (*real__Exit_ptr)(int status),
+	const char *realfnname, int status)
+{
+	/* NOTE: Following SB_LOG() call is used by the log
+	 *       postprocessor script "sb2logz". Do not change
+	 *       without making a corresponding change to the script!
+	*/
+	SB_LOG(SB_LOGLEVEL_INFO, "%s: status=%d", realfnname, status);
+	(real__Exit_ptr)(status);
+}
+
 /* ---------- */
 
 void *sbox_find_next_symbol(int log_enabled, const char *fn_name)

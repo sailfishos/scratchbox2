@@ -10,7 +10,6 @@
 #include <config.h>
 #include <config_hardcoded.h>
 
-#include "libsb2.h"
 #include "exported.h"
 
 static void usage_exit(const char *progname, const char *errmsg, int exitstatus)

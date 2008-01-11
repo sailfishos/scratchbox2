@@ -556,7 +556,45 @@ sub create_call_to_gate_fn {
 # actual code generators:
 
 my $wrappers_c_buffer = "";	# buffers contents of the generated ".c" file
-my $export_h_buffer = "";	# buffers contents of the generated ".h" file
+
+# buffers contents of the generated ".h" file
+my $export_h_buffer =
+"#ifndef __EXPORT_H
+#define __EXPORT_H
+
+#include <sys/utsname.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/times.h>
+#include <sys/user.h>
+#include <sys/mman.h>
+
+#include <assert.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <dlfcn.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <stdarg.h>
+#include <dirent.h>
+#include <string.h>
+#include <glob.h>
+#include <utime.h>
+#ifdef HAVE_FTS_H
+#include <fts.h>
+#endif
+#ifdef HAVE_FTW_H
+#include <ftw.h>
+#endif
+#ifdef HAVE_SHADOW_H
+#include <shadow.h>
+#endif
+#ifdef HAVE_SYS_XATTR_H
+#include <sys/xattr.h>
+#endif
+
+";
 
 # Handle "WRAP" and "GATE" commands.
 sub command_wrap_or_gate {
@@ -808,7 +846,7 @@ if(defined $wrappers_c_output_file) {
 }
 if(defined $export_h_output_file) {
 	write_output_file($export_h_output_file,
-		$file_header_comment.$export_h_buffer);
+		$file_header_comment.$export_h_buffer."\n#endif\n");
 }
 if(defined $export_list_for_ld_output_file) {
 	my $export_list_for_ld = join("\n",sort(keys(%all_function_names)));

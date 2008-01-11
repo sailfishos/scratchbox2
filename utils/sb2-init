@@ -304,7 +304,7 @@ fi
 
 # test if the cross compiler needs to be silenced about /usr/include
 # usage
-echo "" | $SBOX_CROSS_GCC_DIR/${SBOX_CROSS_GCC_SUBST_PREFIX}gcc -E - -Wno-poison-system-directories > /dev/null 2>&1
+echo "" | $GCC_FULLPATH -E - -Wno-poison-system-directories > /dev/null 2>&1
 if [ $? = 0 ] ; then
 	SBOX_EXTRA_CROSS_COMPILER_ARGS="-I/usr/include -L$SBOX_TARGET_ROOT/usr/lib -L$SBOX_TARGET_ROOT/lib -Wno-poison-system-directories"
 else

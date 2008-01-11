@@ -85,17 +85,8 @@ static int elem_count(char *const *elems)
 	return count;
 }
 
-int iswhitespace(char c);
 int token_count(char *str);
 char **split_to_tokens(char *str);
-
-int iswhitespace(char c)
-{
-	if (c == ' '  || c == '\t')
-		return 1;
-	else
-		return 0;
-}
 
 int token_count(char *str)
 {
@@ -103,12 +94,12 @@ int token_count(char *str)
 	int count = 0;
 
 	for (p = str; *p; ) {
-		if (!iswhitespace(*p)) {
+		if (!isspace(*p)) {
 			count++;
-			while (*p && !iswhitespace(*p))
+			while (*p && !isspace(*p))
 				p++;
 		} else {
-			while (*p && iswhitespace(*p))
+			while (*p && isspace(*p))
 				p++;
 		}
 	}
@@ -125,10 +116,10 @@ char **split_to_tokens(char *str)
 	tokens = calloc(c + 1, sizeof(char *));
 	i = 0;
 	for (start = str; *start; start++) {
-		if (iswhitespace(*start))
+		if (isspace(*start))
 			continue;
 		end = start;
-		while (*end && !iswhitespace(*end))
+		while (*end && !isspace(*end))
 			end++;
 		len = end - start;
 		tokens[i] = malloc(sizeof(char) * (len + 1));

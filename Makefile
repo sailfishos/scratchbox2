@@ -27,11 +27,12 @@ PACKAGE_VERSION = "1.99.0.23"
 PACKAGE = "SB2"
 LIBSB2_SONAME = "libsb2.so.1"
 LLBUILD ?= $(SRCDIR)/llbuild
+PROTOTYPEWARNINGS=-Wmissing-prototypes -Wstrict-prototypes
 
 
 # targets variable will be filled by llbuild
 targets = 
-subdirs = luaif preload
+subdirs = luaif preload utils
 
 -include config.mak
 
@@ -96,7 +97,7 @@ install-noarch: $(BUILD_TARGET)
 	install -c -m 755 $(SRCDIR)/utils/sb2-config $(prefix)/bin/sb2-config
 	install -c -m 755 $(SRCDIR)/utils/sb2-build-libtool $(prefix)/bin/sb2-build-libtool
 	install -c -m 755 $(SRCDIR)/utils/dpkg-checkbuilddeps $(prefix)/share/scratchbox2/scripts/dpkg-checkbuilddeps
-	install -c -m 755 $(SRCDIR)/utils/sb2logz $(prefix)/share/scratchbox2/scripts/sb2logz
+	install -c -m 755 $(SRCDIR)/utils/sb2-logz $(prefix)/bin/sb2-logz
 	install -c -m 644 $(SRCDIR)/lua_scripts/main.lua $(prefix)/share/scratchbox2/lua_scripts/main.lua
 	install -c -m 644 $(SRCDIR)/lua_scripts/mapping.lua $(prefix)/share/scratchbox2/lua_scripts/mapping.lua
 	install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp.lua $(prefix)/share/scratchbox2/lua_scripts/argvenvp.lua
@@ -120,6 +121,7 @@ install: install-noarch
 	install -d -m 755 $(prefix)/lib
 	install -d -m 755 $(prefix)/lib/libsb2
 	install -c -m 755 $(OBJDIR)/preload/libsb2.so $(prefix)/lib/libsb2/libsb2.so.$(PACKAGE_VERSION)
+	install -c -m 755 $(OBJDIR)/utils/sb2-show $(prefix)/bin/sb2-show
 	/sbin/ldconfig -n $(prefix)/lib/libsb2
 
 
@@ -128,6 +130,7 @@ multilib_prefix=$(prefix)
 install-multilib: install-noarch
 	$(MAKE) -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. do-install-multilib bitness=32
 	$(MAKE) -C obj-64 --include-dir=.. -f ../Makefile SRCDIR=.. do-install-multilib bitness=64
+	install -c -m 755 $(PRI_OBJDIR)/utils/sb2-show $(prefix)/bin/sb2-show
 
 do-install-multilib:
 	install -d -m 755 $(multilib_prefix)/lib$(bitness)
@@ -136,9 +139,16 @@ do-install-multilib:
 	/sbin/ldconfig -n $(multilib_prefix)/lib$(bitness)/libsb2
 
 
-CLEAN_FILES += $(targets) config.status config.log obj-32 obj-64 .configure-multilib
+CLEAN_FILES += $(targets) config.status config.log
 
 # make all object files depend on include/config.h
+
+superclean: clean
+	rm -rf obj-32 obj-64 .configure-multilib
+
+clean-multilib:
+	$(MAKE) -C obj-32 --include-dir .. -f ../Makefile clean
+	$(MAKE) -C obj-64 --include-dir .. -f ../Makefile clean
 
 clean:
 	$(ll_clean)

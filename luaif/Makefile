@@ -2,8 +2,10 @@ LUASRC = luaif/lua-5.1.2/src
 
 objs := $(D)/luaif.o $(D)/sb_log.o $(D)/paths.o $(D)/argvenvp.o
 
+$(D)/sb_log.o: preload/exported.h
+
 luaif/libluaif.a: $(objs)
-luaif/libluaif.a: override CFLAGS := $(CFLAGS) -O2 -g -fPIC -Wall -W -I$(SRCDIR)/$(LUASRC)
+luaif/libluaif.a: override CFLAGS := $(CFLAGS) -O2 -g -fPIC -Wall -W -I$(SRCDIR)/$(LUASRC) -I$(OBJDIR)/preload -I$(SRCDIR)/preload
 luaif/libluaif.a: override LDFLAGS := $(LDFLAGS)
 luaif/libluaif.a: override LIBS := 
 

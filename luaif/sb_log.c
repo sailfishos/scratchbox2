@@ -18,6 +18,11 @@
 #include <string.h>
 
 #include <sb2.h>
+#include <config.h>
+#include <config_hardcoded.h>
+
+#include "libsb2.h"
+#include "exported.h"
 
 /* ===================== Internal state variables =====================
  *

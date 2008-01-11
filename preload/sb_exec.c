@@ -511,7 +511,7 @@ int run_hashbang(const char *file, char *const *argv, char *const *envp)
 {
 	int argc, fd, c, i, j, n, ret;
 	char ch;
-	char **p, *ptr, *mapped_interpreter;
+	char *ptr, *mapped_interpreter;
 	char **new_argv;
 	char hashbang[SBOX_MAXPATH]; /* only 60 needed on linux, just be safe */
 	char interpreter[SBOX_MAXPATH];
@@ -527,8 +527,7 @@ int run_hashbang(const char *file, char *const *argv, char *const *envp)
 		return run_app(file, argv, envp);
 	}
 
-	for (argc = 0, p = (char **)argv; *p; p++)
-		argc++;
+	argc = elem_count(argv);
 
 	/* extra element for hashbang argument */
 	new_argv = calloc(argc + 3, sizeof(char *));
@@ -585,32 +584,35 @@ int run_hashbang(const char *file, char *const *argv, char *const *envp)
 	return ret;
 }
 
-int do_exec(const char *exec_fn_name, const char *file,
-		char *const *argv, char *const *envp)
+static char ***duplicate_argv(char *const *argv)
 {
-	char ***my_envp, ***my_argv, **my_file, **p;
-	char *binaryname, *tmp, *mapped_file;
-	int envc = 0, argc = 0, i, has_ld_preload = 0, err = 0;
-	enum binary_type type;
+	int	argc = elem_count(argv);
+	char	**p;
+	int	i;
+	char	***my_argv;
 
-	(void)exec_fn_name; /* not yet used */
+	my_argv = malloc(sizeof(char **));
+	*my_argv = (char **)calloc(argc + 1, sizeof(char *));
+	for (i = 0, p = (char **)argv; *p; p++) {
+		(*my_argv)[i++] = strdup(*p);
+	}
+	(*my_argv)[i] = NULL;
+
+	return(my_argv);
+}
+
+static char ***prepare_envp_for_do_exec(char *binaryname, char *const *envp)
+{
+	char	**p;
+	int	envc = 0;
+	char	***my_envp;
+	int	has_ld_preload = 0;
+	int	i;
+	char	*tmp;
 
 	/* if we have LD_PRELOAD env var set, make sure the new my_envp
 	 * has it as well
 	 */
-
-	if (getenv("SBOX_DISABLE_MAPPING")) {
-		/* just run it, don't worry, be happy! */
-		return sb_next_execve(file, argv, envp);
-	}
-	
-
-	tmp = strdup(file);
-	binaryname = strdup(basename(tmp));
-	free(tmp);
-	
-	my_file = malloc(sizeof(char *));
-	*my_file = strdup(file);
 
 	/* count the environment variables and arguments, also check
 	 * for LD_PRELOAD
@@ -620,11 +622,7 @@ int do_exec(const char *exec_fn_name, const char *file,
 			has_ld_preload = 1;
 	}
 
-	for (p=(char **)argv; *p; p++, argc++)
-		;
-
 	my_envp = malloc(sizeof(char **));
-	my_argv = malloc(sizeof(char **));
 
 	if (has_ld_preload || !getenv("LD_PRELOAD")) {
 		*my_envp = (char **)calloc(envc + 2, sizeof(char *));
@@ -667,11 +665,33 @@ int do_exec(const char *exec_fn_name, const char *file,
 	}
 	(*my_envp)[i] = NULL;
 
-	*my_argv = (char **)calloc(argc + 1, sizeof(char *));
-	for (i = 0, p = (char **)argv; *p; p++) {
-		(*my_argv)[i++] = strdup(*p);
+	return(my_envp);
+}
+
+int do_exec(const char *exec_fn_name, const char *file,
+		char *const *argv, char *const *envp)
+{
+	char ***my_envp, ***my_argv, **my_file;
+	char *binaryname, *tmp, *mapped_file;
+	int err = 0;
+	enum binary_type type;
+
+	(void)exec_fn_name; /* not yet used */
+
+	if (getenv("SBOX_DISABLE_MAPPING")) {
+		/* just run it, don't worry, be happy! */
+		return sb_next_execve(file, argv, envp);
 	}
-	(*my_argv)[i] = NULL;
+	
+	tmp = strdup(file);
+	binaryname = strdup(basename(tmp));
+	free(tmp);
+	
+	my_file = malloc(sizeof(char *));
+	*my_file = strdup(file);
+
+	my_envp = prepare_envp_for_do_exec(binaryname, envp);
+	my_argv = duplicate_argv(argv);
 
 	if ((err = sb_execve_mod(my_file, my_argv, my_envp)) != 0) {
 		SB_LOG(SB_LOGLEVEL_ERROR, "argvenvp processing error %i", err);
@@ -682,7 +702,9 @@ int do_exec(const char *exec_fn_name, const char *file,
 	 */
 
 	mapped_file = scratchbox_path("do_exec", *my_file);
-	SB_LOG(SB_LOGLEVEL_DEBUG, "do_exec(): *my_file = %s, mapped_file = %s", *my_file, mapped_file);
+	SB_LOG(SB_LOGLEVEL_DEBUG, 
+		"do_exec(): *my_file = %s, mapped_file = %s", 
+		*my_file, mapped_file);
 
 	type = inspect_binary(mapped_file); /* inspect the completely mangled 
 					     * filename */
@@ -724,5 +746,42 @@ int do_exec(const char *exec_fn_name, const char *file,
 	}
 
 	return sb_next_execve(mapped_file, *my_argv, *my_envp);
+}
+
+/* ---------- */
+int sb2show__execve_mods__(
+	char *file,
+	char *const *orig_argv, char *const *orig_envp,
+	char **new_file, char ***new_argv, char ***new_envp)
+{
+	char *binaryname, *tmp;
+	int err = 0;
+	char ***my_envp, ***my_argv, **my_file;
+
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s '%s'", __func__, orig_argv[0]);
+
+	tmp = strdup(file);
+	binaryname = strdup(basename(tmp));
+	free(tmp);
+	
+	my_file = malloc(sizeof(char *));
+	*my_file = strdup(file);
+
+	my_envp = prepare_envp_for_do_exec(binaryname, orig_envp);
+	my_argv = duplicate_argv(orig_argv);
+
+	if ((err = sb_execve_mod(my_file, my_argv, my_envp)) != 0) {
+		SB_LOG(SB_LOGLEVEL_ERROR, "argvenvp processing error %i", err);
+		
+		*new_file = NULL;
+		*new_argv = NULL;
+		*new_envp = NULL;
+	} else {
+		*new_file = *my_file;
+		*new_argv = *my_argv;
+		*new_envp = *my_envp;
+	}
+
+	return(0);
 }
 

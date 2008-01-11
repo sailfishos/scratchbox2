@@ -166,12 +166,13 @@ char *scratchbox_path(const char *func_name, const char *path)
 /* make sure to use disable_mapping(m); 
  * to prevent recursive calls to this function
  */
-char *scratchbox_path2(const char *binary_name,
+char *scratchbox_path3(const char *binary_name,
 		const char *func_name,
-		const char *path)
+		const char *path,
+		const char *mapping_mode)
 {	
 	char work_dir[PATH_MAX + 1];
-	char *tmp = NULL, *decolon_path = NULL, *mapping_mode = NULL;
+	char *tmp = NULL, *decolon_path = NULL;
 	char pidlink[17]; /* /proc/2^8/exe */
 	struct lua_instance *luaif;
 
@@ -206,7 +207,9 @@ char *scratchbox_path2(const char *binary_name,
 		exit(1);
 	}
 
-	if (!(mapping_mode = getenv("SBOX_MAPMODE"))) {
+	/* use a sane default for mapping_mode, if not defined by 
+	 * the parameter or environment */
+	if (!mapping_mode && !(mapping_mode = getenv("SBOX_MAPMODE"))) {
 		mapping_mode = "simple";
 	}
 
@@ -279,5 +282,17 @@ char *scratchbox_path2(const char *binary_name,
 			func_name, path, tmp);
 		return tmp;
 	}
+}
+
+char *scratchbox_path2(const char *binary_name,
+		const char *func_name,
+		const char *path)
+{	
+	const char *mapping_mode;
+
+	if (!(mapping_mode = getenv("SBOX_MAPMODE"))) {
+		mapping_mode = "simple";
+	}
+	return(scratchbox_path3(binary_name, func_name, path, mapping_mode));
 }
 

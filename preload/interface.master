@@ -22,6 +22,14 @@ EXPORT: void _fini(void)
 -- 2. exported functions.
 --    -------------------
 
+-- Functions used by the "sb2show" command:
+EXPORT: char *sb2show__map_path__(const char *binary_name, \
+	const char *mapping_mode, const char *fn_name, const char *pathname)
+EXPORT: int sb2show__execve_mods__( \
+	char *file, \
+	char *const *orig_argv, char *const *orig_envp, \
+	char **new_file, char ***new_argv, char ***new_envp)
+
 --    FIXME: The following two functions do not have anything to do with path
 --    remapping. Instead the implementations in libsb2.c prevent locking of
 --    the shadow file, which I find really hard to understand. Please explain

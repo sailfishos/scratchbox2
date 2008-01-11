@@ -528,23 +528,25 @@ void _exit_gate(void (*real__exit_ptr)(int status),
 	const char *realfnname, int status)
 {
 	/* NOTE: Following SB_LOG() call is used by the log
-	 *       postprocessor script "sb2logz". Do not change
+	 *       postprocessor script "sb2-logz". Do not change
 	 *       without making a corresponding change to the script!
 	*/
 	SB_LOG(SB_LOGLEVEL_INFO, "%s: status=%d", realfnname, status);
 	(real__exit_ptr)(status);
 }
 
+
 void _Exit_gate(void (*real__Exit_ptr)(int status),
 	const char *realfnname, int status)
 {
 	/* NOTE: Following SB_LOG() call is used by the log
-	 *       postprocessor script "sb2logz". Do not change
+	 *       postprocessor script "sb2-logz". Do not change
 	 *       without making a corresponding change to the script!
 	*/
 	SB_LOG(SB_LOGLEVEL_INFO, "%s: status=%d", realfnname, status);
 	(real__Exit_ptr)(status);
 }
+//void _Exit_gate() __attribute__ ((noreturn));
 
 /* ---------- */
 
@@ -567,3 +569,18 @@ void *sbox_find_next_symbol(int log_enabled, const char *fn_name)
 	}
 	return(fn_ptr);
 }
+
+/* ---------- */
+char *sb2show__map_path__(const char *binary_name, const char *mapping_mode, 
+        const char *fn_name, const char *pathname)
+{
+	char *mapped__pathname = NULL;
+
+	if (pathname != NULL) {
+		mapped__pathname = scratchbox_path3(binary_name, fn_name,
+			pathname, mapping_mode);
+	}
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s '%s'", __func__, pathname);
+	return(mapped__pathname);
+}
+

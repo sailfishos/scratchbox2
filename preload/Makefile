@@ -1,8 +1,5 @@
 objs := wrappers.o libsb2.o sb_exec.o
 
-PROTOTYPEWARNINGS=-Wmissing-prototypes -Wstrict-prototypes
-
-
 ifeq ($(shell uname -s),Linux)
 LIBSB2_LDFLAGS = -Wl,-soname=$(LIBSB2_SONAME) \
 		-Wl,--retain-symbols-file=preload/ldexportlist

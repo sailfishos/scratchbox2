@@ -154,11 +154,33 @@ be created under ~/sb2_logs/ (The above command will also print out the
 exact name and location of the logfile.)
 
 The produced logfile can be quite huge, especially when using the higher
-logging levels. A logfile analyzer script, sb2logz, can be used to extract
+logging levels. A logfile analyzer script, sb2-logz, can be used to extract
 essentials like error and warning messages and path mapping actions from
 the logged information; log level 'info' in enough for anything that
-sb2logz needs. Higher logging levels ('debug', etc) are mostly useful
+sb2-logz needs. Higher logging levels ('debug', etc) are mostly useful
 only for developers of scratchbox 2.
+
+Another useful helper tool is "sb2-show", an utility which can be used to 
+test path and command mapping rules while scratchbox 2 is active.
+
+For example,
+
+$ sb2-show path /etc/apt
+
+$ sb2-show -b apt-get path /etc/apt
+
+will show how the /etc/apt database has been mapped. The latter command
+uses "apt-get" as the name of the calling program (the results may
+be different depending on mapping mode, name of the calling program, etc)
+
+sb2-show can also be used to see how parameters to certain processes will
+be modified:
+
+$ sb2-show exec gcc foo.c
+
+shows which "gcc" would be started inside the sb2 session, together with
+the actual, possibly modified, arguments. The result depends on how sb2 
+was configured (see notes about sb2-init above)
 
 
 

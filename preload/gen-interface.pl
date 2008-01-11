@@ -256,9 +256,6 @@ sub add_function_name_to_symbol_table {
 	my $fn_name = shift;
 
 	if(defined($all_function_names{$fn_name})) {
-		printf "Warning: Multiple references to function '%s'\n",
-			$fn_name;
-		#$num_errors++;
 		return;
 	}
 	$all_function_names{$fn_name} = 1;

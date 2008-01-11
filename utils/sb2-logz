@@ -15,7 +15,7 @@ use Getopt::Std;
 
 sub usage {
 	print	"Usage:\n".
-		"\tsb2logz [options]\n".
+		"\tsb2-logz [options]\n".
 		"\t(stdin should be a logfile produced by the sb2 command,\n".
 		"\tsee options '-d' and '-L level' of sb2)\n".
 		"Options:\n".

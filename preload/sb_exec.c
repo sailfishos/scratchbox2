@@ -85,19 +85,94 @@ static int elem_count(char *const *elems)
 	return count;
 }
 
+int iswhitespace(char c);
+int token_count(char *str);
+char **split_to_tokens(char *str);
+
+int iswhitespace(char c)
+{
+	if (c == ' '  || c == '\t')
+		return 1;
+	else
+		return 0;
+}
+
+int token_count(char *str)
+{
+	char *p;
+	int count = 0;
+
+	for (p = str; *p; ) {
+		if (!iswhitespace(*p)) {
+			count++;
+			while (*p && !iswhitespace(*p))
+				p++;
+		} else {
+			while (*p && iswhitespace(*p))
+				p++;
+		}
+	}
+
+	return count;
+}
+
+char **split_to_tokens(char *str)
+{
+	int c, i, len;
+	char **tokens, *start, *end;
+
+	c = token_count(str);
+	tokens = calloc(c + 1, sizeof(char *));
+	i = 0;
+	for (start = str; *start; start++) {
+		if (iswhitespace(*start))
+			continue;
+		end = start;
+		while (*end && !iswhitespace(*end))
+			end++;
+		len = end - start;
+		tokens[i] = malloc(sizeof(char) * (len + 1));
+		strncpy(tokens[i], start, len);
+		tokens[i][len] = '\0';
+		start = end - 1;
+		i++;
+	}
+	tokens[i] = NULL;
+	return tokens;
+}
+
 /* file is mangled, unmapped_file is not */
 int run_cputransparency(const char *file, const char *unmapped_file,
 			char *const *argv, char *const *envp)
 {
-	char *cputransp_bin, *target_root;
+	char *cputransp_method, *cputransp_bin, *target_root;
+	char **cputransp_tokens, **cputransp_args, **p;
 	char *basec, *bname;
+	int token_count, i;
 
-	cputransp_bin = getenv("SBOX_CPUTRANSPARENCY_METHOD");
-	if (!cputransp_bin) {
+	cputransp_method = getenv("SBOX_CPUTRANSPARENCY_METHOD");
+	if (!cputransp_method) {
 		fprintf(stderr, "SBOX_CPUTRANSPARENCY_METHOD not set, "
 				"unable to execute the target binary\n");
 		return -1;
 	}
+
+	cputransp_tokens = split_to_tokens(cputransp_method);
+	token_count = elem_count(cputransp_tokens);
+	if (token_count < 1) {
+		free(cputransp_tokens);
+		fprintf(stderr, "Invalid SBOX_CPUTRANSPARENCY_METHOD set\n");
+		return -1;
+	}
+
+	cputransp_args = calloc(token_count, sizeof(char *));
+	for (i = 1, p = cputransp_args; i < token_count; i++, p++) {
+		*p = strdup(cputransp_tokens[i]);
+	}
+
+	*p = NULL;
+	
+	cputransp_bin = strdup(cputransp_tokens[0]);
 
 	target_root = getenv("SBOX_TARGET_ROOT");
 	if (!target_root) {
@@ -111,11 +186,12 @@ int run_cputransparency(const char *file, const char *unmapped_file,
 
 	if (strstr(bname, "qemu")) {
 		free(basec);
-		return run_qemu(cputransp_bin, unmapped_file, argv, envp);
+		return run_qemu(cputransp_bin, cputransp_args,
+				unmapped_file, argv, envp);
 	} else if (strstr(bname, "sbrsh")) {
 		free(basec);
-		return run_sbrsh(cputransp_bin, target_root, file,
-		                 argv, envp);
+		return run_sbrsh(cputransp_bin, cputransp_args,
+				target_root, file, argv, envp);
 	}
 
 	free(basec);
@@ -136,8 +212,9 @@ static int is_subdir(const char *root, const char *subdir)
 	return root[sublen] == '/' || root[sublen] == '\0';
 }
 
-int run_sbrsh(const char *sbrsh_bin, const char *target_root,
-		const char *orig_file, char *const *argv, char *const *envp)
+int run_sbrsh(const char *sbrsh_bin, char *const *sbrsh_args,
+		const char *target_root, const char *orig_file,
+		char *const *argv, char *const *envp)
 {
 	char *config, *file, *dir, **my_argv, **p;
 	int len, i = 0;
@@ -177,9 +254,13 @@ int run_sbrsh(const char *sbrsh_bin, const char *target_root,
 		dir = "/tmp";
 	}
 
-	my_argv = calloc(6 + elem_count(argv) + 1, sizeof (char *));
+	my_argv = calloc(elem_count(sbrsh_args) + 6 + elem_count(argv) + 1,
+			sizeof (char *));
 
 	my_argv[i++] = strdup(sbrsh_bin);
+	for (p = (char **)sbrsh_args; *p; p++)
+		my_argv[i++] = strdup(*p);
+
 	if (config) {
 		my_argv[i++] = "--config";
 		my_argv[i++] = config;
@@ -215,8 +296,8 @@ int run_sbrsh(const char *sbrsh_bin, const char *target_root,
 	return sb_next_execve(sbrsh_bin, my_argv, envp);
 }
 
-int run_qemu(const char *qemu_bin, const char *file,
-		char *const *argv, char *const *envp)
+int run_qemu(const char *qemu_bin, char *const *qemu_args,
+		const char *file, char *const *argv, char *const *envp)
 {
 	char **my_argv, **p;
 	int i = 0;
@@ -224,9 +305,16 @@ int run_qemu(const char *qemu_bin, const char *file,
 	SB_LOG(SB_LOGLEVEL_INFO, "Exec:qemu (%s,%s)",
 		qemu_bin, file);
 
-	my_argv = (char **)calloc(elem_count(argv) + 5 + 1, sizeof(char *));
+	my_argv = (char **)calloc(elem_count(qemu_args) + elem_count(argv)
+				+ 5 + 1, sizeof(char *));
 
 	my_argv[i++] = strdup(qemu_bin);
+
+	for (p = (char **)qemu_args; *p; p++) {
+		my_argv[i++] = strdup(*p);
+		printf(*p);
+	}
+
 	my_argv[i++] = "-drop-ld-preload";
 	my_argv[i++] = "-L";
 	my_argv[i++] = "/";

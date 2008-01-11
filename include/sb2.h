@@ -38,10 +38,11 @@ int run_app(const char *file, char *const *argv, char *const *envp);
 int run_cputransparency(const char *file, const char *unmapped_file,
 			char *const *argv, char *const *envp);
 
-int run_sbrsh(const char *sbrsh_bin, const char *target_root, const char *file,
-              char *const *argv, char *const *envp);
-int run_qemu(const char *qemu_bin, const char *file, char *const *argv,
-		char *const *envp);
+int run_sbrsh(const char *sbrsh_bin, char *const *sbrsh_args,
+		const char *target_root, const char *file,
+		char *const *argv, char *const *envp);
+int run_qemu(const char *qemu_bin, char *const *qemu_args,
+		const char *file, char *const *argv, char *const *envp);
 
 time_t get_sb2_timestamp(void);
 

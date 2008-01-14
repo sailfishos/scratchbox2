@@ -83,7 +83,6 @@ install-noarch: $(BUILD_TARGET)
 	install -d -m 755 $(prefix)/bin
 	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts
 	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps
-	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/complex
 	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/emulate
 	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/simple
 	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/maemo
@@ -101,7 +100,6 @@ install-noarch: $(BUILD_TARGET)
 	install -c -m 644 $(SRCDIR)/lua_scripts/main.lua $(prefix)/share/scratchbox2/lua_scripts/main.lua
 	install -c -m 644 $(SRCDIR)/lua_scripts/mapping.lua $(prefix)/share/scratchbox2/lua_scripts/mapping.lua
 	install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp.lua $(prefix)/share/scratchbox2/lua_scripts/argvenvp.lua
-	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/complex/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/complex/
 	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/emulate/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/emulate/
 	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/simple/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/simple/
 	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/maemo/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/maemo/

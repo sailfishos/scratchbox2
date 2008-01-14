@@ -140,7 +140,7 @@ function initialize_sb_logging()
 		echo "SBOX_MAPPING_LOGLEVEL = $SBOX_MAPPING_LOGLEVEL"
 		echo
 		echo "The logfile can be analyzed afterwards by"
-		echo "  $SBOX_DIR/share/scratchbox2/scripts/sb2logz < $MAPPING_LOGFILE"
+		echo "  sb2-logz < $MAPPING_LOGFILE"
 		echo
 	fi
 }
@@ -193,7 +193,7 @@ if [ $# -gt 0 -o "$STDIN" = true ] ; then
 	binary="$1"
 	shift 1
 	args="$@"
-	initialize_sb_logging $binary $args
+	initialize_sb_logging $(echo $binary | sed 's/\//_/g') $args
 	exec $SHELL -c "$binary $args"
 else
 	initialize_sb_logging sb2

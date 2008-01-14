@@ -88,9 +88,14 @@ function isprefix(a, b)
 	return string.sub(b, 1, string.len(a)) == a
 end
 
-
+-- make versions of tools_root and target_root safe
+-- to use in match() functions
 if (tools_root) then
-	tools_root = escape_string(tools_root)
+	esc_tools_root = escape_string(tools_root)
+end
+
+if (target_root) then
+	esc_target_root = escape_string(target_root)
 end
 
 function read_mode_part(mode, part)

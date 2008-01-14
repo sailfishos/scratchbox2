@@ -56,6 +56,39 @@ function escape_string(a)
 	return b
 end
 
+function basename(path)
+	if (path == "/") then
+		return "/"
+	else
+		return string.match(path, "[^/]*$")
+	end
+end
+
+function dirname(path)
+	if (path == "/") then
+		return "/"
+	end
+	dir = string.match(path, ".*/")
+	if (dir == nil) then
+		return "."
+	end
+
+	if (dir == "/") then return dir end
+
+	-- chop off the trailing /
+	if (string.sub(dir, string.len(dir)) == "/") then
+		dir = string.sub(dir, 1, string.len(dir) - 1)
+	end
+	return dir 
+end
+
+
+function isprefix(a, b)
+	if (not a or not b) then return false end
+	return string.sub(b, 1, string.len(a)) == a
+end
+
+
 if (tools_root) then
 	tools_root = escape_string(tools_root)
 end
@@ -71,21 +104,11 @@ function read_mode_part(mode, part)
 		-- from the chunk
 		for i = 1,table.maxn(export_chains) do
 			-- fill in the default values
-			if (not export_chains[i].binary) then
-				export_chains[i].binary = ".*"
-			end
 			if (not export_chains[i].rules) then
 				export_chains[i].rules = {}
 			end
 			-- loop through the rules
 			for r = 1, table.maxn(export_chains[i].rules) do
-				if (not export_chains[i].rules[r].func_name) then
-					export_chains[i].rules[r].func_name = ".*"
-				end
-				if (not export_chains[i].rules[r].path) then
-					-- this is an error, report and exit
-					os.exit(1)
-				end
 				export_chains[i].rules[r].lua_script = filename
 				if (export_chains[i].binary) then
 					export_chains[i].rules[r].binary_name = export_chains[i].binary
@@ -126,39 +149,6 @@ for m = 1, table.maxn(mm) do
 			end
 		end
 	end
-end
-
-
-function basename(path)
-	if (path == "/") then
-		return "/"
-	else
-		return string.match(path, "[^/]*$")
-	end
-end
-
-function dirname(path)
-	if (path == "/") then
-		return "/"
-	end
-	dir = string.match(path, ".*/")
-	if (dir == nil) then
-		return "."
-	end
-
-	if (dir == "/") then return dir end
-
-	-- chop off the trailing /
-	if (string.sub(dir, string.len(dir)) == "/") then
-		dir = string.sub(dir, 1, string.len(dir) - 1)
-	end
-	return dir 
-end
-
-
-function isprefix(a, b)
-	if (not a or not b) then return false end
-	return string.sub(b, 1, string.len(a)) == a
 end
 
 function adjust_for_mapping_leakage(path, leakage_prefix)
@@ -261,9 +251,21 @@ function find_rule(chain, func, path)
 		-- travel the chains
 		for i = 1, table.maxn(wrk.rules) do
 			-- loop the rules in a chain
-			if (string.match(func, wrk.rules[i].func_name) and
-				string.match(path, wrk.rules[i].path)) then
-				return wrk.rules[i]
+			if ((not wrk.rules[i].func_name 
+				or func == wrk.rules[i].func_name)) then
+				if (wrk.rules[i].prefix) then
+					if (isprefix(wrk.rules[i].prefix, path)) then
+						return wrk.rules[i]
+					end
+				end
+				if (wrk.rules[i].path == path) then
+					return wrk.rules[i]
+				end
+				if (wrk.rules[i].match) then
+					if (string.match(path, wrk.rules[i].match)) then
+						return wrk.rules[i]
+					end
+				end
 			end
 		end
 		wrk = wrk.next_chain
@@ -305,11 +307,11 @@ function sbox_translate_path(mapping_mode, binary_name, func_name, work_dir, pat
 	-- loop through the chains, first match is used
 	for n=1,table.maxn(modes[mapping_mode].chains) do
 		if (not modes[mapping_mode].chains[n].noentry 
-			and string.match(binary_name, modes[mapping_mode].chains[n].binary)) then
+			and (not modes[mapping_mode].chains[n].binary
+			or binary_name == modes[mapping_mode].chains[n].binary)) then
 			return map_using_chain(modes[mapping_mode].chains[n], binary_name, func_name, work_dir, path)
 		end
 	end
-
 	-- we should never ever get here, if we still do, don't do anything
 	sb.log("error", string.format("[-][-] %s(%s) [MAPPING FAILED]",
 		func_name, path))

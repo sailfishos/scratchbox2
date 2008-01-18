@@ -17,6 +17,7 @@ simple_chain = {
 		{prefix = "/usr/lib/apt", map_to = tools_root},
 		{prefix = "/usr/lib/cdbs", map_to = tools_root},
 		{prefix = "/usr/lib/libfakeroot", map_to = tools_root},
+		{prefix = "/usr/X11R6/lib", map_to = target_root},
 		{prefix = "/usr/lib", map_to = target_root},
 		{prefix = "/usr/include", map_to = target_root},
 		{prefix = "/var/lib/apt", map_to = target_root},

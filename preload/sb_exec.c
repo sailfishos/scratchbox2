@@ -451,14 +451,44 @@ static enum binary_type inspect_binary(const char *filename)
 
 	retval = BIN_NONE;
 	if (access_nomap_nolog(filename, X_OK) < 0) {
-		/* can't execute it. Possible errno codes from access() 
-		 * are all possible from execve(), too, so there is no
-		 * need to convert errno.
-		*/
-		SB_LOG(SB_LOGLEVEL_DEBUG, "no X permission for '%s'",
-			filename);
-		retval = BIN_INVALID;
-		goto _out;
+		int saved_errno = errno;
+		char *sb1_bug_emulation_mode = getenv("SBOX_EMULATE_SB1_BUGS");
+		if (sb1_bug_emulation_mode && 
+		    strchr(sb1_bug_emulation_mode,'x')) {
+			/* the old scratchbox didn't have the x-bit check, so 
+			 * having R-bit set was enough to exec a file. That is 
+			 * of course wrong, but unfortunately there are now 
+			 * lots of packages out there that have various scripts 
+			 * with wrong permissions.
+			 * We'll provide a compatibility mode, so that broken 
+			 * packages can be built.
+			 *
+			 * an 'x' in the env.var. means that we should not 
+			 * worry about x-bits when checking exec parmissions
+			*/
+			if (access_nomap_nolog(filename, R_OK) < 0) {
+				saved_errno = errno;
+				SB_LOG(SB_LOGLEVEL_DEBUG, "no X or R "
+					"permission for '%s'", filename);
+				retval = BIN_INVALID;
+				errno = saved_errno;
+				goto _out;
+			}
+			SB_LOG(SB_LOGLEVEL_WARNING, 
+				"X permission missing, but exec enabled by"
+				" SB1 bug emulation mode ('%s')", filename);
+		} else {
+			/* The normal case:
+			 * can't execute it. Possible errno codes from access() 
+			 * are all possible from execve(), too, so there is no
+			 * need to convert errno.
+			*/
+			SB_LOG(SB_LOGLEVEL_DEBUG, "no X permission for '%s'",
+				filename);
+			retval = BIN_INVALID;
+			errno = saved_errno;
+			goto _out;
+		}
 	}
 
 	fd = open_nomap_nolog(filename, O_RDONLY, 0);
@@ -814,7 +844,8 @@ int do_exec(const char *exec_fn_name, const char *file,
 					*my_argv, *my_envp);
 
 		case BIN_INVALID: /* = can't be executed, no X permission */
-			break;
+	 		/* don't even try to exec, errno has been set.*/
+			return (-1);
 
 		case BIN_NONE:
 		case BIN_UNKNOWN:

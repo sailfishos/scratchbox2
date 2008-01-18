@@ -26,6 +26,8 @@ Options:
     -e           emulation mode
     -m MODE      use mapping mode MODE
     -s DIRECTORY load mapping scripts from alternative location
+    -Q BUGLIST   emulate bugs of the old scratchbox 1 (BUGLIST consists of
+                 letters: 'x' enables exec permission checking bug emulation)
 
 Examples:
     sb2 ./configure
@@ -147,7 +149,7 @@ function initialize_sb_logging()
 
 export SBOX_DIR=$(readlink -f $(dirname $0)/..)
 
-while getopts vdht:em:s:L: foo
+while getopts vdht:em:s:L:Q: foo
 do
 	case $foo in
 	(v) version ;;
@@ -155,6 +157,7 @@ do
 	    export SBOX_MAPPING_LOGLEVEL=debug ;;
 	(L) export SBOX_MAPPING_DEBUG=1
 	    export SBOX_MAPPING_LOGLEVEL=$OPTARG ;;
+	(Q) export SBOX_EMULATE_SB1_BUGS=$OPTARG ;;
 	(h) usage ;;
 	(t) export SBOX_TARGET=$OPTARG ;;
 	(e) export SBOX_MAPMODE=emulate ;;

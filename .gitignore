@@ -20,3 +20,4 @@ preload/wrappers.c
 obj-32
 obj-64
 .configure-multilib
+utils/sb2-show

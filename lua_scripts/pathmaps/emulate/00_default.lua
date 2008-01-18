@@ -7,19 +7,15 @@ mapall_chain = {
 	binary = nil,
 	rules = {
 		{match = ".*qemu.*", map_to = nil},
-		{match = "^" .. esc_target_root .. ".*", map_to = nil},
-		{match = "^/dev", map_to = nil},
-		{match = "^/proc", map_to = nil},
-		{match = "^/tmp", map_to = nil},
-		{match = "^/sys", map_to = nil},
--- maemo sdk hack, allows access to users' $HOME dirs
--- to make installing from outside the buildroot possible
--- /home/user is special on maemo systems... just don't ask, OK?
-		{match = "^/home/user.*", map_to = "="},
-		{match = "^/usr/share/scratchbox2.*", map_to = nil},
-		{match = "^/home.*", map_to = nil},
+		{prefix = target_root, map_to = nil},
+		{prefix = "/dev", map_to = nil},
+		{prefix = "/proc", map_to = nil},
+		{prefix = "/tmp", map_to = nil},
+		{prefix = "/sys", map_to = nil},
+		{prefix = os.getenv("HOME") .. "/.scratchbox2", map_to = nil},
+		{prefix = os.getenv("SBOX_DIR") .. "/share/scratchbox2", map_to = nil},
 
-		{match = ".*", map_to = esc_target_root}
+		{match = ".*", map_to = target_root}
 	}
 }
 

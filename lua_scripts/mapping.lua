@@ -225,14 +225,7 @@ end
 function sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
 	local ret = nil
 	if (rule.map_to) then
-		if (string.sub(rule.map_to, 1, 1) == "=") then
-			ret = target_root .. string.sub(rule.map_to, 2) .. path
-		elseif (string.sub(rule.map_to, 1, 1) == "-") then
-			ret = string.match(path, rule.path .. "(.*)")
-			ret = string.sub(rule.map_to, 2) .. ret
-		else
-			ret = rule.map_to .. path
-		end
+		ret = rule.map_to .. path
 	else
 		ret = path
 	end

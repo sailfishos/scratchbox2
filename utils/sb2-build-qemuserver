@@ -1,0 +1,109 @@
+#!/bin/sh -e
+
+. ~/.scratchbox2/config
+
+[ ! -z "$SBOX_TARGET" ] || SBOX_TARGET=$DEFAULT_TARGET
+
+. ~/.scratchbox2/$SBOX_TARGET/sb2.config
+
+export COMPILER=$SBOX_CROSS_GCC_DIR/$SBOX_CROSS_GCC_SUBST_PREFIX
+
+# uh evil hack sb2 need --copy-clibrary
+for linker in `find $SBOX_CROSS_GCC_DIR/.. -name 'ld-linux.so*'`
+do
+	export LIBCDIR=`dirname $linker`
+done
+
+if [ -z "$LIBCDIR" ]; then
+	echo "could not find libc!"
+	exit 2;
+fi
+
+[ ! -z "$K_COMPILER" ] || export K_COMPILER=$COMPILER
+
+rm -rf builddir/*
+mkdir -p builddir/.downloads
+cd builddir/.downloads
+
+[ -r busybox-1.9.0.tar.bz2 ] || wget http://www.busybox.net/downloads/busybox-1.9.0.tar.bz2
+[ -r linux-2.6.23.13.tar.bz2 ] || wget http://ftp.fi.kernel.org/pub/linux/kernel/v2.6/linux-2.6.23.13.tar.bz2
+[ -r sbrsh_7.5.1.tar.gz ] || wget http://ftp.fi.debian.org/debian/pool/main/s/sbrsh/sbrsh_7.5.1.tar.gz
+
+cd ..
+
+tar xjf .downloads/busybox-1.9.0.tar.bz2
+tar xjf .downloads/linux-2.6.23.13.tar.bz2
+tar xzf .downloads/sbrsh_7.5.1.tar.gz
+
+cd linux-2.6*
+
+if [ -r ../.downloads/.config ]; then
+	cp ../.downloads/.config .
+	ARCH=arm CROSS_COMPILE=$K_COMPILER make oldconfig
+else
+	ARCH=arm CROSS_COMPILE=$K_COMPILER make realview_defconfig
+	echo make sure you have initrd support
+	echo add eabi support
+	echo add tmpfs support
+	echo add loopback mount support
+	echo ok? - press enter to continue
+	read
+	ARCH=arm CROSS_COMPILE=$K_COMPILER make menuconfig
+	cp .config ../.downloads/
+fi
+ARCH=arm CROSS_COMPILE=$K_COMPILER make
+cp arch/arm/boot/zImage ..
+
+cd ..
+
+cd busybox-*
+	ARCH=arm CROSS_COMPILE=$COMPILER make defconfig
+	ARCH=arm CROSS_COMPILE=$COMPILER make
+	ARCH=arm CROSS_COMPILE=$COMPILER make install
+	cp -a _install/ ../initramfs
+cd ..
+
+
+cd sbrsh-*
+	make CC=${COMPILER}gcc
+cd ..
+
+mkdir -p initramfs/{boot,etc,proc,sys,mnt,sbin,dev,lib,usr/bin,tmp}
+cp $LIBCDIR/* initramfs/lib/
+cp sbrsh-7.5.1/sbrshd initramfs/sbin/
+echo '*' > initramfs/etc/sbrshd.conf
+cat > initramfs/init <<EOF
+#!/bin/sh
+echo "Loading, please wait..."
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+ifconfig eth0 10.0.2.15 netmask 255.255.255.0 up
+ifconfig lo 127.0.0.1 netmask 255.0.0.0 up
+route add default gw 10.0.2.2
+# The daily WTF: qemu enables networking only after guest
+# communicates to you
+ping -c 3 10.0.2.2
+# The daily WTF #2: binmounts fail if mount source dir
+# is initramfs
+cp -a /dev /dev2
+mount -t ramfs ramfs /dev
+mv /dev2/* /dev
+mount -t devpts devpts /dev/pts
+mount -t sysfs sysfs /dev/pts
+mount -t ramfs ramfs /tmp
+/sbin/sbrshd
+
+/bin/sh </dev/console >/dev/console
+EOF
+chmod a+x initramfs/init
+chmod a+x initramfs/lib/ld-linux*
+
+fakeroot sb2-mkinitramfs initramfs initramfs.gz
+
+echo Add following in your /etc/exports
+echo
+echo "$HOME 127.0.0.1(rw,all_squash,anonuid=$UID,anongid=$UID,sync,insecure)"
+echo
+echo for sbox target config:
+echo
+echo "sb2-init -sn -r 127.0.0.1 -l 10.0.2.2 -c sbrsh MAEMO $COMPILER"

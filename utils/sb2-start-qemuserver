@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# echo use -cpu arm1136 if you compiled kernel with armv6 support *and* you have qemu 0.9.1
+
+qemu-system-arm -M realview -kernel zImage -initrd initramfs.gz -redir tcp:1202::1202 -m 256M

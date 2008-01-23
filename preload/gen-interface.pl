@@ -14,12 +14,14 @@
 #   - library function wrappers or gates (functions in C).
 #
 # The specification file consists of lines, with two or more fields:
-#   - 1st field is a command (WRAP, GATE or EXPORT)
+#   - 1st field is a command (WRAP, GATE, EXPORT or LOGLEVEL)
 #   - 2nd field is a function definition (using 100% standard C syntax)
 #   - 3rd (optional) field may contain modifiers for the command.
 # Fields are separated by colons (:), and one logical line line can be
 # split to several physical lines by using a backslash as the last character
 # of a line.
+#
+# Command "LOGLEVEL" specifies what level will be used for SB_LOG() calls.
 #
 # Command "WRAP" is used to generate wrapper functions. A wrapper performs
 # specified parameter transformations (usually path remapping) and then
@@ -42,6 +44,9 @@
 #     all parameters in the definition itself):
 #   - "optional_arg_is_create_mode" handles varargs for open() etc.,
 #     where an optional 3rd arg is "mode".
+#   - "returns_string" indicates that the return value (which should be 
+#     "char *") can be safely logged with SB_LOG. Note that other pointers
+#     as return values will be logged as "NULL" or "not null"
 # For "WRAP" only:
 #   - "create_nomap_nolog_version" creates a direct interface function to the
 #     next function (for internal use inside the preload library)
@@ -68,6 +73,10 @@ my $export_list_for_ld_output_file = $opt_L;	# -L generated_list_for_ld
 
 
 my $num_errors = 0;
+
+# loglevel defaults to a value which a) causes compilation to fail, if
+# "LOGLEVEL" was not in interface.master and b) tries to be informative
+my $generated_code_loglevel = "LOGLEVEL_statement_missing_from_interface_master";
 
 #============================================
 
@@ -380,6 +389,7 @@ sub process_wrap_or_gate_modifiers {
 
 		'make_nomap_function' => 0,		# flag
 		'make_nomap_nolog_function' => 0,	# flag
+		'returns_string' => 0,			# flag
 
 		# name of the function pointer variable
 		'real_fn_pointer_name' => "${fn_name}_next__",
@@ -460,6 +470,8 @@ sub process_wrap_or_gate_modifiers {
 				$fn->{'last_named_var'}.");\n";
 			$mods->{'va_list_end_code'} = "\tva_end(ap);\n";
 			$varargs_handled = 1;
+		} elsif($modifiers[$i] eq 'returns_string') {
+			$mods->{'returns_string'} = 1;
 		} else {
 			printf "ERROR: unsupported modifier '%s'\n",
 				$modifiers[$i];
@@ -658,6 +670,8 @@ sub command_wrap_or_gate {
 		$nomap_fn_c_code .=	"\t$fn_return_type ret;\n";
 		$nomap_nolog_fn_c_code .= "\t$fn_return_type ret;\n";
 	}
+	$wrapper_fn_c_code .=	"\tint saved_errno = errno;\n";
+	$nomap_fn_c_code .=	"\tint saved_errno = errno;\n";
 
 	$wrapper_fn_c_code .=		$mods->{'path_mapping_code'};
 	$wrapper_fn_c_code .=		$mods->{'va_list_handler_code'};
@@ -694,10 +708,53 @@ sub command_wrap_or_gate {
 	# ..and the actual call.
 	my $call_line_prefix = "\t";
 	my $return_statement = ""; # return stmt not needed if fn_type==void
+	my $log_return_val = ""; 
 	if($fn_return_type ne "void") {
 		$call_line_prefix .= "ret = ";
 		$return_statement = "\treturn(ret);\n";
 	}
+
+	# create a call to log the return
+	my $log_return_value_format = undef;
+	my $log_return_val = "ret";
+	if($fn_return_type eq "int") {
+		$log_return_value_format = "%d";
+	} elsif($fn_return_type eq "long") {
+		$log_return_value_format = "%ld";
+	} elsif($fn_return_type =~ m/\*$/) {
+		# Last char of return type is a * => it returns a pointer
+		if($mods->{'returns_string'}) {
+			$log_return_value_format = "'%s'";
+			$log_return_val = "(ret ? ret : \"<NULL>\")";
+		} else {
+			# a pointer to non-printable data. 
+			# Log if it is a NULL or not.
+			$log_return_value_format = "%s";
+			$log_return_val = "(ret ? \"not null\" : \"NULL\")";
+		}
+	}
+	# NOTE: this code prints the numeric value of errno, since there
+	# is no fully portable and thread-safe way to get the string
+	# representation of the error message (sys_errlist is nonstandard,
+	# and there are two different implemetations of strerror_r() :-(
+	if(defined $log_return_value_format) {
+		$log_return_val = "\tSB_LOG($generated_code_loglevel, ".
+			"\"%s returns ".
+			"$log_return_value_format, errno=%d (%s)\", ".
+			"__func__, $log_return_val, errno, ".
+			"(saved_errno != errno ? ".
+			" \"SET\" : \"unchanged\") );\n";
+	} else {
+		# don't know how to print the return value itself 
+		# (an unknown type or no return value at all), but log errno
+		$log_return_val = "\tSB_LOG($generated_code_loglevel, ".
+			"\"%s returns,".
+			" errno=%d (%s)\", ".
+			"__func__, errno, ".
+			"(saved_errno != errno ? ".
+			" \"SET\" : \"unchanged\") );\n";
+	}
+	
 	my $mapped_call;
 	my $unmapped_call;
 	my $unmapped_nolog_call;
@@ -722,8 +779,8 @@ sub command_wrap_or_gate {
 	$nomap_fn_c_code .=		$mods->{'va_list_end_code'};
 	$nomap_nolog_fn_c_code .=	$mods->{'va_list_end_code'};
 
-	$wrapper_fn_c_code .=		$return_statement."}\n";
-	$nomap_fn_c_code .=		$return_statement."}\n";
+	$wrapper_fn_c_code .=		$log_return_val.$return_statement."}\n";
+	$nomap_fn_c_code .=		$log_return_val.$return_statement."}\n";
 	$nomap_nolog_fn_c_code .=	$return_statement."}\n";
 
 	if($debug) {
@@ -792,10 +849,9 @@ while ($line = <STDIN>) {
 		next
 	}
 
-	# Add the line to the output files if it's not a WRAP, EXPORT or
-	# GATE line
+	# Add the line to the output files if it's not a command 
 	my $src_comment = $line;
-	if (not ($line =~ m/^(WRAP|EXPORT|GATE)/i)) {
+	if (not ($line =~ m/^(WRAP|EXPORT|GATE|LOGLEVEL)/i)) {
 		$wrappers_c_buffer .= "$src_comment\n";
 
 		# Add the line to the output H file
@@ -823,6 +879,12 @@ while ($line = <STDIN>) {
 	} elsif($field[0] eq 'EXPORT') {
 		# don't generate anything, but tell ld to export a function
 		command_export(@field);
+	} elsif($field[0] eq 'LOGLEVEL') {
+		if(!($field[1] =~ m/^SB_LOGLEVEL_/)) {
+			printf "ERROR: LOGLEVEL is not SB_LOGLEVEL_*\n";
+			$num_errors++;
+		}
+		$generated_code_loglevel = $field[1];
 	} else {
 		# just pass it through to the generated file
 	}

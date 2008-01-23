@@ -8,6 +8,7 @@
 --
 -- Copyright (C) 2007 Lauri T. Aarnio
 
+LOGLEVEL: SB_LOGLEVEL_NOISE
 
 -- 1. historical constructors/destructors.
 --    -----------------------------------
@@ -49,11 +50,11 @@ GATE: int execv (const char *path, char *const argv [])
 GATE: int execve (const char *filename, char *const argv [], char *const envp[])
 GATE: int execvp (const char *file, char *const argv [])
 
-GATE: char * getcwd (char *buf, size_t size)
-GATE: char * get_current_dir_name (void)
-GATE: char * getwd (char *buf)
+GATE: char * getcwd (char *buf, size_t size) : returns_string
+GATE: char * get_current_dir_name (void) : returns_string
+GATE: char * getwd (char *buf) : returns_string
 
-GATE: char *mkdtemp (char *template)
+GATE: char *mkdtemp (char *template) : returns_string
 GATE: int uname(struct utsname *buf)
 
 #ifdef HAVE_FTS_H
@@ -78,10 +79,10 @@ GATE: void _Exit(int status)
 --    -------------------------------------
 --
 
-WRAP: char *tmpnam (char *s)
+WRAP: char *tmpnam (char *s) : returns_string
 WRAP: int mkstemp (char *template)
 WRAP: int mkstemp64 (char *template)
-WRAP: char *mktemp (char *template)
+WRAP: char *mktemp (char *template) : returns_string
 
 --
 -- 5. "open()-class":
@@ -143,7 +144,7 @@ WRAP: int _xftw64(int mode, const char *dir, int (*fn)(const char *file, const s
 WRAP: int access(const char *pathname, int mode) : map(pathname) \
 	create_nomap_nolog_version
 WRAP: int acct(const char *filename) : map(filename)
-WRAP: char *canonicalize_file_name(const char *name) : map(name)
+WRAP: char *canonicalize_file_name(const char *name) : map(name) returns_string
 WRAP: int chdir(const char *path) : map(path)
 WRAP: int chmod(const char *path, mode_t mode) : map(path)
 WRAP: int chown(const char *path, uid_t owner, gid_t group) : map(path)
@@ -216,7 +217,7 @@ WRAP: DIR *opendir(const char *name) : map(name)
 WRAP: long pathconf(const char *path, int name) : map(path)
 WRAP: READLINK_TYPE readlink(const char *path, char *buf, size_t bufsize) : map(path)
 WRAP: READLINK_TYPE readlinkat(int dirfd, const char *pathname, char *buf, size_t bufsize) : map_at(dirfd,pathname)
-WRAP: char *realpath(const char *name, char *resolved) : map(name)
+WRAP: char *realpath(const char *name, char *resolved) : map(name) returns_string
 WRAP: int remove(const char *pathname) : map(pathname)
 #ifdef HAVE_REMOVEXATTR
 #ifdef HAVE_LINUX_XATTRS
@@ -253,7 +254,7 @@ WRAP: int stat(const char *file_name, struct stat *buf) : map(file_name)
 WRAP: int stat64(const char *file_name, struct stat64 *buf) : map(file_name)
 #endif
 WRAP: int symlink(const char *oldpath, const char *newpath) : map(oldpath) map(newpath)
-WRAP: char *tempnam(const char *dir, const char *pfx) : map(dir)
+WRAP: char *tempnam(const char *dir, const char *pfx) : map(dir) returns_string
 WRAP: int truncate(const char *path, off_t length) : map(path)
 #ifdef HAVE_TRUNCATE64
 WRAP: int truncate64(const char *path, off64_t length) : map(path)

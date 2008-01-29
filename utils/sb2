@@ -78,7 +78,7 @@ function sboxify_environment()
 	
 	. ~/.scratchbox2/$SBOX_TARGET/sb2.config
 
-	if [ "$SBOX_CONFIG_VERSION" != "3" ]; then
+	if [ "$SBOX_CONFIG_VERSION" != "4" ]; then
 		echo "Please run sb2-init for your target:"
 		echo "name: $SBOX_TARGET"
 		echo "dir:  $SBOX_TARGET_ROOT"
@@ -196,7 +196,7 @@ if [ $# -gt 0 -o "$STDIN" = true ] ; then
 	binary="$1"
 	shift 1
 	args="$@"
-	initialize_sb_logging $(echo $binary | sed 's/\//_/g') $args
+	initialize_sb_logging $(echo $binary | sed 's/\//_/g') "$args"
 	exec $SHELL -c "$binary $args"
 else
 	initialize_sb_logging sb2

@@ -155,6 +155,8 @@ WRAP: void *dlmopen(Lmid_t nsid, const char *filename, int flag) : map(filename)
 #endif
 WRAP: void *dlopen(const char *filename, int flag) : map(filename)
 WRAP: int euidaccess(const char *pathname, int mode) : map(pathname)
+-- eaccess() is same as euidaccess(), provided for compatibility
+WRAP: int eaccess(const char *pathname, int mode) : map(pathname)
 WRAP: int faccessat(int dirfd, const char *pathname, int mode, int flags) : map_at(dirfd,pathname)
 WRAP: int fchmodat(int dirfd, const char *pathname, mode_t mode, int flags) : map_at(dirfd,pathname)
 WRAP: int fchownat(int dirfd, const char *pathname, uid_t owner, gid_t group, int flags) : map_at(dirfd,pathname)

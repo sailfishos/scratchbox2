@@ -778,10 +778,52 @@ static char ***prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 	return(my_envp);
 }
 
+/* compare vectors of strings and log if there are any changes.
+ * TO BE IMPROVED: a more clever algorithm would be nice, something
+ * that would log only the modified parts... now this displays 
+ * everything if something was changed, which easily creates 
+ * a *lot* of noise if SB_LOGLEVEL_NOISE is enabled.
+*/
+static void compare_and_log_strvec_changes(const char *vecname, 
+	char *const *orig_strv, char *const *new_strv) 
+{
+	char *const *ptr2old = orig_strv;
+	char *const *ptr2new = new_strv;
+	int	strv_modified = 0;
+
+	while (*ptr2old && *ptr2new) {
+		if (strcmp(*ptr2old, *ptr2new)) {
+			strv_modified = 1;
+			break;
+		}
+		ptr2old++, ptr2new++;
+	}
+	if (!strv_modified && (*ptr2old || *ptr2new)) {
+		strv_modified = 1;
+	}
+	if (strv_modified) {
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s[] was modified", vecname); 
+		if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE)) {
+			int	i;
+			for (i = 0, ptr2new = new_strv; 
+			    *ptr2new;
+			    i++, ptr2new++) {
+				SB_LOG(SB_LOGLEVEL_NOISE, 
+					"[%d]='%s'", i,
+					*ptr2new);
+			}
+		}
+	} else {
+		SB_LOG(SB_LOGLEVEL_NOISE, 
+			"%s[] was not modified", vecname); 
+	}
+}
+
 int do_exec(const char *exec_fn_name, const char *file,
 		char *const *argv, char *const *envp)
 {
 	char ***my_envp, ***my_argv, **my_file;
+	char ***my_envp_copy = NULL; /* used only for debug log */
 	char *binaryname, *tmp, *mapped_file;
 	int err = 0;
 	enum binary_type type;
@@ -801,10 +843,22 @@ int do_exec(const char *exec_fn_name, const char *file,
 	*my_file = strdup(file);
 
 	my_envp = prepare_envp_for_do_exec(binaryname, envp);
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
+		/* create a copy of intended environment for logging,
+		 * before sb_execve_mod() gets control */ 
+		my_envp_copy = prepare_envp_for_do_exec(binaryname, envp);
+	}
+
 	my_argv = duplicate_argv(argv);
 
 	if ((err = sb_execve_mod(my_file, my_argv, my_envp)) != 0) {
 		SB_LOG(SB_LOGLEVEL_ERROR, "argvenvp processing error %i", err);
+	}
+
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
+		/* find out and log if sb_execve_mod() did something */
+		compare_and_log_strvec_changes("argv", argv, *my_argv);
+		compare_and_log_strvec_changes("envp", *my_envp_copy, *my_envp);
 	}
 
 	/* now we have to do path mapping for *my_file to find exactly

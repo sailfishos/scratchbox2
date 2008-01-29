@@ -64,9 +64,11 @@ extern void sblog_printf_line_to_logfile(const char *file, int line,
 
 extern int sb_loglevel__; /* do not access directly */
 
+#define SB_LOG_IS_ACTIVE(level) ((level) <= sb_loglevel__)
+
 #define SB_LOG(level, ...) \
 	do { \
-		if ((level) <= sb_loglevel__) { \
+		if (SB_LOG_IS_ACTIVE(level)) { \
 			sblog_printf_line_to_logfile( \
 				__FILE__, __LINE__, level, __VA_ARGS__); \
 		} \

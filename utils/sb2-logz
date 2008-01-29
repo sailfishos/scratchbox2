@@ -27,6 +27,7 @@ sub usage {
 		"\t\t(unmodifed paths, because mapping was disabled)\n".
 		"\t-l\tprint long details (affect output of -i,-m,-r,-p etc)\n".
 		"\t-m\tprint details about mapped pathnames (src->dest)\n".
+		"\t-N\tprint all 'notice' messages\n".
 		"\t-p\tprint details about passed pathnames\n".
 		"\t\t('passed' path = not mapped)\n".
 		"\t-r\tprint reversed mappings (dest->src)\n".
@@ -40,8 +41,8 @@ sub usage {
 # Options:
 #
 our($opt_d,$opt_v,$opt_m,$opt_p,$opt_l,$opt_b,$opt_B,$opt_r,
-    $opt_s,$opt_i,$opt_h);
-if(!getopts("bB:d:hilmprsv")) {
+    $opt_s,$opt_i,$opt_h,$opt_N);
+if (!getopts("bB:d:hilmNprsv")) {
 	usage();
 	exit(1);
 }
@@ -60,6 +61,7 @@ my $print_full_details = $opt_l;
 my $no_blacklist = $opt_b;
 my $user_blacklist = $opt_B;
 my $print_process_statistics = $opt_s;
+my $print_notices = $opt_N;
 
 #============================================
 # 
@@ -115,6 +117,7 @@ my $sbox_mapmode = "UNKNOWN";
 
 my @errors;		# collect error messages to this array..
 my @warnings;		# ..and warnings here
+my @notices;		# ..and notices here
 
 my %failed_process;	# processes with non-zero exit status
 
@@ -300,6 +303,8 @@ while ($line = <STDIN>) {
 		push(@errors, $line);
 	} elsif($loglevel eq "WARNING") {
 		push(@warnings, $line);
+	} elsif ($loglevel eq "NOTICE") {
+		push(@notices, $line);
 	}
 	$last_timestamp = $timestamp;
 	if(!defined($first_timestamp)) {
@@ -397,6 +402,16 @@ if($num_warnings > 0) {
 	print join("\n", @warnings), "\n";
 }
 
+my $num_notices = @notices;
+if ($num_notices > 0) {
+	if ($print_notices) {
+		print "\nNotices:\n";
+		print join("\n", @notices), "\n";
+	} else {
+		print "\n(Use option -N to print all 'notice'-messages)\n";
+	}
+}
+
 my @mapped_src_paths = sort(keys(%mapped_src_paths));
 my $num_mapped_src_paths = @mapped_src_paths;
 
@@ -411,7 +426,7 @@ my $num_disabled_passed_paths = @disabled_passed_paths;
 
 print	"\nMapping mode = $sbox_mapmode,\n".
 	"\tTimeframe: $first_timestamp ... $last_timestamp,\n".
-	"\t$num_errors errors, $num_warnings warnings.\n";
+	"\t$num_errors errors, $num_warnings warnings, $num_notices notices.\n";
 if(defined $sbox_target_root) {
 	print "\tTARGET_ROOT = $sbox_target_root\n";
 }

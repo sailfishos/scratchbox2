@@ -147,34 +147,20 @@ proceed:
 	return buf;
 }
 
-char *scratchbox_path(const char *func_name, const char *path)
-{
-	char binary_name[PATH_MAX+1];
-	char *tmp;
-
-	memset(binary_name, '\0', PATH_MAX+1);
-	tmp = getenv("__SB2_BINARYNAME");
-	if (tmp) {
-		strcpy(binary_name, tmp);
-	} else {
-		strcpy(binary_name, "UNKNOWN");
-	}
-	return scratchbox_path2(binary_name, func_name, path);
-}
-
-
 /* make sure to use disable_mapping(m); 
  * to prevent recursive calls to this function
  */
 char *scratchbox_path3(const char *binary_name,
 		const char *func_name,
 		const char *path,
-		const char *mapping_mode)
+		const char *mapping_mode,
+		int *ro_flagp)
 {	
 	char work_dir[PATH_MAX + 1];
 	char *tmp = NULL, *decolon_path = NULL;
 	char pidlink[17]; /* /proc/2^8/exe */
 	struct lua_instance *luaif;
+	int ro_flag;
 
 #ifdef EXTREME_DEBUGGING
 	#define SIZE 100
@@ -215,7 +201,7 @@ char *scratchbox_path3(const char *binary_name,
 
 	if (!path) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
-			"ERROR: scratchbox_path2: path==NULL [%s]", func_name);
+			"ERROR: scratchbox_path3: path==NULL [%s]", func_name);
 		return NULL;
 	}
 
@@ -251,14 +237,16 @@ char *scratchbox_path3(const char *binary_name,
 	lua_pushstring(luaif->lua, func_name);
 	lua_pushstring(luaif->lua, work_dir);
 	lua_pushstring(luaif->lua, decolon_path);
-	lua_call(luaif->lua, 5, 1); /* five arguments, one result */
+	lua_call(luaif->lua, 5, 2); /* five arguments, returns path+ro_flag */
 
-	tmp = (char *)lua_tostring(luaif->lua, -1);
+	tmp = (char *)lua_tostring(luaif->lua, -2);
 	if (tmp) {
 		tmp = strdup(tmp);
 	}
+	ro_flag = lua_toboolean(luaif->lua, -1);
+	if (ro_flagp) *ro_flagp = ro_flag;
 
-	lua_pop(luaif->lua, 1);
+	lua_pop(luaif->lua, 2);
 
 	enable_mapping(luaif);
 
@@ -269,8 +257,8 @@ char *scratchbox_path3(const char *binary_name,
 		 *       postprocessor script "sb2logz". Do not change
 		 *       without making a corresponding change to the script!
 		*/
-		SB_LOG(SB_LOGLEVEL_INFO, "pass: %s '%s'",
-			func_name, path);
+		SB_LOG(SB_LOGLEVEL_INFO, "pass: %s '%s'%s",
+			func_name, path, (ro_flag ? " (readonly)" : ""));
 		return strdup(path);
 	} else {
 		free(decolon_path);
@@ -278,21 +266,28 @@ char *scratchbox_path3(const char *binary_name,
 		 *       postprocessor script "sb2logz". Do not change
 		 *       without making a corresponding change to the script!
 		*/
-		SB_LOG(SB_LOGLEVEL_INFO, "mapped: %s '%s' -> '%s'",
-			func_name, path, tmp);
+		SB_LOG(SB_LOGLEVEL_INFO, "mapped: %s '%s' -> '%s'%s",
+			func_name, path, tmp, (ro_flag ? " (readonly)" : ""));
 		return tmp;
 	}
 }
 
-char *scratchbox_path2(const char *binary_name,
-		const char *func_name,
-		const char *path)
-{	
+char *scratchbox_path(const char *func_name, const char *path, int *ro_flagp)
+{
+	char binary_name[PATH_MAX+1];
+	char *bin_name;
 	const char *mapping_mode;
+
+	memset(binary_name, '\0', PATH_MAX+1);
+	if (!(bin_name = getenv("__SB2_BINARYNAME"))) {
+		bin_name = "UNKNOWN";
+	}
+	strcpy(binary_name, bin_name);
 
 	if (!(mapping_mode = getenv("SBOX_MAPMODE"))) {
 		mapping_mode = "simple";
 	}
-	return(scratchbox_path3(binary_name, func_name, path, mapping_mode));
+	return (scratchbox_path3(binary_name, func_name, path, mapping_mode,
+		ro_flagp));
 }
 

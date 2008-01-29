@@ -93,26 +93,26 @@
 #define SBOX_MAP_AT_PROLOGUE() \
 	char *sbox_path = NULL;
 
-#define SBOX_MAP_PATH_NARROW(path, sbox_path) \
+#define SBOX_MAP_PATH_NARROW(path, sbox_path, readonly_flag_addr) \
 { \
 	if ((path) != NULL && *((char *)(path)) != '\0') { \
-		sbox_path = scratchbox_path(__FUNCTION__, path); \
+		sbox_path = scratchbox_path(__FUNCTION__, path, readonly_flag_addr); \
 	} \
 }
 
-#define SBOX_MAP_PATH(path, sbox_path) \
+#define SBOX_MAP_PATH(path, sbox_path, readonly_flag_addr) \
 { \
 	if ((path) != NULL) { \
-		sbox_path = scratchbox_path(__FUNCTION__, path); \
+		sbox_path = scratchbox_path(__FUNCTION__, path, readonly_flag_addr); \
 	} \
 }
 
-#define SBOX_MAP_PATH_AT(dirfd, path, sbox_path) \
+#define SBOX_MAP_PATH_AT(dirfd, path, sbox_path, readonly_flag_addr) \
 { \
 	if ((path) != NULL) { \
 		if (path[0] == '/') { \
 			/* absolute path */ \
-			sbox_path = scratchbox_path(__FUNCTION__, path); \
+			sbox_path = scratchbox_path(__FUNCTION__, path, readonly_flag_addr); \
 		} else { \
 			sbox_path = strdup(path); \
 		}\
@@ -124,6 +124,9 @@ extern char **environ;
 #endif
 
 extern void *sbox_find_next_symbol(int log_enabled, const char *functname);
+
+extern int fopen_mode_w_perm(const char *mode);
+extern int freopen_errno(FILE *stream);
 
 #endif /* ifndef LIBSB2_H_INCLUDED_ */
 

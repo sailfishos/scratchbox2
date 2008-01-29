@@ -51,6 +51,7 @@ time_t get_sb2_timestamp(void);
 #define SB_LOGLEVEL_NONE	0
 #define SB_LOGLEVEL_ERROR	1
 #define SB_LOGLEVEL_WARNING	2
+#define SB_LOGLEVEL_NOTICE	3
 #define SB_LOGLEVEL_INFO	5
 #define SB_LOGLEVEL_DEBUG	8
 #define SB_LOGLEVEL_NOISE	9

@@ -49,6 +49,7 @@ static void command_show_exec(
 	char	**new_argv;
 	char	**new_envp;
 	char	*mapped_path = NULL;
+	int	readonly_flag;
 	int	i;
 	
 	if (argc < 2) {
@@ -61,9 +62,9 @@ static void command_show_exec(
 	/* do_exec() will map the path just after argvenvp modifications
 	 * have been done, do that here also
 	*/
-	mapped_path = sb2show__map_path__(binary_name, mapping_mode, fn_name,
-		 new_file);
-	printf("Mapped\t%s\n", mapped_path);
+	mapped_path = sb2show__map_path2__(binary_name, mapping_mode, fn_name,
+		 new_file, &readonly_flag);
+	printf("Mapped\t%s%s\n", mapped_path, (readonly_flag ? " (readonly)" : ""));
 
 	for (i = 0; new_argv[i]; i++) {
 		printf("argv[%d]\t%s\n", i, new_argv[i]);
@@ -75,11 +76,14 @@ static void command_show_path(const char *binary_name,
 	const char *fn_name,  char **argv)
 {
 	char	*mapped_path = NULL;
+	int	readonly_flag;
 
 	while (*argv) {
-		mapped_path = sb2show__map_path__(binary_name, mapping_mode, 
-			fn_name, *argv);
-		printf("%s => %s\n", *argv, mapped_path);
+		mapped_path = sb2show__map_path2__(binary_name, mapping_mode, 
+			fn_name, *argv, &readonly_flag);
+		printf("%s => %s%s\n", 
+			*argv, mapped_path,
+			(readonly_flag ? " (readonly)" : ""));
 		argv++;
 	}
 }

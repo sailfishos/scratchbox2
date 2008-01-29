@@ -24,8 +24,9 @@ EXPORT: void _fini(void)
 --    -------------------
 
 -- Functions used by the "sb2show" command:
-EXPORT: char *sb2show__map_path__(const char *binary_name, \
-	const char *mapping_mode, const char *fn_name, const char *pathname)
+EXPORT: char *sb2show__map_path2__(const char *binary_name, \
+	const char *mapping_mode, const char *fn_name, const char *pathname, \
+	int *readonly)
 EXPORT: int sb2show__execve_mods__( \
 	char *file, \
 	char *const *orig_argv, char *const *orig_envp, \
@@ -89,50 +90,47 @@ WRAP: char *mktemp (char *template) : returns_string
 --    ---------------
 --    These are auto-generated wrappers with varargs: an optional "int mode"
 --    parameter may be specified in the call. These can be completely handled
---    by the generated wrapped.
+--    by the generated wrappers.
 --
+#define OPEN_FLAGS_RW_MODE (O_WRONLY|O_RDWR|O_APPEND|O_CREAT|O_TRUNC)
+
 WRAP: int __open(const char *pathname, int flags, ...) : \
-	map(pathname) optional_arg_is_create_mode(flags&O_CREAT)
+	map(pathname) optional_arg_is_create_mode(flags&O_CREAT) \
+	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
 WRAP: int __open64(const char *pathname, int flags, ...) : \
-	map(pathname) optional_arg_is_create_mode(flags&O_CREAT)
+	map(pathname) optional_arg_is_create_mode(flags&O_CREAT) \
+	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
 WRAP: int open(const char *pathname, int flags, ...) : \
 	map(pathname) optional_arg_is_create_mode(flags&O_CREAT) \
-	create_nomap_nolog_version
+	create_nomap_nolog_version \
+	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
 WRAP: int open64(const char *pathname, int flags, ...) : \
-	map(pathname) optional_arg_is_create_mode(flags&O_CREAT)
+	map(pathname) optional_arg_is_create_mode(flags&O_CREAT) \
+	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
 WRAP: int openat(int dirfd, const char *pathname, int flags, ...) : \
-	map_at(dirfd,pathname) optional_arg_is_create_mode(flags&O_CREAT)
+	map_at(dirfd,pathname) optional_arg_is_create_mode(flags&O_CREAT) \
+	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
 WRAP: int openat64(int dirfd, const char *pathname, int flags, ...) : \
-	map_at(dirfd,pathname) optional_arg_is_create_mode(flags&O_CREAT)
+	map_at(dirfd,pathname) optional_arg_is_create_mode(flags&O_CREAT) \
+	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
 
 --
 -- 6. Simple wrappers
 --    ---------------
 --
 
--- 6a. These wrapper specs have been built manually, based on code in libsb2.c
-
-WRAP: int symlinkat(const char *oldpath, int newdirfd, const char *newpath) : \
-	map(oldpath) map_at(newdirfd,newpath)
-
-WRAP: int renameat(int olddirfd, const char *oldpath, int newdirfd, \
-	const char *newpath) : \
-	map_at(olddirfd,oldpath) map_at(newdirfd,newpath)
-
-WRAP: int linkat(int olddirfd, const char *oldpath, \
-	int newdirfd, const char *newpath, int flags) : \
-	map_at(olddirfd,oldpath) map_at(newdirfd,newpath)
-
-
--- 6b. The following wrappers were semi-automatically refactored out of
---     libsb2.c's original code:
-
 WRAP: int __lxstat(int ver, const char *filename, struct stat *buf) : map(filename)
 #ifdef HAVE___LXSTAT64
 WRAP: int __lxstat64(int ver, const char *filename, struct stat64 *buf) : map(filename)
 #endif
+
+-- N.B. 2nd parameter of '__opendir2' is bufsize, at least on 
+-- some implementations
 WRAP: DIR *__opendir2(const char *name, int flags) : map(name)
-WRAP: int __xmknod(int ver, const char *path, mode_t mode, dev_t *dev) : map(path)
+
+WRAP: int __xmknod(int ver, const char *path, mode_t mode, dev_t *dev) : \
+	map(path) fail_if_readonly(path,-1,EROFS)
+
 WRAP: int __xstat(int ver, const char *filename, struct stat *buf) : map(filename)
 #ifdef HAVE___XSTAT64
 WRAP: int __xstat64(int ver, const char *filename, struct stat64 *buf) : map(filename)
@@ -141,48 +139,109 @@ WRAP: int _xftw(int mode, const char *dir, int (*fn)(const char *file, const str
 #ifdef HAVE__XFTW64
 WRAP: int _xftw64(int mode, const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag), int nopenfd) : map(dir)
 #endif
+
 WRAP: int access(const char *pathname, int mode) : map(pathname) \
-	create_nomap_nolog_version
-WRAP: int acct(const char *filename) : map(filename)
+	create_nomap_nolog_version \
+	check_and_fail_if_readonly(mode&W_OK,pathname,-1,EROFS)
+
+WRAP: int acct(const char *filename) : \
+	map(filename) fail_if_readonly(filename,-1,EROFS)
+
 WRAP: char *canonicalize_file_name(const char *name) : map(name) returns_string
 WRAP: int chdir(const char *path) : map(path)
-WRAP: int chmod(const char *path, mode_t mode) : map(path)
-WRAP: int chown(const char *path, uid_t owner, gid_t group) : map(path)
-WRAP: int creat(const char *pathname, mode_t mode) : map(pathname)
-WRAP: int creat64(const char *pathname, mode_t mode) : map(pathname)
+
+#ifdef HAVE_OSX_XATTRS
+-- chflags is from 4.4BSD, actually.
+WRAP: int chflags(const char *path, u_int flags) :
+	map(path) fail_if_readonly(path,-1,EROFS)
+#endif
+
+WRAP: int chmod(const char *path, mode_t mode) : \
+	map(path) fail_if_readonly(path,-1,EROFS)
+WRAP: int chown(const char *path, uid_t owner, gid_t group) : \
+	map(path) fail_if_readonly(path,-1,EROFS)
+WRAP: int creat(const char *pathname, mode_t mode) : \
+	map(pathname) fail_if_readonly(pathname,-1,EROFS)
+WRAP: int creat64(const char *pathname, mode_t mode) : \
+	map(pathname) fail_if_readonly(pathname,-1,EROFS)
+
 #ifdef __USE_GNU
 WRAP: void *dlmopen(Lmid_t nsid, const char *filename, int flag) : map(filename)
 #endif
 WRAP: void *dlopen(const char *filename, int flag) : map(filename)
-WRAP: int euidaccess(const char *pathname, int mode) : map(pathname)
+
+WRAP: int euidaccess(const char *pathname, int mode) : \
+	map(pathname) \
+	check_and_fail_if_readonly(mode&W_OK,pathname,-1,EROFS)
 -- eaccess() is same as euidaccess(), provided for compatibility
-WRAP: int eaccess(const char *pathname, int mode) : map(pathname)
-WRAP: int faccessat(int dirfd, const char *pathname, int mode, int flags) : map_at(dirfd,pathname)
-WRAP: int fchmodat(int dirfd, const char *pathname, mode_t mode, int flags) : map_at(dirfd,pathname)
-WRAP: int fchownat(int dirfd, const char *pathname, uid_t owner, gid_t group, int flags) : map_at(dirfd,pathname)
-WRAP: FILE *fopen(const char *path, const char *mode) : map(path)
-WRAP: FILE *fopen64(const char *path, const char *mode) : map(path)
-WRAP: FILE *freopen(const char *path, const char *mode, FILE *stream) : map(path)
-WRAP: FILE *freopen64(const char *path, const char *mode, FILE *stream) : map(path)
+WRAP: int eaccess(const char *pathname, int mode) : \
+	map(pathname) \
+	check_and_fail_if_readonly(mode&W_OK,pathname,-1,EROFS)
+
+WRAP: int faccessat(int dirfd, const char *pathname, int mode, int flags) : \
+	map_at(dirfd,pathname) \
+	check_and_fail_if_readonly(mode&W_OK,pathname,-1,EROFS)
+
+-- FIXME: fchmod() should be handled when -at-functions can be handled 
+-- properly, now just introduce the wrapper (we'll get the calls to logger!)
+WRAP: int fchmod(int fildes, mode_t mode)
+
+WRAP: int fchmodat(int dirfd, const char *pathname, mode_t mode, int flags) : \
+	map_at(dirfd,pathname) \
+	fail_if_readonly(pathname,-1,EROFS)
+WRAP: int fchownat(int dirfd, const char *pathname, uid_t owner, gid_t group, \
+	int flags) : \
+	map_at(dirfd,pathname) \
+	fail_if_readonly(pathname,-1,EROFS)
+
+WRAP: FILE *fopen(const char *path, const char *mode) : \
+	map(path) \
+	check_and_fail_if_readonly(fopen_mode_w_perm(mode),path,NULL,EROFS)
+WRAP: FILE *fopen64(const char *path, const char *mode) : \
+	map(path) \
+	check_and_fail_if_readonly(fopen_mode_w_perm(mode),path,NULL,EROFS)
+WRAP: FILE *freopen(const char *path, const char *mode, FILE *stream) : \
+	map(path) \
+	check_and_fail_if_readonly(fopen_mode_w_perm(mode),path,NULL,freopen_errno(stream))
+WRAP: FILE *freopen64(const char *path, const char *mode, FILE *stream) : \
+	map(path) \
+	check_and_fail_if_readonly(fopen_mode_w_perm(mode),path,NULL,freopen_errno(stream))
+
 WRAP: int fstatat(int dirfd, const char *pathname, struct stat *buf, int flags) : map_at(dirfd,pathname)
 WRAP: int ftw(const char *dir, int (*fn)(const char *file, const struct stat *sb, int flag), int nopenfd) : map(dir)
 #ifdef HAVE_FTW64
 WRAP: int ftw64(const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag), int nopenfd) : map(dir)
 #endif
-WRAP: int futimesat(int dirfd, const char *pathname, const struct timeval times[2]) : map_at(dirfd,pathname)
+WRAP: int futimesat(int dirfd, const char *pathname, const struct timeval times[2]) : \
+	map_at(dirfd,pathname) \
+	fail_if_readonly(pathname,-1,EROFS)
 #ifdef HAVE_LINUX_XATTRS
 WRAP: ssize_t getxattr(const char *path, const char *name, void *value, size_t size) : map(path)
 #endif
 #ifdef HAVE_OSX_XATTRS
+WRAP: int getattrlist(const char* path, struct attrlist * attrList, \
+	void * attrBuf, size_t attrBufSize, unsigned long options) : \
+	map(path)
 WRAP: ssize_t getxattr(const char *path, const char *name, void *value, size_t size, u_int32_t position, int options) : map(path)
 #endif
 WRAP: int glob_pattern_p(const char *pattern, int quote) : map(pattern)
-WRAP: int lchmod(const char *path, mode_t mode) : map(path)
-WRAP: int lchown(const char *path, uid_t owner, gid_t group) : map(path)
+WRAP: int lchmod(const char *path, mode_t mode) : \
+	map(path) fail_if_readonly(path,-1,EROFS)
+WRAP: int lchown(const char *path, uid_t owner, gid_t group) : \
+	map(path) fail_if_readonly(path,-1,EROFS)
 #ifdef HAVE_LGETXATTR
 WRAP: ssize_t lgetxattr(const char *path, const char *name, void *value, size_t size) : map(path)
 #endif
-WRAP: int link(const char *oldpath, const char *newpath) : map(oldpath) map(newpath)
+WRAP: int link(const char *oldpath, const char *newpath) : \
+	map(oldpath) map(newpath) \
+	fail_if_readonly(oldpath,-1,EROFS) \
+	fail_if_readonly(newpath,-1,EROFS)
+WRAP: int linkat(int olddirfd, const char *oldpath, \
+	int newdirfd, const char *newpath, int flags) : \
+	map_at(olddirfd,oldpath) map_at(newdirfd,newpath) \
+	fail_if_readonly(oldpath,-1,EROFS) \
+	fail_if_readonly(newpath,-1,EROFS)
+
 #ifdef HAVE_LISTXATTR
 #ifdef HAVE_LINUX_XATTRS
 WRAP: ssize_t listxattr(const char *path, char *list, size_t size) : map(path)
@@ -195,22 +254,31 @@ WRAP: ssize_t listxattr(const char *path, char *list, size_t size, int options) 
 WRAP: ssize_t llistxattr(const char *path, char *list, size_t size) : map(path)
 #endif
 #ifdef HAVE_LREMOVEXATTR
-WRAP: int lremovexattr(const char *path, const char *name) : map(path)
+WRAP: int lremovexattr(const char *path, const char *name) : \
+	map(path) fail_if_readonly(path,-1,EROFS)
 #endif
 #ifdef HAVE_LSETXATTR
-WRAP: int lsetxattr(const char *path, const char *name, const void *value, size_t size, int flags) : map(path)
+WRAP: int lsetxattr(const char *path, const char *name, const void *value, size_t size, int flags) : \
+	map(path) fail_if_readonly(path,-1,EROFS)
 #endif
 WRAP: int lstat(const char *file_name, struct stat *buf) : map(file_name)
 #ifdef HAVE_LSTAT64
 WRAP: int lstat64(const char *file_name, struct stat64 *buf) : map(file_name)
 #endif
-WRAP: int lutimes(const char *filename, const struct timeval tv[2]) : map(filename)
-WRAP: int mkdir(const char *pathname, mode_t mode) : map(pathname)
-WRAP: int mkdirat(int dirfd, const char *pathname, mode_t mode) : map_at(dirfd,pathname)
-WRAP: int mkfifo(const char *pathname, mode_t mode) : map(pathname)
-WRAP: int mkfifoat(int dirfd, const char *pathname, mode_t mode) : map_at(dirfd,pathname)
-WRAP: int mknod(const char *pathname, mode_t mode, dev_t dev) : map(pathname)
-WRAP: int mknodat(int dirfd, const char *pathname, mode_t mode, dev_t dev) : map_at(dirfd,pathname)
+WRAP: int lutimes(const char *filename, const struct timeval tv[2]) : \
+	map(filename) fail_if_readonly(filename,-1,EROFS)
+WRAP: int mkdir(const char *pathname, mode_t mode) : \
+	map(pathname) fail_if_readonly(pathname,-1,EROFS)
+WRAP: int mkdirat(int dirfd, const char *pathname, mode_t mode) : \
+	map_at(dirfd,pathname) fail_if_readonly(pathname,-1,EROFS)
+WRAP: int mkfifo(const char *pathname, mode_t mode) : \
+	map(pathname) fail_if_readonly(pathname,-1,EROFS)
+WRAP: int mkfifoat(int dirfd, const char *pathname, mode_t mode) : \
+	map_at(dirfd,pathname) fail_if_readonly(pathname,-1,EROFS)
+WRAP: int mknod(const char *pathname, mode_t mode, dev_t dev) : \
+	map(pathname) fail_if_readonly(pathname,-1,EROFS)
+WRAP: int mknodat(int dirfd, const char *pathname, mode_t mode, dev_t dev) : \
+	map_at(dirfd,pathname) fail_if_readonly(pathname,-1,EROFS)
 WRAP: int nftw(const char *dir, int (*fn)(const char *file, const struct stat *sb, int flag, struct FTW *s), int nopenfd, int flags) : map(dir)
 #ifdef HAVE_NFTW64
 WRAP: int nftw64(const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag, struct FTW *s), int nopenfd, int flags) : map(dir)
@@ -220,54 +288,94 @@ WRAP: long pathconf(const char *path, int name) : map(path)
 WRAP: READLINK_TYPE readlink(const char *path, char *buf, size_t bufsize) : map(path)
 WRAP: READLINK_TYPE readlinkat(int dirfd, const char *pathname, char *buf, size_t bufsize) : map_at(dirfd,pathname)
 WRAP: char *realpath(const char *name, char *resolved) : map(name) returns_string
-WRAP: int remove(const char *pathname) : map(pathname)
+WRAP: int remove(const char *pathname) : \
+	map(pathname) fail_if_readonly(pathname,-1,EROFS)
 #ifdef HAVE_REMOVEXATTR
 #ifdef HAVE_LINUX_XATTRS
-WRAP: int removexattr(const char *path, const char *name) : map(path)
+WRAP: int removexattr(const char *path, const char *name) : \
+	map(path) fail_if_readonly(path,-1,EROFS)
 #endif
 #ifdef HAVE_OSX_XATTRS
-WRAP: int removexattr(const char *path, const char *name, int options) : map(path)
+WRAP: int removexattr(const char *path, const char *name, int options) : \
+	map(path) fail_if_readonly(path,-1,EROFS)
 #endif
 #endif
-WRAP: int rename(const char *oldpath, const char *newpath) : map(oldpath) map(newpath)
+WRAP: int rename(const char *oldpath, const char *newpath) : \
+	map(oldpath) map(newpath) \
+	fail_if_readonly(oldpath,-1,EROFS) \
+	fail_if_readonly(newpath,-1,EROFS)
+WRAP: int renameat(int olddirfd, const char *oldpath, int newdirfd, \
+	const char *newpath) : \
+	map_at(olddirfd,oldpath) map_at(newdirfd,newpath) \
+	fail_if_readonly(oldpath,-1,EROFS) \
+	fail_if_readonly(newpath,-1,EROFS)
+
 WRAP: int revoke(const char *file) : map(file)
-WRAP: int rmdir(const char *pathname) : map(pathname)
+
+WRAP: int rmdir(const char *pathname) : \
+	map(pathname) fail_if_readonly(pathname,-1,EROFS)
+
 #ifdef HAVE_SCANDIR
 #ifdef HAVE_LINUX_SCANDIR
-WRAP: int scandir(const char *dir, struct dirent ***namelist, SCANDIR_TYPE_ARG3, int(*compar)(const void *, const void *)) : map(dir) hardcode_param(3,filter)
+WRAP: int scandir(const char *dir, struct dirent ***namelist, \
+	SCANDIR_TYPE_ARG3, int(*compar)(const void *, const void *)) : \
+	map(dir) hardcode_param(3,filter)
 #endif
 #ifdef HAVE_OSX_SCANDIR
 WRAP: int scandir(const char *dirname, struct dirent ***namelist, int (*select)(struct dirent *), int (*compar)(const void *, const void *)): map(dirname)
 #endif
 #endif
 #ifdef HAVE_SCANDIR64
-WRAP: int scandir64(const char *dir, struct dirent64 ***namelist, int(*filter)(const struct dirent64 *), int(*compar)(const void *, const void *)) : map(dir)
+WRAP: int scandir64(const char *dir, struct dirent64 ***namelist, \
+	int(*filter)(const struct dirent64 *), \
+	int(*compar)(const void *, const void *)) : \
+	map(dir)
 #endif
 #ifdef HAVE_SETXATTR
 #ifdef HAVE_LINUX_XATTRS
-WRAP: int setxattr(const char *path, const char *name, const void *value, size_t size, int flags) : map(path)
+WRAP: int setxattr(const char *path, const char *name, const void *value, \
+	size_t size, int flags) : \
+	map(path) fail_if_readonly(path,-1,EROFS)
 #endif
 #ifdef HAVE_OSX_XATTRS
-WRAP: int setxattr(const char *path, const char *name, const void *value, size_t size, u_int32_t position, int options) : map(path)
+WRAP: int setattrlist(const char* path, struct attrlist * attrList, \
+	void * attrBuf, size_t attrBufSize, unsigned long options) : \
+	map(path) fail_if_readonly(path,-1,EROFS)
+WRAP: int setxattr(const char *path, const char *name, const void *value, \
+	size_t size, u_int32_t position, int options) : \
+	map(path) fail_if_readonly(path,-1,EROFS)
 #endif
 #endif
 WRAP: int stat(const char *file_name, struct stat *buf) : map(file_name)
 #ifdef HAVE_STAT64
 WRAP: int stat64(const char *file_name, struct stat64 *buf) : map(file_name)
 #endif
-WRAP: int symlink(const char *oldpath, const char *newpath) : map(oldpath) map(newpath)
+
+WRAP: int symlink(const char *oldpath, const char *newpath) : \
+	map(oldpath) map(newpath) \
+	fail_if_readonly(newpath,-1,EROFS)
+
+WRAP: int symlinkat(const char *oldpath, int newdirfd, const char *newpath) : \
+	map(oldpath) map_at(newdirfd,newpath) \
+	fail_if_readonly(newpath,-1,EROFS)
+
 WRAP: char *tempnam(const char *dir, const char *pfx) : map(dir) returns_string
-WRAP: int truncate(const char *path, off_t length) : map(path)
+WRAP: int truncate(const char *path, off_t length) : \
+	map(path) fail_if_readonly(path,-1,EROFS)
 #ifdef HAVE_TRUNCATE64
-WRAP: int truncate64(const char *path, off64_t length) : map(path)
+WRAP: int truncate64(const char *path, off64_t length) : \
+	map(path) fail_if_readonly(path,-1,EROFS)
 #endif
-WRAP: int unlink(const char *pathname) : map(pathname)
-WRAP: int unlinkat(int dirfd, const char *pathname, int flags) : map_at(dirfd,pathname)
-WRAP: int utime(const char *filename, const struct utimbuf *buf) : map(filename)
-WRAP: int utimes(const char *filename, const struct timeval tv[2]) : map(filename)
 
--- 7. Test functions:
+WRAP: int unlink(const char *pathname) : \
+	map(pathname) \
+	fail_if_readonly(pathname,-1,EROFS)
+WRAP: int unlinkat(int dirfd, const char *pathname, int flags) : \
+	map_at(dirfd,pathname) \
+	fail_if_readonly(pathname,-1,EROFS)
 
---GATE: int test_fn(char *a, char *b)
---GATE: int vtest_fn(char *a, char *b,...) : pass_va_list
---GATE: int maptest_fn(char *a, char *b) : map(a) map(b)
+WRAP: int utime(const char *filename, const struct utimbuf *buf) : \
+	map(filename) fail_if_readonly(filename,-1,EROFS)
+WRAP: int utimes(const char *filename, const struct timeval tv[2]) : \
+	map(filename) fail_if_readonly(filename,-1,EROFS)
+

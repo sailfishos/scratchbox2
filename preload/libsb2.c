@@ -329,7 +329,7 @@ FTS * fts_open_gate(FTS * (*real_fts_open_ptr)(char * const *path_argv,
 
 	for (n=0, p=path_argv, np=new_path_argv; *p; n++, p++, np++) {
 		path = *p;
-		sbox_path = scratchbox_path(realfnname, path);
+		sbox_path = scratchbox_path(realfnname, path, NULL/*RO-flag*/);
 		*np = sbox_path;
 	}
 
@@ -348,7 +348,7 @@ char * get_current_dir_name_gate(
 		return NULL;
 	}
 	if (*cwd != '\0') {
-		sbox_path = scratchbox_path(realfnname, cwd);
+		sbox_path = scratchbox_path(realfnname, cwd, NULL/*RO-flag*/);
 	}
 	free(cwd);
 	return sbox_path;
@@ -369,7 +369,7 @@ char *getcwd_gate (
 		return NULL;
 	}
 	if (*cwd != '\0') {
-		sbox_path = scratchbox_path(realfnname, cwd);
+		sbox_path = scratchbox_path(realfnname, cwd, NULL/*RO-flag*/);
 	}
 	if (sbox_path) {
 		if(buf) {
@@ -397,7 +397,7 @@ char * getwd_gate(
 		return NULL;
 	}
 	if (*cwd != '\0') {
-		sbox_path = scratchbox_path(realfnname, cwd);
+		sbox_path = scratchbox_path(realfnname, cwd, NULL/*RO-flag*/);
 	}
 	if (sbox_path) {
 		if(buf) {
@@ -434,7 +434,7 @@ int glob_gate(
 		char	*sbox_path = NULL;
 
 		strcpy(tmp,pglob->gl_pathv[i]);
-		sbox_path = scratchbox_path(realfnname, tmp);
+		sbox_path = scratchbox_path(realfnname, tmp, NULL/*RO-flag*/);
 		strcpy(pglob->gl_pathv[i], sbox_path);
 		if (sbox_path) free(sbox_path);
 	}
@@ -463,7 +463,7 @@ int glob64_gate(
 		char	*sbox_path = NULL;
 
 		strcpy(tmp,pglob->gl_pathv[i]);
-		sbox_path = scratchbox_path(realfnname, tmp);
+		sbox_path = scratchbox_path(realfnname, tmp, NULL/*RO-flag*/);
 		strcpy(pglob->gl_pathv[i], sbox_path);
 		if (sbox_path) free(sbox_path);
 	}
@@ -571,16 +571,45 @@ void *sbox_find_next_symbol(int log_enabled, const char *fn_name)
 }
 
 /* ---------- */
-char *sb2show__map_path__(const char *binary_name, const char *mapping_mode, 
-        const char *fn_name, const char *pathname)
+char *sb2show__map_path2__(const char *binary_name, const char *mapping_mode, 
+        const char *fn_name, const char *pathname, int *readonly)
 {
 	char *mapped__pathname = NULL;
 
 	if (pathname != NULL) {
 		mapped__pathname = scratchbox_path3(binary_name, fn_name,
-			pathname, mapping_mode);
+			pathname, mapping_mode, readonly);
 	}
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s '%s'", __func__, pathname);
 	return(mapped__pathname);
+}
+
+/* ---- support functions for the generated interface: */
+
+/* returns true, if the "mode" parameter of fopen() (+friends)
+ * indicates that write permission is required.
+*/
+int fopen_mode_w_perm(const char *mode)
+{
+	/* We'll have to look at the first characters only, since
+	 * standard C allows implementation-specific additions to follow
+	 * after the mode. "w", "a", "r+" and "rb+" need write access,
+	 * but "r" or "r,access=lock" indicate read only access.
+	 * For more information, see H&S 5th ed. p. 368
+	*/
+	if (*mode == 'w' || *mode == 'a') return (1);
+	mode++;
+	if (*mode == 'b') mode++;
+	if (*mode == '+') return (1);
+	return (0);
+}
+
+/* a helper function for freopen*(), which need to close the original stream
+ * even if the open fails (e.g. this gets called when trying to open a R/O
+ * mapped destination for R/W) */
+int freopen_errno(FILE *stream)
+{
+	if (stream) fclose(stream);
+	return (EROFS);
 }
 

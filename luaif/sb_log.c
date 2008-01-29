@@ -108,28 +108,22 @@ void sblog_init(void)
 		if (sb_log_state.sbl_logfile) {
 			if (level_str) {
 				/* Both logfile and loglevel have been set. */
-				switch(*level_str) {
-				case 'e': case 'E':
+				if (!strcmp(level_str,"error")) {
 					sb_loglevel__ = SB_LOGLEVEL_ERROR;
-					break;
-				case 'w': case 'W':
+				} else if (!strcmp(level_str,"warning")) {
 					sb_loglevel__ = SB_LOGLEVEL_WARNING;
-					break;
-				case 'i': case 'I':
+				} else if (!strcmp(level_str,"notice")) {
+					sb_loglevel__ = SB_LOGLEVEL_NOTICE;
+				} else if (!strcmp(level_str,"info")) {
 					sb_loglevel__ = SB_LOGLEVEL_INFO;
-					break;
-				case 'd': case 'D':
+				} else if (!strcmp(level_str,"debug")) {
 					sb_loglevel__ = SB_LOGLEVEL_DEBUG;
 					sb_log_state.sbl_print_file_and_line = 1;
-					break;
-				case 'n': case 'N':
+				} else if (!strcmp(level_str,"noise")) {
 					sb_loglevel__ = SB_LOGLEVEL_NOISE;
 					sb_log_state.sbl_print_file_and_line = 1;
-					break;
-
-				default:
+				} else {
 					sb_loglevel__ = SB_LOGLEVEL_INFO;
-					break;
 				}
 			} else {
 				/* logfile set, no level specified: */
@@ -206,6 +200,7 @@ void sblog_vprintf_line_to_logfile(
 	switch(level) {
 	case SB_LOGLEVEL_ERROR:		levelname = "ERROR"; break;
 	case SB_LOGLEVEL_WARNING:	levelname = "WARNING"; break;
+	case SB_LOGLEVEL_NOTICE:	levelname = "NOTICE"; break;
 	/* default is to pass level info as numbers */
 	}
 	

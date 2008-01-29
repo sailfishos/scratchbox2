@@ -276,12 +276,13 @@ function map_using_chain(chain, binary_name, func_name, work_dir, path)
 	local ret = path
 	local rp = path
 	local rule = nil
+	local readonly_flag = false
 
 	rule = find_rule(chain, func_name, rp)
 	if (not rule) then
 		-- error, not even a default rule found
 		sb.log("error", string.format("Unable to find a match at all: %s(%s)", func_name, path))
-		return path
+		return path, readonly_flag
 	end
 	if (rule.custom_map_func ~= nil) then
 		ret = rule.custom_map_func(binary_name, func_name, work_dir, rp, path, rules[n])
@@ -295,12 +296,16 @@ function map_using_chain(chain, binary_name, func_name, work_dir, path)
 			end
 		end
 	end
-	return ret
+	if (rule.readonly ~= nil) then
+		readonly_flag = rule.readonly
+	end
+	return ret, readonly_flag
 end
 
 -- sbox_translate_path is the function called from libsb2.so
 -- preload library and the FUSE system for each path that needs 
 -- translating
+-- returns path and the "readonly" flag
 function sbox_translate_path(mapping_mode, binary_name, func_name, work_dir, path)
 	-- loop through the chains, first match is used
 	for n=1,table.maxn(modes[mapping_mode].chains) do
@@ -314,6 +319,6 @@ function sbox_translate_path(mapping_mode, binary_name, func_name, work_dir, pat
 	sb.log("error", string.format("[-][-] %s(%s) [MAPPING FAILED]",
 		func_name, path))
 
-	return path
+	return path, false
 end
 

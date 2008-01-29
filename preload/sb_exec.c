@@ -672,7 +672,8 @@ int run_hashbang(const char *file, char *const *argv, char *const *envp)
 		if (ch == '\n' || ch == 0) break;
 	}
 
-	mapped_interpreter = scratchbox_path("execve", interpreter);
+	mapped_interpreter = scratchbox_path("execve", interpreter, 
+		NULL/*RO-flag addr.*/);
 	SB_LOG(SB_LOGLEVEL_DEBUG, "run_hashbang(): interpreter=%s,"
 			"mapped_interpreter=%s", interpreter,
 			mapped_interpreter);
@@ -810,7 +811,8 @@ int do_exec(const char *exec_fn_name, const char *file,
 	 * what is the path we're supposed to deal with
 	 */
 
-	mapped_file = scratchbox_path("do_exec", *my_file);
+	mapped_file = scratchbox_path("do_exec", *my_file,
+		NULL/*RO-flag addr.*/);
 	SB_LOG(SB_LOGLEVEL_DEBUG, 
 		"do_exec(): *my_file = %s, mapped_file = %s", 
 		*my_file, mapped_file);

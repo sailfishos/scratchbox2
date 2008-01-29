@@ -47,6 +47,14 @@
 #   - "returns_string" indicates that the return value (which should be 
 #     "char *") can be safely logged with SB_LOG. Note that other pointers
 #     as return values will be logged as "NULL" or "not null"
+#   - fail_if_readonly(varname,return_value,error_code) and
+#     check_and_fail_if_readonly(extra_check,varname,return_value,error_code)
+#     will check if the mapped path has been marked "readonly" by the mapping
+#     rules, and fail if it is (the latter modifier also makes an extra user-
+#     provided check). "varname" must be the same name which was specified
+#     to map() or map_at(). "error_code" will be assigned to errno, and
+#     the failure will always be logged (SB_LOG_NOTICE level)
+#
 # For "WRAP" only:
 #   - "create_nomap_nolog_version" creates a direct interface function to the
 #     next function (for internal use inside the preload library)
@@ -358,6 +366,43 @@ sub create_code_for_va_list_get_mode {
 		"\t}\n");
 }
 
+sub process_readonly_check_modifier {
+	my $mods = shift;
+	my $extra_check = shift;
+	my $param_to_be_mapped = shift;
+	my $return_value = shift;
+	my $error_code = shift;
+
+	my $new_name = "mapped__".$param_to_be_mapped;
+	my $ro_flag = $param_to_be_mapped."_is_readonly";
+
+	if (defined($extra_check)) {
+		$extra_check = " && ($extra_check)";
+	}
+
+	$mods->{'path_ro_check_code'} .=
+		"\tif ($ro_flag$extra_check) {\n".
+		"\t\tSB_LOG(SB_LOGLEVEL_NOTICE, ".
+		"\"%s returns (%s is readonly) ".
+		"$return_value, error_code=$error_code\", ".
+		"__func__, ($new_name ? $new_name : \"<empty path>\"));\n".
+		"\t\tif ($new_name) free($new_name);\n";
+	if ($error_code ne '') {
+		# set errno just before returning
+		$mods->{'path_ro_check_code'} .=
+			"\t\terrno = $error_code;\n";
+	}
+	if ($return_value ne '') {
+		$mods->{'path_ro_check_code'} .=
+			"\t\treturn ($return_value);\n";
+	} else {
+		$mods->{'path_ro_check_code'} .=
+			"\t\treturn;\n";
+	}
+	$mods->{'path_ro_check_code'} .=
+		"\t}\n";
+}
+
 # Process the modifier section coming from the original input line.
 # This returns undef if failed, or a structure containing code fragments
 # and other information for the actual code generation phase.
@@ -377,6 +422,7 @@ sub process_wrap_or_gate_modifiers {
 	my $mods = {
 		'path_mapping_vars' => "",
 		'path_mapping_code' => "",
+		'path_ro_check_code' => "",
 		'free_path_mapping_vars_code' => "",
 		'local_vars_for_varargs_handler' => "",
 		'va_list_handler_code' => "",
@@ -404,12 +450,17 @@ sub process_wrap_or_gate_modifiers {
 		if($debug) { printf "\Modifier:'%s'\n", $modifiers[$i]; }
 		if($modifiers[$i] =~ m/^map\((.*)\)$/) {
 			my $param_to_be_mapped = $1;
+
 			my $new_name = "mapped__".$param_to_be_mapped;
+			my $ro_flag = $param_to_be_mapped."_is_readonly";
+
 			$mods->{'mapped_params_by_orig_name'}->{$param_to_be_mapped} = $new_name;
-			$mods->{'path_mapping_vars'} .= "\tchar *$new_name = NULL;\n";
+			$mods->{'path_mapping_vars'} .= 
+				"\tchar *$new_name = NULL;\n".
+				"\tint $ro_flag = 0;\n";
 			$mods->{'path_mapping_code'} .=
 				"\tSBOX_MAP_PATH($param_to_be_mapped, ".
-					"$new_name);\n";
+					"$new_name, &$ro_flag);\n";
 			$mods->{'free_path_mapping_vars_code'} .=
 				"\tif($new_name) free($new_name);\n";
 
@@ -419,18 +470,40 @@ sub process_wrap_or_gate_modifiers {
 		} elsif($modifiers[$i] =~ m/^map_at\((.*),(.*)\)$/) {
 			my $fd_param = $1;
 			my $param_to_be_mapped = $2;
+
 			my $new_name = "mapped__".$param_to_be_mapped;
+			my $ro_flag = $param_to_be_mapped."_is_readonly";
+
 			$mods->{'mapped_params_by_orig_name'}->{$param_to_be_mapped} = $new_name;
-			$mods->{'path_mapping_vars'} .= "\tchar *$new_name = NULL;\n";
+			$mods->{'path_mapping_vars'} .= 
+				"\tchar *$new_name = NULL;\n".
+				"\tint $ro_flag = 0;\n";
 			$mods->{'path_mapping_code'} .=
 				"\tSBOX_MAP_PATH_AT($fd_param, ".
-				"$param_to_be_mapped, $new_name);\n";
+				"$param_to_be_mapped, $new_name, &$ro_flag);\n";
 			$mods->{'free_path_mapping_vars_code'} .=
 				"\tif($new_name) free($new_name);\n";
 
 			# Make a "..._nomap" version, because the main
 			# wrapper has mappings.
 			$mods->{'make_nomap_function'} = 1;
+		} elsif ($modifiers[$i] =~ m/^fail_if_readonly\((.*),(.*),(.*)\)$/) {
+			my $param_to_be_mapped = $1;
+			my $return_value = $2;
+			my $error_code = $3;
+
+			process_readonly_check_modifier($mods, undef,
+				$param_to_be_mapped, $return_value, 
+				$error_code);
+		} elsif ($modifiers[$i] =~ m/^check_and_fail_if_readonly\((.*),(.*),(.*),(.*)\)$/) {
+			my $extra_check = $1;
+			my $param_to_be_mapped = $2;
+			my $return_value = $3;
+			my $error_code = $4;
+
+			process_readonly_check_modifier($mods, $extra_check,
+				$param_to_be_mapped, $return_value, 
+				$error_code);
 		} elsif(($modifiers[$i] eq 'create_nomap_nolog_version') &&
 			($command eq 'WRAP')) {
 
@@ -673,7 +746,8 @@ sub command_wrap_or_gate {
 	$wrapper_fn_c_code .=	"\tint saved_errno = errno;\n";
 	$nomap_fn_c_code .=	"\tint saved_errno = errno;\n";
 
-	$wrapper_fn_c_code .=		$mods->{'path_mapping_code'};
+	$wrapper_fn_c_code .=		$mods->{'path_mapping_code'}.
+					$mods->{'path_ro_check_code'};
 	$wrapper_fn_c_code .=		$mods->{'va_list_handler_code'};
 	$nomap_fn_c_code .=		$mods->{'va_list_handler_code'};
 	$nomap_nolog_fn_c_code .=	$mods->{'va_list_handler_code'};

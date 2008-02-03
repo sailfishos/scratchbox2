@@ -226,6 +226,18 @@ function sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
 	local ret = nil
 	if (rule.map_to) then
 		ret = rule.map_to .. path
+	elseif (rule.replace_by) then
+		sb.log("debug", string.format("replace_by: %s, %s", path, rule.replace_by))
+		if (rule.prefix) then
+			ret = rule.replace_by .. string.sub(path, string.len(rule.prefix)+1)
+			sb.log("debug", string.format("replace_by (prefix) => %s", ret))
+		elseif (rule.path) then
+			ret = rule.replace_by
+			sb.log("debug", string.format("replace_by (path) => %s", ret))
+		else
+			sb.log("error", "path mapping rule uses 'replace_by' without 'prefix' or 'path'")
+			ret = path
+		end
 	else
 		ret = path
 	end

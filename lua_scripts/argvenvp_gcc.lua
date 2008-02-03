@@ -40,6 +40,7 @@ argvmods = {}
 gcc_bindir = os.getenv("SBOX_CROSS_GCC_DIR")
 gcc_subst_prefix = os.getenv("SBOX_CROSS_GCC_SUBST_PREFIX")
 gcc_extra_args = os.getenv("SBOX_EXTRA_CROSS_COMPILER_ARGS")
+gcc_extra_stdinc = os.getenv("SBOX_EXTRA_CROSS_COMPILER_STDINC")
 gcc_block_args = os.getenv("SBOX_BLOCK_CROSS_COMPILER_ARGS")
 ld_extra_args = os.getenv("SBOX_EXTRA_CROSS_LD_ARGS")
 ld_block_args = os.getenv("SBOX_BLOCK_CROSS_LD_ARGS")
@@ -59,6 +60,11 @@ for prefix in string.gmatch(":" .. os.getenv("SBOX_CROSS_GCC_PREFIX_LIST"), "[^:
 		if (gcc_extra_args) then
 			for gcc_extra in string.gmatch(gcc_extra_args, "[^ ]+") do
 				table.insert(tmp.add_tail, gcc_extra)
+			end
+		end
+		if (gcc_extra_stdinc) then
+			for gcc_stdinc in string.gmatch(gcc_extra_stdinc, "[^ ]+") do
+				table.insert(tmp.add_tail, gcc_stdinc)
 			end
 		end
 		if (gcc_block_args) then

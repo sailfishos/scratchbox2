@@ -51,13 +51,15 @@ struct path_entry {
 char *sb_decolonize_path(const char *path)
 {
 	char *cpath, *index, *start;
-	char cwd[PATH_MAX];
+	char cwd[PATH_MAX + 1];
 	struct path_entry list;
 	struct path_entry *work;
 	struct path_entry *new;
 	char *buf = NULL;
 
 	if (!path) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"sb_decolonize_path called with NULL path");
 		return NULL;
 	}
 
@@ -70,27 +72,31 @@ char *sb_decolonize_path(const char *path)
 
 	if (path[0] != '/') {
 		/* not an absolute path */
-		memset(cwd, '\0', PATH_MAX);
-		if (!getcwd(cwd, PATH_MAX)) {
-			perror("error getting current work dir\n");
-			return NULL;
+		memset(cwd, '\0', sizeof(cwd));
+		if (!getcwd(cwd, sizeof(cwd))) {
+			/* getcwd() returns NULL if the path is really long.
+			 * In this case this really won't be able to do all 
+			 * path mapping steps, but sb_decolonize_path()
+			 * must not fail!
+			*/
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"sb_decolonize_path failed to get current dir"
+				" (processing continues with relative path)");
+			if (!(cpath = strdup(path)))
+				abort();
+		} else {
+			asprintf(&cpath, "%s/%s", cwd, path);
+			if (!cpath)
+				abort();
 		}
-		unsigned int l = (strlen(cwd) + 1 + strlen(path) + 1);
-		cpath = malloc((strlen(cwd) + 1
-					+ strlen(path) + 1) * sizeof(char));
-		if (!cpath)
-			abort();
-
-		memset(cpath, '\0', l);
-		strcpy(cpath, cwd);
-		strcat(cpath, "/");
-		strcat(cpath, path);
 	} else {
 		if (!(cpath = strdup(path)))
 			abort();
 	}
 
-	start = cpath + 1;          /* ignore leading '/' */
+	start = cpath;
+	while(*start == '/') start++;	/* ignore leading '/' */
+
 	while (1) {
 		unsigned int last = 0;
 
@@ -144,6 +150,8 @@ proceed:
 		work = work->next;
 		free(tmp);
 	}
+	SB_LOG(SB_LOGLEVEL_NOISE,
+		"sb_decolonize_path returns '%s'", buf);
 	return buf;
 }
 
@@ -226,6 +234,13 @@ char *scratchbox_path3(const char *binary_name,
 
 	disable_mapping(luaif);
 	decolon_path = sb_decolonize_path(path);
+
+	if (!decolon_path) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"ERROR: scratchbox_path3: decolon_path failed [%s]",
+			func_name);
+		return NULL;
+	}
 	
 	memset(work_dir, '\0', PATH_MAX+1);
 	snprintf(pidlink, sizeof(pidlink), "/proc/%i/exe", getpid());

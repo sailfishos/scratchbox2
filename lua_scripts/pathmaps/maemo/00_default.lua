@@ -6,10 +6,22 @@ if (not tools) then
 	tools = "/"
 end
 
+sb2_home_dir = os.getenv("HOME") .. "/.scratchbox2/"
+sb2_share_dir = sb2_home_dir .. os.getenv("SBOX_TARGET") .. "/share"
+
 simple_chain = {
 	next_chain = nil,
 	binary = nil,
 	rules = {
+		-- 1. 
+		-- Scratchbox 1 emulation rules (some packages have hard-coded
+		-- paths to the SB1 enviroment; replace those by the correct
+		-- locations in our environment)
+		{prefix = "/scratchbox/compilers/cs2005q3.2-glibc2.5-arm/arch_tools/share/libtool",
+		 replace_by = sb2_share_dir .. "/libtool"},
+
+		-- 2.
+		-- FIXME: these rules need to be documented!
 		{prefix = "/lib", map_to = target_root},
 		{prefix = "/usr/share/osso", map_to = target_root},
 		{prefix = "/usr/lib/perl", map_to = tools_root},

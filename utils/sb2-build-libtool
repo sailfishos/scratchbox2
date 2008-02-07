@@ -25,7 +25,9 @@ rm -rf $WORKDIR
 mkdir -p $WORKDIR
 cd $WORKDIR
 
-if [ ! -e $LOCAL_SOURCEFILE ]; then
+# $LOCAL_SOURCEFILE must exist and have size greater than zero
+# (a failed or interrupted wget might create a zero-sized file)
+if [ ! -s $LOCAL_SOURCEFILE ]; then
 	wget $DLHOST/$SOURCEFILE -O $LOCAL_SOURCEFILE
 fi
 

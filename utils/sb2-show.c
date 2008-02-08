@@ -11,6 +11,7 @@
 #include <config_hardcoded.h>
 
 #include "exported.h"
+#include "sb2.h"
 
 static void usage_exit(const char *progname, const char *errmsg, int exitstatus)
 {
@@ -31,6 +32,10 @@ static void usage_exit(const char *progname, const char *errmsg, int exitstatus)
 			"\tShow mappings of pathnames\n"
 		"\texec file argv0 [argv1] [argv2].."
 			"\tShow execve() modifications\n"
+		"\tlog-error 'message'"
+			"\tAdd an error message to the log\n"
+		"\tlog-warning 'message'"
+			"\tAdd a warning message to the log\n"
 		"\n'%s' must be executed inside sb2 sandbox"
 			" (see the 'sb2' command)\n",
 		progname, progname, progname);
@@ -88,6 +93,11 @@ static void command_show_path(const char *binary_name,
 	}
 }
 
+static void command_log(char **argv, int loglevel)
+{
+	SB_LOG(loglevel, "%s", argv[0]);
+}
+
 int main(int argc, char *argv[])
 {
 	int	opt;
@@ -135,6 +145,10 @@ int main(int argc, char *argv[])
 	} else if (!strcmp(argv[optind], "exec")) {
 		command_show_exec(binary_name, mapping_mode, function_name,
 			progname, argc - (optind+1), argv + optind + 1);
+	} else if (!strcmp(argv[optind], "log-error")) {
+		command_log(argv + optind + 1, SB_LOGLEVEL_ERROR);
+	} else if (!strcmp(argv[optind], "log-warning")) {
+		command_log(argv + optind + 1, SB_LOGLEVEL_WARNING);
 	} else {
 		usage_exit(progname, "Unknown command", 1);
 	}

@@ -114,36 +114,34 @@ function initialize_sb_logging()
 {
 	cmd_param=$1
 	args_param=$2
-	if [ "$SBOX_MAPPING_DEBUG" == "1" ]; then
-		tstamp=`/bin/date +%Y%m%d-%H%M`
+	if [ "$SBOX_MAPPING_LOGLEVEL" != "" ]; then
+		tstamp=`SBOX_DISABLE_MAPPING=1 /bin/date +%Y%m%d-%H%M`
 		if [ ! -d $HOME/sb2_logs ]
 		then
-			mkdir $HOME/sb2_logs 
+			SBOX_DISABLE_MAPPING=1 mkdir $HOME/sb2_logs 
 			echo "Created directory $HOME/sb2_logs for log files"
 		fi
 		MAPPING_LOGFILE=$HOME/sb2_logs/$cmd_param.$tstamp.$$.log
-
-		# log command:
-		echo "##Log from $cmd_param $args_param" >$MAPPING_LOGFILE
-
-		# log initial environment if logging is enabled
-		env | sed -e 's/^/#/' >>$MAPPING_LOGFILE
-
 		export SBOX_MAPPING_LOGFILE=$MAPPING_LOGFILE
 
-		echo "Running scratchbox with these settings:"
-		echo "SBOX_LIBSB2 = $SBOX_LIBSB2"
-		echo "SBOX_LUA_SCRIPTS = $SBOX_LUA_SCRIPTS"
-		echo "SBOX_TOOLS_ROOT = $SBOX_TOOLS_ROOT"
-		echo "SBOX_REDIR_LD_SO = $SBOX_REDIR_LD_SO"
-		echo "SBOX_REDIR_LD_LIBRARY_PATH = $SBOX_REDIR_LD_LIBRARY_PATH"
-		echo "SBOX_TARGET_ROOT = $SBOX_TARGET_ROOT"
-		echo "SBOX_MAPPING_LOGFILE = $SBOX_MAPPING_LOGFILE"
-		echo "SBOX_MAPPING_LOGLEVEL = $SBOX_MAPPING_LOGLEVEL"
-		echo
-		echo "The logfile can be analyzed afterwards by"
-		echo "  sb2-logz < $MAPPING_LOGFILE"
-		echo
+		if [ "$SBOX_MAPPING_DEBUG" == "1" ]; then
+			# log command:
+			echo "##Log from $cmd_param $args_param" >$MAPPING_LOGFILE
+
+			# log initial environment if logging is enabled
+			env | sed -e 's/^/#/' >>$MAPPING_LOGFILE
+
+			echo "Running scratchbox with these settings:"
+			echo "SBOX_LIBSB2 = $SBOX_LIBSB2"
+			echo "SBOX_LUA_SCRIPTS = $SBOX_LUA_SCRIPTS"
+			echo "SBOX_TOOLS_ROOT = $SBOX_TOOLS_ROOT"
+			echo "SBOX_REDIR_LD_SO = $SBOX_REDIR_LD_SO"
+			echo "SBOX_REDIR_LD_LIBRARY_PATH = $SBOX_REDIR_LD_LIBRARY_PATH"
+			echo "SBOX_TARGET_ROOT = $SBOX_TARGET_ROOT"
+			echo "SBOX_MAPPING_LOGFILE = $SBOX_MAPPING_LOGFILE"
+			echo "SBOX_MAPPING_LOGLEVEL = $SBOX_MAPPING_LOGLEVEL"
+			echo
+		fi
 	fi
 }
 
@@ -174,6 +172,9 @@ if [ "$SBOX_MAPPING_DEBUG" == "1" ]; then
 	(error|warning|notice|info|debug|noise)	;; # OK
 	(*) usage ;;
 	esac
+else
+	# default logging level
+	export SBOX_MAPPING_LOGLEVEL=warning
 fi
 
 # read commands to execute from stdin - not yet implemented
@@ -197,9 +198,11 @@ if [ $# -gt 0 -o "$STDIN" = true ] ; then
 	shift 1
 	args="$@"
 	initialize_sb_logging $(echo $binary | sed 's/\//_/g') "$args"
-	exec $SHELL -c "$binary $args"
+	exec sb2-monitor -x $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
+		-- $SHELL -c "$binary $args"
 else
 	initialize_sb_logging sb2
-	exec $SHELL --noprofile --norc
+	exec sb2-monitor -x $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
+		-- $SHELL --noprofile --norc
 fi
 

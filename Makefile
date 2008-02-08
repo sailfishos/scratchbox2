@@ -92,10 +92,12 @@ install-noarch: $(BUILD_TARGET)
 	install -d -m 755 $(prefix)/share/man/man1
 	echo "$(PACKAGE_VERSION)" > $(prefix)/share/scratchbox2/version
 	install -c -m 755 $(SRCDIR)/utils/sb2 $(prefix)/bin/sb2
+	install -c -m 755 $(SRCDIR)/utils/sb2-monitor $(prefix)/bin/sb2-monitor
 	install -c -m 755 $(SRCDIR)/utils/sb2-init $(prefix)/bin/sb2-init
 	install -c -m 755 $(SRCDIR)/utils/sb2-config $(prefix)/bin/sb2-config
 	install -c -m 755 $(SRCDIR)/utils/sb2-build-libtool $(prefix)/bin/sb2-build-libtool
 	install -c -m 755 $(SRCDIR)/utils/dpkg-checkbuilddeps $(prefix)/share/scratchbox2/scripts/dpkg-checkbuilddeps
+	install -c -m 755 $(SRCDIR)/utils/sb2-exitreport $(prefix)/share/scratchbox2/scripts/sb2-exitreport
 	install -c -m 755 $(SRCDIR)/utils/sb2-logz $(prefix)/bin/sb2-logz
 	install -c -m 644 $(SRCDIR)/lua_scripts/main.lua $(prefix)/share/scratchbox2/lua_scripts/main.lua
 	install -c -m 644 $(SRCDIR)/lua_scripts/mapping.lua $(prefix)/share/scratchbox2/lua_scripts/mapping.lua

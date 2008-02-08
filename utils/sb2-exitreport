@@ -1,0 +1,49 @@
+#!/bin/bash
+#
+# This script will be started by sb2-monitor after "everything has been done"
+#
+# Copyright (c) 2008 Nokia Corporation. All rights reserved.
+# Author: Lauri T. Aarnio
+# Licensed under LGPL version 2.1, see top level LICENSE file for details.
+
+exit_reason=$1
+exit_status=$2
+
+if [ -z "$SBOX_MAPPING_LOGFILE" -o \
+     -z "$exit_reason" -o -z "$exit_status" ] ; then
+	echo "ERROR: $0 is an internal tool for sb2, do not use directly"
+	exit 1
+fi
+
+if [ "$exit_reason" == "exit" ] ; then
+	# Normal exit
+	ret=$exit_status
+else
+	echo "Exit reason and status: $exit_reason $exit_status"
+	ret=1
+fi
+
+if [ -s "$SBOX_MAPPING_LOGFILE" ] ; then
+	# Logfile exists and is not empty
+	case "$SBOX_MAPPING_LOGLEVEL" in
+	(error|warning)
+		# Brief log, only error and warning messages.
+		echo "Messages from sb2:"
+		cat $SBOX_MAPPING_LOGFILE
+		;;
+	(*)
+		# Larger log (maybe a debug log)
+		echo "Log summary:"
+		echo
+		sb2-logz -v < $SBOX_MAPPING_LOGFILE
+		echo
+		echo "This log can be analyzed again by"
+		echo "sb2-logz < $SBOX_MAPPING_LOGFILE"
+		;;
+	esac
+elif [ -f "$SBOX_MAPPING_LOGFILE" ] ; then
+	# Log file exists, but is empty
+	rm $SBOX_MAPPING_LOGFILE
+fi
+
+exit $ret

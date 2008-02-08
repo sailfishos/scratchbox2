@@ -11,5 +11,15 @@ $(D)/sb2-show: preload/libsb2.so $(D)/sb2-show.o
 	$(P)LD
 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
-targets := $(targets) $(D)/sb2-show
 
+$(D)/sb2-monitor: CFLAGS := $(CFLAGS) -Wall -W -Werror \
+		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
+		-I$(SRCDIR)/include
+
+$(D)/sb2-monitor: $(D)/sb2-monitor.o 
+	$(MKOUTPUTDIR)
+	$(P)LD
+	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
+
+
+targets := $(targets) $(D)/sb2-show $(D)/sb2-monitor 

@@ -92,7 +92,6 @@ install-noarch: $(BUILD_TARGET)
 	install -d -m 755 $(prefix)/share/man/man1
 	echo "$(PACKAGE_VERSION)" > $(prefix)/share/scratchbox2/version
 	install -c -m 755 $(SRCDIR)/utils/sb2 $(prefix)/bin/sb2
-	install -c -m 755 $(SRCDIR)/utils/sb2-monitor $(prefix)/bin/sb2-monitor
 	install -c -m 755 $(SRCDIR)/utils/sb2-init $(prefix)/bin/sb2-init
 	install -c -m 755 $(SRCDIR)/utils/sb2-config $(prefix)/bin/sb2-config
 	install -c -m 755 $(SRCDIR)/utils/sb2-build-libtool $(prefix)/bin/sb2-build-libtool
@@ -124,6 +123,7 @@ install: install-noarch
 	install -d -m 755 $(prefix)/lib/libsb2
 	install -c -m 755 $(OBJDIR)/preload/libsb2.so $(prefix)/lib/libsb2/libsb2.so.$(PACKAGE_VERSION)
 	install -c -m 755 $(OBJDIR)/utils/sb2-show $(prefix)/bin/sb2-show
+	install -c -m 755 $(OBJDIR)/utils/sb2-monitor $(prefix)/bin/sb2-monitor
 	/sbin/ldconfig -n $(prefix)/lib/libsb2
 
 
@@ -133,6 +133,7 @@ install-multilib: install-noarch
 	$(MAKE) -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. do-install-multilib bitness=32
 	$(MAKE) -C obj-64 --include-dir=.. -f ../Makefile SRCDIR=.. do-install-multilib bitness=64
 	install -c -m 755 $(PRI_OBJDIR)/utils/sb2-show $(prefix)/bin/sb2-show
+	install -c -m 755 $(PRI_OBJDIR)/utils/sb2-monitor $(prefix)/bin/sb2-monitor
 
 do-install-multilib:
 	install -d -m 755 $(multilib_prefix)/lib$(bitness)

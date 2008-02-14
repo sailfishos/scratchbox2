@@ -31,6 +31,7 @@ simple_chain = {
 		{prefix = "/usr/lib/libfakeroot", map_to = tools_root},
 		{path = "/bin/sh", replace_by = tools .. "/bin/bash"},
 		{prefix = "/usr/X11R6/lib", map_to = target_root},
+		{prefix = "/usr/X11R6/include", map_to = target_root},
 		{prefix = "/usr/lib", map_to = target_root},
 		{prefix = "/usr/include", map_to = target_root},
 		{prefix = "/var/lib/apt", map_to = target_root},

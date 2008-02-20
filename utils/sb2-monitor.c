@@ -230,6 +230,7 @@ int main(int argc, char *argv[])
 	char	*exit_reason;
 	char	exit_status[100];
 	int	new_stdin;
+	char	*sbox_libsb2;
 
 	progname = argv[0];
 	
@@ -270,6 +271,20 @@ int main(int argc, char *argv[])
 				DEBUG_MSG("[%d]='%s'\n", i, argv[i]);
 			}
 		}
+
+		/* set LD_PRELOAD, so that the binary started by execvp()
+		 * will be running in sb2'ed environment (depending on
+		 * the mapping mode & rules, it might not be possible
+		 * to execute 'sb2-monitor' in that environment)
+		*/
+		sbox_libsb2 = getenv("SBOX_LIBSB2");
+		if (sbox_libsb2) {
+			setenv("LD_PRELOAD", sbox_libsb2, 1);
+		} else {
+			DEBUG_MSG("child: WARNING: "
+				"no SBOX_LIBSB2 => LD_PRELOAD not set\n");
+		}
+
 		execvp(argv[optind], argv+optind);
 		DEBUG_MSG("child: exec failed\n");
 		exit(-1);

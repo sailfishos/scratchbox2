@@ -101,10 +101,7 @@ function sboxify_environment()
 
 	export PATH=$HOME/.scratchbox2/$SBOX_TARGET/bin:$SBOX_DIR/share/scratchbox2/scripts:$SBOX_DIR/bin:$PATH:/sbin:/usr/sbin:$SBOX_TARGET_ROOT/bin:$SBOX_TARGET_ROOT/usr/bin:$SBOX_TARGET_ROOT/usr/local/bin
 
-	export LD_PRELOAD=$SBOX_LIBSB2
-
-	# test if the cross compiler needs to be silenced about /usr/include
-	# usage
+	# LD_PRELOAD will be set to SBOX_LIBSB2 by sb2-monitor.
 
 	export PS1="[SB2 $SBOX_TARGET] \u@\h \w \$ "
 }

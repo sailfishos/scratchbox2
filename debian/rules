@@ -34,15 +34,9 @@ build-stamp:
 
 clean: checkroot
 	$(checkdir)
-	rm -f build-stamp
-	rm -rf .deps
-	rm -f debian/substvars debian/files
-	rm -rf debian/tmp obj obj-build obj-64 obj-32 objfake
-	rm -f config.log config.status
-	rm -f .configure-multilib configure config.mak
-	find -name '*.o'  | xargs rm -f
-	find -name '*.a'  | xargs rm -f
-	find -name '*.so' | xargs rm -f
+	make clean
+	rm -f configure config.mak build-stamp .configure-multilib
+	rm -rf obj-64 obj-32
 	dh_clean
 
 # Build architecture-independent files here.

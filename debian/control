@@ -2,10 +2,11 @@ Source: scratchbox2
 Maintainer: Riku Voipio <riku.voipio@iki.fi>
 Section: utils
 Priority: extra
-Standards-Version: 3.7.2
+Standards-Version: 3.7.3
 Build-Depends: debhelper (>=5), automake1.9, autoconf, gcc-multilib [amd64], libc6-dev-i386 [amd64], g++-multilib [amd64]
 XS-Vcs-Git: git://anongit.freedesktop.org/git/sbox2
 XS-Vcs-Browser: http://gitweb.freedesktop.org/?p=sbox2.git
+Homepage: http://www.freedesktop.org/wiki/Software/sbox2
 
 Package: scratchbox2
 Architecture: i386 amd64 powerpc ia64
@@ -19,5 +20,4 @@ Description: Transparent cross compiling environment
  engine. Together with CPU transparency, provided by qemu or sbrsh, scratchbox2
  enables fast crosscompiling without modifying build scripts.
  .
- Homepage: http://www.freedesktop.org/wiki/Software/sbox2
 

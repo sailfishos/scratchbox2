@@ -37,8 +37,9 @@ clean: checkroot
 	rm -f build-stamp
 	rm -rf .deps
 	rm -f debian/substvars debian/files
-	rm -rf debian/tmp obj obj-build obj64 objfake
+	rm -rf debian/tmp obj obj-build obj-64 obj-32 objfake
 	rm -f config.log config.status
+	rm -f .configure-multilib configure config.mak
 	find -name '*.o'  | xargs rm -f
 	find -name '*.a'  | xargs rm -f
 	find -name '*.so' | xargs rm -f
@@ -68,7 +69,7 @@ binary-arch: install
 	dh_fixperms -a
 	# FIXME, do in postinst
 	dh_installdeb -a
-	dh_shlibdeps -a
+	LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:debian/scratchbox2/usr/lib/libsb2/ dh_shlibdeps -a
 	dh_gencontrol -a
 	dh_md5sums -a
 	dh_builddeb -a

@@ -116,9 +116,9 @@ install-noarch: $(BUILD_TARGET)
 		ln -sf /bin/true $$f; \
 	done
 
+install: do-install
 
-# remember to keep install and do-install-multilib in sync!
-install: install-noarch
+do-install: install-noarch
 	install -d -m 755 $(prefix)/lib
 	install -d -m 755 $(prefix)/lib/libsb2
 	install -c -m 755 $(OBJDIR)/preload/libsb2.so $(prefix)/lib/libsb2/libsb2.so.$(PACKAGE_VERSION)
@@ -131,9 +131,7 @@ multilib_prefix=$(prefix)
 
 install-multilib: install-noarch
 	$(MAKE) -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. do-install-multilib bitness=32
-	$(MAKE) -C obj-64 --include-dir=.. -f ../Makefile SRCDIR=.. do-install-multilib bitness=64
-	install -c -m 755 $(PRI_OBJDIR)/utils/sb2-show $(prefix)/bin/sb2-show
-	install -c -m 755 $(PRI_OBJDIR)/utils/sb2-monitor $(prefix)/bin/sb2-monitor
+	$(MAKE) -C obj-64 --include-dir=.. -f ../Makefile SRCDIR=.. do-install
 
 do-install-multilib:
 	install -d -m 755 $(multilib_prefix)/lib$(bitness)

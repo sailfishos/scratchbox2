@@ -142,7 +142,10 @@ proceed:
 	}
 
 	work = list.next;
-	while (work) {
+	if (!work) {
+		/* "work" will be empty if orig.path was "/." */
+		strcat(buf, "/");
+	} else while (work) {
 		struct path_entry *tmp;
 		strcat(buf, "/");
 		strcat(buf, work->name);

@@ -279,7 +279,32 @@ int main(int argc, char *argv[])
 		*/
 		sbox_libsb2 = getenv("SBOX_LIBSB2");
 		if (sbox_libsb2) {
-			setenv("LD_PRELOAD", sbox_libsb2, 1);
+			char	*old_ld_preload = getenv("LD_PRELOAD");
+			char	*new_ld_preload = NULL;
+
+			if (old_ld_preload) {
+				char	*p_libsb2 = strstr(old_ld_preload,
+					sbox_libsb2);
+
+				DEBUG_MSG("child: LD_PRELOAD was '%s'\n",
+						old_ld_preload);
+				if (!p_libsb2) {
+					/* LD_PRELOAD is defined, but libsb2
+					 * was not included. Add it now. */
+					asprintf(&new_ld_preload, "%s:%s",
+						old_ld_preload, sbox_libsb2);
+				} /* else libsb2 seems to be already included */
+			} else {
+				/* LD_PRELOAD was not set. */
+				DEBUG_MSG("child: no previous LD_PRELOAD\n");
+				new_ld_preload = sbox_libsb2;
+			}
+			if (new_ld_preload) {
+				/* need to set/modify LD_PRELOAD */
+				DEBUG_MSG("child: setting LD_PRELOAD to '%s'\n",
+					new_ld_preload);
+				setenv("LD_PRELOAD", new_ld_preload, 1);
+			}
 		} else {
 			DEBUG_MSG("child: WARNING: "
 				"no SBOX_LIBSB2 => LD_PRELOAD not set\n");
@@ -370,7 +395,7 @@ int main(int argc, char *argv[])
 
 	DEBUG_MSG("parent: child returned\n");
 
-	/* deretmine reason why it exited, to be forwarded to the 
+	/* determine reason why it exited, to be forwarded to the
 	 * report generator
 	*/
 	if (WIFEXITED(status)) {
@@ -387,7 +412,7 @@ int main(int argc, char *argv[])
 		exit_reason = "UNKNOWN";
 		*exit_status = '\0';
 	}
-	DEBUG_MSG("%s %s", exit_reason, exit_status);
+	DEBUG_MSG("%s %s\n", exit_reason, exit_status);
 
 	/* time to exec the external script */
 	execlp(command_to_exec_at_end, command_to_exec_at_end,

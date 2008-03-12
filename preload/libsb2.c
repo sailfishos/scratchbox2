@@ -323,7 +323,7 @@ FTS * fts_open_gate(FTS * (*real_fts_open_ptr)(char * const *path_argv,
 	int n;
 
 	for (n=0, p=path_argv; *p; n++, p++);
-	if ((new_path_argv = malloc(n*(sizeof(char *)))) == NULL) {
+	if ((new_path_argv = calloc(n+1, (sizeof(char *)))) == NULL) {
 		return NULL;
 	}
 

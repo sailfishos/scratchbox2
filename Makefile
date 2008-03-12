@@ -89,6 +89,7 @@ install-noarch: $(BUILD_TARGET)
 
 	install -d -m 755 $(prefix)/share/scratchbox2/scripts
 	install -d -m 755 $(prefix)/share/scratchbox2/tests
+	install -d -m 755 $(prefix)/share/scratchbox2/modeconf
 	install -d -m 755 $(prefix)/share/man/man1
 	echo "$(PACKAGE_VERSION)" > $(prefix)/share/scratchbox2/version
 	install -c -m 755 $(SRCDIR)/utils/sb2 $(prefix)/bin/sb2
@@ -96,6 +97,7 @@ install-noarch: $(BUILD_TARGET)
 	install -c -m 755 $(SRCDIR)/utils/sb2-config $(prefix)/bin/sb2-config
 	install -c -m 755 $(SRCDIR)/utils/sb2-build-libtool $(prefix)/bin/sb2-build-libtool
 	install -c -m 755 $(SRCDIR)/utils/dpkg-checkbuilddeps $(prefix)/share/scratchbox2/scripts/dpkg-checkbuilddeps
+	install -c -m 755 $(SRCDIR)/utils/sb2-check-pkg-mappings $(prefix)/share/scratchbox2/scripts/sb2-check-pkg-mappings
 	install -c -m 755 $(SRCDIR)/utils/sb2-exitreport $(prefix)/share/scratchbox2/scripts/sb2-exitreport
 	install -c -m 755 $(SRCDIR)/utils/sb2-logz $(prefix)/bin/sb2-logz
 	install -c -m 644 $(SRCDIR)/lua_scripts/main.lua $(prefix)/share/scratchbox2/lua_scripts/main.lua
@@ -106,6 +108,7 @@ install-noarch: $(BUILD_TARGET)
 	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/emulate/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/emulate/
 	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/simple/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/simple/
 	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/maemo/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/maemo/
+	install -c -m 644 $(SRCDIR)/modeconf/* $(prefix)/share/scratchbox2/modeconf/
 	install -c -m 644 $(SRCDIR)/tests/* $(prefix)/share/scratchbox2/tests
 	chmod a+x $(prefix)/share/scratchbox2/tests/run.sh
 

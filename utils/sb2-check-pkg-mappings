@@ -1,0 +1,134 @@
+#!/bin/bash
+#
+# This script checks which .deb packages can be used from the rootstrap.
+#
+# dpkg-checkbuilddeps uses this to builds a new temporary "status" file of
+# all usable packages.
+#
+# Copyright (c) 2008 Nokia Corporation. All rights reserved.
+# Author: Lauri T. Aarnio
+# Licensed under LGPL version 2.1, see top level LICENSE file for details.
+
+function usage()
+{
+	cat <<EOF
+sb2-check-pkg-mappings - check usability of target's .deb packages
+Usage:
+	sb2-check-pkg-mappings pkg1 [pkg2..]
+	sb2-check-pkg-mappings -a
+
+Options:
+    -a		check all packages and write results to a temporary
+		database, to be used by sb2's dpkg-checkbuilddeps
+
+When started with list of package names, checks named packages and prints
+results, but does not create or modify the temporary database.
+EOF
+	exit 1
+}
+
+if [ -z "$*" ]; then
+	usage
+fi
+
+check_all_pkgs="no"
+status_file=""
+
+while getopts ah foo
+do
+	case $foo in
+	(a) check_all_pkgs="yes" ;;
+	(h) usage ;;
+	(*) usage ;;
+	esac
+done
+shift $(($OPTIND - 1))
+
+pkgs2check="$*"
+tstamp=`/bin/date +%Y%m%d-%H%M`
+
+if [ -z "$pkgs2check" -a "$check_all_pkgs" = "yes" ]
+then
+	# check all installed packages
+	pkgs2check=`dpkg --get-selections | grep 'install$' | sed -e 's/install$//'`
+	status_file=STATUS-NEW.$tstamp.$$
+elif [ "$check_all_pkgs" = "yes" ]
+then
+	# -a and package names - illegal
+	usage
+fi
+
+function remove_temp_files
+{
+	if [ -n "$status_file" -a -f "$status_file" ]
+	then
+		echo "removing temp file '$$status_file'"
+		rm $status_file
+	fi
+}
+trap remove_temp_files EXIT
+
+pkgnum=0
+num_ok=0
+num_failed=0
+
+# Read the mode-specific path ignore list.
+SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST=""
+if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$SBOX_MAPMODE ]
+then
+	. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$SBOX_MAPMODE
+fi
+
+# for all installed packages..
+for pkg in $pkgs2check
+do
+	pkgnum=`expr $pkgnum + 1`
+	echo "=========== $pkgnum. Checking $pkg ==========="
+
+	# get list of files intalled by this package (dpkg -L),
+	# and feed it to sb2-show to be verified (-D causes directories
+	# to be ignored). Also ignore all files which are installed
+	# to these diretories listed in $SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST.
+	dpkg -L $pkg >/tmp/sb2-pkg-chk.$tstamp.$$
+	if [ $? != 0 ]
+	then
+		num_failed=`expr $num_failed + 1`
+		echo "	$pkg is not available"
+	else
+		sed < /tmp/sb2-pkg-chk.$tstamp.$$ \
+		    -e 's/diverted by .* to: //' \
+		    -e 's/package diverts others to: //' |
+		sb2-show -D verify-pathlist-mappings \
+			$SBOX_TARGET_ROOT $SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST
+		if [ $? == 0 ]
+		then
+			echo "	$pkg = OK"
+			num_ok=`expr $num_ok + 1`
+			if [ $check_all_pkgs = "yes" ]
+			then
+				if [ -f $status_file ]
+				then
+					echo >>$status_file
+				fi
+				dpkg -s $pkg >>$status_file
+			fi
+		else
+			num_failed=`expr $num_failed + 1`
+			echo "	$pkg can not be used in this mode ($SBOX_MAPMODE)"
+		fi
+	fi
+	rm /tmp/sb2-pkg-chk.$tstamp.$$
+done
+
+echo "Checked $pkgnum packages: Ok=$num_ok, unusable=$num_failed"
+
+if [ $check_all_pkgs = "yes" ]
+then
+	SB2_TEMP_DPKG_ADMIN_DIR=$HOME/.scratchbox2/$SBOX_TARGET.tmp-pkg-db.$SBOX_MAPMODE
+	if [ ! -d $SB2_TEMP_DPKG_ADMIN_DIR ]
+	then
+		mkdir $SB2_TEMP_DPKG_ADMIN_DIR
+	fi
+	mv $status_file $SB2_TEMP_DPKG_ADMIN_DIR/status
+	echo "Results have been written to $SB2_TEMP_DPKG_ADMIN_DIR/status"
+fi

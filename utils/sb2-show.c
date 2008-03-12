@@ -1,5 +1,5 @@
 /* sb2-show:
- * SB2 Mapping rule testingutility
+ * SB2 Mapping rule testing utility
  *
  * Copyright (c) 2008 Nokia Corporation. All rights reserved.
  * Author: Lauri T. Aarnio
@@ -27,6 +27,8 @@ static void usage_exit(const char *progname, const char *errmsg, int exitstatus)
 		"\t-m mode\t\tshow using named mapping mode "
 			"(default=current mode)\n"
 		"\t-f function\tshow using 'function' as callers name\n"
+		"\t-D\tignore directories while verifying path lists\n"
+		"\t-v\tverbose.\n"
 		"\nCommands:\n"
 		"\tpath [path1] [path2].."
 			"\tShow mappings of pathnames\n"
@@ -36,6 +38,9 @@ static void usage_exit(const char *progname, const char *errmsg, int exitstatus)
 			"\tAdd an error message to the log\n"
 		"\tlog-warning 'message'"
 			"\tAdd a warning message to the log\n"
+		"\tverify-pathlist-mappings required-prefix [ignorelist]"
+			"\tread list of paths from stdin and/n"
+			"\t\tcheck that all paths will be mapped to required prefix/n"
 		"\n'%s' must be executed inside sb2 sandbox"
 			" (see the 'sb2' command)\n",
 		progname, progname, progname);
@@ -93,6 +98,89 @@ static void command_show_path(const char *binary_name,
 	}
 }
 
+/* read paths from stdin, report paths that are not mapped to specified
+ * directory.
+ * returns 0 if all OK, 1 if one or more paths were not mapped.
+*/
+static int command_verify_pathlist_mappings(
+	const char *binary_name,
+	const char *mapping_mode,
+	const char *fn_name,
+	int ignore_directories,
+	int verbose,
+	const char *progname,
+	char **argv)
+{
+	int	destination_prefix_len;
+	char	path_buf[PATH_MAX + 1];
+	const char *required_destination_prefix = argv[0];
+	int	result = 0;
+
+	if (!required_destination_prefix) {
+		usage_exit(progname, "'destination_prefix' is missing", 1);
+	}
+	destination_prefix_len = strlen(required_destination_prefix);
+
+	while (fgets(path_buf, sizeof(path_buf), stdin)) {
+		int len = strlen(path_buf);
+		char	*mapped_path = NULL;
+		int	readonly_flag;
+		int	destination_prefix_cmp_result;
+		char	**ignore_path;
+		int	ignore_this = 0;
+
+		if ((len > 0) && (path_buf[len-1] == '\n')) {
+			path_buf[--len] = '\0';
+		}
+		if (len == 0) continue;
+
+		for (ignore_path = argv+1; *ignore_path; ignore_path++) {
+			int	ign_len = strlen(*ignore_path);
+
+			if (!strncmp(path_buf, *ignore_path, ign_len)) {
+				ignore_this = 1;
+				if (verbose)
+					printf("IGNORED by prefix: %s\n",
+						path_buf);
+				break;
+			}
+		}
+
+		if (ignore_this) continue;
+
+		mapped_path = sb2show__map_path2__(binary_name, mapping_mode,
+				fn_name, path_buf, &readonly_flag);
+
+		if (ignore_directories) {
+			struct stat statbuf;
+
+			if ((stat(mapped_path, &statbuf) == 0) &&
+			   S_ISDIR(statbuf.st_mode)) {
+				if (verbose)
+					printf("%s => %s: dir, ignored\n",
+						path_buf, mapped_path);
+				continue;
+			}
+		}
+
+		destination_prefix_cmp_result = strncmp(mapped_path,
+			required_destination_prefix, destination_prefix_len);
+		if (destination_prefix_cmp_result) {
+			result = 1;
+			printf("%s => %s%s: NOT OK\n",
+				path_buf, mapped_path,
+				(readonly_flag ? " (readonly)" : ""));
+		} else {
+			/* mapped OK. */
+			if (verbose)
+				printf("%s => %s%s: Ok\n",
+					path_buf, mapped_path,
+					(readonly_flag ? " (readonly)" : ""));
+		}
+	}
+	return (result);
+}
+
 static void command_log(char **argv, int loglevel)
 {
 	SB_LOG(loglevel, "%s", argv[0]);
@@ -105,6 +193,8 @@ int main(int argc, char *argv[])
 	char	*mapping_mode = NULL;
 	char	*function_name = "ANYFUNCTION";
 	char	*binary_name = "ANYBINARY";
+	int	ignore_directories = 0;
+	int	verbose = 0;
 	
 #if 0 || defined(enable_this_after_sb2_preload_library_startup_has_been_fixed)
 	/* FIXME: this should be able to check if we are inside the sb2
@@ -122,12 +212,14 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-	while ((opt = getopt(argc, argv, "hm:f:b:")) != -1) {
+	while ((opt = getopt(argc, argv, "hm:f:b:Dv")) != -1) {
 		switch (opt) {
 		case 'h': usage_exit(progname, NULL, 0); break;
 		case 'm': mapping_mode = optarg; break;
 		case 'f': function_name = optarg; break;
 		case 'b': binary_name = optarg; break;
+		case 'D': ignore_directories = 1; break;
+		case 'v': verbose = 1; break;
 		default: usage_exit(progname, "Illegal option", 1); break;
 		}
 	}
@@ -149,6 +241,10 @@ int main(int argc, char *argv[])
 		command_log(argv + optind + 1, SB_LOGLEVEL_ERROR);
 	} else if (!strcmp(argv[optind], "log-warning")) {
 		command_log(argv + optind + 1, SB_LOGLEVEL_WARNING);
+	} else if (!strcmp(argv[optind], "verify-pathlist-mappings")) {
+		return command_verify_pathlist_mappings(binary_name,
+			mapping_mode, function_name, ignore_directories,
+			verbose, progname, argv + optind + 1);
 	} else {
 		usage_exit(progname, "Unknown command", 1);
 	}

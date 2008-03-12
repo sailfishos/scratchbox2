@@ -1,0 +1,8 @@
+# List of packages to ignore during build dependency checks (maemo mode)
+#
+x-dev
+#
+# virtual packages provided by some other packages:
+libnet-perl
+libdigest-md5-perl
+libmime-base64-perl

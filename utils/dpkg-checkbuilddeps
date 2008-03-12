@@ -1,59 +1,177 @@
 #!/bin/bash
 #
 # Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
+#
+# Redesigned/refactored by Lauri T. Aarnio;
+#	Portion Copyright (c) 2008 Nokia Corporation.
+#	All rights reserved.
+#
 # Licensed under GPL version 2
 #
-# Idea behind operation is to use debian package tags to identify
-# libraries, headers and other such "obviously" target stuff from
-# build tools (gcc, doxygen, etc). This means that the build dependencies
-# need to be checked against both target and host debian package databases
-# and irrelevant failures need to be filtered from the results.
-# This is far from ideal, but hopefully adequate for now.
-
+# -------------------
+# Idea behind operation is to first check target's package db,
+# then check if missing packages are tools that could be used
+# from the host (or SBOX_TOOLS_ROOT, if that has been set)
+#
+# FIXME: This implementation is still incomplete, as this does not
+# check package versions while checking host/tools_root tools.
+# Also, it would be a good idea to do a "visibility check" for host packages,
+# too (see how sb2-check-pkg-mappings does it for target's pkg db)
 
 args="$*"
 
-function run_dpkg_checkbuilddeps()
-{
-	missing_deps=$(/usr/bin/dpkg-checkbuilddeps $args 2>&1 | \
-		grep "^dpkg-checkbuilddeps: Unmet build dependencies:" | \
-		sed 's/dpkg-checkbuilddeps: Unmet build dependencies: //')
-}
+# Target's real package db:
+TARGET_DPKG_ADMINDIR_ALL_PKGS=$SBOX_TARGET_ROOT/var/lib/dpkg
 
-# takes two lists, one containing packages which are ok to miss,
-# the other the list of packages that are missing
-function check_missing_deps()
-{
-	ok_list="$1"
-	missing_list="$2"
-	list_ok=0
-	not_ok_missing_list=""
+# Host (or built env.) package db:
+HOST_DPKG_ADMINDIR=$SBOX_TOOLS_ROOT/var/lib/dpkg
 
-	for m in $(echo $missing_list | sed 's/([^)]\+)//g') ; do
-		m_ok=1
-		for o in $ok_list ; do
-			if [ "$m" == "$o" ]; then
-				m_ok=0
+# A generated, temporary package db which only contains packages that
+# are usable thru the current mapping mode:
+SB2_TEMP_DPKG_ADMIN_DIR=$HOME/.scratchbox2/$SBOX_TARGET.tmp-pkg-db.$SBOX_MAPMODE
+TARGET_DPKG_ADMINDIR_USABLE_PKGS=$SB2_TEMP_DPKG_ADMIN_DIR
+
+cfgfile_host_accepted_pkgs=$SBOX_DIR/share/scratchbox2/modeconf/host-accepted-packages.$SBOX_MAPMODE
+cfgfile_host_ignored_pkgs=$SBOX_DIR/share/scratchbox2/modeconf/host-ignored-packages.$SBOX_MAPMODE
+
+# Check if a named package exists of the host.
+# Returns result in three variables:
+# - $installed_to_host is either "yes" or "no"
+# - $check_result_msg and $check_result_msg2 return a more detailed
+#   explanation of the result (strings).
+# This must be called with SBOX_DISABLE_MAPPING=1!!
+function check_host_pkg()
+{
+	pkgname=$1
+
+	installed_to_host="no"	# default
+	check_result_msg="'$pkgname' not found."
+	check_result_msg2=""
+
+	# Check if it can be accepted from the host:
+	g=`grep "^$pkgname\$" $cfgfile_host_accepted_pkgs`
+	if [ -z "$g" ]
+	then
+		# No, the package has not been aproved to be used from the host.
+
+		# first check if this requirement should be ignored completely:
+		if [ -f $cfgfile_host_ignored_pkgs ]
+		then
+			# ignorelist exists
+			g=`grep "^$pkgname\$" $cfgfile_host_ignored_pkgs`
+			if [ -z "$g" ]
+			then
+				check_result_msg="'$pkgname' is missing (must be installed to the rootstrap)"
+			else
+				check_result_msg="'$pkgname' is missing, but this is ignored by configuration"
+				installed_to_host="yes"
+				return
 			fi
-			printf "Problem with: %s\n" $m
-		done
-		if [ $m_ok != 0 ]; then
-			list_ok=1
 		fi
-	done
+
+		pkg_stat_tmp=/tmp/dpkg.$$.tmp
+		# next check again if the package exists on the target,
+		# just to be able to give a better error message.
+		if dpkg-query -s --admindir=$TARGET_DPKG_ADMINDIR_ALL_PKGS \
+			"$pkgname" >$pkg_stat_tmp 2>&1
+		then
+			if grep -q "ok installed" $pkg_stat_tmp
+			then
+				rm $pkg_stat_tmp
+				check_result_msg="'$pkgname': OOPS. Needed from the the rootstrap (installed there),"
+				check_result_msg2="   but unusable (not fully visible due to SB2 mapping rules)"
+				return
+			fi
+		fi
+		rm $pkg_stat_tmp
+
+		check_result_msg="'$pkgname' is missing, must be istalled to the rootstrap"
+		return
+	fi
+
+	# package is not present in the rootstrap, but
+	# it can be accepted from the host environment.
+	if dpkg-query -s --admindir=$HOST_DPKG_ADMINDIR "$pkgname" >/dev/null 2>&1
+	then
+		installed_to_host="yes"
+		check_result_msg="'$pkgname' found from the host environment"
+		return
+	fi
+
+	# not installed. Test if this can be ignored.
+	if [ -f $cfgfile_host_ignored_pkgs ]
+	then
+		g=`grep "^$pkgname\$" $cfgfile_host_ignored_pkgs`
+		if [ -n "$g" ]
+		then
+			check_result_msg="'$pkgname' is not available (ignored by configuration)"
+			return
+		fi
+	fi
+
+	check_result_msg="'$pkgname' is missing (can be installed to the host)"
+	return 1
 }
 
 function check_host_builddeps()
 {
+	missing="$1"
 	ret=0
 	export SBOX_DISABLE_MAPPING=1
 	# do the magic here
-	echo "SB2 Checking host build deps..."
-	run_dpkg_checkbuilddeps
-	check_missing_deps "crap" "$missing_deps"
+	echo "SB2 Checking host build deps.."
+
+	list_ok=1	# default to ok
+	# $m will be the package to test, or pkg/pkg[/...] if there are
+	# alternatives (unfortunately '|' has special meaning in shell's
+	# "case" statement, so we'll have to replace it by '/')
+	for m in $(echo $missing | sed -e 's/([^)]\+)//g' | \
+		sed -e 's:[ 	]*|[ 	]*:/:g')
+	do
+		## echo "   Testing $m:"
+		case "$m" in
+		*/*)	# alternatives..
+			has_one_alternative=0
+			for mmm in $(echo $m | sed -e 's:/: :')
+			do
+				echo "       ...$mmm"
+				check_host_pkg $mmm
+				if [ $? == 0 ]
+				then
+					# nothing is missing = nothing needed from the host side
+					echo "       $mmm = ok"
+					has_one_alternative=1
+				else
+					echo "       no $mmm.."
+				fi
+			done
+			if [ $has_one_alternative == 0 ]
+			then
+				echo "     Requirement $m failed; none of the alternatives were found."
+				list_ok=0
+			else
+                                echo "     '$m': At least one alternative found, ok."
+			fi
+			;;
+
+		*)	# No alternatives.
+			check_host_pkg $m
+			echo "     $check_result_msg"
+			if [ -n "$check_result_msg2" ]
+			then
+				echo "     $check_result_msg2"
+			fi
+			if [ "$installed_to_host" = "no" ]
+			then
+				list_ok=0
+			fi
+		esac
+
+	done
+
 	unset SBOX_DISABLE_MAPPING
 
-	if [ $list_ok != 0 ]; then
+	if [ $list_ok == 0 ]; then
 		# somethings missing
 		false
 	else
@@ -65,28 +183,106 @@ function check_target_builddeps()
 {
 	ret=0
 	echo "SB2 Checking target build deps..."
-	run_dpkg_checkbuilddeps
-	check_missing_deps "crap2" "$missing_deps"
-	if [ $list_ok != 0 ]; then
-		echo "failing target deps"
-		false
+
+	# call dpkg-checkbuilddeps with mapping disabled, because the
+	# version which is available in /usr/bin may not know about the
+	# --admindir option. Can't use a pipeline here, we want to the
+	# dpkg-checkbuilddeps' return status.
+	SBOX_DISABLE_MAPPING=1 /usr/bin/dpkg-checkbuilddeps \
+		--admindir=$TARGET_DPKG_ADMINDIR_USABLE_PKGS $args \
+		> /tmp/missing_deps.$$ 2>&1
+	if [ $? == 0 ]
+	then
+		# real dpkg-checkbuilddeps says "all ok"
+		rm /tmp/missing_deps.$$
+		return 0
+	fi
+
+	# else real dpkg-checkbuilddeps failed.
+	sed -e 's/^/     /' < /tmp/missing_deps.$$
+	missing_deps=$(egrep \
+		"^dpkg-checkbuilddeps: Unmet build dependencies:" \
+			/tmp/missing_deps.$$ | \
+		sed 's/dpkg-checkbuilddeps: Unmet build dependencies: //')
+	rm /tmp/missing_deps.$$
+
+	if [ -n "$missing_deps" ]; then
+		# failing target deps, and missing packages are listed
+		# in $missing_deps = continue by checking if those are
+		# available on the host environment
+		return 1
 	else
-		echo "target deps ok"
-		true
+		# failing target deps, but $missing_deps is empty. Something
+		# is fatally wrong.
+		exit 1
 	fi
 }
 
-check_target_builddeps
-if [ $? != 0 ]; then
+# First, make sure we are in a correct directory:
+if [ ! -f debian/control ]
+then
+	echo "Error: Can't find file debian/control"
 	exit 1
 fi
 
-check_host_builddeps
+# Next, check that the list of usable packages exists and is up-to-date.
+# That list is really a temporary package database, which contains only
+# packages that are usable thru this mapping mode.
+
+if [ ! -f $TARGET_DPKG_ADMINDIR_USABLE_PKGS/status ]
+then
+	echo "$TARGET_DPKG_ADMINDIR_USABLE_PKGS/status does not exist."
+	echo "going to create it now. This is going to take a while.."
+	echo
+	sb2-check-pkg-mappings -a
+elif [ $TARGET_DPKG_ADMINDIR_USABLE_PKGS/status -ot \
+       $TARGET_DPKG_ADMINDIR_ALL_PKGS/status ]
+then
+	echo "Target's primary package database has been updated =>"
+	echo "$TARGET_DPKG_ADMINDIR_USABLE_PKGS/status is out of date."
+	echo "going to update it now. This is going to take a while.."
+	echo
+	sb2-check-pkg-mappings -a
+elif [ $TARGET_DPKG_ADMINDIR_USABLE_PKGS/status -ot \
+       $SBOX_DIR/share/scratchbox2/lua_scripts/pathmaps/$SBOX_MAPMODE/00_default.lua ]
+then
+	echo "SB2's mapping rules have been updated =>"
+	echo "$TARGET_DPKG_ADMINDIR_USABLE_PKGS/status might be out of date."
+	echo "going to update it now. This is going to take a while.."
+	echo
+	sb2-check-pkg-mappings -a
+fi
+
+check_target_builddeps
+if [ $? == 0 ]; then
+	# nothing is missing = nothing needed from the host side
+	echo "Target rootstrap => all dependencies OK"
+	exit 0
+fi
+
+echo "Build dependencies missing from the target environment:"
+echo "     $missing_deps"
+
+# Something is missing. To be able to get the missing packages from the
+# host environment, at least the list of allowed packages is needed:
+#
+if [ ! -f $cfgfile_host_accepted_pkgs ]
+then
+	echo
+	echo "Configuration file $cfgfile_host_accepted_pkgs"
+	echo "does not exist. This means that no packages have been approved to be used"
+	echo "from the host environment in this mapping mode ($SBOX_MAPMODE)."
+	exit 1
+fi
+
+check_host_builddeps "$missing_deps"
 if [ $? != 0 ]; then
+	echo "Failed. Host environment did not meet all requirements."
 	exit 1
 fi
 
 # since we're here, everything is more or less ok
 
+echo "All OK."
 exit 0
 

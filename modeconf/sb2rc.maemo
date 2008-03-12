@@ -1,0 +1,22 @@
+#
+# Configuration variables for sb2 - specific to the "maemo" mapping mode.
+#
+
+# This is used by "sb2-check-pkg-mappings":
+# N.B. *bin directories needs to be ignored, because there are many
+# lib*-dev -packages that want to add some configurations tools to /usr/bin, etc
+SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST=" \
+	/usr/bin /usr/sbin /sbin \
+	/etc \
+	/usr/share/man /usr/share/doc /usr/share/gtk-doc \
+	/usr/share/doc-base \
+	/usr/share/locale \
+	/usr/share/lintian \
+	/usr/share/menu/gdb \
+	/usr/share/i18n \
+	/usr/share/info \
+	/usr/share/sgml \
+	/usr/share/perl5 \
+	/usr/share/base-passwd \
+	/usr/share/lintian/overrides/dpkg-dev \
+	/usr/lib/dpkg "

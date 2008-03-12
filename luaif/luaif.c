@@ -27,7 +27,6 @@
 #include <sys/param.h>
 #include <sys/file.h>
 #include <assert.h>
-#include <pthread.h>
 
 #include <lua.h>
 #include <lualib.h>
@@ -35,6 +34,69 @@
 
 #include <mapping.h>
 #include <sb2.h>
+
+/* ------------ WARNING WARNING WARNING ------------
+ * A SERIOUS WARNING ABOUT THE "pthread" LIBRARY:
+ * The libpthread.so library interferes with some other libraries on
+ * Linux. It is enough to just load the library to memory. For example,
+ * /usr/bin/html2text on debian "etch" crashes if libpthread.so is loaded,
+ * but works fine if libpthread is not loaded (the crash is caused by
+ * a segfault inside libstdc++)
+ *
+ * Because of this, a special interface to the pthread library must be used:
+ * We must use the run-time interface to dynamic linker and detect if the
+ * pthread library has already been loaded (most likely, by the real program
+ * that we are serving).
+*/
+#include <pthread.h>
+#include <dlfcn.h>
+
+/* pointers to pthread library functions, if the pthread library is in use.
+*/
+static int (*pthread_key_create_fnptr)(pthread_key_t *key,
+	 void (*destructor)(void*)) = NULL;
+static void *(*pthread_getspecific_fnptr)(pthread_key_t key) = NULL;
+static int (*pthread_setspecific_fnptr)(pthread_key_t key,
+	const void *value) = NULL;
+static int (*pthread_once_fnptr)(pthread_once_t *, void (*)(void)) = NULL;
+
+static void check_pthread_library()
+{
+	static int pthread_detection_done = 0;
+
+	if (pthread_detection_done == 0) {
+		pthread_key_create_fnptr = dlsym(RTLD_DEFAULT,
+			"pthread_key_create");
+		pthread_getspecific_fnptr = dlsym(RTLD_DEFAULT,
+			"pthread_getspecific");
+		pthread_setspecific_fnptr = dlsym(RTLD_DEFAULT,
+			"pthread_setspecific");
+		pthread_once_fnptr = dlsym(RTLD_DEFAULT,
+			"pthread_once");
+
+		if (pthread_key_create_fnptr &&
+		    pthread_getspecific_fnptr &&
+		    pthread_setspecific_fnptr &&
+		    pthread_once_fnptr) {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"pthread library FOUND");
+		} else if (!pthread_key_create_fnptr &&
+		   !pthread_getspecific_fnptr &&
+		   !pthread_setspecific_fnptr &&
+		   !pthread_once_fnptr) {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"pthread library not found");
+		} else {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"pthread library is only partially available"
+				" - operation may become unstable");
+		}
+
+		pthread_detection_done = 1;
+	}
+}
+
+/* ------------ End Of pthreads Warnings & Interface Code ------------ */
 
 #define __set_errno(e) errno = e
 
@@ -51,17 +113,42 @@ static void free_lua(void *buf)
 
 static void alloc_lua_key(void)
 {
-	pthread_key_create(&lua_key, free_lua);
+	if (pthread_key_create_fnptr)
+		(*pthread_key_create_fnptr)(&lua_key, free_lua);
 }
+
+/* used only if pthread lib is not available: */
+static	struct lua_instance *my_lua_instance = NULL;
 
 static void alloc_lua(void)
 {
 	struct lua_instance *tmp;
 
+	check_pthread_library();
+
+	if (pthread_once_fnptr)
+		(*pthread_once_fnptr)(&lua_key_once, alloc_lua_key);
+
+	if (pthread_getspecific_fnptr) {
+		if ((*pthread_getspecific_fnptr)(lua_key) != NULL) {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"alloc_lua: already done (pt-getspec.)");
+			return;
+		}
+	} else if (my_lua_instance) {
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"alloc_lua: already done (has my_lua_instance)");
+		return;
+	}
+
 	tmp = malloc(sizeof(struct lua_instance));
 	memset(tmp, 0, sizeof(struct lua_instance));
-	pthread_once(&lua_key_once, alloc_lua_key);
-	pthread_setspecific(lua_key, tmp);
+
+	if (pthread_setspecific_fnptr) {
+		(*pthread_setspecific_fnptr)(lua_key, tmp);
+	} else {
+		my_lua_instance = tmp;
+	}
 	
 	tmp->script_dir = getenv("SBOX_LUA_SCRIPTS");
 
@@ -108,7 +195,14 @@ static void alloc_lua(void)
 
 struct lua_instance *get_lua(void)
 {
-	return (struct lua_instance *)pthread_getspecific(lua_key);
+	struct lua_instance *ptr;
+
+	if (pthread_getspecific_fnptr) {
+		ptr = (*pthread_getspecific_fnptr)(lua_key);
+	} else {
+		ptr = my_lua_instance;
+	}
+	return(ptr);
 }
 
 int lua_engine_state = 0;

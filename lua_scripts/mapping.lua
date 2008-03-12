@@ -224,35 +224,97 @@ function should_adjust(func_name)
 	return true
 end
 
-function sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
+function sbox_execute_replace_rule(path, replacement, rule)
 	local ret = nil
-	if (rule.map_to) then
-		ret = rule.map_to .. path
-	elseif (rule.replace_by) then
-		sb.log("debug", string.format("replace_by: %s, %s", path, rule.replace_by))
-		if (rule.prefix) then
-			ret = rule.replace_by .. string.sub(path, string.len(rule.prefix)+1)
-			sb.log("debug", string.format("replace_by (prefix) => %s", ret))
-		elseif (rule.path) then
-			ret = rule.replace_by
-			sb.log("debug", string.format("replace_by (path) => %s", ret))
-		else
-			sb.log("error", "path mapping rule uses 'replace_by' without 'prefix' or 'path'")
-			ret = path
-		end
+
+	sb.log("debug", string.format("replace:%s:%s", path, replacement))
+	if (rule.prefix) then
+		ret = replacement .. string.sub(path, string.len(rule.prefix)+1)
+		sb.log("debug", string.format("replaced (prefix) => %s", ret))
+	elseif (rule.path) then
+		ret = replacement
+		sb.log("debug", string.format("replaced (path) => %s", ret))
 	else
+		sb.log("error", "error in rule: can't replace without 'prefix' or 'path'")
 		ret = path
-	end
-	
-	if (should_adjust(func_name)) then
-		if (isprefix(target_root, ret)) then
-			ret = adjust_for_mapping_leakage(ret, target_root)
-		elseif (isprefix(tools_root, ret)) then
-			ret = adjust_for_mapping_leakage(ret, tools_root)
-		end
 	end
 
 	return ret
+end
+
+-- returns path and readonly_flag
+function sbox_execute_conditional_actions(binary_name,
+		func_name, work_dir, rp, path, rule)
+	local actions = rule.actions
+
+	local a
+	for a = 1, table.maxn(actions) do
+		sb.log("debug", string.format("try %d", a))
+
+		local ret_ro = false
+		if (actions[a].readonly) then
+			ret_ro = actions[a].readonly
+		end
+
+		-- first, if there are any unconditional actions:
+		if (actions[a].use_orig_path) then
+			return path, ret_ro
+		elseif (actions[a].map_to) then
+			return actions[a].map_to .. path, ret_ro
+		end
+
+		-- next try conditional destinations: build a path to
+		-- "tmp_dest", and if that destination exists, use that path.
+		local tmp_dest = nil
+		if (actions[a].if_exists_then_map_to) then
+			tmp_dest = actions[a].if_exists_then_map_to .. path
+		elseif (actions[a].if_exists_then_replace_by) then
+			tmp_dest = sbox_execute_replace_rule(path,
+				actions[a].if_exists_then_replace_by, rule)
+		end
+		if (tmp_dest ~= nil) then
+			if (sb.path_exists(tmp_dest)) then
+				sb.log("debug", string.format("target exists: => %s", tmp_dest))
+				return tmp_dest, ret_ro
+			end
+		else
+			sb.log("error", string.format("error in rule: no valid conditional actions for '%s'", path))
+		end
+	end
+
+	-- no valid action found. This should not happen.
+	sb.log("error", string.format("mapping rule for '%s': execution of conditional actions failed", path))
+
+	return path, false
+end
+
+-- returns path and readonly_flag
+function sbox_execute_rule(binary_name, func_name, work_dir, rp, path, rule)
+	local ret_path = nil
+	local ret_ro = false
+	if (rule.use_orig_path) then
+		ret_path = path
+	elseif (rule.actions) then
+		ret_path, ret_ro = sbox_execute_conditional_actions(binary_name,
+			func_name, work_dir, rp, path, rule)
+	elseif (rule.map_to) then
+		ret_path = rule.map_to .. path
+	elseif (rule.replace_by) then
+		ret_path = sbox_execute_replace_rule(path, rule.replace_by, rule)
+	else
+		ret_path = path
+		sb.log("error", "mapping rule uses does not have any valid actions, path="..path)
+	end
+	
+	if (should_adjust(func_name)) then
+		if (isprefix(target_root, ret_path)) then
+			ret_path = adjust_for_mapping_leakage(ret_path, target_root)
+		elseif (isprefix(tools_root, ret_path)) then
+			ret_path = adjust_for_mapping_leakage(ret_path, tools_root)
+		end
+	end
+
+	return ret_path, ret_ro
 end
 
 
@@ -265,19 +327,29 @@ function find_rule(chain, func, path)
 			-- loop the rules in a chain
 			if ((not wrk.rules[i].func_name 
 				or func == wrk.rules[i].func_name)) then
-				if (wrk.rules[i].prefix) then
-					if (isprefix(wrk.rules[i].prefix, path)) then
-						return wrk.rules[i]
-					end
+				-- "prefix" rules:
+				-- compare prefix (only if a non-zero prefix)
+				if (wrk.rules[i].prefix and
+				    (wrk.rules[i].prefix ~= "") and
+				    (isprefix(wrk.rules[i].prefix, path))) then
+					return wrk.rules[i]
 				end
+				-- "path" rules: (exact match)
 				if (wrk.rules[i].path == path) then
 					return wrk.rules[i]
 				end
+				-- "match" rules use a lua "regexp".
+				-- these will be obsoleted, as this kind of rule
+				-- is almost impossible to reverse (backward mapping
+				-- is not possible as long as there are "match" rules)
 				if (wrk.rules[i].match) then
 					if (string.match(path, wrk.rules[i].match)) then
 						return wrk.rules[i]
 					end
 				end
+				-- FIXME: Syntax checking should be added:
+				-- it should be tested that exactly one of
+				-- "prefix","path" or "match" was present
 			end
 		end
 		wrk = wrk.next_chain
@@ -298,10 +370,21 @@ function map_using_chain(chain, binary_name, func_name, work_dir, path)
 		sb.log("error", string.format("Unable to find a match at all: %s(%s)", func_name, path))
 		return path, readonly_flag
 	end
+
+	if (rule.log_level) then
+		if (rule.log_message) then
+			sb.log(rule.log_level, string.format("%s (%s)",
+				rule.log_message, path))
+		else
+			-- default message = log path
+			sb.log(rule.log_level, string.format("path=(%s)", path))
+		end
+	end
+
 	if (rule.custom_map_func ~= nil) then
 		ret = rule.custom_map_func(binary_name, func_name, work_dir, rp, path, rules[n])
 	else
-		ret = sbox_map_to(binary_name, func_name, work_dir, rp, path, rule)
+		ret = sbox_execute_rule(binary_name, func_name, work_dir, rp, path, rule)
 		if (debug) then
 			if(path == ret) then
 				-- sb.log("debug", string.format("[%s][%s] %s(%s) [==]", basename(rule.lua_script), rule.binary_name, func_name, path))

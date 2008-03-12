@@ -1,21 +1,25 @@
 -- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 -- Licensed under MIT license.
 
-
 mapall_chain = {
 	next_chain = nil,
 	binary = nil,
 	rules = {
-		{match = ".*qemu.*", map_to = nil},
-		{prefix = target_root, map_to = nil},
-		{prefix = "/dev", map_to = nil},
-		{prefix = "/proc", map_to = nil},
-		{prefix = "/tmp", map_to = nil},
-		{prefix = "/sys", map_to = nil},
-		{prefix = os.getenv("HOME") .. "/.scratchbox2", map_to = nil},
-		{prefix = os.getenv("SBOX_DIR") .. "/share/scratchbox2", map_to = nil},
+		{match = ".*qemu.*", use_orig_path = true},
+		{prefix = target_root, use_orig_path = true},
+		{prefix = "/dev", use_orig_path = true},
+		{prefix = "/proc", use_orig_path = true},
+		{prefix = "/tmp", use_orig_path = true},
+		{prefix = "/sys", use_orig_path = true},
+		{prefix = os.getenv("HOME") .. "/.scratchbox2",
+		 use_orig_path = true},
+		{prefix = os.getenv("SBOX_DIR") .. "/share/scratchbox2",
+		 use_orig_path = true},
 
-		{match = ".*", map_to = target_root}
+		{prefix = "/etc/resolv.conf", use_orig_path = true},
+
+		{path = "/", use_orig_path = true},
+		{prefix = "/", map_to = target_root}
 	}
 }
 

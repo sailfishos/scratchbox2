@@ -356,6 +356,37 @@ static int lua_sb_setenv(lua_State *luastate)
 	return 1;
 }
 
+/* "sb.path_exists", to be called from lua code
+ * returns true if file or directory exists at the specified real path,
+ * false if not.
+*/
+static int lua_sb_path_exists(lua_State *l)
+{
+	int n;
+
+	n = lua_gettop(l);
+	if (n != 1) {
+		lua_pushboolean(l, 0);
+	} else {
+		char	*path = strdup(lua_tostring(l, 1));
+		int	result = 0;
+		SB_LOG(SB_LOGLEVEL_DEBUG, "lua_sb_path_exists testing '%s'",
+			path);
+		if (access_nomap_nolog(path, F_OK) == 0) {
+			/* target exists */
+			lua_pushboolean(l, 1);
+			result=1;
+		} else {
+			lua_pushboolean(l, 0);
+			result=0;
+		}
+		SB_LOG(SB_LOGLEVEL_DEBUG, "lua_sb_path_exists got %d",
+			result);
+		free(path);
+	}
+	return 1;
+}
+
 /* mappings from c to lua */
 static const luaL_reg reg[] =
 {
@@ -364,6 +395,7 @@ static const luaL_reg reg[] =
 	{"decolonize_path",		lua_sb_decolonize_path},
 	{"log",				lua_sb_log},
 	{"setenv",			lua_sb_setenv},
+	{"path_exists",			lua_sb_path_exists},
 	{NULL,				NULL}
 };
 

@@ -207,6 +207,8 @@ no_adjust_funcs = {
 	"lstat64",
 	"lutimes",
 	"readlink",
+	"rename",
+	"renameat",
 	"symlink",
 	"symlinkat",
 	"unlink",

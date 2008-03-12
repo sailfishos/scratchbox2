@@ -228,7 +228,7 @@ simple_chain = {
 		 readonly = true},
 
 		{prefix = "/scratchbox/tools/bin",
-		 replace_by = tools_root .. "/usr/bin",
+		 replace_by = tools .. "/usr/bin",
 		 log_level = "warning",
 		 readonly = true},
 
@@ -267,7 +267,7 @@ qemu_chain = {
 		{prefix = tools, use_orig_path = true},
 
 		{path = "/", use_orig_path = true},
-		{prefix = "/", map_to = tools_root}
+		{prefix = "/", map_to = tools}
 	}
 }
 

@@ -12,11 +12,11 @@ simple_chain = {
 	rules = {
 		{prefix = "/lib", map_to = target_root},
 		{prefix = "/usr/share/osso", map_to = target_root},
-		{prefix = "/usr/lib/perl", map_to = tools_root},
-		{prefix = "/usr/lib/dpkg", map_to = tools_root},
-		{prefix = "/usr/lib/apt", map_to = tools_root},
-		{prefix = "/usr/lib/cdbs", map_to = tools_root},
-		{prefix = "/usr/lib/libfakeroot", map_to = tools_root},
+		{prefix = "/usr/lib/perl", map_to = tools},
+		{prefix = "/usr/lib/dpkg", map_to = tools},
+		{prefix = "/usr/lib/apt", map_to = tools},
+		{prefix = "/usr/lib/cdbs", map_to = tools},
+		{prefix = "/usr/lib/libfakeroot", map_to = tools},
 		{prefix = "/usr/lib", map_to = target_root},
 		{prefix = "/usr/include", map_to = target_root},
 		{prefix = "/var/lib/apt", map_to = target_root},
@@ -34,7 +34,7 @@ simple_chain = {
 		{prefix = "/etc/apt", map_to = target_root},
 		{prefix = tools, use_orig_path = true},
 		{path = "/", use_orig_path = true},
-		{prefix = "/", map_to = tools_root}
+		{prefix = "/", map_to = tools}
 	}
 }
 
@@ -52,7 +52,7 @@ qemu_chain = {
 		{prefix = "/etc/resolv.conf", use_orig_path = true},
 		{prefix = tools, use_orig_path = true},
 		{path = "/", use_orig_path = true},
-		{prefix = "/", map_to = tools_root}
+		{prefix = "/", map_to = tools}
 	}
 }
 

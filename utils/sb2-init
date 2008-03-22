@@ -269,7 +269,7 @@ ARCH=$($GCC -dumpmachine | awk -F- '{ print $1 }')
 GCC_TARGET=$($GCC -dumpmachine)
 DEBIAN_CPU=$ARCH
 if [ -z "$CPUTRANSP" ]; then
-	CPUTRANSP="qemu-$ARCH"
+	CPUTRANSP="$(which qemu-$ARCH)"
 fi
 
 case "$ARCH" in

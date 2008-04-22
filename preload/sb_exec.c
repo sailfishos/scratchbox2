@@ -33,11 +33,23 @@
 #endif
 
 #if __BYTE_ORDER == __BIG_ENDIAN
-# define elf_endianness ELFDATA2MSB
+# define HOST_ELF_DATA ELFDATA2MSB
 #elif __BYTE_ORDER == __LITTLE_ENDIAN
-# define elf_endianness ELFDATA2LSB
+# define HOST_ELF_DATA ELFDATA2LSB
 #else
 # error Invalid __BYTE_ORDER
+#endif
+
+#ifdef __i386__
+# define HOST_ELF_MACHINE EM_386
+#elif defined(__x86_64__)
+# define HOST_ELF_MACHINE EM_X86_64
+#elif defined(__ia64__)
+# define HOST_ELF_MACHINE EM_IA_64
+#elif defined(__powerpc__)
+# define HOST_ELF_MACHINE EM_PPC
+#else
+# error Unsupported host CPU architecture
 #endif
 
 #ifndef PAGE_MASK
@@ -434,7 +446,7 @@ static int elf_hdr_match(Elf_Ehdr *ehdr, uint16_t match, int ei_data)
 	int swap;
 
 	if (ehdr->e_ident[EI_DATA] != ei_data)
-		return BIN_UNKNOWN;
+		return 0;
 
 #ifdef WORDS_BIGENDIAN
 	swap = (ei_data == ELFDATA2LSB);
@@ -443,12 +455,12 @@ static int elf_hdr_match(Elf_Ehdr *ehdr, uint16_t match, int ei_data)
 #endif
 
 	if (swap && ehdr->e_machine == byte_swap(match))
-		return BIN_TARGET;
+		return 1;
 
 	if (!swap && ehdr->e_machine == match)
-		return BIN_TARGET;
+		return 1;
 
-	return BIN_UNKNOWN;
+	return 0;
 }
 
 static enum binary_type inspect_binary(const char *filename)
@@ -539,83 +551,61 @@ static enum binary_type inspect_binary(const char *filename)
 
 	ehdr = (Elf_Ehdr *) region;
 
-	target_cpu = getenv("SBOX_CPU");
-	if (!target_cpu) target_cpu = "arm";
+	if (elf_hdr_match(ehdr, HOST_ELF_MACHINE, HOST_ELF_DATA)) {
+		retval = BIN_HOST_STATIC;
 
-	ei_data = ELFDATANONE;
-	e_machine = EM_NONE;
+		phnum = ehdr->e_phnum;
+		reloc0 = ~0;
+		ph_base = ehdr->e_phoff & PAGE_MASK;
+		ph_frag = ehdr->e_phoff - ph_base;
 
-	for (j = 0; (size_t) j < ARRAY_SIZE(target_table); j++) {
-		const struct target_info *ti = &target_table[j];
+		phdr = (Elf_Phdr *) (region + ph_base + ph_frag);
 
-		if (strncmp(target_cpu, ti->name, strlen(ti->name)) != 0)
-			continue;
+		for (j = phnum; --j >= 0; ++phdr)
+			if (PT_LOAD == phdr->p_type && ~0 == reloc0)
+				reloc0 = phdr->p_vaddr - phdr->p_offset;
 
-		ei_data = ti->default_byteorder;
-		e_machine = ti->machine;
+		phdr -= phnum;
 
-		if (ti->multi_byteorder &&
-		    strlen(target_cpu) >= strlen(ti->name) + 2) {
-			const char *tail = target_cpu + strlen(target_cpu) - 2;
+		for (j = phnum; --j >= 0; ++phdr) {
+			if (PT_DYNAMIC != phdr->p_type)
+				continue;
 
-			if (strcmp(tail, "eb") == 0)
-				ei_data = ELFDATA2MSB;
-			else if (strcmp(tail, "el") == 0)
-				ei_data = ELFDATA2LSB;
+			retval = BIN_HOST_DYNAMIC;
+		}
+	} else {
+		target_cpu = getenv("SBOX_CPU");
+		if (!target_cpu)
+			target_cpu = "arm";
+
+		ei_data = ELFDATANONE;
+		e_machine = EM_NONE;
+
+		for (j = 0; (size_t) j < ARRAY_SIZE(target_table); j++) {
+			const struct target_info *ti = &target_table[j];
+
+			if (strncmp(target_cpu, ti->name, strlen(ti->name)))
+				continue;
+
+			ei_data = ti->default_byteorder;
+			e_machine = ti->machine;
+
+			if (ti->multi_byteorder &&
+			    strlen(target_cpu) >= strlen(ti->name) + 2) {
+				size_t len = strlen(target_cpu);
+				const char *tail = target_cpu + len - 2;
+
+				if (strcmp(tail, "eb") == 0)
+					ei_data = ELFDATA2MSB;
+				else if (strcmp(tail, "el") == 0)
+					ei_data = ELFDATA2LSB;
+			}
+
+			break;
 		}
 
-		break;
-	}
-
-	retval = elf_hdr_match(ehdr, e_machine, ei_data);
-	if (retval == BIN_TARGET)
-		goto _out_munmap;
-
-	ei_data = ELFDATANONE;
-	e_machine = EM_NONE;
-
-#ifdef WORDS_BIGENDIAN
-	ei_data = ELFDATA2MSB;
-#else
-	ei_data = ELFDATA2LSB;
-#endif
-#ifdef __i386__
-	e_machine = EM_386;
-#elif defined(__x86_64__)
-	e_machine = EM_X86_64;
-#elif defined(__ia64__)
-	e_machine = EM_IA_64;
-#elif defined(__powerpc__)
-	e_machine = EM_PPC;
-#endif
-	if (elf_hdr_match(ehdr, e_machine, ei_data) != BIN_TARGET) {
-		retval = BIN_UNKNOWN;
-		goto _out_munmap;
-	}
-
-	retval = BIN_HOST_STATIC;
-
-	phnum = ehdr->e_phnum;
-	reloc0 = ~0;
-	ph_base = ehdr->e_phoff & PAGE_MASK;
-	ph_frag = ehdr->e_phoff - ph_base;
-
-	phdr = (Elf_Phdr *) (region + ph_base + ph_frag);
-
-	for (j = phnum; --j >= 0; ++phdr) {
-		if (PT_LOAD == phdr->p_type && ~0 == reloc0) {
-			reloc0 = phdr->p_vaddr - phdr->p_offset;
-		}
-	}
-
-	phdr -= phnum;
-
-	for (j = phnum; --j >= 0; ++phdr) {
-		if (PT_DYNAMIC != phdr->p_type) {
-			continue;
-		}
-
-		retval = BIN_HOST_DYNAMIC;
+		if (elf_hdr_match(ehdr, e_machine, ei_data))
+			retval = BIN_TARGET;
 	}
 
 _out_munmap:

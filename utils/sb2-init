@@ -295,7 +295,13 @@ if [ -z "$CPUTRANSP" ]; then
 	CPUTRANSP="$(which qemu-$ARCH)"
 fi
 
+HOST_ARCH="$(uname --machine)"
+if echo "$HOST_ARCH" | grep -q "^i.86*"; then
+	HOST_ARCH="i[3456]86"
+fi
+
 case "$ARCH" in
+	$HOST_ARCH*) ;;
 	arm*) 
 		if [ -z "$GCC_TARGET" ]
 		then

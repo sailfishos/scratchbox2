@@ -28,6 +28,10 @@
 #include "libsb2.h"
 #include "exported.h"
 
+#ifndef ARRAY_SIZE
+# define ARRAY_SIZE(array) (sizeof (array) / sizeof ((array)[0]))
+#endif
+
 #if __BYTE_ORDER == __BIG_ENDIAN
 # define elf_endianness ELFDATA2MSB
 #elif __BYTE_ORDER == __LITTLE_ENDIAN
@@ -47,6 +51,20 @@ typedef Elf64_Phdr Elf_Phdr;
 typedef Elf32_Ehdr Elf_Ehdr;
 typedef Elf32_Phdr Elf_Phdr;
 #endif
+
+struct target_info {
+	char name[8];
+	uint16_t machine;
+	unsigned int default_byteorder;
+	int multi_byteorder;
+};
+
+static const struct target_info target_table[] = {
+	{ "arm",	EM_ARM,		ELFDATA2LSB,	1 },
+	{ "mips",	EM_MIPS,	ELFDATA2MSB,	1 },
+	{ "ppc",	EM_PPC,		ELFDATA2MSB,	0 },
+	{ "sh",		EM_SH, 		ELFDATA2LSB,	1 },
+};
 
 static int elf_hdr_match(Elf_Ehdr *ehdr, uint16_t match, int ei_data);
 
@@ -527,35 +545,27 @@ static enum binary_type inspect_binary(const char *filename)
 	ei_data = ELFDATANONE;
 	e_machine = EM_NONE;
 
-	do {
-		if (!strncmp(target_cpu, "arm", 3)) {
-			e_machine = EM_ARM;
-			ei_data = ELFDATA2LSB;  /* default little endian */
-		}
-		if (!strncmp(target_cpu, "mips", 4)) {
-			e_machine = EM_MIPS;
-			ei_data = ELFDATA2MSB;  /* default big endian */
-		}
-		if (!strncmp(target_cpu, "sh", 2)) {
-			e_machine = EM_SH;
-			ei_data = ELFDATA2LSB;  /* default little endian */
-		}
-		if (!strcmp(target_cpu, "ppc")) {
-			e_machine = EM_PPC;
-			ei_data = ELFDATA2MSB;  /* big endian only */
-			break; /* break to avoid endian check below */
-		}
+	for (j = 0; (size_t) j < ARRAY_SIZE(target_table); j++) {
+		const struct target_info *ti = &target_table[j];
 
-		/* check for "el" or "eb" suffix */
+		if (strncmp(target_cpu, ti->name, strlen(ti->name)) != 0)
+			continue;
 
-		if (strlen(target_cpu) > 2) {
-			if (!strcmp(&target_cpu[strlen(target_cpu) - 2], "eb"))
+		ei_data = ti->default_byteorder;
+		e_machine = ti->machine;
+
+		if (ti->multi_byteorder &&
+		    strlen(target_cpu) >= strlen(ti->name) + 2) {
+			const char *tail = target_cpu + strlen(target_cpu) - 2;
+
+			if (strcmp(tail, "eb") == 0)
 				ei_data = ELFDATA2MSB;
-			if (!strcmp(&target_cpu[strlen(target_cpu) - 2], "el"))
+			else if (strcmp(tail, "el") == 0)
 				ei_data = ELFDATA2LSB;
 		}
 
-	} while(0);
+		break;
+	}
 
 	retval = elf_hdr_match(ehdr, e_machine, ei_data);
 	if (retval == BIN_TARGET)

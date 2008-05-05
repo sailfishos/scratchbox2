@@ -33,7 +33,6 @@ int do_exec(const char *exec_fn_name, const char *file,
 		char *const *argv, char *const *envp);
 
 int ld_so_run_app(const char *file, char *const *argv, char *const *envp);
-int run_hashbang(const char *file, char *const *argv, char *const *envp);
 int run_app(const char *file, char *const *argv, char *const *envp);
 int run_cputransparency(const char *file, const char *unmapped_file,
 			char *const *argv, char *const *envp);

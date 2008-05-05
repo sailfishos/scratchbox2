@@ -616,7 +616,11 @@ _out:
 	return retval;
 }
 
-int run_hashbang(const char *file, char *const *argv, char *const *envp)
+static int run_hashbang(
+	const char *mapped_file,
+	const char *orig_file,
+	char *const *argv,
+	char *const *envp)
 {
 	int argc, fd, c, i, j, n, ret;
 	char ch;
@@ -625,15 +629,15 @@ int run_hashbang(const char *file, char *const *argv, char *const *envp)
 	char hashbang[SBOX_MAXPATH]; /* only 60 needed on linux, just be safe */
 	char interpreter[SBOX_MAXPATH];
 
-	if ((fd = open_nomap(file, O_RDONLY)) < 0) {
+	if ((fd = open_nomap(mapped_file, O_RDONLY)) < 0) {
 		/* unexpected error, just run it */
-		return run_app(file, argv, envp);
+		return run_app(mapped_file, argv, envp);
 	}
 
 	if ((c = read(fd, &hashbang[0], SBOX_MAXPATH - 1)) < 2) {
 		/* again unexpected error, close fd and run it */
 		close(fd);
-		return run_app(file, argv, envp);
+		return run_app(mapped_file, argv, envp);
 	}
 
 	argc = elem_count(argv);
@@ -677,7 +681,7 @@ int run_hashbang(const char *file, char *const *argv, char *const *envp)
 	SB_LOG(SB_LOGLEVEL_DEBUG, "run_hashbang(): interpreter=%s,"
 			"mapped_interpreter=%s", interpreter,
 			mapped_interpreter);
-	new_argv[n++] = strdup(file); /* the unmapped script path */
+	new_argv[n++] = strdup(orig_file); /* the unmapped script path */
 
 	for (i = 1; argv[i] != NULL && i < argc; ) {
 		new_argv[n++] = argv[i++];
@@ -877,8 +881,8 @@ int do_exec(const char *exec_fn_name, const char *file,
 	switch (type) {
 		case BIN_HASHBANG:
 			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/hashbang %s", mapped_file);
-			return run_hashbang(mapped_file, *my_argv,
-					*my_envp);
+			return run_hashbang(mapped_file, *my_file,
+					*my_argv, *my_envp);
 		case BIN_HOST_DYNAMIC:
 			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/host-dynamic %s",
 					mapped_file);

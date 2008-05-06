@@ -743,7 +743,8 @@ sub command_wrap_or_gate {
 		$nomap_fn_c_code .=	"\t$fn_return_type ret;\n";
 		$nomap_nolog_fn_c_code .= "\t$fn_return_type ret;\n";
 	}
-	$wrapper_fn_c_code .=	"\tint saved_errno = errno;\n";
+	$wrapper_fn_c_code .=	"\tint saved_errno = errno;\n".
+				"\terrno = 0;\n";
 	$nomap_fn_c_code .=	"\tint saved_errno = errno;\n";
 
 	$wrapper_fn_c_code .=		$mods->{'path_mapping_code'}.
@@ -844,6 +845,13 @@ sub command_wrap_or_gate {
 		$export_h_buffer .= $gate_function_prototype;
 		$unmapped_nolog_call = ""; # not supported for GATEs
 	}
+
+	# First restore errno to what it was at entry (the path mapping
+	# code might have set it)
+	$wrapper_fn_c_code .=		"\terrno = saved_errno;\n";
+	$nomap_fn_c_code .=		"\terrno = saved_errno;\n";
+
+	# Next, insert the call to the real function
 	$wrapper_fn_c_code .=		$call_line_prefix.$mapped_call;
 	$nomap_fn_c_code .=		$call_line_prefix.$unmapped_call;
 	$nomap_nolog_fn_c_code .=	$call_line_prefix.$unmapped_nolog_call;

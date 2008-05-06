@@ -292,6 +292,9 @@ end
 function sbox_execute_rule(binary_name, func_name, work_dir, rp, path, rule)
 	local ret_path = nil
 	local ret_ro = false
+	if (rule.readonly ~= nil) then
+		ret_ro = rule.readonly
+	end
 	if (rule.use_orig_path) then
 		ret_path = path
 	elseif (rule.actions) then
@@ -383,8 +386,11 @@ function map_using_chain(chain, binary_name, func_name, work_dir, path)
 
 	if (rule.custom_map_func ~= nil) then
 		ret = rule.custom_map_func(binary_name, func_name, work_dir, rp, path, rules[n])
+		if (rule.readonly ~= nil) then
+			readonly_flag = rule.readonly
+		end
 	else
-		ret = sbox_execute_rule(binary_name, func_name, work_dir, rp, path, rule)
+		ret, readonly_flag = sbox_execute_rule(binary_name, func_name, work_dir, rp, path, rule)
 		if (debug) then
 			if(path == ret) then
 				-- sb.log("debug", string.format("[%s][%s] %s(%s) [==]", basename(rule.lua_script), rule.binary_name, func_name, path))
@@ -392,9 +398,6 @@ function map_using_chain(chain, binary_name, func_name, work_dir, path)
 				-- sb.log("debug", string.format("[%s][%s] %s(%s) -> (%s)", basename(rule.lua_script), rule.binary_name, func_name, path, ret))
 			end
 		end
-	end
-	if (rule.readonly ~= nil) then
-		readonly_flag = rule.readonly
 	end
 	return ret, readonly_flag
 end

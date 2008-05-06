@@ -85,7 +85,7 @@ function check_host_pkg()
 		fi
 		rm $pkg_stat_tmp
 
-		check_result_msg="'$pkgname' is missing, must be istalled to the rootstrap"
+		check_result_msg="'$pkgname' is missing, must be installed to the rootstrap"
 		return
 	fi
 

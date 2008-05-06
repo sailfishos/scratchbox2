@@ -35,8 +35,6 @@ gcc_tools = {
 "strip"
 }
 
-argvmods = {}
-
 gcc_bindir = os.getenv("SBOX_CROSS_GCC_DIR")
 gcc_subst_prefix = os.getenv("SBOX_CROSS_GCC_SUBST_PREFIX")
 gcc_extra_args = os.getenv("SBOX_EXTRA_CROSS_COMPILER_ARGS")

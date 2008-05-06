@@ -2,6 +2,8 @@
 # sb2-init - Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 # Licensed under GPL version 2
 
+my_path=$_
+
 function show_existing_config_info()
 {
 	has_targets="no"
@@ -61,6 +63,7 @@ Options:
     -t [tools_dir]    set directory containing the build tools distribution
     -C "options"      add extra options for the compiler, for example:
                       "-fgnu89-inline"
+    -A arch           manually override target architecture
     -v                display version
 
 Examples:
@@ -139,7 +142,7 @@ if [ -n "\$SBOX_TOOLS_ROOT" ]; then
 	export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib/:/usr/lib64:/lib:/lib64:\$SBOX_TOOLS_ROOT/usr/lib/libfakeroot:\$SBOX_TOOLS_ROOT/usr/lib64/libfakeroot:\$SBOX_TOOLS_ROOT/usr/lib32/libfakeroot:\$SBOX_REDIR_LD_LIBRARY_PATH:\$LD_LIBRARY_PATH
 else
 	# SBOX_TOOLS_ROOT not set, include the fakeroot lib path in any case.
-	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/libfakeroot:/usr/lib64/libfakeroot:/usr/lib32/libfakeroot
+	export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/lib/libfakeroot:/usr/lib64/libfakeroot:/usr/lib32/libfakeroot
 fi
 EOF
 	echo "Finished writing sb2.config"
@@ -192,7 +195,10 @@ you can re-run this script."
 	fi
 }
 
-export SBOX_DIR=$(readlink -f $(dirname $_)/..)
+if [ -z "$SBOX_DIR" ]
+then
+	export SBOX_DIR=$(readlink -f $(dirname $my_path)/..)
+fi
 
 # SBOX_INIT_* variables are used to record who initialized, and when and 
 # how sb2 was initialized.
@@ -218,9 +224,10 @@ if [ -z "$*" ]; then
 	usage
 fi
 
-while getopts c:C:r:l:m:dhnst:v foo
+while getopts A:c:C:r:l:m:dhnst:v foo
 do
 	case $foo in
+	(A) ARCH=$OPTARG ;;
 	(c) CPUTRANSP=$OPTARG ;;
 	(r) REMOTEHOST=$OPTARG ;;
 	(l) LOCALHOST=$OPTARG ;;
@@ -245,31 +252,38 @@ TARGET=$1
 SBOX_TARGET_ROOT=$PWD
 GCC=$2
 
-if [ -z "$GCC" ]; then
-	echo "Error: no compiler given"
-	exit 1
-fi
-
 if [ -z "$TARGET" ]; then
 	echo "Error: no target given"
 	exit 1
 fi
 
-GCC_FULLPATH=$(which $GCC)
-# test that gcc exists and can be executed
-if [ $? != 0 ]; then
-	echo "$GCC doesn't exist"
-	exit 1
-fi
-GCC_PATH=$(dirname $(which $GCC))
-if [ $GCC -v > /dev/null 2>&1 != 0 ]; then
-	echo "Invalid compiler specified: $GCC"
-	exit 1
+if [ -z "$GCC" ]; then
+	echo "Warning: no compiler given"
+else
+	GCC_FULLPATH=$(which $GCC)
+	# test that gcc exists and can be executed
+	if [ $? != 0 ]; then
+		echo "$GCC doesn't exist"
+		exit 1
+	fi
+	GCC_PATH=$(dirname $(which $GCC))
+	if [ $GCC -v > /dev/null 2>&1 != 0 ]; then
+		echo "Invalid compiler specified: $GCC"
+		exit 1
+	fi
+
+	GCC_PREFIX=$(basename $GCC | sed 's/-gcc$/-/')
+
+	if [ -z "$ARCH" ]
+	then
+		echo "Using $GCC to detect target architecture:"
+		ARCH=$($GCC -dumpmachine | awk -F- '{ print $1 }')
+		GCC_TARGET=$($GCC -dumpmachine)
+	else
+		echo "Target architecture set to $ARCH"
+	fi
 fi
 
-GCC_PREFIX=$(basename $GCC | sed 's/-gcc$/-/')
-ARCH=$($GCC -dumpmachine | awk -F- '{ print $1 }')
-GCC_TARGET=$($GCC -dumpmachine)
 DEBIAN_CPU=$ARCH
 if [ -z "$CPUTRANSP" ]; then
 	CPUTRANSP="$(which qemu-$ARCH)"
@@ -277,9 +291,14 @@ fi
 
 case "$ARCH" in
 	arm*) 
-		echo $GCC_TARGET | grep -q -i eabi
-		if [ $? == 0 ]; then
-			DEBIAN_CPU=armel
+		if [ -z "$GCC_TARGET" ]
+		then
+			DEBIAN_CPU=$ARCH
+		else
+			echo $GCC_TARGET | grep -q -i eabi
+			if [ $? == 0 ]; then
+				DEBIAN_CPU=armel
+			fi
 		fi
 		;;
 	ppc*) ;;

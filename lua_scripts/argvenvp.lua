@@ -1,8 +1,14 @@
 -- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 -- Licensed under MIT license
 
--- this generates gcc related argv/envp manglings
-do_file(lua_scripts .. "/argvenvp_gcc.lua")
+argvmods = {}
+
+-- only map gcc & friends if a cross compiler has been defined
+gcc_bindir = os.getenv("SBOX_CROSS_GCC_DIR")
+if (gcc_bindir ~= nil and gcc_bindir ~= "") then
+	-- this generates gcc related argv/envp manglings
+	do_file(lua_scripts .. "/argvenvp_gcc.lua")
+end
 
 -- regular mangling rules go here
 -- syntax is of the form:

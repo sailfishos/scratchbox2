@@ -1,0 +1,83 @@
+#!/bin/bash
+#
+# "dpkg" and "apt-get" wrapper for scratchbox 2:
+# All mapping modes are not compatible with all operations that Debian
+# package management tools can do; for example, packages must not be
+# installed in the "maemo" mode which has been designed for compiling packages.
+# This wrapper first checks if the operation is permitted, and executes the
+# real tool only if it hasn't been denied by SB2's configuration.
+#
+# Following tools and operations are controlled here:
+# - "dpkg": "-i" and "--install" can be disabled
+# - "apt-get": "install" and "upgrade" can be disabled
+#
+# Copyright (c) 2008 Nokia Corporation.
+# All rights reserved.
+# Author: Lauri T. Aarnio
+#
+# Licensed under GPL version 2
+
+args="$*"
+prog="$0"
+progbase=`basename $0`
+
+if [ -z "$SBOX_MAPMODE" -o -z "$SBOX_DIR" ]
+then
+	echo "SB2: $progbase wrapper: This wrapper can only be used from inside"
+	echo "the scratchbox 2'ed environment (SBOX_MAPMODE and/or SBOX_DIR"
+	echo "environment variables are empty)"
+	exit 1
+fi
+
+# read-in mode-specific settings
+if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$SBOX_MAPMODE ]
+then
+	. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$SBOX_MAPMODE
+fi
+
+function deny_operation()
+{
+	echo "SB2: $progbase wrapper: Operation denied in this mode ($SBOX_MAPMODE)"
+	echo "SB2: $progbase wrapper: You need to use another mode for installing and"
+	echo "SB2: $progbase wrapper: removing packages (typically the 'emulate' mode will do)"
+	exit 1
+}
+
+case "$progbase" in
+(dpkg)
+	realtool=/usr/bin/dpkg
+	if [ -n "$SBOX_DPKG_WRAPPER_DENY_INSTALL" ]
+	then
+		for i in $args
+		do
+			case "$i" in
+			(-i|--install|-r|--remove)
+				deny_operation
+				;;
+			esac
+		done
+	fi
+	;;
+(apt-get)
+	realtool=/usr/bin/apt-get
+	if [ -n "$SBOX_APT_GET_WRAPPER_DENY_INSTALL" ]
+	then
+		for i in $args
+		do
+			case "$i" in
+			(install|upgrade|remove)
+				deny_operation
+				exit 1
+				;;
+			esac
+		done
+	fi
+	;;
+(*)
+	echo "SB2: $progbase wrapper: FATAL ERROR: don't know where to find real $progbase"
+	exit 1
+	;;
+esac
+
+# Default: Ok to execute the real tool
+exec $realtool $args

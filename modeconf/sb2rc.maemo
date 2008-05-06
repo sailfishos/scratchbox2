@@ -20,3 +20,8 @@ SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST=" \
 	/usr/share/base-passwd \
 	/usr/share/lintian/overrides/dpkg-dev \
 	/usr/lib/dpkg "
+
+# This is for the "dpkg" wrapper:
+SBOX_DPKG_WRAPPER_DENY_INSTALL=yes
+# and a similar setting for "apt-get" wrapper:
+SBOX_APT_GET_WRAPPER_DENY_INSTALL=yes

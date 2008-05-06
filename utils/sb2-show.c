@@ -9,6 +9,8 @@
 #include <unistd.h>
 #include <config.h>
 #include <config_hardcoded.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #include "exported.h"
 #include "sb2.h"

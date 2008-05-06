@@ -379,3 +379,10 @@ WRAP: int utime(const char *filename, const struct utimbuf *buf) : \
 WRAP: int utimes(const char *filename, const struct timeval tv[2]) : \
 	map(filename) fail_if_readonly(filename,-1,EROFS)
 
+--
+-- 7. Socket API
+--    ----------
+-- Unix domain socket addresses need to be mapped.
+
+GATE: int bind(int sockfd, const struct sockaddr *my_addr, socklen_t addrlen)
+GATE: int connect(int sockfd, const struct sockaddr *serv_addr, socklen_t addrlen)

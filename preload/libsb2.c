@@ -548,6 +548,77 @@ void _Exit_gate(void (*real__Exit_ptr)(int status),
 }
 //void _Exit_gate() __attribute__ ((noreturn));
 
+/* ---------- Socket API ---------- */
+
+static void map_sockaddr_un(
+	const char *realfnname,
+	struct sockaddr_un *orig_serv_addr_un,
+	struct sockaddr_un *mapped_serv_addr_un)
+{
+	int	pathname_is_readonly = 0;
+	char	*mapped_addr = NULL;
+
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: checking AF_UNIX addr '%s'",
+		realfnname, orig_serv_addr_un->sun_path);
+	SBOX_MAP_PATH(orig_serv_addr_un->sun_path, mapped_addr,
+		&pathname_is_readonly);
+	/* FIXME: implement if(pathname_is_readonly!=0)... */
+
+	*mapped_serv_addr_un = *orig_serv_addr_un;
+	if (sizeof(mapped_serv_addr_un->sun_path) <= strlen(mapped_addr)) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"%s: Mapped AF_UNIX address (%s) is too long",
+			realfnname, mapped_addr);
+	} else {
+		strcpy(mapped_serv_addr_un->sun_path, mapped_addr);
+	}
+	if (mapped_addr) free(mapped_addr);
+}
+
+int bind_gate(
+	int (*real_bind_ptr)(int sockfd, const struct sockaddr *my_addr,
+		socklen_t addrlen),
+	const char *realfnname,
+	int sockfd,
+	const struct sockaddr *my_addr,
+	socklen_t addrlen)
+{
+	if (my_addr->sa_family == AF_UNIX) {
+		struct sockaddr_un mapped_my_addr_un;
+
+		map_sockaddr_un(realfnname,
+			(struct sockaddr_un*)my_addr, &mapped_my_addr_un);
+
+		return((*real_bind_ptr)(sockfd,
+			(struct sockaddr*)&mapped_my_addr_un,
+			sizeof(mapped_my_addr_un)));
+	} else {
+		return((*real_bind_ptr)(sockfd, my_addr, addrlen));
+	}
+}
+
+int connect_gate(
+	int (*real_connect_ptr)(int sockfd, const struct sockaddr *serv_addr,
+		socklen_t addrlen),
+	const char *realfnname,
+	int sockfd,
+	const struct sockaddr *serv_addr,
+	socklen_t addrlen)
+{
+	if (serv_addr->sa_family == AF_UNIX) {
+		struct sockaddr_un mapped_serv_addr_un;
+
+		map_sockaddr_un(realfnname,
+			(struct sockaddr_un*)serv_addr, &mapped_serv_addr_un);
+
+		return((*real_connect_ptr)(sockfd,
+			(struct sockaddr*)&mapped_serv_addr_un,
+			sizeof(mapped_serv_addr_un)));
+	} else {
+		return((*real_connect_ptr)(sockfd, serv_addr, addrlen));
+	}
+}
+
 /* ---------- */
 
 void *sbox_find_next_symbol(int log_enabled, const char *fn_name)

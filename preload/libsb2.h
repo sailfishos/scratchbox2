@@ -69,6 +69,9 @@
 #include <sys/user.h>
 #include <sys/mman.h>
 
+#include <sys/socket.h>
+#include <sys/un.h>
+
 #include <mapping.h>
 #include <sb2.h>
 

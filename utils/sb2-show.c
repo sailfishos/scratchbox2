@@ -169,9 +169,10 @@ static int command_verify_pathlist_mappings(
 			required_destination_prefix, destination_prefix_len);
 		if (destination_prefix_cmp_result) {
 			result = 1;
-			printf("%s => %s%s: NOT OK\n",
-				path_buf, mapped_path,
-				(readonly_flag ? " (readonly)" : ""));
+			if (verbose)
+				printf("%s => %s%s: NOT OK\n",
+					path_buf, mapped_path,
+					(readonly_flag ? " (readonly)" : ""));
 		} else {
 			/* mapped OK. */
 			if (verbose)

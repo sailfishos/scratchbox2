@@ -20,6 +20,7 @@ Usage:
 Options:
     -a		check all packages and write results to a temporary
 		database, to be used by sb2's dpkg-checkbuilddeps
+    -v          verbose mode: Report all paths with mapping status
 
 When started with list of package names, checks named packages and prints
 results, but does not create or modify the temporary database.
@@ -33,12 +34,14 @@ fi
 
 check_all_pkgs="no"
 status_file=""
+VERBOSE_OPTION=""
 
-while getopts ah foo
+while getopts ahv foo
 do
 	case $foo in
 	(a) check_all_pkgs="yes" ;;
 	(h) usage ;;
+	(v) VERBOSE_OPTION="-v" ;;
 	(*) usage ;;
 	esac
 done
@@ -99,6 +102,7 @@ do
 		    -e 's/diverted by .* to: //' \
 		    -e 's/package diverts others to: //' |
 		sb2-show -D verify-pathlist-mappings \
+			$VERBOSE_OPTION \
 			$SBOX_TARGET_ROOT $SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST
 		if [ $? == 0 ]
 		then

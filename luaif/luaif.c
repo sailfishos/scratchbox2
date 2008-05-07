@@ -332,6 +332,10 @@ static int lua_sb_log(lua_State *luastate)
 		SB_LOG(SB_LOGLEVEL_WARNING, "WARNING: %s", logmsg);
 	else if(!strcmp(loglevel, "error"))
 		SB_LOG(SB_LOGLEVEL_ERROR, "ERROR: %s", logmsg);
+	else if(!strcmp(loglevel, "noise"))
+		SB_LOG(SB_LOGLEVEL_NOISE, ">>>>: %s", logmsg);
+	else if(!strcmp(loglevel, "noise2"))
+		SB_LOG(SB_LOGLEVEL_NOISE2, ">>>>>>: %s", logmsg);
 	else /* default to level "error"  */
 		SB_LOG(SB_LOGLEVEL_ERROR, "%s", logmsg);
 

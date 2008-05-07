@@ -54,6 +54,7 @@ time_t get_sb2_timestamp(void);
 #define SB_LOGLEVEL_INFO	5
 #define SB_LOGLEVEL_DEBUG	8
 #define SB_LOGLEVEL_NOISE	9
+#define SB_LOGLEVEL_NOISE2	10
 
 extern void sblog_init(void);
 extern void sblog_vprintf_line_to_logfile(const char *file, int line,

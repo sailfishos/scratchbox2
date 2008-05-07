@@ -63,12 +63,10 @@ GATE: FTS * fts_open (char * const *path_argv, int options, \
 	int (*compar)(const FTSENT **, const FTSENT **))
 #endif
 GATE: int glob (const char *pattern, int flags, \
-	int (*errfunc) (const char *, int), glob_t *pglob) : \
-	map(pattern)
+	int (*errfunc) (const char *, int), glob_t *pglob) :
 #ifdef HAVE_GLOB64
 GATE: int glob64 (const char *pattern, int flags, \
-	int (*errfunc) (const char *, int), glob64_t *pglob) : \
-	map(pattern)
+	int (*errfunc) (const char *, int), glob64_t *pglob) :
 #endif
 
 --    These gates just log what happened:
@@ -119,9 +117,12 @@ WRAP: int openat64(int dirfd, const char *pathname, int flags, ...) : \
 --    ---------------
 --
 
-WRAP: int __lxstat(int ver, const char *filename, struct stat *buf) : map(filename)
+WRAP: int __lxstat(int ver, const char *filename, struct stat *buf) : \
+	dont_resolve_final_symlink map(filename)
+
 #ifdef HAVE___LXSTAT64
-WRAP: int __lxstat64(int ver, const char *filename, struct stat64 *buf) : map(filename)
+WRAP: int __lxstat64(int ver, const char *filename, struct stat64 *buf) : \
+	dont_resolve_final_symlink map(filename)
 #endif
 
 -- N.B. 2nd parameter of '__opendir2' is bufsize, at least on 
@@ -129,7 +130,7 @@ WRAP: int __lxstat64(int ver, const char *filename, struct stat64 *buf) : map(fi
 WRAP: DIR *__opendir2(const char *name, int flags) : map(name)
 
 WRAP: int __xmknod(int ver, const char *path, mode_t mode, dev_t *dev) : \
-	map(path) fail_if_readonly(path,-1,EROFS)
+	dont_resolve_final_symlink map(path) fail_if_readonly(path,-1,EROFS)
 
 WRAP: int __xstat(int ver, const char *filename, struct stat *buf) : map(filename)
 #ifdef HAVE___XSTAT64
@@ -225,13 +226,18 @@ WRAP: int getattrlist(const char* path, struct attrlist * attrList, \
 WRAP: ssize_t getxattr(const char *path, const char *name, void *value, size_t size, u_int32_t position, int options) : map(path)
 #endif
 WRAP: int glob_pattern_p(const char *pattern, int quote) : map(pattern)
+
 WRAP: int lchmod(const char *path, mode_t mode) : \
-	map(path) fail_if_readonly(path,-1,EROFS)
+	dont_resolve_final_symlink map(path) fail_if_readonly(path,-1,EROFS)
+
 WRAP: int lchown(const char *path, uid_t owner, gid_t group) : \
-	map(path) fail_if_readonly(path,-1,EROFS)
+	dont_resolve_final_symlink map(path) fail_if_readonly(path,-1,EROFS)
+
 #ifdef HAVE_LGETXATTR
-WRAP: ssize_t lgetxattr(const char *path, const char *name, void *value, size_t size) : map(path)
+WRAP: ssize_t lgetxattr(const char *path, const char *name, void *value, size_t size) : \
+	dont_resolve_final_symlink map(path)
 #endif
+
 WRAP: int link(const char *oldpath, const char *newpath) : \
 	map(oldpath) map(newpath) \
 	fail_if_readonly(oldpath,-1,EROFS) \
@@ -250,23 +256,33 @@ WRAP: ssize_t listxattr(const char *path, char *list, size_t size) : map(path)
 WRAP: ssize_t listxattr(const char *path, char *list, size_t size, int options) : map(path)
 #endif
 #endif
+
 #ifdef HAVE_LLISTXATTR
-WRAP: ssize_t llistxattr(const char *path, char *list, size_t size) : map(path)
+WRAP: ssize_t llistxattr(const char *path, char *list, size_t size) : \
+	dont_resolve_final_symlink map(path)
 #endif
+
 #ifdef HAVE_LREMOVEXATTR
 WRAP: int lremovexattr(const char *path, const char *name) : \
-	map(path) fail_if_readonly(path,-1,EROFS)
+	dont_resolve_final_symlink map(path) fail_if_readonly(path,-1,EROFS)
 #endif
 #ifdef HAVE_LSETXATTR
 WRAP: int lsetxattr(const char *path, const char *name, const void *value, size_t size, int flags) : \
-	map(path) fail_if_readonly(path,-1,EROFS)
+	dont_resolve_final_symlink map(path) fail_if_readonly(path,-1,EROFS)
 #endif
-WRAP: int lstat(const char *file_name, struct stat *buf) : map(file_name)
+
+WRAP: int lstat(const char *file_name, struct stat *buf) : \
+	dont_resolve_final_symlink map(file_name)
+
 #ifdef HAVE_LSTAT64
-WRAP: int lstat64(const char *file_name, struct stat64 *buf) : map(file_name)
+WRAP: int lstat64(const char *file_name, struct stat64 *buf) : \
+	dont_resolve_final_symlink map(file_name)
 #endif
+
 WRAP: int lutimes(const char *filename, const struct timeval tv[2]) : \
-	map(filename) fail_if_readonly(filename,-1,EROFS)
+	dont_resolve_final_symlink map(filename) \
+	fail_if_readonly(filename,-1,EROFS)
+
 WRAP: int mkdir(const char *pathname, mode_t mode) : \
 	map(pathname) fail_if_readonly(pathname,-1,EROFS)
 WRAP: int mkdirat(int dirfd, const char *pathname, mode_t mode) : \
@@ -285,8 +301,13 @@ WRAP: int nftw64(const char *dir, int (*fn)(const char *file, const struct stat6
 #endif
 WRAP: DIR *opendir(const char *name) : map(name)
 WRAP: long pathconf(const char *path, int name) : map(path)
-WRAP: READLINK_TYPE readlink(const char *path, char *buf, size_t bufsize) : map(path)
-WRAP: READLINK_TYPE readlinkat(int dirfd, const char *pathname, char *buf, size_t bufsize) : map_at(dirfd,pathname)
+
+WRAP: READLINK_TYPE readlink(const char *path, char *buf, size_t bufsize) : \
+	dont_resolve_final_symlink map(path)
+
+WRAP: READLINK_TYPE readlinkat(int dirfd, const char *pathname, char *buf, size_t bufsize) : \
+	dont_resolve_final_symlink map_at(dirfd,pathname)
+
 WRAP: char *realpath(const char *name, char *resolved) : map(name) returns_string
 WRAP: int remove(const char *pathname) : \
 	map(pathname) fail_if_readonly(pathname,-1,EROFS)
@@ -301,12 +322,14 @@ WRAP: int removexattr(const char *path, const char *name, int options) : \
 #endif
 #endif
 WRAP: int rename(const char *oldpath, const char *newpath) : \
-	map(oldpath) map(newpath) \
+	dont_resolve_final_symlink map(oldpath) \
+	dont_resolve_final_symlink map(newpath) \
 	fail_if_readonly(oldpath,-1,EROFS) \
 	fail_if_readonly(newpath,-1,EROFS)
 WRAP: int renameat(int olddirfd, const char *oldpath, int newdirfd, \
 	const char *newpath) : \
-	map_at(olddirfd,oldpath) map_at(newdirfd,newpath) \
+	dont_resolve_final_symlink map_at(olddirfd,oldpath) \
+	dont_resolve_final_symlink map_at(newdirfd,newpath) \
 	fail_if_readonly(oldpath,-1,EROFS) \
 	fail_if_readonly(newpath,-1,EROFS)
 
@@ -351,12 +374,15 @@ WRAP: int stat(const char *file_name, struct stat *buf) : map(file_name)
 WRAP: int stat64(const char *file_name, struct stat64 *buf) : map(file_name)
 #endif
 
+-- symlink and symlinkat:
+-- * "oldpath" is the string that will be contents of the symlink, and
+--   it must not mapped now when SB2 resolves symlinks
+-- * "newpath" is location where the symlink will be created.
 WRAP: int symlink(const char *oldpath, const char *newpath) : \
-	map(oldpath) map(newpath) \
+	dont_resolve_final_symlink map(newpath) \
 	fail_if_readonly(newpath,-1,EROFS)
-
 WRAP: int symlinkat(const char *oldpath, int newdirfd, const char *newpath) : \
-	map(oldpath) map_at(newdirfd,newpath) \
+	dont_resolve_final_symlink map_at(newdirfd,newpath) \
 	fail_if_readonly(newpath,-1,EROFS)
 
 WRAP: char *tempnam(const char *dir, const char *pfx) : map(dir) returns_string
@@ -368,10 +394,10 @@ WRAP: int truncate64(const char *path, off64_t length) : \
 #endif
 
 WRAP: int unlink(const char *pathname) : \
-	map(pathname) \
+	dont_resolve_final_symlink map(pathname) \
 	fail_if_readonly(pathname,-1,EROFS)
 WRAP: int unlinkat(int dirfd, const char *pathname, int flags) : \
-	map_at(dirfd,pathname) \
+	dont_resolve_final_symlink map_at(dirfd,pathname) \
 	fail_if_readonly(pathname,-1,EROFS)
 
 WRAP: int utime(const char *filename, const struct utimbuf *buf) : \

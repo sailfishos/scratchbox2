@@ -677,7 +677,7 @@ static int run_hashbang(
 	}
 
 	mapped_interpreter = scratchbox_path("execve", interpreter, 
-		NULL/*RO-flag addr.*/);
+		NULL/*RO-flag addr.*/, 0/*dont_resolve_final_symlink*/);
 	SB_LOG(SB_LOGLEVEL_DEBUG, "run_hashbang(): interpreter=%s,"
 			"mapped_interpreter=%s", interpreter,
 			mapped_interpreter);
@@ -870,7 +870,7 @@ int do_exec(const char *exec_fn_name, const char *file,
 	 */
 
 	mapped_file = scratchbox_path("do_exec", *my_file,
-		NULL/*RO-flag addr.*/);
+		NULL/*RO-flag addr.*/, 0/*dont_resolve_final_symlink*/);
 	SB_LOG(SB_LOGLEVEL_DEBUG, 
 		"do_exec(): *my_file = %s, mapped_file = %s", 
 		*my_file, mapped_file);

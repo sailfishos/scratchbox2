@@ -232,6 +232,10 @@ simple_chain = {
 		 log_level = "warning",
 		 readonly = true},
 
+		-- otherwise, don't map /scratchbox, some people still
+		-- keep their projects there.
+		{prefix = "/scratchbox", use_orig_path = true},
+
 		-- -----------------------------------------------
 		-- 100. DEFAULT RULES:
 		-- the root directory itself must not be mapped:

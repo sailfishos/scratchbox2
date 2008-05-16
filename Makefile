@@ -96,6 +96,9 @@ install-noarch: $(BUILD_TARGET)
 	install -c -m 755 $(SRCDIR)/utils/sb2-init $(prefix)/bin/sb2-init
 	install -c -m 755 $(SRCDIR)/utils/sb2-config $(prefix)/bin/sb2-config
 	install -c -m 755 $(SRCDIR)/utils/sb2-build-libtool $(prefix)/bin/sb2-build-libtool
+	install -c -m 755 $(SRCDIR)/utils/sb2-build-qemuserver $(prefix)/bin/sb2-build-qemuserver
+	install -c -m 755 $(SRCDIR)/utils/sb2-mkinitramfs $(prefix)/bin/sb2-mkinitramfs
+	install -c -m 755 $(SRCDIR)/utils/sb2-start-qemuserver $(prefix)/bin/sb2-start-qemuserver
 	install -c -m 755 $(SRCDIR)/utils/deb-pkg-tools-wrapper $(prefix)/share/scratchbox2/scripts/dpkg
 	install -c -m 755 $(SRCDIR)/utils/deb-pkg-tools-wrapper $(prefix)/share/scratchbox2/scripts/apt-get
 	install -c -m 755 $(SRCDIR)/utils/dpkg-checkbuilddeps $(prefix)/share/scratchbox2/scripts/dpkg-checkbuilddeps

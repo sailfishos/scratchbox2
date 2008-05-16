@@ -40,12 +40,16 @@ endef
 
 define import_dir
 	subdirs := 
+	subdirs-y :=
 	objects :=
+	objects-y :=
 	D := $(1)
 	include $(1)/Makefile
 	dep_files := $$(wildcard $(1)/.*.d)
 	include $(dep_files)
-	all-objects := $$(all-objects) $$(patsubst %,$(1)/%,$$(objects))
+	all_objects := $$(all_objects) $$(patsubst %,$(1)/%,$$(objects))
+	all_objects := $$(all_objects) $$(patsubst %,$(1)/%,$$(objects-y))
+	subdirs := $$(subdirs) $$(subdirs-y)
 	tmp := $$(patsubst %,$(1)/%,$$(subdirs))
 	perkele := $$(foreach dir,$$(tmp),$$(eval $$(call import_dir,$$(dir))))
 endef
@@ -53,7 +57,6 @@ endef
 $(foreach dir,$(subdirs),$(eval $(call import_dir,$(dir))))
 
 
-all_objects := $(obj-y)
 all_objects += $(foreach t,$(extra_targets),$($(t)))
 
 MKOUTPUTDIR = @mkdir -p $(dir $@)

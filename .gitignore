@@ -21,3 +21,4 @@ obj-32
 obj-64
 .configure-multilib
 utils/sb2-show
+utils/sb2-monitor

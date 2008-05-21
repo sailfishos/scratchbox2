@@ -290,7 +290,7 @@ function find_rule(chain, func, full_path)
 		for i = 1, table.maxn(wrk.rules) do
 			-- loop the rules in a chain
 			if ((not wrk.rules[i].func_name 
-				or func == wrk.rules[i].func_name)) then
+				or string.match(func, wrk.rules[i].func_name))) then
 				-- "prefix" rules:
 				-- compare prefix (only if a non-zero prefix)
 				if (wrk.rules[i].prefix and

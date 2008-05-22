@@ -224,13 +224,13 @@ int run_cputransparency(const char *file, const char *unmapped_file,
 
 static int is_subdir(const char *root, const char *subdir)
 {
-	size_t sublen;
+	size_t rootlen;
 
 	if (strstr(subdir, root) != subdir)
 		return 0;
 
-	sublen = strlen(subdir);
-	return root[sublen] == '/' || root[sublen] == '\0';
+	rootlen = strlen(root);
+	return subdir[rootlen] == '/' || subdir[rootlen] == '\0';
 }
 
 int run_sbrsh(const char *sbrsh_bin, char *const *sbrsh_args,

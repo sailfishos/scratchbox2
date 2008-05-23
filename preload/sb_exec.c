@@ -253,14 +253,17 @@ int run_sbrsh(const char *sbrsh_bin, char *const *sbrsh_args,
 
 	file = strdup(orig_file);
 	if (file[0] == '/') {
-		if (strstr(file, target_root) != file) {
-			fprintf(stderr, "Binary must be under target (%s)"
-			        " when using sbrsh\n", target_root);
+		if (is_subdir(target_root, file)) {
+			file += len;
+		} else if (is_subdir(getenv("HOME"), file)) {
+			/* no change */
+		} else {
+			fprintf(stderr, "Binary must be under target (%s) or"
+			        " home when using sbrsh\n", target_root);
 			errno = ENOTDIR;
 			free(file);
 			return -1;
 		}
-		file += len;
 	}
 
 	dir = get_current_dir_name();

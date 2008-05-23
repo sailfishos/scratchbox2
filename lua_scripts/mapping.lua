@@ -261,12 +261,16 @@ function sbox_execute_rule(binary_name, func_name, work_dir, rp, path, rule)
 		ret_path, ret_ro = sbox_execute_conditional_actions(binary_name,
 			func_name, work_dir, rp, path, rule)
 	elseif (rule.map_to) then
-		ret_path = rule.map_to .. path
+		if (rule.map_to == "/") then
+			ret_path = path
+		else
+			ret_path = rule.map_to .. path
+		end
 	elseif (rule.replace_by) then
 		ret_path = sbox_execute_replace_rule(path, rule.replace_by, rule)
 	else
 		ret_path = path
-		sb.log("error", "mapping rule uses does not have any valid actions, path="..path)
+		sb.log("error", "mapping rule used does not have any valid actions, path="..path)
 	end
 	
 	return ret_path, ret_ro

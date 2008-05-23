@@ -79,8 +79,6 @@ GATE: void _Exit(int status)
 --
 
 WRAP: char *tmpnam (char *s) : returns_string
-WRAP: int mkstemp (char *template)
-WRAP: int mkstemp64 (char *template)
 WRAP: char *mktemp (char *template) : returns_string
 
 --
@@ -296,6 +294,8 @@ WRAP: int mknod(const char *pathname, mode_t mode, dev_t dev) : \
 	map(pathname) fail_if_readonly(pathname,-1,EROFS)
 WRAP: int mknodat(int dirfd, const char *pathname, mode_t mode, dev_t dev) : \
 	map_at(dirfd,pathname) fail_if_readonly(pathname,-1,EROFS)
+WRAP: int mkstemp(char *template) : map(template) fail_if_readonly(template,-1,EROFS)
+WRAP: int mkstemp64(char *template) : map(template) fail_if_readonly(template,-1,EROFS)
 WRAP: int nftw(const char *dir, int (*fn)(const char *file, const struct stat *sb, int flag, struct FTW *s), int nopenfd, int flags) : map(dir)
 #ifdef HAVE_NFTW64
 WRAP: int nftw64(const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag, struct FTW *s), int nopenfd, int flags) : map(dir)

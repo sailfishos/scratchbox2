@@ -53,7 +53,7 @@ simple_chain = {
 
 		{path = "/bin/sh",
 		 replace_by = tools .. "/bin/bash", readonly = true},
-		{path = "/usr/bin/host-",
+		{prefix = "/usr/bin/host-",
 		 use_orig_path = true, readonly = true},
 
 		-- -----------------------------------------------

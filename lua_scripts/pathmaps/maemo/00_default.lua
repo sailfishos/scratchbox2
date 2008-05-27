@@ -173,6 +173,7 @@ simple_chain = {
 		{prefix = "/etc/gconf/2", map_to = target_root},
 		{prefix = "/etc/dbus-1", map_to = target_root},
 		{prefix = "/etc/osso-af-init", map_to = target_root},
+		{prefix = "/etc/gtk-2.0", map_to = target_root},
 
 		{prefix = "/etc/apt", map_to = target_root},
 

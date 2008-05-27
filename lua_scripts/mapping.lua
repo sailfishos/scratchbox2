@@ -21,6 +21,7 @@ end
 
 debug = os.getenv("SBOX_MAPPING_DEBUG")
 
+debug_messages_enabled = sb.debug_messages_enabled()
 
 -- SBOX_LUA_SCRIPTS environment variable controls where
 -- we look for the scriptlets defining the path mappings
@@ -159,25 +160,35 @@ end
 function sbox_execute_replace_rule(path, replacement, rule)
 	local ret = nil
 
-	sb.log("debug", string.format("replace:%s:%s", path, replacement))
+	if (debug_messages_enabled) then
+		sb.log("debug", string.format("replace:%s:%s", path, replacement))
+	end
 	if (rule.prefix) then
 		-- "path" may be shorter than prefix during path resolution
 		if ((rule.prefix ~= "") and
 		    (isprefix(rule.prefix, path))) then
 			ret = replacement .. string.sub(path, string.len(rule.prefix)+1)
-			sb.log("debug", string.format("replaced (prefix) => %s", ret))
+			if (debug_messages_enabled) then
+				sb.log("debug", string.format("replaced (prefix) => %s", ret))
+			end
 		else
 			ret = ""
-			sb.log("debug", string.format("replacement failed (short path?)"))
+			if (debug_messages_enabled) then
+				sb.log("debug", string.format("replacement failed (short path?)"))
+			end
 		end
 	elseif (rule.path) then
 		-- "path" may be shorter than prefix during path resolution
 		if (rule.path == path) then
 			ret = replacement
-			sb.log("debug", string.format("replaced (path) => %s", ret))
+			if (debug_messages_enabled) then
+				sb.log("debug", string.format("replaced (path) => %s", ret))
+			end
 		else
 			ret = ""
-			sb.log("debug", string.format("replacement failed (short path?)"))
+			if (debug_messages_enabled) then
+				sb.log("debug", string.format("replacement failed (short path?)"))
+			end
 		end
 	else
 		sb.log("error", "error in rule: can't replace without 'prefix' or 'path'")
@@ -194,7 +205,9 @@ function sbox_execute_conditional_actions(binary_name,
 
 	local a
 	for a = 1, table.maxn(actions) do
-		sb.log("debug", string.format("try %d", a))
+		if (debug_messages_enabled) then
+			sb.log("debug", string.format("try %d", a))
+		end
 
 		local ret_ro = false
 		if (actions[a].readonly) then
@@ -219,7 +232,9 @@ function sbox_execute_conditional_actions(binary_name,
 		end
 		if (tmp_dest ~= nil) then
 			if (sb.path_exists(tmp_dest)) then
-				sb.log("debug", string.format("target exists: => %s", tmp_dest))
+				if (debug_messages_enabled) then
+					sb.log("debug", string.format("target exists: => %s", tmp_dest))
+				end
 				return tmp_dest, ret_ro
 			end
 		else
@@ -263,7 +278,9 @@ function find_rule(chain, func, full_path)
 	local i = 0
 	local wrk = chain
 	local min_path_len = 0
-	sb.log("noise", string.format("find_rule for (%s)", full_path))
+	if (debug_messages_enabled) then
+		sb.log("noise", string.format("find_rule for (%s)", full_path))
+	end
 	while (wrk) do
 		-- travel the chains
 		for i = 1, table.maxn(wrk.rules) do
@@ -275,13 +292,17 @@ function find_rule(chain, func, full_path)
 				if (wrk.rules[i].prefix and
 				    (wrk.rules[i].prefix ~= "") and
 				    (isprefix(wrk.rules[i].prefix, full_path))) then
-					sb.log("noise", string.format("selected prefix rule %d (%s)", i, wrk.rules[i].prefix))
+					if (debug_messages_enabled) then
+						sb.log("noise", string.format("selected prefix rule %d (%s)", i, wrk.rules[i].prefix))
+					end
 					min_path_len = string.len(wrk.rules[i].prefix)
 					return wrk.rules[i], min_path_len
 				end
 				-- "path" rules: (exact match)
 				if (wrk.rules[i].path == full_path) then
-					sb.log("noise", string.format("selected path rule %d (%s)", i, wrk.rules[i].path))
+					if (debug_messages_enabled) then
+						sb.log("noise", string.format("selected path rule %d (%s)", i, wrk.rules[i].path))
+					end
 					min_path_len = string.len(wrk.rules[i].path)
 					return wrk.rules[i], min_path_len
 				end
@@ -291,7 +312,9 @@ function find_rule(chain, func, full_path)
 				-- is not possible as long as there are "match" rules)
 				if (wrk.rules[i].match) then
 					if (string.match(full_path, wrk.rules[i].match)) then
-						sb.log("noise", string.format("selected match rule %d (%s)", i, wrk.rules[i].match))
+						if (debug_messages_enabled) then
+							sb.log("noise", string.format("selected match rule %d (%s)", i, wrk.rules[i].match))
+						end
 						-- there is no easy and reliable
 						-- way to determine min_path_len
 						-- so leave it to zero
@@ -305,7 +328,9 @@ function find_rule(chain, func, full_path)
 		end
 		wrk = wrk.next_chain
 	end
-	sb.log("noise", string.format("rule not found"))
+	if (debug_messages_enabled) then
+		sb.log("noise", string.format("rule not found"))
+	end
 	return nil, 0
 end
 
@@ -340,13 +365,6 @@ function map_using_chain(chain, binary_name, func_name, work_dir, path, full_pat
 		end
 	else
 		ret, readonly_flag = sbox_execute_rule(binary_name, func_name, work_dir, rp, path, rule)
-		if (debug) then
-			if(path == ret) then
-				-- sb.log("debug", string.format("[%s][%s] %s(%s) [==]", basename(rule.lua_script), rule.binary_name, func_name, path))
-			else
-				-- sb.log("debug", string.format("[%s][%s] %s(%s) -> (%s)", basename(rule.lua_script), rule.binary_name, func_name, path, ret))
-			end
-		end
 	end
 	return ret, readonly_flag
 end

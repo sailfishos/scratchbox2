@@ -391,6 +391,20 @@ static int lua_sb_path_exists(lua_State *l)
 	return 1;
 }
 
+/* "sb.debug_messages_enabled", to be called from lua code
+ * returns true if SB_LOG messages have been enabled for the debug levels
+ * (debug,noise,noise2...)
+*/
+static int lua_sb_debug_messages_enabled(lua_State *l)
+{
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
+		lua_pushboolean(l, 1);
+	} else {
+		lua_pushboolean(l, 0);
+	}
+	return 1;
+}
+
 /* mappings from c to lua */
 static const luaL_reg reg[] =
 {
@@ -400,6 +414,7 @@ static const luaL_reg reg[] =
 	{"log",				lua_sb_log},
 	{"setenv",			lua_sb_setenv},
 	{"path_exists",			lua_sb_path_exists},
+	{"debug_messages_enabled",	lua_sb_debug_messages_enabled},
 	{NULL,				NULL}
 };
 

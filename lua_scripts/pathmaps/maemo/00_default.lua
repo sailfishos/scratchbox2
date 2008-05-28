@@ -35,6 +35,8 @@ simple_chain = {
 		 use_orig_path = true, readonly = true},
 		{prefix = "/opt/maemo",
 		 use_orig_path = true, readonly = true},
+		{prefix = "/usr/share/scratchbox2/host_usr",
+		 replace_by = "/usr", readonly = true},
 		{prefix = "/usr/share/scratchbox2",
 		 use_orig_path = true, readonly = true},
 

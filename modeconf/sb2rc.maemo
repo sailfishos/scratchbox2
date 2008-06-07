@@ -5,6 +5,8 @@
 # This is used by "sb2-check-pkg-mappings":
 # N.B. *bin directories needs to be ignored, because there are many
 # lib*-dev -packages that want to add some configurations tools to /usr/bin, etc
+# N.B2: /usr/share/zoneinfo/localtime is typically a symlink to /etc/localtime
+# and needs to be ignored
 SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST=" \
 	/usr/bin /usr/sbin /sbin \
 	/etc \
@@ -17,8 +19,10 @@ SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST=" \
 	/usr/share/info \
 	/usr/share/sgml \
 	/usr/share/perl5 \
+	/usr/share/gconf \
 	/usr/share/base-passwd \
 	/usr/share/lintian/overrides/dpkg-dev \
+	/usr/share/zoneinfo/localtime \
 	/usr/lib/dpkg "
 
 # This is for the "dpkg" wrapper:

@@ -317,6 +317,10 @@ case "$ARCH" in
 	ppc*) ;;
 	mips*) ;;
 	sh*) ;;
+	i386*) ;;
+	i486*) ;;
+	i586*) ;;
+	i686*) ;;
 	*)
 		echo "Unsupported target architecture: $ARCH"
 		echo "You must add support for it into preload/sb_exec.c"

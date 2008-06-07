@@ -114,12 +114,12 @@ export SBOX_EXTRA_CROSS_LD_ARGS="-rpath-link $SBOX_TARGET_ROOT/usr/lib:$SBOX_TAR
 export DEB_BUILD_ARCH_CPU=$DEBIAN_CPU
 export DEB_BUILD_ARCH=$DEBIAN_CPU
 export DEB_BUILD_GNU_CPU=$ARCH
-export DEB_BUILD_GNU_TYPE=$ARCH-linux-gnu
+export DEB_BUILD_GNU_TYPE=$SB2INIT_DEB_BUILD_GNU_TYPE
 
 export DEB_HOST_ARCH_CPU=$DEBIAN_CPU
 export DEB_HOST_ARCH=$DEBIAN_CPU
 export DEB_HOST_GNU_CPU=$ARCH
-export DEB_HOST_GNU_TYPE=$ARCH-linux-gnu
+export DEB_HOST_GNU_TYPE=$SB2INIT_DEB_HOST_GNU_TYPE
 
 export SBOX_HOST_GCC_NAME=host-gcc
 export SBOX_HOST_GCC_PREFIX_LIST=host-
@@ -283,6 +283,19 @@ else
 		echo "Target architecture set to $ARCH"
 	fi
 fi
+
+# defaults for SB2_INIT_DEB_BUILD_GNU_TYPE and SB2_INIT_DEB_HOST_GNU_TYPE, 
+# these may be changed by sb2rc.$MAPPING_MODE
+SB2INIT_DEB_BUILD_GNU_TYPE=$ARCH-linux-gnu
+SB2INIT_DEB_HOST_GNU_TYPE=$ARCH-linux-gnu
+
+# $ARCH has been set, get mode-specific settings..
+if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$MAPPING_MODE ]
+then
+	echo "Reading mode-specific settings.."
+	. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$MAPPING_MODE
+fi
+
 
 DEBIAN_CPU=$ARCH
 if [ -z "$CPUTRANSP" ]; then

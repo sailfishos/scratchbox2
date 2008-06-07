@@ -29,3 +29,11 @@ SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST=" \
 SBOX_DPKG_WRAPPER_DENY_INSTALL=yes
 # and a similar setting for "apt-get" wrapper:
 SBOX_APT_GET_WRAPPER_DENY_INSTALL=yes
+
+# for sb2-init:
+if [ -n "$ARCH" ]
+then
+	SB2INIT_DEB_BUILD_GNU_TYPE=$ARCH-linux-gnueabi
+	SB2INIT_DEB_HOST_GNU_TYPE=$ARCH-linux-gnueabi
+fi
+ 

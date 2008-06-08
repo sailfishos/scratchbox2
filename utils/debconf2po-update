@@ -1,0 +1,9 @@
+#!/bin/bash
+
+echo "Warning: debconf2po-update has been replaced by debconf-updatepo a long"
+echo "         time ago, and transition phase is over. You should update your"
+echo "         config to use the new name... SB2 is going to execute"
+echo "         'debconf-updatepo' now."
+
+exec debconf-updatepo $*
+

@@ -416,6 +416,10 @@ char * getwd_gate(
 	return cwd;
 }
 
+/* "SB2_WRAP_GLOB" needs to be defined on systems where the C library
+ * is not based on glibc (or not compatible with glob() from glibc 2.7)
+*/
+#ifdef SB2_WRAP_GLOB
 static char *check_and_prepare_glob_pattern(
 	const char *realfnname,
 	const char *pattern)
@@ -440,6 +444,7 @@ static char *check_and_prepare_glob_pattern(
 	}
 	return(mapped__pattern);
 }
+#endif
 
 int glob_gate(
 	int (*real_glob_ptr)(const char *pattern, int flags,
@@ -451,12 +456,30 @@ int glob_gate(
 	glob_t *pglob)
 {
 	int rc;
+#ifdef SB2_WRAP_GLOB
 	char *mapped__pattern;
 
 	mapped__pattern = check_and_prepare_glob_pattern(realfnname, pattern);
 	rc = (*real_glob_ptr)(mapped__pattern ? mapped__pattern : pattern,
 		flags, errfunc, pglob);
 	if (mapped__pattern) free(mapped__pattern);
+#else
+	/* glob() has been replaced by a modified copy (from glibc) */
+	unsigned int	i;
+
+	(void)real_glob_ptr; /* not used */
+
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: pattern='%s' gl_offs=%d, flags=0x%X",
+		realfnname, pattern, pglob->gl_offs, flags);
+	rc = do_glob(pattern, flags, errfunc, pglob);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: returns %d (gl_pathc=%d)",
+		realfnname, rc, pglob->gl_pathc);
+	for (i=0; i < pglob->gl_pathc; i++) {
+		char *cp = pglob->gl_pathv[i + pglob->gl_offs];
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: [%d='%s']",
+			realfnname, i, cp ? cp : "<NULL>");
+	}
+#endif
 	
 	return rc;
 }
@@ -472,12 +495,30 @@ int glob64_gate(
 	glob64_t *pglob)
 {
 	int rc;
+#ifdef SB2_WRAP_GLOB
 	char *mapped__pattern;
 
 	mapped__pattern = check_and_prepare_glob_pattern(realfnname, pattern);
 	rc = (*real_glob64_ptr)(mapped__pattern ? mapped__pattern : pattern,
 		flags, errfunc, pglob);
 	if (mapped__pattern) free(mapped__pattern);
+#else
+	/* glob64() has been replaced by a modified copy (from glibc) */
+	unsigned int i;
+
+	(void)real_glob64_ptr; /* not used */
+
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: pattern='%s' gl_offs=%d, flags=0x%X",
+		realfnname, pattern, pglob->gl_offs, flags);
+	rc = do_glob64(pattern, flags, errfunc, pglob);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: returns %d (gl_pathc=%d)",
+		realfnname, rc, pglob->gl_pathc);
+	for (i=0; i < pglob->gl_pathc; i++) {
+		char *cp = pglob->gl_pathv[i + pglob->gl_offs];
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: [%d='%s']",
+			realfnname, i, cp ? cp : "<NULL>");
+	}
+#endif
 
 	return rc;
 }

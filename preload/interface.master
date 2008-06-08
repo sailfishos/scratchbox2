@@ -225,7 +225,8 @@ WRAP: int getattrlist(const char* path, struct attrlist * attrList, \
 	map(path)
 WRAP: ssize_t getxattr(const char *path, const char *name, void *value, size_t size, u_int32_t position, int options) : map(path)
 #endif
-WRAP: int glob_pattern_p(const char *pattern, int quote) : map(pattern)
+
+EXPORT: int glob_pattern_p(const char *pattern, int quote)
 
 WRAP: int lchmod(const char *path, mode_t mode) : \
 	dont_resolve_final_symlink map(path) fail_if_readonly(path,-1,EROFS)

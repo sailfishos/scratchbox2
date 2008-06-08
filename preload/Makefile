@@ -1,4 +1,4 @@
-objs := wrappers.o libsb2.o sb_exec.o
+objs := wrappers.o libsb2.o sb_exec.o glob.o glob64.o
 
 ifeq ($(shell uname -s),Linux)
 LIBSB2_LDFLAGS = -Wl,-soname=$(LIBSB2_SONAME) \

@@ -82,7 +82,8 @@ simple_chain = {
 
 		-- -----------------------------------------------
 		-- 45. /usr/share/aclocal*
-		-- This is a bit complex, we must mix files from both places:
+		-- This is more than a bit complex, we must mix files from
+		-- both places:
 		-- Prefer files in tools_root, but if not there, try
 		-- to get it from target_root. New files will be created
 		-- to target_root.
@@ -104,6 +105,16 @@ simple_chain = {
 		 actions = test_first_target_then_tools_default_is_target},
 		{path = "/usr/share/aclocal-1.10",
 		 actions = test_first_target_then_tools_default_is_target},
+
+		-- Next, exceptions to these rules:
+		-- 1) gnome-common presents policy problems, typically we
+		--    have it in both places but want to take it from the
+		--    rootstrap:
+		{prefix = "/usr/share/aclocal/gnome-common",
+		 actions = test_first_target_then_tools_default_is_target},
+		{prefix = "/usr/share/aclocal/gnome-compiler",
+		 actions = test_first_target_then_tools_default_is_target},
+
 		-- Next, use /usr/share/aclocal* from tools_root if target
 		-- exists, but default is target_root
 		{prefix = "/usr/share/aclocal",
@@ -115,6 +126,10 @@ simple_chain = {
 		-- The default is to map /usr/share to tools_root,
 		-- but there are lots of exceptions. That directory
 		-- is used for so many purposes nowadays..
+
+		-- (see the comment about gnome-common files in .../aclocal):
+		{prefix = "/usr/share/gnome-common",
+		 actions = test_first_target_then_tools_default_is_target},
 
 		{prefix = "/usr/share/glib-2.0", map_to = target_root},
 		{prefix = "/usr/share/dbus-1", map_to = target_root},

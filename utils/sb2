@@ -78,7 +78,7 @@ function sboxify_environment()
 	
 	. ~/.scratchbox2/$SBOX_TARGET/sb2.config
 
-	if [ "$SBOX_CONFIG_VERSION" != "6" ]; then
+	if [ "$SBOX_CONFIG_VERSION" != "7" ]; then
 		echo "Please run sb2-init for your target:"
 		echo "name: $SBOX_TARGET"
 		echo "dir:  $SBOX_TARGET_ROOT"

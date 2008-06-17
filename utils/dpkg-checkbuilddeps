@@ -105,6 +105,7 @@ function check_host_pkg()
 		if [ -n "$g" ]
 		then
 			check_result_msg="'$pkgname' is not available (ignored by configuration)"
+			installed_to_host="yes"
 			return
 		fi
 	fi

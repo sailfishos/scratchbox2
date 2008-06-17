@@ -23,7 +23,7 @@ endif
 CC = gcc
 CXX = g++
 LD = ld
-PACKAGE_VERSION = "1.99.0.24"
+PACKAGE_VERSION = "1.99.0.25"
 PACKAGE = "SB2"
 LIBSB2_SONAME = "libsb2.so.1"
 LLBUILD ?= $(SRCDIR)/llbuild
@@ -102,6 +102,7 @@ install-noarch: $(BUILD_TARGET)
 	install -c -m 755 $(SRCDIR)/utils/deb-pkg-tools-wrapper $(prefix)/share/scratchbox2/scripts/dpkg
 	install -c -m 755 $(SRCDIR)/utils/deb-pkg-tools-wrapper $(prefix)/share/scratchbox2/scripts/apt-get
 	install -c -m 755 $(SRCDIR)/utils/dpkg-checkbuilddeps $(prefix)/share/scratchbox2/scripts/dpkg-checkbuilddeps
+	install -c -m 755 $(SRCDIR)/utils/debconf2po-update $(prefix)/share/scratchbox2/scripts/debconf2po-update
 	install -c -m 755 $(SRCDIR)/utils/sb2-check-pkg-mappings $(prefix)/share/scratchbox2/scripts/sb2-check-pkg-mappings
 	install -c -m 755 $(SRCDIR)/utils/sb2-exitreport $(prefix)/share/scratchbox2/scripts/sb2-exitreport
 	install -c -m 755 $(SRCDIR)/utils/sb2-logz $(prefix)/bin/sb2-logz

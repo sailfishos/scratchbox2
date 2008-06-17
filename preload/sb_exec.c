@@ -677,7 +677,7 @@ static int run_hashbang(
 	}
 
 	mapped_interpreter = scratchbox_path("execve", interpreter, 
-		NULL/*RO-flag addr.*/);
+		NULL/*RO-flag addr.*/, 0/*dont_resolve_final_symlink*/);
 	SB_LOG(SB_LOGLEVEL_DEBUG, "run_hashbang(): interpreter=%s,"
 			"mapped_interpreter=%s", interpreter,
 			mapped_interpreter);
@@ -823,6 +823,19 @@ static void compare_and_log_strvec_changes(const char *vecname,
 	}
 }
 
+static int strvec_contains(char *const *strvec, const char *id)
+{
+	char *const *ptr2vec = strvec;
+
+	while (*ptr2vec) {
+		if (!strcmp(*ptr2vec, id)) {
+			return(1);
+		}
+		ptr2vec++;
+	}
+	return(0);
+}
+
 int do_exec(const char *exec_fn_name, const char *file,
 		char *const *argv, char *const *envp)
 {
@@ -865,18 +878,28 @@ int do_exec(const char *exec_fn_name, const char *file,
 		compare_and_log_strvec_changes("envp", *my_envp_copy, *my_envp);
 	}
 
-	/* now we have to do path mapping for *my_file to find exactly
-	 * what is the path we're supposed to deal with
-	 */
+	/* test if mapping is enabled during the exec()..
+	 * (host-* tools disable it)
+	*/
+	if (strvec_contains(*my_envp, "SBOX_DISABLE_MAPPING=1")) {
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"do_exec(): mapping disabled, *my_file = %s",
+			*my_file);
+		mapped_file = strdup(*my_file);
+	} else {
+		/* now we have to do path mapping for *my_file to find exactly
+		 * what is the path we're supposed to deal with
+		 */
 
-	mapped_file = scratchbox_path("do_exec", *my_file,
-		NULL/*RO-flag addr.*/);
-	SB_LOG(SB_LOGLEVEL_DEBUG, 
-		"do_exec(): *my_file = %s, mapped_file = %s", 
-		*my_file, mapped_file);
+		mapped_file = scratchbox_path("do_exec", *my_file,
+			NULL/*RO-flag addr.*/, 0/*dont_resolve_final_symlink*/);
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"do_exec(): *my_file = %s, mapped_file = %s",
+			*my_file, mapped_file);
+	}
 
-	type = inspect_binary(mapped_file); /* inspect the completely mangled 
-					     * filename */
+	/* inspect the completely mangled filename */
+	type = inspect_binary(mapped_file);
 
 	switch (type) {
 		case BIN_HASHBANG:

@@ -19,7 +19,7 @@ If no COMMAND is given, a bash shell in scratchbox2 environment is started.
 
 Options:
     -v           display version
-    -L level     enable logging (levels=one of error,warning,notice,info,debug,noise)
+    -L level     enable logging (levels=one of error,warning,notice,info,debug,noise,noise2)
     -d           debug mode: log all redirections (logging level=debug)
     -h           print this help
     -t TARGET    target to use, use sb2-config -d TARGET to set a default
@@ -78,7 +78,7 @@ function sboxify_environment()
 	
 	. ~/.scratchbox2/$SBOX_TARGET/sb2.config
 
-	if [ "$SBOX_CONFIG_VERSION" != "5" ]; then
+	if [ "$SBOX_CONFIG_VERSION" != "7" ]; then
 		echo "Please run sb2-init for your target:"
 		echo "name: $SBOX_TARGET"
 		echo "dir:  $SBOX_TARGET_ROOT"
@@ -166,7 +166,7 @@ shift $(($OPTIND - 1))
 if [ "$SBOX_MAPPING_DEBUG" == "1" ]; then
 	# check that loglevel is valid
 	case $SBOX_MAPPING_LOGLEVEL in
-	(error|warning|notice|info|debug|noise)	;; # OK
+	(error|warning|notice|info|debug|noise|noise2)	;; # OK
 	(*) usage ;;
 	esac
 else

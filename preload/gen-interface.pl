@@ -54,6 +54,12 @@
 #     provided check). "varname" must be the same name which was specified
 #     to map() or map_at(). "error_code" will be assigned to errno, and
 #     the failure will always be logged (SB_LOG_NOTICE level)
+#   - "dont_resolve_final_symlink" is used to prefix "map" modifiers where the
+#     final symbolic link should not be followed, because the call operates
+#     on the symlink itself (for example, see the difference between stat() and
+#     lstat()). NOTE: THIS MUST BE USED BEFORE THE map() OR map_at() MODIFIERS!
+#   - "resolve_final_symlink" is the opposite of "dont_resolve_final_symlink"
+#     (and it is on by default)
 #
 # For "WRAP" only:
 #   - "create_nomap_nolog_version" creates a direct interface function to the
@@ -428,6 +434,7 @@ sub process_wrap_or_gate_modifiers {
 		'va_list_handler_code' => "",
 		'va_list_end_code' => "",
 		'mapped_params_by_orig_name' => {},
+		'dont_resolve_final_symlink' => 0,
 
 		# processing modifiers may change the parameter list
 		# (but always we'll start with a copy of the original names)
@@ -453,6 +460,7 @@ sub process_wrap_or_gate_modifiers {
 
 			my $new_name = "mapped__".$param_to_be_mapped;
 			my $ro_flag = $param_to_be_mapped."_is_readonly";
+			my $no_symlink_resolve = $mods->{'dont_resolve_final_symlink'};
 
 			$mods->{'mapped_params_by_orig_name'}->{$param_to_be_mapped} = $new_name;
 			$mods->{'path_mapping_vars'} .= 
@@ -460,7 +468,8 @@ sub process_wrap_or_gate_modifiers {
 				"\tint $ro_flag = 0;\n";
 			$mods->{'path_mapping_code'} .=
 				"\tSBOX_MAP_PATH($param_to_be_mapped, ".
-					"$new_name, &$ro_flag);\n";
+					"$new_name, &$ro_flag, ".
+					"$no_symlink_resolve);\n";
 			$mods->{'free_path_mapping_vars_code'} .=
 				"\tif($new_name) free($new_name);\n";
 
@@ -473,6 +482,7 @@ sub process_wrap_or_gate_modifiers {
 
 			my $new_name = "mapped__".$param_to_be_mapped;
 			my $ro_flag = $param_to_be_mapped."_is_readonly";
+			my $no_symlink_resolve = $mods->{'dont_resolve_final_symlink'};
 
 			$mods->{'mapped_params_by_orig_name'}->{$param_to_be_mapped} = $new_name;
 			$mods->{'path_mapping_vars'} .= 
@@ -480,7 +490,8 @@ sub process_wrap_or_gate_modifiers {
 				"\tint $ro_flag = 0;\n";
 			$mods->{'path_mapping_code'} .=
 				"\tSBOX_MAP_PATH_AT($fd_param, ".
-				"$param_to_be_mapped, $new_name, &$ro_flag);\n";
+				"$param_to_be_mapped, $new_name, &$ro_flag, ".
+				"$no_symlink_resolve);\n";
 			$mods->{'free_path_mapping_vars_code'} .=
 				"\tif($new_name) free($new_name);\n";
 
@@ -521,6 +532,8 @@ sub process_wrap_or_gate_modifiers {
 				create_code_for_va_list_get_mode(
 					"", $fn->{'last_named_var'});
 			$varargs_handled = 1;
+		} elsif($modifiers[$i] eq 'dont_resolve_final_symlink') {
+			$mods->{'dont_resolve_final_symlink'} = 1;
 		} elsif(($modifiers[$i] =~ m/^optional_arg_is_create_mode\((.*)\)$/) &&
 			($fn->{'has_varargs'})) {
 			my $va_list_condition = $1;

@@ -21,6 +21,7 @@ end
 
 debug = os.getenv("SBOX_MAPPING_DEBUG")
 
+debug_messages_enabled = sb.debug_messages_enabled()
 
 -- SBOX_LUA_SCRIPTS environment variable controls where
 -- we look for the scriptlets defining the path mappings
@@ -156,84 +157,39 @@ for m = 1, table.maxn(mm) do
 	end
 end
 
-function adjust_for_mapping_leakage(path, leakage_prefix)
-	if (not path) then 
-		return nil
-	end
-
-	if (not isprefix(leakage_prefix, path)) then
-		-- The mapping result is not
-		-- expected to be inside leakage_prefix.
-		return path
-	end
-
-	local tmp = sb.readlink(path)
-	if (not tmp) then
-		-- not a symlink
-		return path
-	end
-
-	-- make it an absolute path if it's not
-	if (string.sub(tmp, 1, 1) ~= "/") then
-		tmp = dirname(path) .. "/" .. tmp
-	end
-
-	if (sb.decolonize_path(tmp) == sb.decolonize_path(path)) then
-		-- symlink refers to itself
-		return path
-	end
-
-	tmp = sb.decolonize_path(tmp)
-
-	if (not isprefix(leakage_prefix, tmp)) then
-		-- aha! tried to get out of there, now map it right back in
-		return adjust_for_mapping_leakage(leakage_prefix .. tmp, leakage_prefix)
-	else
-		return adjust_for_mapping_leakage(tmp, leakage_prefix)
-	end
-end
-
-no_adjust_funcs = {
-	"__lxstat",
-	"__lxstat64",
-	"__xmknod",
-	"lchmod",
-	"lchown",
-	"lgetxattr",
-	"llistxattr",
-	"lremovexattr",
-	"lsetxattr",
-	"lstat",
-	"lstat64",
-	"lutimes",
-	"readlink",
-	"rename",
-	"renameat",
-	"symlink",
-	"symlinkat",
-	"unlink",
-	"unlinkat"
-}
-
-function should_adjust(func_name)
-	for i = 1, table.maxn(no_adjust_funcs) do
-		if (no_adjust_funcs[i] == func_name) then
-			return false
-		end
-	end
-	return true
-end
-
 function sbox_execute_replace_rule(path, replacement, rule)
 	local ret = nil
 
-	sb.log("debug", string.format("replace:%s:%s", path, replacement))
+	if (debug_messages_enabled) then
+		sb.log("debug", string.format("replace:%s:%s", path, replacement))
+	end
 	if (rule.prefix) then
-		ret = replacement .. string.sub(path, string.len(rule.prefix)+1)
-		sb.log("debug", string.format("replaced (prefix) => %s", ret))
+		-- "path" may be shorter than prefix during path resolution
+		if ((rule.prefix ~= "") and
+		    (isprefix(rule.prefix, path))) then
+			ret = replacement .. string.sub(path, string.len(rule.prefix)+1)
+			if (debug_messages_enabled) then
+				sb.log("debug", string.format("replaced (prefix) => %s", ret))
+			end
+		else
+			ret = ""
+			if (debug_messages_enabled) then
+				sb.log("debug", string.format("replacement failed (short path?)"))
+			end
+		end
 	elseif (rule.path) then
-		ret = replacement
-		sb.log("debug", string.format("replaced (path) => %s", ret))
+		-- "path" may be shorter than prefix during path resolution
+		if (rule.path == path) then
+			ret = replacement
+			if (debug_messages_enabled) then
+				sb.log("debug", string.format("replaced (path) => %s", ret))
+			end
+		else
+			ret = ""
+			if (debug_messages_enabled) then
+				sb.log("debug", string.format("replacement failed (short path?)"))
+			end
+		end
 	else
 		sb.log("error", "error in rule: can't replace without 'prefix' or 'path'")
 		ret = path
@@ -249,7 +205,9 @@ function sbox_execute_conditional_actions(binary_name,
 
 	local a
 	for a = 1, table.maxn(actions) do
-		sb.log("debug", string.format("try %d", a))
+		if (debug_messages_enabled) then
+			sb.log("debug", string.format("try %d", a))
+		end
 
 		local ret_ro = false
 		if (actions[a].readonly) then
@@ -274,7 +232,9 @@ function sbox_execute_conditional_actions(binary_name,
 		end
 		if (tmp_dest ~= nil) then
 			if (sb.path_exists(tmp_dest)) then
-				sb.log("debug", string.format("target exists: => %s", tmp_dest))
+				if (debug_messages_enabled) then
+					sb.log("debug", string.format("target exists: => %s", tmp_dest))
+				end
 				return tmp_dest, ret_ro
 			end
 		else
@@ -309,21 +269,18 @@ function sbox_execute_rule(binary_name, func_name, work_dir, rp, path, rule)
 		sb.log("error", "mapping rule uses does not have any valid actions, path="..path)
 	end
 	
-	if (should_adjust(func_name)) then
-		if (isprefix(target_root, ret_path)) then
-			ret_path = adjust_for_mapping_leakage(ret_path, target_root)
-		elseif (isprefix(tools_root, ret_path)) then
-			ret_path = adjust_for_mapping_leakage(ret_path, tools_root)
-		end
-	end
-
 	return ret_path, ret_ro
 end
 
-
-function find_rule(chain, func, path)
+-- returns rule and min_path_len, minimum length which is needed for
+-- successfull mapping.
+function find_rule(chain, func, full_path)
 	local i = 0
 	local wrk = chain
+	local min_path_len = 0
+	if (debug_messages_enabled) then
+		sb.log("noise", string.format("find_rule for (%s)", full_path))
+	end
 	while (wrk) do
 		-- travel the chains
 		for i = 1, table.maxn(wrk.rules) do
@@ -334,20 +291,34 @@ function find_rule(chain, func, path)
 				-- compare prefix (only if a non-zero prefix)
 				if (wrk.rules[i].prefix and
 				    (wrk.rules[i].prefix ~= "") and
-				    (isprefix(wrk.rules[i].prefix, path))) then
-					return wrk.rules[i]
+				    (isprefix(wrk.rules[i].prefix, full_path))) then
+					if (debug_messages_enabled) then
+						sb.log("noise", string.format("selected prefix rule %d (%s)", i, wrk.rules[i].prefix))
+					end
+					min_path_len = string.len(wrk.rules[i].prefix)
+					return wrk.rules[i], min_path_len
 				end
 				-- "path" rules: (exact match)
-				if (wrk.rules[i].path == path) then
-					return wrk.rules[i]
+				if (wrk.rules[i].path == full_path) then
+					if (debug_messages_enabled) then
+						sb.log("noise", string.format("selected path rule %d (%s)", i, wrk.rules[i].path))
+					end
+					min_path_len = string.len(wrk.rules[i].path)
+					return wrk.rules[i], min_path_len
 				end
 				-- "match" rules use a lua "regexp".
 				-- these will be obsoleted, as this kind of rule
 				-- is almost impossible to reverse (backward mapping
 				-- is not possible as long as there are "match" rules)
 				if (wrk.rules[i].match) then
-					if (string.match(path, wrk.rules[i].match)) then
-						return wrk.rules[i]
+					if (string.match(full_path, wrk.rules[i].match)) then
+						if (debug_messages_enabled) then
+							sb.log("noise", string.format("selected match rule %d (%s)", i, wrk.rules[i].match))
+						end
+						-- there is no easy and reliable
+						-- way to determine min_path_len
+						-- so leave it to zero
+						return wrk.rules[i], min_path_len
 					end
 				end
 				-- FIXME: Syntax checking should be added:
@@ -357,17 +328,20 @@ function find_rule(chain, func, path)
 		end
 		wrk = wrk.next_chain
 	end
-	return nil
+	if (debug_messages_enabled) then
+		sb.log("noise", string.format("rule not found"))
+	end
+	return nil, 0
 end
 
 
-function map_using_chain(chain, binary_name, func_name, work_dir, path)
+function map_using_chain(chain, binary_name, func_name, work_dir, path, full_path)
 	local ret = path
 	local rp = path
 	local rule = nil
 	local readonly_flag = false
 
-	rule = find_rule(chain, func_name, rp)
+	rule = find_rule(chain, func_name, full_path)
 	if (not rule) then
 		-- error, not even a default rule found
 		sb.log("error", string.format("Unable to find a match at all: %s(%s)", func_name, path))
@@ -391,28 +365,23 @@ function map_using_chain(chain, binary_name, func_name, work_dir, path)
 		end
 	else
 		ret, readonly_flag = sbox_execute_rule(binary_name, func_name, work_dir, rp, path, rule)
-		if (debug) then
-			if(path == ret) then
-				-- sb.log("debug", string.format("[%s][%s] %s(%s) [==]", basename(rule.lua_script), rule.binary_name, func_name, path))
-			else
-				-- sb.log("debug", string.format("[%s][%s] %s(%s) -> (%s)", basename(rule.lua_script), rule.binary_name, func_name, path, ret))
-			end
-		end
 	end
 	return ret, readonly_flag
 end
 
 -- sbox_translate_path is the function called from libsb2.so
 -- preload library and the FUSE system for each path that needs 
--- translating
+-- translating.
+-- Note that for path resolution phase, "path" is a prefix of "full_path"
+-- (full_path should be used to select the rule)
 -- returns path and the "readonly" flag
-function sbox_translate_path(mapping_mode, binary_name, func_name, work_dir, path)
+function sbox_translate_path(mapping_mode, binary_name, func_name, work_dir, path, full_path)
 	-- loop through the chains, first match is used
 	for n=1,table.maxn(modes[mapping_mode].chains) do
 		if (not modes[mapping_mode].chains[n].noentry 
 			and (not modes[mapping_mode].chains[n].binary
 			or binary_name == modes[mapping_mode].chains[n].binary)) then
-			return map_using_chain(modes[mapping_mode].chains[n], binary_name, func_name, work_dir, path)
+			return map_using_chain(modes[mapping_mode].chains[n], binary_name, func_name, work_dir, path, full_path)
 		end
 	end
 	-- we should never ever get here, if we still do, don't do anything
@@ -420,5 +389,35 @@ function sbox_translate_path(mapping_mode, binary_name, func_name, work_dir, pat
 		func_name, path))
 
 	return path, false
+end
+
+-- sbox_get_mapping_requirements is called from libsb2.so before
+-- path resolution takes place. The primary purpose of this is to
+-- determine where to start resolving symbolic links; shorter paths than
+-- "min_path_len" should not be given to sbox_translate_path()
+-- returns "rule_found", "min_path_len"
+function sbox_get_mapping_requirements(mapping_mode, binary_name, func_name, work_dir, full_path)
+	-- loop through the chains, first match is used
+	local min_path_len = 0
+	local rule = nil
+	for n=1,table.maxn(modes[mapping_mode].chains) do
+		if (not modes[mapping_mode].chains[n].noentry
+			and (not modes[mapping_mode].chains[n].binary
+			or binary_name == modes[mapping_mode].chains[n].binary)) then
+			rule, min_path_len = find_rule(modes[mapping_mode].chains[n], func_name, full_path)
+			if (not rule) then
+				-- error, not even a default rule found
+				sb.log("error", string.format("Unable to find rule for: %s(%s)", func_name, full_path))
+				return false, 0
+			end
+
+			return true, min_path_len
+
+		end
+	end
+	sb.log("error", string.format("Unable to find chain+rule for: %s(%s)",
+		func_name, full_path))
+
+	return false, 0
 end
 

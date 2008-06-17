@@ -5,6 +5,8 @@
 # This is used by "sb2-check-pkg-mappings":
 # N.B. *bin directories needs to be ignored, because there are many
 # lib*-dev -packages that want to add some configurations tools to /usr/bin, etc
+# N.B2: /usr/share/zoneinfo/localtime is typically a symlink to /etc/localtime
+# and needs to be ignored
 SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST=" \
 	/usr/bin /usr/sbin /sbin \
 	/etc \
@@ -17,11 +19,28 @@ SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST=" \
 	/usr/share/info \
 	/usr/share/sgml \
 	/usr/share/perl5 \
+	/usr/share/gconf \
 	/usr/share/base-passwd \
 	/usr/share/lintian/overrides/dpkg-dev \
+	/usr/share/zoneinfo/localtime \
 	/usr/lib/dpkg "
 
 # This is for the "dpkg" wrapper:
 SBOX_DPKG_WRAPPER_DENY_INSTALL=yes
 # and a similar setting for "apt-get" wrapper:
 SBOX_APT_GET_WRAPPER_DENY_INSTALL=yes
+
+# for sb2-init:
+if [ -n "$ARCH" ]
+then
+	SB2INIT_DEB_BUILD_GNU_TYPE=$ARCH-linux-gnueabi
+	SB2INIT_DEB_HOST_GNU_TYPE=$ARCH-linux-gnueabi
+	SB2INIT_CROSS_GCC_PREFIX_LIST=$ARCH-linux-:$ARCH-linux-gnueabi-
+	SB2INIT_DEB_BUILD_GNU_SYSTEM="linux-gnueabi"
+	SB2INIT_DEB_HOST_GNU_SYSTEM="linux-gnueabi"
+
+	SB2INIT_DEB_HOST_ARCH_CPU=$ARCH
+	SB2INIT_DEB_BUILD_ARCH_CPU=$ARCH
+	SB2INIT_DEB_BUILD_ARCH_ABI="gnueabi"
+fi
+

@@ -329,7 +329,8 @@ FTS * fts_open_gate(FTS * (*real_fts_open_ptr)(char * const *path_argv,
 
 	for (n=0, p=path_argv, np=new_path_argv; *p; n++, p++, np++) {
 		path = *p;
-		sbox_path = scratchbox_path(realfnname, path, NULL/*RO-flag*/);
+		sbox_path = scratchbox_path(realfnname, path, NULL/*RO-flag*/,
+			0/*dont_resolve_final_symlink*/);
 		*np = sbox_path;
 	}
 
@@ -348,7 +349,8 @@ char * get_current_dir_name_gate(
 		return NULL;
 	}
 	if (*cwd != '\0') {
-		sbox_path = scratchbox_path(realfnname, cwd, NULL/*RO-flag*/);
+		sbox_path = scratchbox_path(realfnname, cwd, NULL/*RO-flag*/,
+			0/*dont_resolve_final_symlink*/);
 	}
 	free(cwd);
 	return sbox_path;
@@ -369,7 +371,8 @@ char *getcwd_gate (
 		return NULL;
 	}
 	if (*cwd != '\0') {
-		sbox_path = scratchbox_path(realfnname, cwd, NULL/*RO-flag*/);
+		sbox_path = scratchbox_path(realfnname, cwd, NULL/*RO-flag*/,
+			0/*dont_resolve_final_symlink*/);
 	}
 	if (sbox_path) {
 		if(buf) {
@@ -397,7 +400,8 @@ char * getwd_gate(
 		return NULL;
 	}
 	if (*cwd != '\0') {
-		sbox_path = scratchbox_path(realfnname, cwd, NULL/*RO-flag*/);
+		sbox_path = scratchbox_path(realfnname, cwd, NULL/*RO-flag*/,
+			0/*dont_resolve_final_symlink*/);
 	}
 	if (sbox_path) {
 		if(buf) {
@@ -412,6 +416,35 @@ char * getwd_gate(
 	return cwd;
 }
 
+/* "SB2_WRAP_GLOB" needs to be defined on systems where the C library
+ * is not based on glibc (or not compatible with glob() from glibc 2.7)
+*/
+#ifdef SB2_WRAP_GLOB
+static char *check_and_prepare_glob_pattern(
+	const char *realfnname,
+	const char *pattern)
+{
+	char *mapped__pattern = NULL;
+
+	/* only map pattern if it contains a '/'
+	 * FIXME: this is probably not completely correct way to process this,
+	 * a bit more intelligence could be useful here... that is why we'll
+	 * log the mapped pattern (NOTICE level) if it was mapped
+	*/
+	if (*pattern == '/') { /* if absolute path in pattern.. */
+		mapped__pattern = scratchbox_path(realfnname, pattern,
+			NULL/*RO-flag*/, 0/*dont_resolve_final_symlink*/);
+		if (!strcmp(mapped__pattern, pattern)) {
+			/* no change */
+			free(mapped__pattern);
+			return(NULL);
+		}
+		SB_LOG(SB_LOGLEVEL_NOTICE, "%s: mapped pattern '%s' => '%s'",
+			realfnname, pattern, mapped__pattern);
+	}
+	return(mapped__pattern);
+}
+#endif
 
 int glob_gate(
 	int (*real_glob_ptr)(const char *pattern, int flags,
@@ -423,21 +456,31 @@ int glob_gate(
 	glob_t *pglob)
 {
 	int rc;
-	unsigned int i;
-	char tmp[SBOX_MAXPATH];
+#ifdef SB2_WRAP_GLOB
+	char *mapped__pattern;
 
-	rc = (*real_glob_ptr)(pattern, flags, errfunc, pglob);
-	
-	if (rc < 0) return rc;
+	mapped__pattern = check_and_prepare_glob_pattern(realfnname, pattern);
+	rc = (*real_glob_ptr)(mapped__pattern ? mapped__pattern : pattern,
+		flags, errfunc, pglob);
+	if (mapped__pattern) free(mapped__pattern);
+#else
+	/* glob() has been replaced by a modified copy (from glibc) */
+	unsigned int	i;
 
-	for(i = 0; i < pglob->gl_pathc; i++) {
-		char	*sbox_path = NULL;
+	(void)real_glob_ptr; /* not used */
 
-		strcpy(tmp,pglob->gl_pathv[i]);
-		sbox_path = scratchbox_path(realfnname, tmp, NULL/*RO-flag*/);
-		strcpy(pglob->gl_pathv[i], sbox_path);
-		if (sbox_path) free(sbox_path);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: pattern='%s' gl_offs=%d, flags=0x%X",
+		realfnname, pattern, pglob->gl_offs, flags);
+	rc = do_glob(pattern, flags, errfunc, pglob);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: returns %d (gl_pathc=%d)",
+		realfnname, rc, pglob->gl_pathc);
+	for (i=0; i < pglob->gl_pathc; i++) {
+		char *cp = pglob->gl_pathv[i + pglob->gl_offs];
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: [%d='%s']",
+			realfnname, i, cp ? cp : "<NULL>");
 	}
+#endif
+	
 	return rc;
 }
 
@@ -452,21 +495,31 @@ int glob64_gate(
 	glob64_t *pglob)
 {
 	int rc;
+#ifdef SB2_WRAP_GLOB
+	char *mapped__pattern;
+
+	mapped__pattern = check_and_prepare_glob_pattern(realfnname, pattern);
+	rc = (*real_glob64_ptr)(mapped__pattern ? mapped__pattern : pattern,
+		flags, errfunc, pglob);
+	if (mapped__pattern) free(mapped__pattern);
+#else
+	/* glob64() has been replaced by a modified copy (from glibc) */
 	unsigned int i;
-	char tmp[SBOX_MAXPATH];
 
-	rc = (*real_glob64_ptr)(pattern, flags, errfunc, pglob);
+	(void)real_glob64_ptr; /* not used */
 
-	if (rc < 0) return rc;
-
-	for(i = 0; i < pglob->gl_pathc; i++) {
-		char	*sbox_path = NULL;
-
-		strcpy(tmp,pglob->gl_pathv[i]);
-		sbox_path = scratchbox_path(realfnname, tmp, NULL/*RO-flag*/);
-		strcpy(pglob->gl_pathv[i], sbox_path);
-		if (sbox_path) free(sbox_path);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: pattern='%s' gl_offs=%d, flags=0x%X",
+		realfnname, pattern, pglob->gl_offs, flags);
+	rc = do_glob64(pattern, flags, errfunc, pglob);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: returns %d (gl_pathc=%d)",
+		realfnname, rc, pglob->gl_pathc);
+	for (i=0; i < pglob->gl_pathc; i++) {
+		char *cp = pglob->gl_pathv[i + pglob->gl_offs];
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: [%d='%s']",
+			realfnname, i, cp ? cp : "<NULL>");
 	}
+#endif
+
 	return rc;
 }
 #endif
@@ -561,7 +614,7 @@ static void map_sockaddr_un(
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: checking AF_UNIX addr '%s'",
 		realfnname, orig_serv_addr_un->sun_path);
 	SBOX_MAP_PATH(orig_serv_addr_un->sun_path, mapped_addr,
-		&pathname_is_readonly);
+		&pathname_is_readonly, 0/*dont_resolve_final_symlink*/);
 	/* FIXME: implement if(pathname_is_readonly!=0)... */
 
 	*mapped_serv_addr_un = *orig_serv_addr_un;
@@ -638,6 +691,9 @@ void *sbox_find_next_symbol(int log_enabled, const char *fn_name)
 				PACKAGE_NAME, fn_name, msg);
 		assert(0);
 	}
+	if (log_enabled)
+		SB_LOG(SB_LOGLEVEL_NOISE, "%s: %s at 0x%X", __func__,
+			fn_name, (int)fn_ptr);
 	return(fn_ptr);
 }
 
@@ -649,7 +705,8 @@ char *sb2show__map_path2__(const char *binary_name, const char *mapping_mode,
 
 	if (pathname != NULL) {
 		mapped__pathname = scratchbox_path3(binary_name, fn_name,
-			pathname, mapping_mode, readonly);
+			pathname, mapping_mode, readonly,
+			0/*dont_resolve_final_symlink*/);
 	}
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s '%s'", __func__, pathname);
 	return(mapped__pathname);

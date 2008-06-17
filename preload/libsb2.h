@@ -72,6 +72,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
+#include <glob.h>
+
 #include <mapping.h>
 #include <sb2.h>
 
@@ -103,19 +105,19 @@
 	} \
 }
 
-#define SBOX_MAP_PATH(path, sbox_path, readonly_flag_addr) \
+#define SBOX_MAP_PATH(path, sbox_path, readonly_flag_addr, no_symlink_resolve) \
 { \
 	if ((path) != NULL) { \
-		sbox_path = scratchbox_path(__FUNCTION__, path, readonly_flag_addr); \
+		sbox_path = scratchbox_path(__FUNCTION__, path, readonly_flag_addr, no_symlink_resolve); \
 	} \
 }
 
-#define SBOX_MAP_PATH_AT(dirfd, path, sbox_path, readonly_flag_addr) \
+#define SBOX_MAP_PATH_AT(dirfd, path, sbox_path, readonly_flag_addr, no_symlink_resolve) \
 { \
 	if ((path) != NULL) { \
 		if (path[0] == '/') { \
 			/* absolute path */ \
-			sbox_path = scratchbox_path(__FUNCTION__, path, readonly_flag_addr); \
+			sbox_path = scratchbox_path(__FUNCTION__, path, readonly_flag_addr, no_symlink_resolve); \
 		} else { \
 			sbox_path = strdup(path); \
 		}\
@@ -130,6 +132,13 @@ extern void *sbox_find_next_symbol(int log_enabled, const char *functname);
 
 extern int fopen_mode_w_perm(const char *mode);
 extern int freopen_errno(FILE *stream);
+
+extern int do_glob (const char *pattern, int flags,
+	int (*errfunc) (const char *, int), glob_t *pglob);
+#ifdef HAVE_GLOB64
+extern int do_glob64 (const char *pattern, int flags,
+	int (*errfunc) (const char *, int), glob64_t *pglob);
+#endif
 
 #endif /* ifndef LIBSB2_H_INCLUDED_ */
 

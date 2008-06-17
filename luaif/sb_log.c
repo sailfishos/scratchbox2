@@ -123,6 +123,9 @@ void sblog_init(void)
 				} else if (!strcmp(level_str,"noise")) {
 					sb_loglevel__ = SB_LOGLEVEL_NOISE;
 					sb_log_state.sbl_print_file_and_line = 1;
+				} else if (!strcmp(level_str,"noise2")) {
+					sb_loglevel__ = SB_LOGLEVEL_NOISE2;
+					sb_log_state.sbl_print_file_and_line = 1;
 				} else {
 					sb_loglevel__ = SB_LOGLEVEL_INFO;
 				}

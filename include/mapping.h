@@ -10,8 +10,8 @@
 #include <sys/types.h>
 
 
-#define enable_mapping(a) a->mapping_disabled--
-#define disable_mapping(a) a->mapping_disabled++
+#define enable_mapping(a) ((a)->mapping_disabled--)
+#define disable_mapping(a) ((a)->mapping_disabled++)
 
 enum lua_engine_states {
 	LES_NOT_INITIALIZED = 0,
@@ -20,9 +20,10 @@ enum lua_engine_states {
 };
 
 extern char *scratchbox_path(const char *func_name, const char *path,
-	int *ro_flagp);
+	int *ro_flagp, int dont_resolve_final_symlink);
 extern char *scratchbox_path3(const char *binary_name, const char *func_name,
-		const char *path, const char *mapping_mode, int *ro_flagp);
+		const char *path, const char *mapping_mode, int *ro_flagp,
+		int dont_resolve_final_symlink);
 extern int sb_execve_mod(char **file, char ***argv, char ***envp);
 extern char *emumode_map(const char *path);
 

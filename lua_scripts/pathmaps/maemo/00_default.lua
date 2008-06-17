@@ -35,6 +35,8 @@ simple_chain = {
 		 use_orig_path = true, readonly = true},
 		{prefix = "/opt/maemo",
 		 use_orig_path = true, readonly = true},
+		{prefix = "/usr/share/scratchbox2/host_usr",
+		 replace_by = "/usr", readonly = true},
 		{prefix = "/usr/share/scratchbox2",
 		 use_orig_path = true, readonly = true},
 
@@ -53,7 +55,7 @@ simple_chain = {
 
 		{path = "/bin/sh",
 		 replace_by = tools .. "/bin/bash", readonly = true},
-		{path = "/usr/bin/host-",
+		{prefix = "/usr/bin/host-",
 		 use_orig_path = true, readonly = true},
 
 		-- -----------------------------------------------
@@ -80,7 +82,8 @@ simple_chain = {
 
 		-- -----------------------------------------------
 		-- 45. /usr/share/aclocal*
-		-- This is a bit complex, we must mix files from both places:
+		-- This is more than a bit complex, we must mix files from
+		-- both places:
 		-- Prefer files in tools_root, but if not there, try
 		-- to get it from target_root. New files will be created
 		-- to target_root.
@@ -102,6 +105,16 @@ simple_chain = {
 		 actions = test_first_target_then_tools_default_is_target},
 		{path = "/usr/share/aclocal-1.10",
 		 actions = test_first_target_then_tools_default_is_target},
+
+		-- Next, exceptions to these rules:
+		-- 1) gnome-common presents policy problems, typically we
+		--    have it in both places but want to take it from the
+		--    rootstrap:
+		{prefix = "/usr/share/aclocal/gnome-common",
+		 actions = test_first_target_then_tools_default_is_target},
+		{prefix = "/usr/share/aclocal/gnome-compiler",
+		 actions = test_first_target_then_tools_default_is_target},
+
 		-- Next, use /usr/share/aclocal* from tools_root if target
 		-- exists, but default is target_root
 		{prefix = "/usr/share/aclocal",
@@ -113,6 +126,10 @@ simple_chain = {
 		-- The default is to map /usr/share to tools_root,
 		-- but there are lots of exceptions. That directory
 		-- is used for so many purposes nowadays..
+
+		-- (see the comment about gnome-common files in .../aclocal):
+		{prefix = "/usr/share/gnome-common",
+		 actions = test_first_target_then_tools_default_is_target},
 
 		{prefix = "/usr/share/glib-2.0", map_to = target_root},
 		{prefix = "/usr/share/dbus-1", map_to = target_root},
@@ -223,8 +240,16 @@ simple_chain = {
 		-- 98. Scratchbox 1 emulation rules
 		-- (some packages have hard-coded paths to the SB1 enviroment;
 		-- replace those by the correct locations in our environment)
+
+		-- "libtool" for arm
 		{prefix = "/scratchbox/compilers/cs2005q3.2-glibc2.5-arm/arch_tools/share/libtool",
 		 replace_by = sb2_share_dir .. "/libtool",
+		 log_level = "warning",
+		 readonly = true},
+
+		-- "libtool" for i386
+		{prefix = "/scratchbox/compilers/cs2005q3.2-glibc-i386/arch_tools/share",
+		 replace_by = tools .. "/usr/share",
 		 log_level = "warning",
 		 readonly = true},
 
@@ -232,6 +257,15 @@ simple_chain = {
 		 replace_by = tools .. "/usr/bin",
 		 log_level = "warning",
 		 readonly = true},
+
+		{prefix = "/scratchbox/tools/autotools/automake-1.7/share/automake-1.7",
+		 replace_by = tools .. "/usr/share/automake-1.7",
+		 log_level = "warning",
+		 readonly = true},
+
+		-- otherwise, don't map /scratchbox, some people still
+		-- keep their projects there.
+		{prefix = "/scratchbox", use_orig_path = true},
 
 		-- -----------------------------------------------
 		-- 100. DEFAULT RULES:

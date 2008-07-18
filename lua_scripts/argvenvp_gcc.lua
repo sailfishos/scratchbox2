@@ -56,20 +56,20 @@ for prefix in string.gmatch(":" .. os.getenv("SBOX_CROSS_GCC_PREFIX_LIST"), "[^:
 		tmp.new_filename = gcc_bindir .. "/" .. gcc_subst_prefix .. gcc_compilers[i]
 		tmp.add_tail = {}
 		tmp.remove = {}
-		if (gcc_specs) then
+		if (gcc_specs and gcc_specs ~= "") then
 			table.insert(tmp.add_tail, "-specs="..gcc_specs)
 		end
-		if (gcc_extra_args) then
+		if (gcc_extra_args and gcc_extra_args ~= "") then
 			for gcc_extra in string.gmatch(gcc_extra_args, "[^ ]+") do
 				table.insert(tmp.add_tail, gcc_extra)
 			end
 		end
-		if (gcc_extra_stdinc) then
+		if (gcc_extra_stdinc and gcc_extra_stdinc ~= "") then
 			for gcc_stdinc in string.gmatch(gcc_extra_stdinc, "[^ ]+") do
 				table.insert(tmp.add_tail, gcc_stdinc)
 			end
 		end
-		if (gcc_block_args) then
+		if (gcc_block_args and gcc_extra_args ~= "") then
 			for gcc_block in string.gmatch(gcc_block_args, "[^ ]+") do
 				table.insert(tmp.remove, gcc_block)
 			end

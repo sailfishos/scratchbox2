@@ -386,8 +386,7 @@ fi
 # Use "specs" file for gcc if it exists, otherwise add -I/usr/include to params
 SBOX_CROSS_GCC_SPECS_FILE=""
 SBOX_EXTRA_CROSS_COMPILER_STDINC=""
-if [ -f $SBOX_DIR/share/scratchbox2/modeconf/gcc-specs.$MAPPING_MODE ]
-then
+if [ -f $SBOX_DIR/share/scratchbox2/modeconf/gcc-specs.$MAPPING_MODE ]; then
 	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modeconf/gcc-specs.$MAPPING_MODE"
 else
 	SBOX_EXTRA_CROSS_COMPILER_STDINC="-I/usr/include"

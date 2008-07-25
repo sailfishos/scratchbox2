@@ -89,8 +89,9 @@ cp -a /dev /dev2
 mount -t ramfs ramfs /dev
 mv /dev2/* /dev
 mount -t devpts devpts /dev/pts
-mount -t sysfs sysfs /dev/pts
+mount -t sysfs sysfs /sys
 mount -t ramfs ramfs /tmp
+chmod a+rwx /tmp
 /sbin/sbrshd
 
 /bin/sh </dev/console >/dev/console

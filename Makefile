@@ -133,6 +133,7 @@ do-install: install-noarch
 	install -c -m 755 $(OBJDIR)/preload/libsb2.so $(prefix)/lib/libsb2/libsb2.so.$(PACKAGE_VERSION)
 	install -c -m 755 $(OBJDIR)/utils/sb2-show $(prefix)/bin/sb2-show
 	install -c -m 755 $(OBJDIR)/utils/sb2-monitor $(prefix)/bin/sb2-monitor
+	install -c -m 755 $(OBJDIR)/utils/sb2-interp-wrapper $(prefix)/bin/sb2-interp-wrapper
 	/sbin/ldconfig -n $(prefix)/lib/libsb2
 
 

@@ -21,5 +21,12 @@ $(D)/sb2-monitor: $(D)/sb2-monitor.o
 	$(P)LD
 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
+$(D)/sb2-interp-wrapper: CFLAGS := $(CFLAGS) -Wall -W -Werror
 
-targets := $(targets) $(D)/sb2-show $(D)/sb2-monitor 
+$(D)/sb2-interp-wrapper: $(D)/sb2-interp-wrapper.o
+	$(MKOUTPUTDIR)
+	$(P)LD
+	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ldl
+
+
+targets := $(targets) $(D)/sb2-show $(D)/sb2-monitor $(D)/sb2-interp-wrapper

@@ -202,7 +202,7 @@ you can re-run this script."
 
 if [ -z "$SBOX_DIR" ]
 then
-	export SBOX_DIR=$(readlink -f $(dirname $my_path)/..)
+	export SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
 fi
 
 # SBOX_INIT_* variables are used to record who initialized, and when and 

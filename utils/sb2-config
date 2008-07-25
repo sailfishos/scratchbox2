@@ -40,7 +40,7 @@ DEFAULT_TARGET=$DEFAULT_TARGET
 " > $HOME/.scratchbox2/config
 }
 
-SBOX_DIR=$(readlink -f $(dirname $_)/..)
+SBOX_DIR=$(readlink -f $(dirname $(readlink -f $_))/..)
 WRITE_CONFIG=0
 
 while getopts d:hlv foo

@@ -206,15 +206,12 @@ int execve_gate(
 }
 
 
-/* #include <unistd.h> */
-int execvp_gate(
-	int (*real_execvp_ptr)(const char *file, char *const argv []),
+static int do_execvep(
 	const char *realfnname,
 	const char *file,
-	char *const argv [])
+	char *const argv [],
+	char *const envp [])
 {
-	(void)real_execvp_ptr;	/* not used */
-
 	if (*file == '\0') {
 		/* We check the simple case first. */
 		errno = ENOENT;
@@ -223,7 +220,7 @@ int execvp_gate(
 
 	if (strchr (file, '/') != NULL) {
 		/* Don't search when it contains a slash.  */
-		return execve_gate (NULL, realfnname, file, argv, environ);
+		return execve_gate (NULL, realfnname, file, argv, envp);
 	} else {
 		int got_eacces = 0;
 		const char *p;
@@ -270,7 +267,7 @@ int execvp_gate(
 			}
 
 			/* Try to execute this name.  If it works, execv will not return.  */
-			execve_gate (NULL, realfnname, startp, argv, environ);
+			execve_gate (NULL, realfnname, startp, argv, envp);
 
 			switch (errno) {
 				case EACCES:
@@ -303,6 +300,26 @@ int execvp_gate(
 
 	/* Return the error from the last attempt (probably ENOENT).  */
 	return -1;
+}
+
+int sb_execvep(
+	const char *file,
+	char *const argv [],
+	char *const envp [])
+{
+	return do_execvep(__FUNCTION__, file, argv, envp);
+}
+
+
+/* #include <unistd.h> */
+int execvp_gate(
+	int (*real_execvp_ptr)(const char *file, char *const argv []),
+	const char *realfnname,
+	const char *file,
+	char *const argv [])
+{
+	(void)real_execvp_ptr;	/* not used */
+	return do_execvep(realfnname, file, argv, environ);
 }
 
 

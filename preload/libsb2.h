@@ -140,5 +140,7 @@ extern int do_glob64 (const char *pattern, int flags,
 	int (*errfunc) (const char *, int), glob64_t *pglob);
 #endif
 
+extern int sb_execvep(const char *file, char *const argv[], char *const envp[]);
+
 #endif /* ifndef LIBSB2_H_INCLUDED_ */
 

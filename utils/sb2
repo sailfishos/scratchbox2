@@ -151,6 +151,7 @@ if [ $(basename $my_path) != $(basename $0) ]; then
 fi
 
 export SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
+export SBOX_WORKDIR=$(readlink -f $PWD)
 
 while getopts vdht:em:s:L:Q: foo
 do

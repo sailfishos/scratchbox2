@@ -27,13 +27,13 @@ cd builddir/.downloads
 
 [ -r busybox-1.9.0.tar.bz2 ] || wget http://www.busybox.net/downloads/busybox-1.9.0.tar.bz2
 [ -r linux-2.6.23.13.tar.bz2 ] || wget http://ftp.fi.kernel.org/pub/linux/kernel/v2.6/linux-2.6.23.13.tar.bz2
-[ -r sbrsh_7.5.1.tar.gz ] || wget http://ftp.fi.debian.org/debian/pool/main/s/sbrsh/sbrsh_7.5.1.tar.gz
+[ -r sbrsh_7.6.tar.gz ] || wget http://ftp.fi.debian.org/debian/pool/main/s/sbrsh/sbrsh_7.6.tar.gz
 
 cd ..
 
 tar xjf .downloads/busybox-1.9.0.tar.bz2
 tar xjf .downloads/linux-2.6.23.13.tar.bz2
-tar xzf .downloads/sbrsh_7.5.1.tar.gz
+tar xzf .downloads/sbrsh_7.6.tar.gz
 
 cd linux-2.6*
 
@@ -70,7 +70,7 @@ cd ..
 
 mkdir -p initramfs/{boot,etc,proc,sys,mnt,sbin,dev,lib,usr/bin,tmp}
 cp $LIBCDIR/* initramfs/lib/
-cp sbrsh-7.5.1/sbrshd initramfs/sbin/
+cp sbrsh-7.6/optimize/bin/sbrshd initramfs/sbin/
 echo '*' > initramfs/etc/sbrshd.conf
 cat > initramfs/init <<EOF
 #!/bin/sh

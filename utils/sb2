@@ -98,6 +98,7 @@ function sboxify_environment()
 	fi
 
 	export LD_LIBRARY_PATH SBOX_LIBSB2 SBOX_LUA_SCRIPTS SBOX_TARGET_ROOT SBOX_TARGET_COMPILER
+	export SBOX_TARGET_TOOLCHAIN_DIR=$(dirname "$SBOX_CROSS_GCC_DIR")
 
 	export PATH=$HOME/.scratchbox2/$SBOX_TARGET/bin:$SBOX_DIR/share/scratchbox2/scripts:$SBOX_DIR/bin:$PATH:/sbin:/usr/sbin:$SBOX_TARGET_ROOT/bin:$SBOX_TARGET_ROOT/usr/bin:$SBOX_TARGET_ROOT/usr/local/bin
 

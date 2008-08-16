@@ -37,7 +37,7 @@
 */
 #include <dirent.h>
 
-#include <glob.h>
+#include <glob.h> /* included here for Mac OS X support */
 
 #include <errno.h>
 #include <sys/types.h>
@@ -86,7 +86,6 @@
 #  include "vmsdir.h"
 # endif /* HAVE_VMSDIR_H */
 #endif
-
 
 /* In GNU systems, <dirent.h> defines this macro for us.  */
 #ifdef _D_NAMLEN
@@ -193,7 +192,9 @@
 #ifndef __stat /* SB2 */
 # define __stat(fname, buf)	stat (fname, buf)
 #endif
+#ifndef __alloca /* SB2 - OS X Compat */
 # define __alloca		alloca
+#endif
 #ifndef __readdir /* SB2 */
 # define __readdir		readdir
 #endif
@@ -213,9 +214,20 @@
 #else
 # define GET_LOGIN_NAME_MAX()	(-1)
 #endif
-#ifdef __APPLE__
+
+#ifdef __APPLE__ /* SB2 - OS X Compat */
 # define __THROW
+# define __attribute_noinline__ __attribute__ ((__noinline__))
+#include <stdbool.h>
+#include <dirent.h>
 #endif
+
+#ifndef HAVE_MEMPCPY /* SB2 - OS X Compat */
+#include <mempcpy.h>
+#endif
+
+#include "glob.h" /* SB2 - OS X Compat */
+
 
 static const char *next_brace_sub (const char *begin, int flags) __THROW;
 
@@ -979,7 +991,7 @@ glob (pattern, flags, errfunc, pglob)
 		}
 	      pglob->gl_pathv = new_gl_pathv;
 
-	      pglob->gl_pathv[newcount] = __strdup (pattern);
+	      pglob->gl_pathv[newcount] = strdup (pattern); /* SB2 */
 	      if (pglob->gl_pathv[newcount] == NULL)
 		{
 		  globfree (&dirs);

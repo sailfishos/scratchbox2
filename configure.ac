@@ -160,6 +160,8 @@ utime \
 utimes \
 ])
 
+AC_REPLACE_FUNCS([mempcpy])
+
 AH_TEMPLATE([READLINK_TYPE], [readlink() return type])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 #include <unistd.h>

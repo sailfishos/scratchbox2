@@ -18,6 +18,17 @@
 #include "exported.h"
 #include "sb2.h"
 
+#ifdef HAVE_CRT_EXTERNS_H
+#include <crt_externs.h>
+#endif
+#ifdef HAVE__NSGETENVIRON
+#define environ (*_NSGetEnviron())
+#else
+ #ifndef __GLIBC__
+  extern char **environ;
+ #endif
+#endif
+
 static void usage_exit(const char *progname, const char *errmsg, int exitstatus)
 {
 	if (errmsg) 

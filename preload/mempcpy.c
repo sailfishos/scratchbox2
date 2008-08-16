@@ -30,10 +30,12 @@ PORTABILITY
 
 	*/
 
-#include <_ansi.h>
+//#include <_ansi.h>
 #include <stddef.h>
 #include <limits.h>
 #include <string.h>
+
+#include <mempcpy.h>
 
 /* Nonzero if either X or Y is not aligned on a "long" boundary.  */
 #define UNALIGNED(X, Y) \
@@ -48,11 +50,7 @@ PORTABILITY
 /* Threshhold for punting to the byte copier.  */
 #define TOO_SMALL(LEN)  ((LEN) < BIGBLOCKSIZE)
 
-_PTR
-_DEFUN (mempcpy, (dst0, src0, len0),
-	_PTR dst0 _AND
-	_CONST _PTR src0 _AND
-	size_t len0)
+void* mempcpy (void *dst0, const void *src0, size_t len0)
 {
 #if defined(PREFER_SIZE_OVER_SPEED) || defined(__OPTIMIZE_SIZE__)
   char *dst = (char *) dst0;
@@ -66,10 +64,10 @@ _DEFUN (mempcpy, (dst0, src0, len0),
   return dst;
 #else
   char *dst = dst0;
-  _CONST char *src = src0;
+  const char *src = src0;
   long *aligned_dst;
-  _CONST long *aligned_src;
-  int   len =  len0;
+  const long *aligned_src;
+  unsigned int   len =  len0;
 
   /* If the size is small, or either SRC or DST is unaligned,
      then punt into the byte copy loop.  This should be rare.  */

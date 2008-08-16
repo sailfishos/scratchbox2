@@ -34,6 +34,10 @@
 #include <config.h>
 #include <config_hardcoded.h>
 
+#ifdef __APPLE__
+ #include <signal.h>
+#endif
+
 static pid_t	child_pid;
 static pid_t	original_process_group;
 static pid_t	new_process_group;
@@ -130,7 +134,11 @@ static void signal_handler(int sig, siginfo_t *info, void *ptr)
 	if (info->si_code == SI_QUEUE) {
 		DEBUG_MSG("signal %d => sending it to %d by sigqueue\n", 
 			sig, (int)child_pid);
+#ifndef __APPLE__
 		sigqueue(child_pid, sig, info->si_value);
+#else
+		kill(child_pid, sig);
+#endif
 	} else if (info->si_code == SI_USER) {
 		DEBUG_MSG("signal %d => sending it to %d by kill\n", 
 			sig, (int)child_pid);

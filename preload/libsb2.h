@@ -78,6 +78,8 @@
 #include <mapping.h>
 #include <sb2.h>
 
+#include "externs.h"
+
 #if defined(PATH_MAX)
 #define SBOX_MAXPATH PATH_MAX
 #elif defined(_POSIX_PATH_MAX)
@@ -120,10 +122,6 @@
 			readonly_flag_addr, no_symlink_resolve); \
 	} \
 }
-
-#ifndef __GLIBC__
-extern char **environ;
-#endif
 
 extern void *sbox_find_next_symbol(int log_enabled, const char *functname);
 

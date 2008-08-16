@@ -31,6 +31,12 @@
 
 #include "exported.h"
 
+#include "externs.h"
+
+#ifdef __APPLE__
+#include <libgen.h>
+#endif
+
 #define PROGNAME	"sb2-interp-wrapper"
 
 enum interp_type {

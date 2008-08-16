@@ -23,9 +23,7 @@
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
 
-#ifdef	HAVE_CONFIG_H
-# include <config.h>
-#endif
+#include <config.h>
 
 /* Bugfix: Include <dirent.h> here. This fixes the way how <sys/stat.h>
  * is expanded for SB2; originally, some important inline functions were
@@ -219,7 +217,7 @@
 # define __THROW
 # define __attribute_noinline__ __attribute__ ((__noinline__))
 #include <stdbool.h>
-#include <dirent.h>
+//#include <dirent.h>
 #endif
 
 #ifndef HAVE_MEMPCPY /* SB2 - OS X Compat */

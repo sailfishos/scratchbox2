@@ -2,6 +2,9 @@
  * from glibc's sysdep/gnu/glob64.c.
 */
 
+// Apple doesn't have 64bit dirent?
+#ifndef __APPLE__
+
 #include <dirent.h>
 #include "glob.h"
 #include <sys/stat.h>
@@ -27,3 +30,4 @@
 
 #include "glob.c"
 
+#endif

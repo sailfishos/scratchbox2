@@ -6,7 +6,7 @@ $(D)/sb2-show: CFLAGS := $(CFLAGS) -Wall -W -Werror \
 		-I$(SRCDIR)/include
 
 $(D)/sb2-show.o: preload/exported.h
-$(D)/sb2-show: preload/libsb2.so $(D)/sb2-show.o 
+$(D)/sb2-show: preload/libsb2.${SHLIBEXT} $(D)/sb2-show.o
 	$(MKOUTPUTDIR)
 	$(P)LD
 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^

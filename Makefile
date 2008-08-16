@@ -7,13 +7,21 @@ SRCDIR = $(TOPDIR)
 VPATH = $(SRCDIR)
 
 
+ifeq ($(shell uname -s),Linux)
+LIBSB2_LDFLAGS = -Wl,-soname=$(LIBSB2_SONAME) \
+		-Wl,--retain-symbols-file=preload/ldexportlist
+
+SHLIBEXT = so
+else
+SHLIBEXT = dylib
+endif
+
 ifeq ($(shell uname -m),x86_64)
 X86_64 = y
 PRI_OBJDIR = obj-64
 else
 PRI_OBJDIR = obj-32
 endif
-
 
 CC = gcc
 CXX = g++

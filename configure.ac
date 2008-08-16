@@ -162,6 +162,9 @@ utimes \
 
 AC_REPLACE_FUNCS([mempcpy])
 
+AC_CHECK_HEADERS(crt_externs.h)
+AC_CHECK_FUNCS(_NSGetEnviron)
+
 AH_TEMPLATE([READLINK_TYPE], [readlink() return type])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 #include <unistd.h>

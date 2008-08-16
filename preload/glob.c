@@ -213,7 +213,10 @@
 #else
 # define GET_LOGIN_NAME_MAX()	(-1)
 #endif
-
+#ifdef __APPLE__
+# define __THROW
+#endif
+
 static const char *next_brace_sub (const char *begin, int flags) __THROW;
 
 #endif /* !defined _LIBC || !defined GLOB_ONLY_P */

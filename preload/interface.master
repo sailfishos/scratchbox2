@@ -170,7 +170,7 @@ WRAP: int chdir(const char *path) : map(path)
 
 #ifdef HAVE_OSX_XATTRS
 -- chflags is from 4.4BSD, actually.
-WRAP: int chflags(const char *path, u_int flags) :
+WRAP: int chflags(const char *path, u_int flags) : \
 	map(path) fail_if_readonly(path,-1,EROFS)
 #endif
 
@@ -240,7 +240,7 @@ WRAP: int futimesat(int dirfd, const char *pathname, const struct timeval times[
 WRAP: ssize_t getxattr(const char *path, const char *name, void *value, size_t size) : map(path)
 #endif
 #ifdef HAVE_OSX_XATTRS
-WRAP: int getattrlist(const char* path, struct attrlist * attrList, \
+WRAP: int getattrlist(const char* path, void * attrList, \
 	void * attrBuf, size_t attrBufSize, unsigned long options) : \
 	map(path)
 WRAP: ssize_t getxattr(const char *path, const char *name, void *value, size_t size, u_int32_t position, int options) : map(path)
@@ -382,7 +382,7 @@ WRAP: int setxattr(const char *path, const char *name, const void *value, \
 	map(path) fail_if_readonly(path,-1,EROFS)
 #endif
 #ifdef HAVE_OSX_XATTRS
-WRAP: int setattrlist(const char* path, struct attrlist * attrList, \
+WRAP: int setattrlist(const char* path, void * attrList, \
 	void * attrBuf, size_t attrBufSize, unsigned long options) : \
 	map(path) fail_if_readonly(path,-1,EROFS)
 WRAP: int setxattr(const char *path, const char *name, const void *value, \

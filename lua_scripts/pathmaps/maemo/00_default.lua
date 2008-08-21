@@ -163,15 +163,8 @@ simple_chain = {
 
 		-- -----------------------------------------------
 		-- 50. /usr/src/*
-		{prefix = "/usr/src/rx-34-kernel-headers", map_to = target_root},
-		-- a real prefix (/usr/src/kernel-source-rx*):
-		{prefix = "/usr/src/kernel-source-rx", map_to = target_root},
-
-		-- for cx3110x-headers:
-		{prefix = "/usr/src/cx3110x-headers", map_to = target_root},
-
-		-- Hmmm, maybe we could simplify this and map the
-		-- complete /usr/src to target_root? To Be Tested.
+		{path = "/usr/src", map_to = target_root},
+		{prefix = "/usr/src/", map_to = target_root},
 
 		-- -----------------------------------------------
 		-- 55. X11 (/usr/X11R6/*)

@@ -157,6 +157,12 @@ simple_chain = {
 		{prefix = "/usr/share/osso", map_to = target_root},
 		{prefix = "/usr/share/doc", map_to = target_root},
 
+		-- for liblzo-dev:
+		{prefix = "/usr/share/lzo", map_to = target_root},
+
+		-- for modest-providers-data:
+		{prefix = "/usr/share/modest", map_to = target_root},
+
 		-- default rules:
 		{path = "/usr/share", map_to = tools, readonly = true},
 		{prefix = "/usr/share/", map_to = tools, readonly = true},

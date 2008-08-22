@@ -60,6 +60,8 @@
 #     lstat()). NOTE: THIS MUST BE USED BEFORE THE map() OR map_at() MODIFIERS!
 #   - "resolve_final_symlink" is the opposite of "dont_resolve_final_symlink"
 #     (and it is on by default)
+#   - "postprocess(varname)" can be used to call  postprocessor functions for
+#     mapped variables.
 #
 # For "WRAP" only:
 #   - "create_nomap_nolog_version" creates a direct interface function to the
@@ -357,6 +359,20 @@ sub minimal_function_declarator_parser {
 # End of the minimal C declarator parser.
 #============================================
 
+sub find_type_of_parameter {
+	my $fn = shift;
+	my $param_name = shift;
+	my $r_param_names = $fn->{'parameter_names'};
+
+	my $i;
+	for ($i = 0; $i < @{$r_param_names}; $i++) {
+		if ($r_param_names->[$i] eq $param_name) {
+			return($fn->{'parameter_types'}->[$i]);
+		}
+	}
+	return(undef);
+}
+
 sub create_code_for_va_list_get_mode {
 	my $condition = shift;
 	my $last_named_var = shift;
@@ -436,6 +452,8 @@ sub process_wrap_or_gate_modifiers {
 		'mapped_params_by_orig_name' => {},
 		'dont_resolve_final_symlink' => 0,
 
+		'postprocess_vars' => [],
+
 		# processing modifiers may change the parameter list
 		# (but always we'll start with a copy of the original names)
 		'parameter_names' => [@{$fn->{'parameter_names'}}],
@@ -476,6 +494,18 @@ sub process_wrap_or_gate_modifiers {
 			# Make a "..._nomap" version, because the main
 			# wrapper has mappings.
 			$mods->{'make_nomap_function'} = 1;
+		} elsif($modifiers[$i] =~ m/^postprocess\((.*)\)$/) {
+			my $param_to_postprocess = $1;
+
+			if (defined($mods->{'mapped_params_by_orig_name'}->{$param_to_postprocess})) {
+				push(@{$mods->{'postprocess_vars'}},
+					$param_to_postprocess);
+			} else {
+				printf "ERROR: can't postprocess ".
+					"%s (parameter not mapped)\n",
+					$param_to_postprocess;
+				$num_errors++;
+			}
 		} elsif($modifiers[$i] =~ m/^map_at\((.*),(.*)\)$/) {
 			my $fd_param = $1;
 			my $param_to_be_mapped = $2;
@@ -575,12 +605,46 @@ sub process_wrap_or_gate_modifiers {
 	return($mods);
 }
 
+sub create_postprocessors {
+	my $fn = shift;
+	my $mods = shift;
+
+	my $num_params_to_postprocess = @{$mods->{'postprocess_vars'}};
+	my $postprocessor_calls = undef;
+	my $postprocessor_prototypes = "";
+	my $fn_name = $fn->{'fn_name'};
+
+	if ($num_params_to_postprocess > 0) {
+		$postprocessor_calls = "";
+
+		# insert call to postprocessor for each variable
+		my $ppvar;
+		foreach $ppvar (@{$mods->{'postprocess_vars'}}) {
+			my $pp_fn = "${fn_name}_postprocess_${ppvar}";
+			my $mapped_param = $mods->{'mapped_params_by_orig_name'}->{$ppvar};
+			my $type_of_param = find_type_of_parameter($fn,$ppvar);
+
+			$postprocessor_calls .= "$pp_fn(".
+				"$mapped_param, $ppvar); ";
+			$postprocessor_prototypes .= "extern void ".
+				"$pp_fn($type_of_param $mapped_param, ".
+				"$type_of_param $ppvar);\n";
+		}
+	}
+	return($postprocessor_calls, $postprocessor_prototypes);
+}
+
 sub create_call_to_real_fn {
 	my $fn = shift;
 	my $mods = shift;
 	my @param_list_in_next_call = @_;
 
 	my $real_fn_pointer_name = $mods->{'real_fn_pointer_name'};
+
+	my $postprocessor_calls = undef;
+	my $postprocessor_prototypes = "";
+	($postprocessor_calls, $postprocessor_prototypes) = 
+		create_postprocessors($fn, $mods);
 
 	return(
 		# 1. call with mapped parameters
@@ -591,7 +655,11 @@ sub create_call_to_real_fn {
 			join(", ", @{$mods->{'parameter_names'}}).");\n",
 		# 3. call with original parameters (without logging)
 		"(*$real_fn_pointer_name)(".
-			join(", ", @{$mods->{'parameter_names'}}).");\n"
+			join(", ", @{$mods->{'parameter_names'}}).");\n",
+		# 4.
+		$postprocessor_calls,
+		# 5. prototypes.
+		$postprocessor_prototypes
 	);
 }
 
@@ -640,6 +708,12 @@ sub create_call_to_gate_fn {
 	}
 
 	my $mapped_call = "${fn_name}_gate($modified_param_list);\n";
+
+	my $postprocessor_calls = undef;
+	my $postprocessor_prototypes = "";
+	($postprocessor_calls, $postprocessor_prototypes) = 
+		create_postprocessors($fn, $mods);
+
 	my $unmapped_call = "${fn_name}_gate($orig_param_list);\n";
 	# nomap_nolog is not possible for GATEs
 
@@ -647,7 +721,9 @@ sub create_call_to_gate_fn {
 		"extern ".$fn->{'fn_return_type'}." ${fn_name}_gate(".
 			"$prototype_params);\n";
 
-	return($mapped_call, $unmapped_call, $gate_function_prototype);
+	return($mapped_call, $unmapped_call,
+		$gate_function_prototype.$postprocessor_prototypes,
+		$postprocessor_calls);
 }
 
 #-------------------
@@ -846,18 +922,19 @@ sub command_wrap_or_gate {
 	my $mapped_call;
 	my $unmapped_call;
 	my $unmapped_nolog_call;
+	my $postprocesors;
+	my $prototypes;
 	if($command eq 'WRAP') {
-		($mapped_call, $unmapped_call, $unmapped_nolog_call) =
-			create_call_to_real_fn($fn, $mods,
-				@param_list_in_next_call);
+		($mapped_call, $unmapped_call, $unmapped_nolog_call,
+		 $postprocesors, $prototypes) = create_call_to_real_fn(
+			$fn, $mods, @param_list_in_next_call);
 	} else { # GATE
-		my $gate_function_prototype;
-		($mapped_call, $unmapped_call, $gate_function_prototype) =
-			create_call_to_gate_fn($fn, $mods,
+		($mapped_call, $unmapped_call, $prototypes,
+		 $postprocesors) = create_call_to_gate_fn($fn, $mods,
 				@param_list_in_next_call);
-		$export_h_buffer .= $gate_function_prototype;
 		$unmapped_nolog_call = ""; # not supported for GATEs
 	}
+	$export_h_buffer .= $prototypes;
 
 	# First restore errno to what it was at entry (the path mapping
 	# code might have set it)
@@ -869,6 +946,12 @@ sub command_wrap_or_gate {
 	$nomap_fn_c_code .=		$call_line_prefix.$unmapped_call;
 	$nomap_nolog_fn_c_code .=	$call_line_prefix.$unmapped_nolog_call;
 
+	# calls to postprocessors (if any) before the cleanup 
+	if (defined $postprocesors) {
+		$wrapper_fn_c_code .=	"\t".$postprocesors."\n";
+	}
+	
+	# cleanup; free allocated variables etc.
 	$wrapper_fn_c_code .=		$mods->{'va_list_end_code'};
 	$wrapper_fn_c_code .=		$mods->{'free_path_mapping_vars_code'};
 	$nomap_fn_c_code .=		$mods->{'va_list_end_code'};

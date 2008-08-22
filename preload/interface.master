@@ -294,8 +294,6 @@ WRAP: int mknod(const char *pathname, mode_t mode, dev_t dev) : \
 	map(pathname) fail_if_readonly(pathname,-1,EROFS)
 WRAP: int mknodat(int dirfd, const char *pathname, mode_t mode, dev_t dev) : \
 	map_at(dirfd,pathname) fail_if_readonly(pathname,-1,EROFS)
-WRAP: int mkstemp(char *template) : map(template) fail_if_readonly(template,-1,EROFS)
-WRAP: int mkstemp64(char *template) : map(template) fail_if_readonly(template,-1,EROFS)
 WRAP: int nftw(const char *dir, int (*fn)(const char *file, const struct stat *sb, int flag, struct FTW *s), int nopenfd, int flags) : map(dir)
 #ifdef HAVE_NFTW64
 WRAP: int nftw64(const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag, struct FTW *s), int nopenfd, int flags) : map(dir)
@@ -405,7 +403,6 @@ WRAP: int utime(const char *filename, const struct utimbuf *buf) : \
 	map(filename) fail_if_readonly(filename,-1,EROFS)
 WRAP: int utimes(const char *filename, const struct timeval tv[2]) : \
 	map(filename) fail_if_readonly(filename,-1,EROFS)
-
 --
 -- 7. Socket API
 --    ----------
@@ -413,3 +410,19 @@ WRAP: int utimes(const char *filename, const struct timeval tv[2]) : \
 
 GATE: int bind(int sockfd, const struct sockaddr *my_addr, socklen_t addrlen)
 GATE: int connect(int sockfd, const struct sockaddr *serv_addr, socklen_t addrlen)
+
+--
+-- 8. Wrappers, where argument buffer is modified
+--    -------------------------------------------
+--
+
+-- mkstemp() returns name of the generated filename in "template"
+WRAP: int mkstemp(char *template) : \
+	map(template) \
+	postprocess(template) \
+	fail_if_readonly(template,-1,EROFS)
+WRAP: int mkstemp64(char *template) : \
+	map(template) \
+	postprocess(template) \
+	fail_if_readonly(template,-1,EROFS)
+

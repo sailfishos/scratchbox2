@@ -819,3 +819,47 @@ int freopen_errno(FILE *stream)
 	return (EROFS);
 }
 
+/* mkstemp() modifies "template". This locates the part which should be 
+ * modified, and copies the modification back from mapped buffer (which
+ * was modified by the real function) to callers buffer.
+*/
+void mkstemp_postprocess_template(char *mapped__template, char *template)
+{
+	char *first_X = strchr(template, 'X');
+	char *generated_id;
+	int mapped_len = strlen(mapped__template);
+
+	if (!first_X) {
+		SB_LOG(SB_LOGLEVEL_WARNING,
+			"%s: orig.template did not contain X (%s,%s), won't "
+			"do anything", __func__, template, mapped__template);
+		return;
+	}
+	
+	/* by definition, the template should have six trailing 'X's: */
+	if (strcmp(first_X, "XXXXXX")) {
+		SB_LOG(SB_LOGLEVEL_WARNING,
+			"%s: orig.template did not end with XXXXXX (%s,%s), won't "
+			"do anything", __func__, template, mapped__template);
+		return;
+	}
+
+	if(mapped_len < 6) {
+		SB_LOG(SB_LOGLEVEL_WARNING,
+			"%s: mapped.template is too short (%s,%s), won't "
+			"do anything", __func__, template, mapped__template);
+		return;
+	}
+
+	/* now copy last six characters from mapping result to caller's buffer*/
+	strncpy(first_X, mapped__template + (mapped_len-6), 6);
+
+	SB_LOG(SB_LOGLEVEL_DEBUG,
+		"%s: template set to (%s)", __func__, template);
+}
+
+void mkstemp64_postprocess_template(char *mapped__template, char *template)
+{
+	mkstemp_postprocess_template(mapped__template, template);
+}
+

@@ -30,6 +30,7 @@
 #include <unistd.h>
 #include <config.h>
 #include <config_hardcoded.h>
+#include <ctype.h>
 #include "libsb2.h"
 #include "exported.h"
 
@@ -48,6 +49,54 @@ static const char *sb2_strchrnul (const char *s, int c_in)
 	return(ptr);
 }
 
+/* String vector contents to a single string for logging.
+ * returns pointer to an allocated buffer, caller should free() it.
+*/
+static char *strvec_to_string(char *const *argv)
+{
+	int	result_max_size = 1;
+	char	*const *vp;
+	char	*buf;
+
+	if (!argv) return(NULL);
+
+	/* first, count max. size of the result */
+	for (vp = argv; *vp; vp++) {
+		/* add size of the string + one for the space + two for 
+		 * the quotes (if needed) */
+		result_max_size += strlen(*vp) + 3;
+	}
+
+	buf = malloc(result_max_size);
+	*buf = '\0';
+
+	/* next round: copy strings, using quotes for all strings that
+	 * contain whitespaces. */
+	for (vp = argv; *vp; vp++) {
+		int	needs_quotes = 0;
+		char	*cp = *vp;
+
+		if (*cp) {
+			/* non-empty string; see if it contains whitespace */
+			while (*cp) {
+				if (isspace(*cp)) {
+					needs_quotes = 1;
+					break;
+				}
+				cp++;
+			}
+		} else {
+			/* empty string */
+			needs_quotes = 1;
+		}
+		if (*buf) strcat(buf, " ");
+		if (needs_quotes) strcat(buf, "'");
+		strcat(buf, *vp);
+		if (needs_quotes) strcat(buf, "'");
+	}
+
+	return(buf);
+}
 
 static int (*next_execve) (const char *filename, char *const argv [],
 			char *const envp[]) = NULL;
@@ -56,6 +105,18 @@ int sb_next_execve(const char *file, char *const *argv, char *const *envp)
 {
 	if (next_execve == NULL) {
 		next_execve = sbox_find_next_symbol(1, "execve");
+	}
+
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
+		char *buf = strvec_to_string(argv);
+
+		if (buf) {
+			SB_LOG(SB_LOGLEVEL_DEBUG, "EXEC: %s : %s", file, buf);
+			free(buf);
+		} else {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"EXEC: %s (failed to printing argv)", file);
+		}
 	}
 
 	return next_execve(file, argv, envp);

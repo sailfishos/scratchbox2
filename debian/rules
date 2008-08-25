@@ -36,6 +36,7 @@ clean: checkroot
 	$(checkdir)
 	make clean
 	rm -f configure config.mak build-stamp .configure-multilib
+	rm -f include/config.h include/config.h.in
 	rm -rf obj-64 obj-32
 	dh_clean
 

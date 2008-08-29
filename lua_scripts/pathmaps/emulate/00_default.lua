@@ -3,6 +3,11 @@
 
 sb1_compat_dir = os.getenv("SBOX_TARGET_ROOT") .. "/scratchbox1-compat"
 
+sb2_session_dir = os.getenv("SBOX_SESSION_DIR")
+if (not sb2_session_dir) then
+	sb2_session_dir = "/tmp"
+end
+
 mapall_chain = {
 	next_chain = nil,
 	binary = nil,
@@ -18,9 +23,12 @@ mapall_chain = {
                     map_to = sb1_compat_dir },
 		
 		-- 
+		{prefix = sb2_session_dir, use_orig_path = true},
+		{prefix = "/tmp", map_to = sb2_session_dir},
+
+		-- 
 		{prefix = "/dev", use_orig_path = true},
 		{prefix = "/proc", use_orig_path = true},
-		{prefix = "/tmp", use_orig_path = true},
 		{prefix = "/sys", use_orig_path = true},
 		{prefix = os.getenv("HOME") .. "/.scratchbox2",
 		 use_orig_path = true},

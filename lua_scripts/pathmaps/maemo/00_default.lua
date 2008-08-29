@@ -9,6 +9,11 @@ end
 sb2_home_dir = os.getenv("HOME") .. "/.scratchbox2/"
 sb2_share_dir = sb2_home_dir .. os.getenv("SBOX_TARGET") .. "/share"
 
+sb2_session_dir = os.getenv("SBOX_SESSION_DIR")
+if (not sb2_session_dir) then
+	sb2_session_dir = "/tmp"
+end
+
 -- =========== Actions for conditional rules ===========
 
 test_first_target_then_tools_default_is_target = {
@@ -224,8 +229,12 @@ simple_chain = {
 		{prefix = "/var/log", map_to = target_root},
 
 		-- -----------------------------------------------
+		-- 85. /tmp
+		{prefix = sb2_session_dir, use_orig_path = true},
+		{prefix = "/tmp", map_to = sb2_session_dir},
+
+		-- -----------------------------------------------
 		-- 90. Top-level directories that must not be mapped:
-		{prefix = "/tmp", use_orig_path = true},
 		{prefix = "/dev", use_orig_path = true},
 		{prefix = "/proc", use_orig_path = true},
 		{prefix = "/sys",
@@ -268,7 +277,7 @@ simple_chain = {
 
 		-- -----------------------------------------------
 		-- 100. DEFAULT RULES:
-		-- the root directory itself must not be mapped:
+		-- the root directory must not be mapped:
 		{path = "/", use_orig_path = true},
 
 		-- ..but everything else defaults to tools_root,
@@ -286,7 +295,9 @@ qemu_chain = {
 		{prefix = "/usr/lib", map_to = target_root},
 		{prefix = "/usr/local/lib", map_to = target_root},
 
-		{prefix = "/tmp", use_orig_path = true},
+		{prefix = sb2_session_dir, use_orig_path = true},
+		{prefix = "/tmp", map_to = sb2_session_dir},
+
 		{prefix = "/dev", use_orig_path = true},
 		{prefix = "/proc", use_orig_path = true},
 		{prefix = "/sys", use_orig_path = true},

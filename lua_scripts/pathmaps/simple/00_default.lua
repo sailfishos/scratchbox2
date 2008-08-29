@@ -6,6 +6,11 @@ if (not tools) then
 	tools = "/"
 end
 
+sb2_session_dir = os.getenv("SBOX_SESSION_DIR")
+if (not sb2_session_dir) then
+	sb2_session_dir = "/tmp"
+end
+
 simple_chain = {
 	next_chain = nil,
 	binary = nil,
@@ -26,7 +31,10 @@ simple_chain = {
 		{prefix = "/home/user", map_to = target_root},
 		{prefix = "/home", use_orig_path = true},
 		{prefix = "/host_usr", map_to = target_root},
-		{prefix = "/tmp", use_orig_path = true},
+
+		{prefix = sb2_session_dir, use_orig_path = true},
+		{prefix = "/tmp", map_to = sb2_session_dir},
+
 		{prefix = "/dev", use_orig_path = true},
 		{prefix = "/proc", use_orig_path = true},
 		{prefix = "/sys", use_orig_path = true},
@@ -45,7 +53,10 @@ qemu_chain = {
 		{prefix = "/lib", map_to = target_root},
 		{prefix = "/usr/lib", map_to = target_root},
 		{prefix = "/usr/local/lib", map_to = target_root},
-		{prefix = "/tmp", use_orig_path = true},
+
+		{prefix = sb2_session_dir, use_orig_path = true},
+		{prefix = "/tmp", map_to = sb2_session_dir},
+
 		{prefix = "/dev", use_orig_path = true},
 		{prefix = "/proc", use_orig_path = true},
 		{prefix = "/sys", use_orig_path = true},

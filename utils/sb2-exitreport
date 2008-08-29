@@ -46,4 +46,16 @@ elif [ -f "$SBOX_MAPPING_LOGFILE" ] ; then
 	rm $SBOX_MAPPING_LOGFILE
 fi
 
+if [ "$SBOX_SESSION_NO_CLEANUP" == "$SBOX_SESSION" ]
+then
+	echo
+	echo "Session directories preserved ($SBOX_SESSION_DIR)"
+else
+	# cleanup
+	if [ -n "$SBOX_SESSION_DIR" -a -d "$SBOX_SESSION_DIR" ]
+	then
+		rm -rf $SBOX_SESSION_DIR
+	fi
+fi
+
 exit $ret

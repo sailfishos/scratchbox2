@@ -28,6 +28,8 @@ Options:
     -s DIRECTORY load mapping scripts from alternative location
     -Q BUGLIST   emulate bugs of the old scratchbox 1 (BUGLIST consists of
                  letters: 'x' enables exec permission checking bug emulation)
+    -p           Preserve session directories (including the directory
+                 which is used for /tmp by most mapping modes)
 
 Examples:
     sb2 ./configure
@@ -154,7 +156,11 @@ fi
 export SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
 export SBOX_WORKDIR=$(readlink -f $PWD)
 
-while getopts vdht:em:s:L:Q: foo
+# Create session ID
+now=`date +%Y%m%d-%H%M%S.%z`
+export SBOX_SESSION=$now.$$
+
+while getopts vdht:em:s:L:Q:p foo
 do
 	case $foo in
 	(v) version ;;
@@ -168,6 +174,7 @@ do
 	(e) export SBOX_MAPMODE=emulate ;;
 	(m) export SBOX_MAPMODE=$OPTARG ;;
 	(s) export SBOX_LUA_SCRIPTS=$OPTARG;;
+	(p) export SBOX_SESSION_NO_CLEANUP=$SBOX_SESSION;;
 	(*) usage ;;
 	esac
 done
@@ -188,6 +195,12 @@ fi
 if [ "$1" = "-" ] ; then
 	STDIN=true
 fi
+
+# Create session directories
+SBOX_SESSION_DIR=`mktemp -d /tmp/sb2-$USER-$SBOX_SESSION.XXXXXXXXXX`
+export SBOX_SESSION_DIR
+mkdir -p $SBOX_SESSION_DIR
+mkdir -p $SBOX_SESSION_DIR/tmp
 
 sboxify_environment
 

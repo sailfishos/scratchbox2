@@ -69,7 +69,7 @@ function check_host_pkg()
 			fi
 		fi
 
-		pkg_stat_tmp=/tmp/dpkg.$$.tmp
+		pkg_stat_tmp=`mktemp -p $SBOX_SESSION_DIR/tmp pkg-stat.XXXXXXXXXX`
 		# next check again if the package exists on the target,
 		# just to be able to give a better error message.
 		if dpkg-query -s --admindir=$TARGET_DPKG_ADMINDIR_ALL_PKGS \
@@ -184,6 +184,7 @@ function check_target_builddeps()
 {
 	ret=0
 	echo "SB2 Checking target build deps..."
+	missing_dep_file=`mktemp -p $SBOX_SESSION_DIR/tmp missing_deps.XXXXXXXXXX`
 
 	# call dpkg-checkbuilddeps with mapping disabled, because the
 	# version which is available in /usr/bin may not know about the
@@ -191,21 +192,21 @@ function check_target_builddeps()
 	# dpkg-checkbuilddeps' return status.
 	SBOX_DISABLE_MAPPING=1 /usr/bin/dpkg-checkbuilddeps \
 		--admindir=$TARGET_DPKG_ADMINDIR_USABLE_PKGS $args \
-		> /tmp/missing_deps.$$ 2>&1
+		> $missing_dep_file 2>&1
 	if [ $? == 0 ]
 	then
 		# real dpkg-checkbuilddeps says "all ok"
-		rm /tmp/missing_deps.$$
+		rm $missing_dep_file
 		return 0
 	fi
 
 	# else real dpkg-checkbuilddeps failed.
-	sed -e 's/^/     /' < /tmp/missing_deps.$$
+	sed -e 's/^/     /' < $missing_dep_file
 	missing_deps=$(egrep \
 		"^dpkg-checkbuilddeps: Unmet build dependencies:" \
-			/tmp/missing_deps.$$ | \
+			$missing_dep_file | \
 		sed 's/dpkg-checkbuilddeps: Unmet build dependencies: //')
-	rm /tmp/missing_deps.$$
+	rm $missing_dep_file
 
 	if [ -n "$missing_deps" ]; then
 		# failing target deps, and missing packages are listed

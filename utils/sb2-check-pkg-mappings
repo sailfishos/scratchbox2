@@ -88,17 +88,18 @@ do
 	pkgnum=`expr $pkgnum + 1`
 	echo "=========== $pkgnum. Checking $pkg ==========="
 
-	# get list of files intalled by this package (dpkg -L),
+	# get list of files installed by this package (dpkg -L),
 	# and feed it to sb2-show to be verified (-D causes directories
 	# to be ignored). Also ignore all files which are installed
 	# to these diretories listed in $SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST.
-	dpkg -L $pkg >/tmp/sb2-pkg-chk.$tstamp.$$
+	sb2_pkg_chk=`mktemp /tmp/sb2-pkg-chk.XXXXXXXXXX`
+	dpkg -L $pkg >$sb2_pkg_chk
 	if [ $? != 0 ]
 	then
 		num_failed=`expr $num_failed + 1`
 		echo "	$pkg is not available"
 	else
-		sed < /tmp/sb2-pkg-chk.$tstamp.$$ \
+		sed < $sb2_pkg_chk\
 		    -e 's/diverted by .* to: //' \
 		    -e 's/package diverts others to: //' |
 		sb2-show -D verify-pathlist-mappings \
@@ -121,7 +122,7 @@ do
 			echo "	$pkg can not be used in this mode ($SBOX_MAPMODE)"
 		fi
 	fi
-	rm /tmp/sb2-pkg-chk.$tstamp.$$
+	rm $sb2_pkg_chk
 done
 
 echo "Checked $pkgnum packages: Ok=$num_ok, unusable=$num_failed"

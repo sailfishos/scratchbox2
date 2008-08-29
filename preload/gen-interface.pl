@@ -62,6 +62,7 @@
 #     (and it is on by default)
 #   - "postprocess(varname)" can be used to call  postprocessor functions for
 #     mapped variables.
+#   - "return(expr)" can be used to alter the return value.
 #
 # For "WRAP" only:
 #   - "create_nomap_nolog_version" creates a direct interface function to the
@@ -453,6 +454,7 @@ sub process_wrap_or_gate_modifiers {
 		'dont_resolve_final_symlink' => 0,
 
 		'postprocess_vars' => [],
+		'return_expr' => undef,
 
 		# processing modifiers may change the parameter list
 		# (but always we'll start with a copy of the original names)
@@ -506,6 +508,8 @@ sub process_wrap_or_gate_modifiers {
 					$param_to_postprocess;
 				$num_errors++;
 			}
+		} elsif($modifiers[$i] =~ m/^return\((.*)\)$/) {
+			$mods->{'return_expr'} = $1;
 		} elsif($modifiers[$i] =~ m/^map_at\((.*),(.*)\)$/) {
 			my $fd_param = $1;
 			my $param_to_be_mapped = $2;
@@ -624,10 +628,11 @@ sub create_postprocessors {
 			my $mapped_param = $mods->{'mapped_params_by_orig_name'}->{$ppvar};
 			my $type_of_param = find_type_of_parameter($fn,$ppvar);
 
-			$postprocessor_calls .= "$pp_fn(".
+			$postprocessor_calls .= "$pp_fn(__func__, ".
 				"$mapped_param, $ppvar); ";
 			$postprocessor_prototypes .= "extern void ".
-				"$pp_fn($type_of_param $mapped_param, ".
+				"$pp_fn(const char *realfnname, ".
+				"$type_of_param $mapped_param, ".
 				"$type_of_param $ppvar);\n";
 		}
 	}
@@ -873,9 +878,12 @@ sub command_wrap_or_gate {
 	my $call_line_prefix = "\t";
 	my $return_statement = ""; # return stmt not needed if fn_type==void
 	my $log_return_val = ""; 
+	if($mods->{'return_expr'}) {
+		$return_statement .= "\tret = ".$mods->{'return_expr'}.";\n";
+	}
 	if($fn_return_type ne "void") {
 		$call_line_prefix .= "ret = ";
-		$return_statement = "\treturn(ret);\n";
+		$return_statement .= "\treturn(ret);\n";
 	}
 
 	# create a call to log the return
@@ -1043,7 +1051,7 @@ while ($line = <STDIN>) {
 	$line =~ s/\s$//;
 
 	# Split to fields. 1st=command, 2nd=function, 3rd=modifiers
-	my @field = split(/\s*:\s*/, $line);
+	my @field = split(/\s*:\s*/, $line, 3);
 
 	# Order the cached pre-processor token first
 	if ($token_cache) {

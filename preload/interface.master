@@ -55,7 +55,6 @@ GATE: char * getcwd (char *buf, size_t size) : returns_string
 GATE: char * get_current_dir_name (void) : returns_string
 GATE: char * getwd (char *buf) : returns_string
 
-GATE: char *mkdtemp (char *template) : returns_string
 GATE: int uname(struct utsname *buf)
 
 #ifdef HAVE_FTS_H
@@ -77,9 +76,7 @@ GATE: void _Exit(int status)
 -- 4. Wrappers where the path is not mapped
 --    -------------------------------------
 --
-
-WRAP: char *tmpnam (char *s) : returns_string
-WRAP: char *mktemp (char *template) : returns_string
+-- (none currently)
 
 --
 -- 5. "open()-class":
@@ -384,7 +381,6 @@ WRAP: int symlinkat(const char *oldpath, int newdirfd, const char *newpath) : \
 	dont_resolve_final_symlink map_at(newdirfd,newpath) \
 	fail_if_readonly(newpath,-1,EROFS)
 
-WRAP: char *tempnam(const char *dir, const char *pfx) : map(dir) returns_string
 WRAP: int truncate(const char *path, off_t length) : \
 	map(path) fail_if_readonly(path,-1,EROFS)
 #ifdef HAVE_TRUNCATE64
@@ -416,7 +412,13 @@ GATE: int connect(int sockfd, const struct sockaddr *serv_addr, socklen_t addrle
 --    -------------------------------------------
 --
 
--- mkstemp() returns name of the generated filename in "template"
+-- mkdtemp() & mkstemp() return name of the generated filename in "template"
+WRAP: char *mkdtemp(char *template) : \
+	map(template) \
+	postprocess(template) \
+	fail_if_readonly(template,NULL,EROFS) \
+	returns_string \
+	return(ret?template:NULL)
 WRAP: int mkstemp(char *template) : \
 	map(template) \
 	postprocess(template) \
@@ -425,4 +427,16 @@ WRAP: int mkstemp64(char *template) : \
 	map(template) \
 	postprocess(template) \
 	fail_if_readonly(template,-1,EROFS)
+
+-- tmpnam(), tempnam() and mktemp() do not create files, they create file names 
+-- that did not exist when the function was called. These need to do path
+-- mapping when performing the tests.. because of that we need to replace
+-- these functions completely.
+GATE: char *tmpnam(char *s) : returns_string
+GATE: char *tempnam(const char *tmpdir, const char *prefix) : returns_string
+WRAP: char *mktemp(char *template) : \
+	map(template) \
+	postprocess(template) \
+	returns_string \
+	return(ret?template:NULL) 
 

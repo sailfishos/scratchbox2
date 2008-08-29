@@ -27,6 +27,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 */
 
+#include <stdio.h>
 #include <unistd.h>
 #include <config.h>
 #include <config_hardcoded.h>
@@ -620,20 +621,6 @@ int ulckpwdf (void)
 }
 
 
-char *mkdtemp_gate(
-	char *(*real_mkdtemp_ptr)(char *template),
-	const char *realfnname,
-	char *template)
-{
-	(void)realfnname;	/* not used here */
-
-	if ((*real_mkdtemp_ptr)(template) == NULL) {
-		return NULL;
-	}
-	return template;
-}
-
-
 int uname_gate(
 	int (*real_uname_ptr)(struct utsname *buf),
 	const char *realfnname,
@@ -761,6 +748,7 @@ void *sbox_find_next_symbol(int log_enabled, const char *fn_name)
 		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: %s", __func__, fn_name);
 
 	fn_ptr = dlsym(RTLD_NEXT, fn_name);
+
 	if ((msg = dlerror()) != NULL) {
 		fprintf(stderr, "%s: dlsym(%s): %s\n",
 			PACKAGE_NAME, fn_name, msg);
@@ -823,43 +811,161 @@ int freopen_errno(FILE *stream)
  * modified, and copies the modification back from mapped buffer (which
  * was modified by the real function) to callers buffer.
 */
-void mkstemp_postprocess_template(char *mapped__template, char *template)
+void postprocess_tempname_template(const char *realfnname,
+	char *mapped__template, char *template)
 {
 	char *first_X = strchr(template, 'X');
 	char *generated_id;
 	int mapped_len = strlen(mapped__template);
+	int num_x = 0;
+	char *cp;
 
 	if (!first_X) {
 		SB_LOG(SB_LOGLEVEL_WARNING,
 			"%s: orig.template did not contain X (%s,%s), won't "
-			"do anything", __func__, template, mapped__template);
+			"do anything", realfnname, template, mapped__template);
 		return;
 	}
 	
-	/* by definition, the template should have six trailing 'X's: */
-	if (strcmp(first_X, "XXXXXX")) {
-		SB_LOG(SB_LOGLEVEL_WARNING,
-			"%s: orig.template did not end with XXXXXX (%s,%s), won't "
-			"do anything", __func__, template, mapped__template);
-		return;
+	/* C standard says that the template should have six trailing 'X's.
+	 * However, some systems seem to allow varying number of X characters
+	 * (see the manual pages)
+	*/
+	num_x = strlen(first_X);
+	for (cp = first_X; *cp; cp++) {
+		if (*cp != 'X') {
+			SB_LOG(SB_LOGLEVEL_WARNING,
+				"%s: unknown orig.template format (%s,%s), "
+				"won't do anything", 
+				realfnname, template, mapped__template);
+			return;
+		}
 	}
 
-	if(mapped_len < 6) {
+	if(mapped_len < num_x) {
 		SB_LOG(SB_LOGLEVEL_WARNING,
 			"%s: mapped.template is too short (%s,%s), won't "
-			"do anything", __func__, template, mapped__template);
+			"do anything", realfnname, template, mapped__template);
 		return;
 	}
 
-	/* now copy last six characters from mapping result to caller's buffer*/
-	strncpy(first_X, mapped__template + (mapped_len-6), 6);
+	/* now copy last characters from mapping result to caller's buffer*/
+	strncpy(first_X, mapped__template + (mapped_len-num_x), num_x);
 
 	SB_LOG(SB_LOGLEVEL_DEBUG,
-		"%s: template set to (%s)", __func__, template);
+		"%s: template set to (%s)", realfnname, template);
 }
 
-void mkstemp64_postprocess_template(char *mapped__template, char *template)
+void mkstemp_postprocess_template(const char *realfnname,
+	char *mapped__template, char *template)
 {
-	mkstemp_postprocess_template(mapped__template, template);
+	postprocess_tempname_template(realfnname, mapped__template, template);
 }
 
+void mkstemp64_postprocess_template(const char *realfnname,
+	char *mapped__template, char *template)
+{
+	postprocess_tempname_template(realfnname, mapped__template, template);
+}
+
+void mkdtemp_postprocess_template(const char *realfnname,
+	char *mapped__template, char *template)
+{
+	postprocess_tempname_template(realfnname, mapped__template, template);
+}
+
+void mktemp_postprocess_template(const char *realfnname,
+	char *mapped__template, char *template)
+{
+	postprocess_tempname_template(realfnname, mapped__template, template);
+}
+
+/* the real tmpnam() can not be used at all, because the generated name must
+ * be mapped before the name can be tested and that won't happen inside libc.
+ * Istead, we'll use mktemp()..
+*/
+char *tmpnam_gate(char *(*real_tmpnam_ptr)(char *s),
+	 const char *realfnname, char *s)
+{
+	static char static_tmpnam_buf[PATH_MAX]; /* used if s is NULL */
+	char tmpnam_buf[PATH_MAX];
+	char *dir = getenv("TMPDIR");
+
+	(void)real_tmpnam_ptr; /* not used */
+
+	if (!dir) dir = P_tmpdir;
+	if (!dir) dir = "/tmp";
+	
+	snprintf(tmpnam_buf, sizeof(tmpnam_buf), "%s/sb2-XXXXXX", dir);
+	if (strlen(tmpnam_buf) >= L_tmpnam) {
+		SB_LOG(SB_LOGLEVEL_WARNING,
+			"%s: tmp name (%s) >= %d",
+			realfnname, tmpnam_buf, L_tmpnam);
+	}
+
+	if (mktemp(tmpnam_buf)) {
+		/* success */
+		if (s) {
+			strcpy(s, tmpnam_buf);
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"%s: result='%s'", realfnname, s);
+			return(s);
+		}
+		
+		/* s was NULL, return pointer to our static buffer */
+		strcpy(static_tmpnam_buf, tmpnam_buf);
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: static buffer='%s'",
+			realfnname, static_tmpnam_buf);
+		return(static_tmpnam_buf);
+	}
+	/* mktemp() failed */
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: mktemp() failed", realfnname);
+	return(NULL);
+}
+
+/* the real tempnam() can not be used, just like tmpnam() can't be used.
+*/
+char *tempnam_gate(
+	char *(*real_tempnam_ptr)(const char *tmpdir, const char *prefix),
+        const char *realfnname, const char *tmpdir, const char *prefix)
+{
+	const char *dir = NULL;
+	int namelen;
+	char *tmpnam_buf;
+
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s / %s called", realfnname, __func__);
+
+	(void)real_tempnam_ptr; /* not used */
+
+	if (tmpdir) {
+		dir = tmpdir;
+	} else {
+		dir = getenv("TMPDIR");
+		if (!dir) dir = P_tmpdir;
+		if (!dir) dir = "/tmp";
+	}
+	
+	namelen = strlen(dir) + 1 + (prefix?strlen(prefix):4) + 6 + 1;
+
+	tmpnam_buf = malloc(namelen);
+	if (!tmpnam_buf) {
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: malloc() failed", realfnname);
+		return(NULL);
+	}
+	snprintf(tmpnam_buf, namelen, "%s/%sXXXXXX", 
+		dir, (prefix ? prefix : "tmp."));
+
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: namelen=%d buf='%s'", 
+		__func__, namelen, tmpnam_buf);
+
+	if (mktemp(tmpnam_buf) && *tmpnam_buf) {
+		/* success */
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"%s: result='%s'", realfnname, tmpnam_buf);
+		
+		return(tmpnam_buf);
+	}
+	/* mktemp() failed */
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: mktemp() failed", realfnname);
+	return(NULL);
+}

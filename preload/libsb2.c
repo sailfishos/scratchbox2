@@ -811,36 +811,40 @@ int freopen_errno(FILE *stream)
  * modified, and copies the modification back from mapped buffer (which
  * was modified by the real function) to callers buffer.
 */
-void postprocess_tempname_template(const char *realfnname,
+static void postprocess_tempname_template(const char *realfnname,
 	char *mapped__template, char *template)
 {
-	char *first_X = strchr(template, 'X');
-	char *generated_id;
+	char *X_ptr;
 	int mapped_len = strlen(mapped__template);
 	int num_x = 0;
-	char *cp;
 
-	if (!first_X) {
+	X_ptr = strrchr(template, 'X'); /* point to last 'X' */
+	if (!X_ptr) {
 		SB_LOG(SB_LOGLEVEL_WARNING,
 			"%s: orig.template did not contain X (%s,%s), won't "
 			"do anything", realfnname, template, mapped__template);
 		return;
 	}
-	
-	/* C standard says that the template should have six trailing 'X's.
+
+	/* the last 'X' should be the last character in the template: */
+	if (X_ptr[1] != '\0') {
+		SB_LOG(SB_LOGLEVEL_WARNING,
+			"%s: unknown orig.template format (%s,%s), "
+			"won't do anything", 
+			realfnname, template, mapped__template);
+		return;
+	}
+
+	while ((X_ptr > template) && (X_ptr[-1] == 'X')) {
+		X_ptr--;
+	}
+
+	/* now "X_ptr" points to the first 'X' to be modified.
+	 * C standard says that the template should have six trailing 'X's.
 	 * However, some systems seem to allow varying number of X characters
 	 * (see the manual pages)
 	*/
-	num_x = strlen(first_X);
-	for (cp = first_X; *cp; cp++) {
-		if (*cp != 'X') {
-			SB_LOG(SB_LOGLEVEL_WARNING,
-				"%s: unknown orig.template format (%s,%s), "
-				"won't do anything", 
-				realfnname, template, mapped__template);
-			return;
-		}
-	}
+	num_x = strlen(X_ptr);
 
 	if(mapped_len < num_x) {
 		SB_LOG(SB_LOGLEVEL_WARNING,
@@ -850,7 +854,7 @@ void postprocess_tempname_template(const char *realfnname,
 	}
 
 	/* now copy last characters from mapping result to caller's buffer*/
-	strncpy(first_X, mapped__template + (mapped_len-num_x), num_x);
+	strncpy(X_ptr, mapped__template + (mapped_len-num_x), num_x);
 
 	SB_LOG(SB_LOGLEVEL_DEBUG,
 		"%s: template set to (%s)", realfnname, template);

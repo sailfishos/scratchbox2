@@ -348,31 +348,35 @@ static char last_char_in_str(const char *str)
 
 /* ========== Interfaces to Lua functions: ========== */
 
+/* note: this expects that the lua stack already contains the mapping rule,
+ * needed by sbox_translate_path (lua code).
+ * at exit this leaves the rule to stack.
+*/
 static char *call_lua_function_sbox_translate_path(
 	int result_log_level,
 	struct lua_instance *luaif,
-	const char *mapping_mode,
 	const char *binary_name,
 	const char *func_name,
 	const char *work_dir,
 	const char *decolon_path,
-	int *ro_flagp,
-	const char *full_path_for_rule_selection)
+	int *ro_flagp)
 {
 	int ro_flag;
 	char *traslate_result = NULL;
 
-	SB_LOG(SB_LOGLEVEL_NOISE, "calling sbox_translate_path for %s(%s,%s)",
-		func_name, decolon_path, full_path_for_rule_selection);
+	SB_LOG(SB_LOGLEVEL_NOISE, "calling sbox_translate_path for %s(%s)",
+		func_name, decolon_path);
 
 	lua_getfield(luaif->lua, LUA_GLOBALSINDEX, "sbox_translate_path");
-	lua_pushstring(luaif->lua, mapping_mode);
+	/* stack now contains the rule object and string "sbox_translate_path",
+         * move the string to the bottom: */
+	lua_insert(luaif->lua, -2);
+	/* add other parameters */
 	lua_pushstring(luaif->lua, binary_name);
 	lua_pushstring(luaif->lua, func_name);
 	lua_pushstring(luaif->lua, work_dir);
 	lua_pushstring(luaif->lua, decolon_path);
-	lua_pushstring(luaif->lua, full_path_for_rule_selection);
-	lua_call(luaif->lua, 6, 2); /* six arguments, returns path+ro_flag */
+	lua_call(luaif->lua, 5, 3); /* 5 arguments, returns rule,path,ro_flag */
 
 	traslate_result = (char *)lua_tostring(luaif->lua, -2);
 	if (traslate_result) {
@@ -380,7 +384,7 @@ static char *call_lua_function_sbox_translate_path(
 	}
 	ro_flag = lua_toboolean(luaif->lua, -1);
 	if (ro_flagp) *ro_flagp = ro_flag;
-	lua_pop(luaif->lua, 2);
+	lua_pop(luaif->lua, 2); /* leave rule to the stack */
 
 	if (traslate_result) {
 		/* sometimes a mapping rule may create paths that contain
@@ -423,6 +427,7 @@ static char *call_lua_function_sbox_translate_path(
 
 /* - returns 1 if ok (then *min_path_lenp is valid)
  * - returns 0 if failed to find the rule
+ * Note: this leave the rule to the stack!
 */
 static int call_lua_function_sbox_get_mapping_requirements(
 	struct lua_instance *luaif,
@@ -447,12 +452,14 @@ static int call_lua_function_sbox_get_mapping_requirements(
 	lua_pushstring(luaif->lua, func_name);
 	lua_pushstring(luaif->lua, work_dir);
 	lua_pushstring(luaif->lua, full_path_for_rule_selection);
-	/* five arguments, returns flag+min_path_len */
-	lua_call(luaif->lua, 5, 2);
+	/* five arguments, returns (rule, flag, min_path_len) */
+	lua_call(luaif->lua, 5, 3);
 
 	rule_found = lua_toboolean(luaif->lua, -2);
 	min_path_len = lua_tointeger(luaif->lua, -1);
 	if (min_path_lenp) *min_path_lenp = min_path_len;
+
+	/* remove "flag" and "min_path_len"; leave "rule" to the stack */
 	lua_pop(luaif->lua, 2);
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "sbox_get_mapping_requirements -> %d,%d",
@@ -461,9 +468,26 @@ static int call_lua_function_sbox_get_mapping_requirements(
 	return(rule_found);
 }
 
-/* ========== Path resolution: ==========
- * This is the place where symlinks are followed.
+/* ========== Path resolution: ========== */
+
+/* clean up path resolution environment from lua stack */
+static void drop_rule_from_lua_stack(struct lua_instance *luaif)
+{
+	/* remove "rule" from the stack.  */
+	lua_pop(luaif->lua, 1);
+
+	SB_LOG(SB_LOGLEVEL_NOISE,
+		"path resolution cleanup: at exit, gettop=%d",
+		lua_gettop(luaif->lua));
+}
+
+/* sb_path_resolution():  This is the place where symlinks are followed.
+ *
  * Returns an allocated buffer containing the resolved path (or NULL if error)
+ *
+ * Note: when this function returns, lua stack contains the rule which was
+ *       used to do the path resolution. drop_rule_from_lua_stack() must
+ *       be called after it is not needed anymore!
  *
  * FIXME: It might be possible to eliminate parameter
  * "full_path_for_rule_selection" now when the separate call to
@@ -572,9 +596,8 @@ static char *sb_path_resolution(
 
 		prefix_mapping_result = call_lua_function_sbox_translate_path(
 			SB_LOGLEVEL_NOISE,
-			luaif, mapping_mode, binary_name, "PATH_RESOLUTION",
-			work_dir, decolon_tmp, &ro_tmp,
-			full_path_for_rule_selection);
+			luaif, binary_name, "PATH_RESOLUTION",
+			work_dir, decolon_tmp, &ro_tmp);
 
 		SB_LOG(SB_LOGLEVEL_NOISE2, "prefix_mapping_result='%s'",
 			prefix_mapping_result);
@@ -657,6 +680,11 @@ static char *sb_path_resolution(
 			/* recursively call myself to perform path
 			 * resolution steps for the symlink target.
 			*/
+
+			/* First, forget the old rule: */
+			drop_rule_from_lua_stack(luaif);
+
+			/* Then the recursion */
 			return(sb_path_resolution(nest_count + 1,
 				luaif, mapping_mode, binary_name, func_name,
 				work_dir, new_path,
@@ -785,6 +813,8 @@ char *scratchbox_path3(const char *binary_name,
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"scratchbox_path3: process '%s', n='%s'",
 			path, full_path_for_rule_selection);
+
+		/* sb_path_resolution() leaves the rule to the stack... */
 		decolon_path = sb_path_resolution(0,
 			luaif, mapping_mode, binary_name, func_name,
 			work_dir, path, full_path_for_rule_selection,
@@ -803,12 +833,13 @@ char *scratchbox_path3(const char *binary_name,
 
 			mapping_result = call_lua_function_sbox_translate_path(
 				SB_LOGLEVEL_INFO,
-				luaif, mapping_mode, binary_name, func_name,
-				work_dir, decolon_path, ro_flagp,
-				decolon_path);
+				luaif, binary_name, func_name,
+				work_dir, decolon_path, ro_flagp);
 		}
 		if(decolon_path) free(decolon_path);
 		if(full_path_for_rule_selection) free(full_path_for_rule_selection);
+		/* ...and remove the rule from stack */
+		drop_rule_from_lua_stack(luaif);
 	}
 	enable_mapping(luaif);
 

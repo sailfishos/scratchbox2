@@ -339,13 +339,11 @@ function find_rule(chain, func, full_path)
 end
 
 
-function map_using_chain(chain, binary_name, func_name, work_dir, path, full_path)
+function map_using_rule(rule, binary_name, func_name, work_dir, path)
 	local ret = path
 	local rp = path
-	local rule = nil
 	local readonly_flag = false
 
-	rule = find_rule(chain, func_name, full_path)
 	if (not rule) then
 		-- error, not even a default rule found
 		sb.log("error", string.format("Unable to find a match at all: %s(%s)", func_name, path))
@@ -376,30 +374,16 @@ end
 -- sbox_translate_path is the function called from libsb2.so
 -- preload library and the FUSE system for each path that needs 
 -- translating.
--- Note that for path resolution phase, "path" is a prefix of "full_path"
--- (full_path should be used to select the rule)
--- returns path and the "readonly" flag
-function sbox_translate_path(mapping_mode, binary_name, func_name, work_dir, path, full_path)
-	-- loop through the chains, first match is used
-	for n=1,table.maxn(modes[mapping_mode].chains) do
-		if (not modes[mapping_mode].chains[n].noentry 
-			and (not modes[mapping_mode].chains[n].binary
-			or binary_name == modes[mapping_mode].chains[n].binary)) then
-			return map_using_chain(modes[mapping_mode].chains[n], binary_name, func_name, work_dir, path, full_path)
-		end
-	end
-	-- we should never ever get here, if we still do, don't do anything
-	sb.log("error", string.format("[-][-] %s(%s) [MAPPING FAILED]",
-		func_name, path))
-
-	return path, false
+-- returns rule, path and the "readonly" flag
+function sbox_translate_path(rule, binary_name, func_name, work_dir, path)
+	return rule, map_using_rule(rule, binary_name, func_name, work_dir, path)
 end
 
 -- sbox_get_mapping_requirements is called from libsb2.so before
 -- path resolution takes place. The primary purpose of this is to
 -- determine where to start resolving symbolic links; shorter paths than
 -- "min_path_len" should not be given to sbox_translate_path()
--- returns "rule_found", "min_path_len"
+-- returns "rule", "rule_found", "min_path_len"
 function sbox_get_mapping_requirements(mapping_mode, binary_name, func_name, work_dir, full_path)
 	-- loop through the chains, first match is used
 	local min_path_len = 0
@@ -412,16 +396,16 @@ function sbox_get_mapping_requirements(mapping_mode, binary_name, func_name, wor
 			if (not rule) then
 				-- error, not even a default rule found
 				sb.log("error", string.format("Unable to find rule for: %s(%s)", func_name, full_path))
-				return false, 0
+				return nil, false, 0
 			end
 
-			return true, min_path_len
+			return rule, true, min_path_len
 
 		end
 	end
 	sb.log("error", string.format("Unable to find chain+rule for: %s(%s)",
 		func_name, full_path))
 
-	return false, 0
+	return nil, false, 0
 end
 

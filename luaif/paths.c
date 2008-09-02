@@ -70,20 +70,41 @@ struct path_entry {
 	struct path_entry *pe_prev;
 	struct path_entry *pe_next;
 	char *pe_last_component_name;
-	char pe_full_path[PATH_MAX];
+	char *pe_full_path;
 };
 
 struct path_entry_list {
 	struct path_entry *pl_first;
 };
 
-static char *path_entries_to_string(char *buf, struct path_entry *work)
+/* returns an allocated buffer */
+static char *path_entries_to_string(struct path_entry *p_entry)
 {
+	char *buf;
+	struct path_entry *work;
+	int len;
+
+	if (!p_entry) {
+		/* "p_entry" will be empty if orig.path was "/." */
+		return(strdup("/"));
+	}
+
+	/* first, count length of the buffer */
+	work = p_entry;
+	len = 0;
+	while (work) {
+		len++; /* "/" */
+		len += strlen(work->pe_last_component_name);
+		work = work->pe_next;
+	}
+	len++; /* for trailing \0 */
+
+	buf = malloc(len);
 	*buf = '\0';
-	if (!work) {
-		/* "work" will be empty if orig.path was "/." */
-		strcat(buf, "/");
-	} else while (work) {
+
+	/* add path components to the buffer */
+	work = p_entry;
+	while (work) {
 		strcat(buf, "/");
 		strcat(buf, work->pe_last_component_name);
 		work = work->pe_next;
@@ -102,6 +123,7 @@ static void free_path_entries(struct path_entry_list *listp)
 		struct path_entry *tmp;
 		tmp = work;
 		work = work->pe_next;
+		if (tmp->pe_full_path) free(tmp->pe_full_path);
 		free(tmp);
 	}
 
@@ -114,7 +136,6 @@ static void split_path_to_path_entries(
 {
 	struct path_entry *work = NULL;
 	char *start;
-	char tmp_path_buf[PATH_MAX+1];
 
 	SB_LOG(SB_LOGLEVEL_NOISE2, "going to split '%s'", cpath);
 
@@ -146,7 +167,7 @@ static void split_path_to_path_entries(
 			if(work) work->pe_next = new;
 
 			new->pe_next = NULL;
-			strcpy(new->pe_full_path, cpath);
+			new->pe_full_path = strdup(cpath);
 			new->pe_last_component_name = new->pe_full_path + (start-cpath);
 			work = new;
 			if(!listp->pl_first) listp->pl_first = work;
@@ -160,8 +181,12 @@ static void split_path_to_path_entries(
 		*index = '/';
 		start = index + 1;
 	}
-	SB_LOG(SB_LOGLEVEL_NOISE2,
-		"split->'%s'", path_entries_to_string(tmp_path_buf, listp->pl_first));
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE2)) {
+		char *tmp_path_buf = path_entries_to_string(listp->pl_first);
+
+		SB_LOG(SB_LOGLEVEL_NOISE2, "split->'%s'", tmp_path_buf);
+		free(tmp_path_buf);
+	}
 }
 
 /* remove a path_entry from list, return pointer to the next
@@ -185,6 +210,7 @@ static struct path_entry *remove_path_entry(
 		if(p_entry->pe_next)
 			p_entry->pe_next->pe_prev = NULL;
 	}
+	if (p_entry->pe_full_path) free(p_entry->pe_full_path);
 	free(p_entry);
 	return(ret);
 }
@@ -207,14 +233,15 @@ static void remove_last_path_entry(struct path_entry_list *listp)
 static void remove_dots_and_dotdots_from_path_entries(
 	struct path_entry_list *listp)
 {
-	struct path_entry *work;
-	char tmp_path_buf[PATH_MAX+1];
+	struct path_entry *work = listp->pl_first;
 
-	work = listp->pl_first;
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE2)) {
+		char *tmp_path_buf = path_entries_to_string(listp->pl_first);
 
-	SB_LOG(SB_LOGLEVEL_NOISE2,
-		"remove_dots_and_dotdots: Clean  ->'%s'",
-		path_entries_to_string(tmp_path_buf, listp->pl_first));
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"remove_dots_and_dotdots: Clean  ->'%s'", tmp_path_buf);
+		free(tmp_path_buf);
+	}
 	while (work) {
 		SB_LOG(SB_LOGLEVEL_NOISE2,
 			"remove_dots_and_dotdots: work=0x%X examine '%s'",
@@ -239,9 +266,13 @@ static void remove_dots_and_dotdots_from_path_entries(
 			work = work->pe_next;
 		}
 	}
-	SB_LOG(SB_LOGLEVEL_NOISE2,
-		"remove_dots_and_dotdots: cleaned->'%s'",
-		path_entries_to_string(tmp_path_buf, listp->pl_first));
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE2)) {
+		char *tmp_path_buf = path_entries_to_string(listp->pl_first);
+
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"remove_dots_and_dotdots: cleaned->'%s'", tmp_path_buf);
+		free(tmp_path_buf);
+	}
 }
 
 static char *absolute_path(const char *path)
@@ -298,10 +329,7 @@ char *sb_decolonize_path(const char *path)
 	split_path_to_path_entries(cpath, &list);
 	remove_dots_and_dotdots_from_path_entries(&list);
 
-	buf = malloc((PATH_MAX + 1) * sizeof(char));
-	memset(buf, '\0', PATH_MAX + 1);
-
-	path_entries_to_string(buf, list.pl_first);
+	buf = path_entries_to_string(list.pl_first);
 	free_path_entries(&list);
 
 	SB_LOG(SB_LOGLEVEL_NOISE, "sb_decolonize_path returns '%s'", buf);
@@ -327,10 +355,7 @@ static char *sb_abs_dirname(const char *path)
 	split_path_to_path_entries(cpath, &list);
 	remove_last_path_entry(&list);
 
-	buf = malloc((PATH_MAX + 1) * sizeof(char));
-	memset(buf, '\0', PATH_MAX + 1);
-
-	path_entries_to_string(buf, list.pl_first);
+	buf = path_entries_to_string(list.pl_first);
 	free_path_entries(&list);
 
 	SB_LOG(SB_LOGLEVEL_NOISE, "sb_abs_dirname returns '%s'", buf);
@@ -567,8 +592,8 @@ static char *sb_path_resolution(
 	 * is found, recurse..
 	*/
 	while (work) {
-		char	link_dest[PATH_MAX];
-		char	decolon_tmp[PATH_MAX];
+		char	link_dest[PATH_MAX+1];
+		char	*decolon_tmp;
 		int	link_len;
 		char	*prefix_mapping_result;
 		struct path_entry_list prefix_path_list;
@@ -591,13 +616,14 @@ static char *sb_path_resolution(
 		prefix_path_list.pl_first = NULL;
 		split_path_to_path_entries(work->pe_full_path, &prefix_path_list);
 		remove_dots_and_dotdots_from_path_entries(&prefix_path_list);
-		path_entries_to_string(decolon_tmp, prefix_path_list.pl_first);
+		decolon_tmp = path_entries_to_string(prefix_path_list.pl_first);
 		free_path_entries(&prefix_path_list);
 
 		prefix_mapping_result = call_lua_function_sbox_translate_path(
 			SB_LOGLEVEL_NOISE,
 			luaif, binary_name, "PATH_RESOLUTION",
 			work_dir, decolon_tmp, &ro_tmp);
+		free(decolon_tmp);
 
 		SB_LOG(SB_LOGLEVEL_NOISE2, "prefix_mapping_result='%s'",
 			prefix_mapping_result);
@@ -611,15 +637,17 @@ static char *sb_path_resolution(
 
 		if (link_len > 0) {
 			/* was a symlink */
-			char	new_path[PATH_MAX];
-			char	rest_of_path[PATH_MAX];
+			char	*new_path = NULL;
+			char	*rest_of_path;
+			char	*result_path;
 
 			link_dest[link_len] = '\0';
 			if (work->pe_next) {
-				path_entries_to_string(rest_of_path, work->pe_next);
+				rest_of_path = path_entries_to_string(
+					work->pe_next);
 			} else {
 				/* last component of the path was a symlink. */
-				*rest_of_path = '\0';
+				rest_of_path = strdup("");
 			}
 			SB_LOG(SB_LOGLEVEL_NOISE,
 				"is symlink: rest='%s'", rest_of_path);
@@ -634,13 +662,16 @@ static char *sb_path_resolution(
 					"absolute symlink at '%s' "
 					"points to '%s', restarting",
 					prefix_mapping_result, link_dest);
-				strcpy(new_path, link_dest);
+
 				if (*rest_of_path) {
-					if ((last_char_in_str(new_path) != '/')
-					    && (*rest_of_path != '/')) {
-						strcat(new_path, "/");
-					}
-					strcat(new_path, rest_of_path);
+					asprintf(&new_path, "%s%s%s",
+						link_dest, 
+						((last_char_in_str(link_dest) != '/')
+						    && (*rest_of_path != '/') ?
+							"/" : ""),
+						rest_of_path);
+				} else {
+					new_path = strdup(link_dest);
 				}
 			} else {
 				/* A relative symlink. Somewhat complex:
@@ -654,27 +685,41 @@ static char *sb_path_resolution(
 				 * were the mapping took us.
 				*/
 				char *dirnam;
+				int last_in_dirnam_is_slash;
 
 				dirnam = sb_abs_dirname(work->pe_full_path);
+				last_in_dirnam_is_slash =
+					(last_char_in_str(dirnam) == '/');
 
 				SB_LOG(SB_LOGLEVEL_NOISE,
 					"relative symlink at '%s' "
 					"points to '%s'",
 					prefix_mapping_result, link_dest);
-				strcpy(new_path, dirnam);
-				if (last_char_in_str(new_path) != '/')
-					strcat(new_path, "/");
-				strcat(new_path, link_dest);
+
 				if (*rest_of_path) {
-					if ((last_char_in_str(new_path) != '/')
-					    && (*rest_of_path != '/')) {
-						strcat(new_path, "/");
-					}
-					strcat(new_path, rest_of_path);
+					int last_in_dest_is_slash =
+					    (last_char_in_str(link_dest)=='/');
+
+					asprintf(&new_path, "%s%s%s%s%s",
+						dirnam,
+						(last_in_dirnam_is_slash ?
+							"" : "/"),
+						link_dest,
+						(!last_in_dest_is_slash &&
+						 (*rest_of_path != '/') ?
+							"/" : ""),
+						rest_of_path);
+				} else {
+					asprintf(&new_path, "%s%s%s",
+						dirnam,
+						(last_in_dirnam_is_slash ?
+							"" : "/"),
+						link_dest);
 				}
 				free(dirnam);
 			}
 			free(prefix_mapping_result);
+			free(rest_of_path);
 			free_path_entries(&orig_path_list);
 
 			/* recursively call myself to perform path
@@ -685,10 +730,14 @@ static char *sb_path_resolution(
 			drop_rule_from_lua_stack(luaif);
 
 			/* Then the recursion */
-			return(sb_path_resolution(nest_count + 1,
+			result_path = sb_path_resolution(nest_count + 1,
 				luaif, mapping_mode, binary_name, func_name,
 				work_dir, new_path,
-				new_path, dont_resolve_final_symlink));
+				new_path, dont_resolve_final_symlink);
+
+			/* and finally, cleanup */
+			free(new_path);
+			return(result_path);
 		}
 		free(prefix_mapping_result);
 		work = work->pe_next;
@@ -702,10 +751,7 @@ static char *sb_path_resolution(
 	*/
 	remove_dots_and_dotdots_from_path_entries(&orig_path_list);
 
-	buf = malloc((PATH_MAX + 1) * sizeof(char));
-	memset(buf, '\0', PATH_MAX + 1);
-
-	path_entries_to_string(buf, orig_path_list.pl_first);
+	buf = path_entries_to_string(orig_path_list.pl_first);
 	free_path_entries(&orig_path_list);
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
@@ -726,7 +772,6 @@ char *scratchbox_path3(const char *binary_name,
 		int *ro_flagp,
 		int dont_resolve_final_symlink)
 {	
-	char work_dir[PATH_MAX + 1];
 	struct lua_instance *luaif;
 	char *mapping_result;
 
@@ -803,6 +848,7 @@ char *scratchbox_path3(const char *binary_name,
 		/* Mapping disabled inside this block - do not use "return"!! */
 		char *decolon_path = NULL;
 		char *full_path_for_rule_selection;
+		char work_dir[PATH_MAX + 1];
 
 		full_path_for_rule_selection = sb_decolonize_path(path);
 
@@ -858,11 +904,10 @@ char *scratchbox_path(
 	char *bin_name;
 	const char *mapping_mode;
 
-	memset(binary_name, '\0', PATH_MAX+1);
 	if (!(bin_name = getenv("__SB2_BINARYNAME"))) {
 		bin_name = "UNKNOWN";
 	}
-	strcpy(binary_name, bin_name);
+	snprintf(binary_name, sizeof(binary_name), "%s", bin_name);
 
 	if (!(mapping_mode = getenv("SBOX_MAPMODE"))) {
 		mapping_mode = "simple";

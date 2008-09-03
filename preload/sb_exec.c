@@ -883,18 +883,18 @@ int do_exec(const char *exec_fn_name, const char *file,
 	my_envp = prepare_envp_for_do_exec(binaryname, envp);
 	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
 		/* create a copy of intended environment for logging,
-		 * before sb_execve_mod() gets control */ 
+		 * before sb_execve_preprocess() gets control */ 
 		my_envp_copy = prepare_envp_for_do_exec(binaryname, envp);
 	}
 
 	my_argv = duplicate_argv(argv);
 
-	if ((err = sb_execve_mod(my_file, my_argv, my_envp)) != 0) {
+	if ((err = sb_execve_preprocess(my_file, my_argv, my_envp)) != 0) {
 		SB_LOG(SB_LOGLEVEL_ERROR, "argvenvp processing error %i", err);
 	}
 
 	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
-		/* find out and log if sb_execve_mod() did something */
+		/* find out and log if sb_execve_preprocess() did something */
 		compare_and_log_strvec_changes("argv", argv, *my_argv);
 		compare_and_log_strvec_changes("envp", *my_envp_copy, *my_envp);
 	}
@@ -985,7 +985,7 @@ int sb2show__execve_mods__(
 	my_envp = prepare_envp_for_do_exec(binaryname, orig_envp);
 	my_argv = duplicate_argv(orig_argv);
 
-	if ((err = sb_execve_mod(my_file, my_argv, my_envp)) != 0) {
+	if ((err = sb_execve_preprocess(my_file, my_argv, my_envp)) != 0) {
 		SB_LOG(SB_LOGLEVEL_ERROR, "argvenvp processing error %i", err);
 		
 		*new_file = NULL;

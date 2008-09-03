@@ -37,16 +37,21 @@ dpkg_architecture = {
 }
 argvmods[dpkg_architecture.name] = dpkg_architecture
 
-
+-- ------------------------------------
+-- Exec preprocessing.
+-- function sb_execve_preprocess is called to decide what file
+-- should be started.
+-- (this also typically adds, deletes, or modifies arguments whenever needed)
+-- 
 -- returns: err, file, argc, argv, envc, envp
 -- (zero as "err" means "OK")
-function sbox_execve_mod(filename, argv, envp)
+function sbox_execve_preprocess(filename, argv, envp)
 	local new_argv = {}
 	local new_envp = {}
 	local binaryname = string.match(filename, "[^/]+$")
 	local new_filename = filename
 
-	-- print(string.format("sbox_execve_mod(): %s\n", filename))
+	-- print(string.format("sbox_execve_preprocess(): %s\n", filename))
 	
 	new_envp = envp
 

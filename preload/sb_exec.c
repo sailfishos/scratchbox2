@@ -162,8 +162,14 @@ char **split_to_tokens(char *str)
 	return tokens;
 }
 
+static int run_qemu(const char *qemu_bin, char *const *qemu_args,
+		const char *file, char *const *argv, char *const *envp);
+static int run_sbrsh(const char *sbrsh_bin, char *const *sbrsh_args,
+		const char *target_root, const char *orig_file,
+		char *const *argv, char *const *envp);
+
 /* file is mangled, unmapped_file is not */
-int run_cputransparency(const char *file, const char *unmapped_file,
+static int run_cputransparency(const char *file, const char *unmapped_file,
 			char *const *argv, char *const *envp)
 {
 	char *cputransp_method, *cputransp_bin, *target_root;
@@ -233,7 +239,7 @@ static int is_subdir(const char *root, const char *subdir)
 	return subdir[rootlen] == '/' || subdir[rootlen] == '\0';
 }
 
-int run_sbrsh(const char *sbrsh_bin, char *const *sbrsh_args,
+static int run_sbrsh(const char *sbrsh_bin, char *const *sbrsh_args,
 		const char *target_root, const char *orig_file,
 		char *const *argv, char *const *envp)
 {
@@ -320,7 +326,7 @@ int run_sbrsh(const char *sbrsh_bin, char *const *sbrsh_args,
 	return sb_next_execve(sbrsh_bin, my_argv, envp);
 }
 
-int run_qemu(const char *qemu_bin, char *const *qemu_args,
+static int run_qemu(const char *qemu_bin, char *const *qemu_args,
 		const char *file, char *const *argv, char *const *envp)
 {
 	char **my_argv, **p;
@@ -356,7 +362,7 @@ int run_qemu(const char *qemu_bin, char *const *qemu_args,
 	return sb_next_execve(qemu_bin, my_argv, envp);
 }
 
-int run_app(const char *file, char *const *argv, char *const *envp)
+static int run_app(const char *file, char *const *argv, char *const *envp)
 {
 	sb_next_execve(file, argv, envp);
 
@@ -365,7 +371,7 @@ int run_app(const char *file, char *const *argv, char *const *envp)
 	return -12;
 }
 
-int ld_so_run_app(const char *file, char *const *argv, char *const *envp)
+static int ld_so_run_app(const char *file, char *const *argv, char *const *envp)
 {
 	char *binaryname, **my_argv;
 	char *host_libs, *ld_so;
@@ -534,6 +540,18 @@ static enum binary_type inspect_binary(const char *filename)
 
 	if (fstat(fd, &status) < 0) {
 		goto _out_close;
+	}
+
+	if ((status.st_mode & S_ISUID)) {
+		SB_LOG(SB_LOGLEVEL_WARNING,
+			"SUID bit set for '%s' (SB2 may be disabled)",
+			filename);
+	}
+
+	if ((status.st_mode & S_ISGID)) {
+		SB_LOG(SB_LOGLEVEL_WARNING,
+			"SGID bit set for '%s' (SB2 may be disabled)",
+			filename);
 	}
 
 	if (!S_ISREG(status.st_mode) && !S_ISLNK(status.st_mode)) {
@@ -919,7 +937,8 @@ int do_exec(const char *exec_fn_name, const char *file,
 				return run_app(mapped_file, *my_argv, *my_envp);
 
 		case BIN_HOST_STATIC:
-			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/host-static %s",
+			SB_LOG(SB_LOGLEVEL_WARNING, "Executing statically "
+					"linked native binary %s",
 					mapped_file);
 			return run_app(mapped_file, *my_argv, *my_envp);
 		case BIN_TARGET:

@@ -32,17 +32,6 @@ int sb_next_execve(const char *filename, char *const argv [],
 int do_exec(const char *exec_fn_name, const char *file,
 		char *const *argv, char *const *envp);
 
-int ld_so_run_app(const char *file, char *const *argv, char *const *envp);
-int run_app(const char *file, char *const *argv, char *const *envp);
-int run_cputransparency(const char *file, const char *unmapped_file,
-			char *const *argv, char *const *envp);
-
-int run_sbrsh(const char *sbrsh_bin, char *const *sbrsh_args,
-		const char *target_root, const char *file,
-		char *const *argv, char *const *envp);
-int run_qemu(const char *qemu_bin, char *const *qemu_args,
-		const char *file, char *const *argv, char *const *envp);
-
 time_t get_sb2_timestamp(void);
 
 /* ------ debug/trace logging system for sb2: */

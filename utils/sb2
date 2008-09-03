@@ -80,6 +80,12 @@ function sboxify_environment()
 	
 	. ~/.scratchbox2/$SBOX_TARGET/sb2.config
 
+	# SBOX_MAPMODE has been set, read mode-specific settings
+	if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$SBOX_MAPMODE ]
+	then
+		. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$SBOX_MAPMODE starting
+	fi
+
 	if [ "$SBOX_CONFIG_VERSION" != "7" ]; then
 		echo "Please run sb2-init for your target:"
 		echo "name: $SBOX_TARGET"
@@ -102,7 +108,12 @@ function sboxify_environment()
 	export LD_LIBRARY_PATH SBOX_LIBSB2 SBOX_LUA_SCRIPTS SBOX_TARGET_ROOT SBOX_TARGET_COMPILER
 	export SBOX_TARGET_TOOLCHAIN_DIR=$(dirname "$SBOX_CROSS_GCC_DIR")
 
-	export PATH=$HOME/.scratchbox2/$SBOX_TARGET/bin:$SBOX_DIR/share/scratchbox2/scripts:$SBOX_DIR/bin:$PATH:/sbin:/usr/sbin:$SBOX_TARGET_ROOT/bin:$SBOX_TARGET_ROOT/usr/bin:$SBOX_TARGET_ROOT/usr/local/bin
+	if [ -z "$SBOX_MODE_PATH" ]
+	then
+		export PATH=$HOME/.scratchbox2/$SBOX_TARGET/bin:$SBOX_DIR/share/scratchbox2/scripts:$SBOX_DIR/bin:$PATH:/sbin:/usr/sbin:$SBOX_TARGET_ROOT/bin:$SBOX_TARGET_ROOT/usr/bin:$SBOX_TARGET_ROOT/usr/local/bin
+	else
+		export PATH=$SBOX_MODE_PATH
+	fi
 
 	# LD_PRELOAD will be set to SBOX_LIBSB2 by sb2-monitor.
 

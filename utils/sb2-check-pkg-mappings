@@ -79,7 +79,7 @@ num_failed=0
 SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST=""
 if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$SBOX_MAPMODE ]
 then
-	. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$SBOX_MAPMODE
+	. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$SBOX_MAPMODE "sb2-check-pkg-mappings"
 fi
 
 # for all installed packages..

@@ -349,7 +349,7 @@ SB2INIT_CROSS_GCC_PREFIX_LIST=$ARCH-linux-
 if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$MAPPING_MODE ]
 then
 	echo "Reading mode-specific settings.."
-	. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$MAPPING_MODE
+	. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$MAPPING_MODE "initializing"
 fi
 
 if [ -z "$MAPPING_MODE" ]; then

@@ -13,33 +13,15 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
-extern int lua_engine_state;
 static char *argvenvp_mode;
 
 int sb_execve_mod(char **file, char ***argv, char ***envp)
 {
-	struct lua_instance *luaif;
+	struct lua_instance *luaif = get_lua();
 	char **p;
 	int i, res, new_argc, new_envc;
 
-	switch (lua_engine_state) {
-	case LES_NOT_INITIALIZED:
-		sb2_lua_init();
-		break;
-	case LES_INIT_IN_PROCESS:
-		return 0;
-	case LES_READY:
-	default:
-		/* Do nothing */
-		break;
-	}
-
-	luaif = get_lua();
-	if (!luaif) {
-		fprintf(stderr, "Something's wrong with"
-			" the pthreads support.\n");
-		exit(1);
-	}
+	if (!luaif) return(0);
 
 	if (!(argvenvp_mode = getenv("SBOX_ARGVENVP_MODE"))) {
 		argvenvp_mode = "simple";

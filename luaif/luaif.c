@@ -191,21 +191,51 @@ static void alloc_lua(void)
 	lua_call(tmp->lua, 0, 0);
 	enable_mapping(tmp);
 	SB_LOG(SB_LOGLEVEL_DEBUG, "lua initialized.");
+	SB_LOG(SB_LOGLEVEL_NOISE, "gettop=%d", lua_gettop(tmp->lua));
 }
+
+enum lua_engine_states {
+	LES_NOT_INITIALIZED = 0,
+	LES_INIT_IN_PROCESS,
+	LES_READY
+};
+
+static int lua_engine_state = 0;
 
 struct lua_instance *get_lua(void)
 {
 	struct lua_instance *ptr;
 
+	switch (lua_engine_state) {
+	case LES_NOT_INITIALIZED:
+		sb2_lua_init();
+		break;
+	case LES_INIT_IN_PROCESS:
+		/* FIXME: This should probably wait.. */
+		return NULL;
+	case LES_READY:
+	default:
+		/* Do nothing */
+		break;
+	}
+
 	if (pthread_getspecific_fnptr) {
 		ptr = (*pthread_getspecific_fnptr)(lua_key);
+		if (!ptr) {
+			fprintf(stderr, "Something's wrong with"
+				" the pthreads support.\n");
+			exit(1);
+		}
 	} else {
 		ptr = my_lua_instance;
+		if (!ptr) {
+			fprintf(stderr, "Failed to get Lua instance"
+				" (and the pthreads support is disabled!)\n");
+			exit(1);
+		}
 	}
 	return(ptr);
 }
-
-int lua_engine_state = 0;
 
 void sb2_lua_init(void) __attribute((constructor));
 void sb2_lua_init(void)

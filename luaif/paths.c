@@ -62,8 +62,6 @@
 #include <execinfo.h>
 #endif
 
-extern int lua_engine_state;
-
 /* ========== Path & Path component handling primitives: ========== */
 
 struct path_entry {
@@ -793,23 +791,10 @@ char *scratchbox_path3(const char *binary_name,
 		return strdup("");
 	}
 
-	switch (lua_engine_state) {
-	case LES_NOT_INITIALIZED:
-		sb2_lua_init();
-		break;
-	case LES_INIT_IN_PROCESS:
-		return strdup(path);
-	case LES_READY:
-	default:
-		/* Do nothing */
-		break;
-	}
-
 	luaif = get_lua();
 	if (!luaif) {
-		fprintf(stderr, "Something's wrong with"
-			" the pthreads support.\n");
-		exit(1);
+		/* init in progress? */
+		return strdup(path);
 	}
 
 	/* use a sane default for mapping_mode, if not defined by 

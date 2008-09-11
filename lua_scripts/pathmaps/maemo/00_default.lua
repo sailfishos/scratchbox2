@@ -79,6 +79,7 @@ simple_chain = {
 		{prefix = "/usr/lib/apt", map_to = tools, readonly = true},
 		{prefix = "/usr/lib/cdbs", map_to = tools, readonly = true},
 		{prefix = "/usr/lib/libfakeroot", map_to = tools, readonly = true},
+		{prefix = "/usr/lib/man-db", map_to = tools, readonly = true},
 
 		-- /usr/lib/python* from tools_root
 		{prefix = "/usr/lib/python", map_to = tools, readonly = true},

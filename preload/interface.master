@@ -450,3 +450,25 @@ WRAP: char *mktemp(char *template) : \
 	returns_string \
 	return(ret?template:NULL) 
 
+--
+-- 9. Other wrappers (not directly related to path or exec mapping)
+--    -------------------------------------------------------------
+--
+
+-- setrlimit() and setrlimit64():
+-- There is a bug in Linux/glibc's ld.so interaction: ld.so segfaults
+-- when it tries to  execute programs "manually" when stack limit
+-- has been set to infinity. We need to observe setrlimit() and change
+-- the stack limit back before exec... 
+--
+-- [someone who wrote the glibc versions of setrlimit() didn't care
+-- about X/Open compatibility, first argument of setrmit() is not an "int"
+-- even if X/Open standard defines so!]
+#if defined __USE_GNU && !defined __cplusplus
+#define SETRLIMIT_ARG1_TYPE __rlimit_resource_t
+#else
+#define SETRLIMIT_ARG1_TYPE int
+#endif
+GATE: int setrlimit(SETRLIMIT_ARG1_TYPE resource, const struct rlimit *rlp)
+GATE: int setrlimit64(SETRLIMIT_ARG1_TYPE resource, const struct rlimit64 *rlp)
+

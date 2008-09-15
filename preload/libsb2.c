@@ -99,6 +99,16 @@ static char *strvec_to_string(char *const *argv)
 	return(buf);
 }
 
+/* setrlimit() and setrlimit64():
+ * There is a bug in Linux/glibc's ld.so interaction: ld.so segfaults 
+ * when it tries to  execute programs "manually" when stack limit
+ * has been set to infinity. We need to observe setrlimit() and change
+ * the stack limit back before exec... 
+*/
+static int restore_stack_before_exec = 0; /* 0, 1 or 64 */
+static struct rlimit stack_limits_for_exec;
+static struct rlimit64 stack_limits64_for_exec;
+
 static int (*next_execve) (const char *filename, char *const argv [],
 			char *const envp[]) = NULL;
 
@@ -116,8 +126,29 @@ int sb_next_execve(const char *file, char *const *argv, char *const *envp)
 			free(buf);
 		} else {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"EXEC: %s (failed to printing argv)", file);
+				"EXEC: %s (failed to print argv)", file);
 		}
+	}
+
+	switch (restore_stack_before_exec) {
+	case 1:
+		SB_LOG(SB_LOGLEVEL_DEBUG, "EXEC: need to restore stack limit");
+
+		if (setrlimit(RLIMIT_STACK, &stack_limits_for_exec) < 0) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"setrlimit(stack) failed, "
+				"failed to restore limits before exec");
+		}
+		break;
+	case 64:
+		SB_LOG(SB_LOGLEVEL_DEBUG, "EXEC: need to restore stack limit");
+
+		if (setrlimit64(RLIMIT_STACK, &stack_limits64_for_exec) < 0) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"setrlimit64(stack) failed, "
+				"failed to restore limits before exec");
+		}
+		break;
 	}
 
 	return next_execve(file, argv, envp);
@@ -973,3 +1004,72 @@ char *tempnam_gate(
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: mktemp() failed", realfnname);
 	return(NULL);
 }
+
+/* SETRLIMIT_ARG1_TYPE is defined in interface.master */
+
+int setrlimit_gate(
+	int (*real_setrlimit_ptr)(SETRLIMIT_ARG1_TYPE resource,
+		const struct rlimit *rlp),
+	const char *realfnname,
+	SETRLIMIT_ARG1_TYPE resource,
+	const struct rlimit *rlp)
+{
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: res=%d cur=%ld max=%ld",
+		realfnname, resource, (long)rlp->rlim_cur, (long)rlp->rlim_max);
+
+	if ((resource == RLIMIT_STACK) && (rlp->rlim_cur == RLIM_INFINITY)) {
+		struct rlimit limit_now;
+
+		if (getrlimit(RLIMIT_STACK, &limit_now) < 0) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"%s: getrlimit(stack) failed", realfnname);
+		} else {
+			if (limit_now.rlim_cur != RLIM_INFINITY) {
+				/* stack limit was not "unlimited", but we
+				 * are going to set it to unlimited. */
+				stack_limits_for_exec = limit_now;
+				restore_stack_before_exec = 1;
+
+				SB_LOG(SB_LOGLEVEL_NOTICE,
+					"%s: Setting stack limit to infinity, "
+					"old limit stored for next exec",
+					realfnname);
+			}
+		}
+	}
+	return((*real_setrlimit_ptr)(resource,rlp));
+}
+
+int setrlimit64_gate(
+	int (*real_setrlimit64_ptr)(SETRLIMIT_ARG1_TYPE resource,
+		const struct rlimit64 *rlp),
+	const char *realfnname,
+	SETRLIMIT_ARG1_TYPE resource,
+	const struct rlimit64 *rlp)
+{
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: res=%d cur=%ld max=%ld",
+		realfnname, resource, (long)rlp->rlim_cur, (long)rlp->rlim_max);
+
+	if ((resource == RLIMIT_STACK) && (rlp->rlim_cur == RLIM64_INFINITY)) {
+		struct rlimit64 limit_now;
+
+		if (getrlimit64(RLIMIT_STACK, &limit_now) < 0) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"%s: getrlimit64(stack) failed", realfnname);
+		} else {
+			if (limit_now.rlim_cur != RLIM64_INFINITY) {
+				/* stack limit was not "unlimited", but we
+				 * are going to set it to unlimited. */
+				stack_limits64_for_exec = limit_now;
+				restore_stack_before_exec = 64;
+
+				SB_LOG(SB_LOGLEVEL_NOTICE,
+					"%s: Setting stack limit to infinity, "
+					"old limit stored for next exec",
+					realfnname);
+			}
+		}
+	}
+	return((*real_setrlimit64_ptr)(resource,rlp));
+}
+

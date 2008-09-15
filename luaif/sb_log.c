@@ -17,6 +17,7 @@
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <string.h>
+#include <sys/resource.h>
 
 #include <sb2.h>
 #include <config.h>

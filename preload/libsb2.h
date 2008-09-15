@@ -71,6 +71,7 @@
 
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/resource.h>
 
 #include <glob.h>
 

@@ -360,6 +360,8 @@ static int lua_sb_log(lua_State *luastate)
 		SB_LOG(SB_LOGLEVEL_INFO, "INFO: %s", logmsg);
 	else if(!strcmp(loglevel, "warning"))
 		SB_LOG(SB_LOGLEVEL_WARNING, "WARNING: %s", logmsg);
+	else if(!strcmp(loglevel, "notice"))
+		SB_LOG(SB_LOGLEVEL_NOTICE, "NOTICE: %s", logmsg);
 	else if(!strcmp(loglevel, "error"))
 		SB_LOG(SB_LOGLEVEL_ERROR, "ERROR: %s", logmsg);
 	else if(!strcmp(loglevel, "noise"))

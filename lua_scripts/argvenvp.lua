@@ -243,7 +243,7 @@ function sb_execve_postprocess(rule, exec_policy, exec_type,
 		
 		if (exec_policy == nil) then
 			-- there is no default policy for this mode
-			sb.log("warning",
+			sb.log("notice",
 				"sb_execve_postprocess: No exec_policy for "..filename)
 			return 1, mapped_file, filename, #argv, argv, #envp, envp
 		end

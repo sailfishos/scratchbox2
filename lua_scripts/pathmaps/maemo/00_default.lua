@@ -14,6 +14,74 @@ if (not sb2_session_dir) then
 	sb2_session_dir = "/tmp"
 end
 
+home_dir = os.getenv("HOME")
+if (home_dir == nil) then
+	home_dir = "/home/unknown_user"
+end
+
+-- =========== Exec policies:  ===========
+--
+-- For tools: If tools_root is set and libsb2 has been installed there,
+-- then dynamic libraries can be used from tools_root (otherwise we'll
+-- be using the libs from the host OS)
+
+maemo_mode_tools_ld_so = nil		-- default = not needed
+maemo_mode_tools_ld_library_path = nil	-- default = not needed
+
+if ((tools_root ~= nil) and conf_tools_sb2_installed) then
+	if (conf_tools_ld_so ~= nil) then
+		-- Ok to use dynamic libraries from tools!
+		maemo_mode_tools_ld_so = conf_tools_ld_so
+		maemo_mode_tools_ld_library_path = conf_tools_ld_so_library_path
+	end
+end
+
+exec_policy_tools = {
+	name = "Tools",
+	native_app_ld_so = maemo_mode_tools_ld_so,
+	native_app_ld_library_path = maemo_mode_tools_ld_library_path
+}
+
+-- For target binaries:
+-- First, note that "foreign" binaries are easy to handle, no problem there.
+-- But if CPU transparency method has not been set, then host CPU == target CPU:
+-- we have "target's native" and "host's native" binaries, that would look 
+-- identical (and valid!) to the kernel. But they need to use different 
+-- loaders and dynamic libraries! The solution is that we use the location
+-- (as determined by the mapping engine) to decide the execution policy.
+
+maemo_mode_target_ld_so = nil		-- default = not needed
+maemo_mode_target_ld_library_path = nil	-- default = not needed
+
+if (conf_target_sb2_installed) then
+	if (conf_target_ld_so ~= nil) then
+		-- use dynamic libraries from target, 
+		-- when executing native binaries!
+		maemo_mode_target_ld_so = conf_target_ld_so
+		maemo_mode_target_ld_library_path = conf_target_ld_so_library_path
+
+		-- FIXME: This exec policy should process (map components of)
+		-- the current value of LD_LIBRARY_PATH, and add the results
+		-- to maemo_mode_target_ld_library_path just before exec.
+		-- This has not been done yet.
+	end
+end
+
+exec_policy_target = {
+	name = "Rootstrap",
+	native_app_ld_so = maemo_mode_target_ld_so,
+	native_app_ld_library_path = maemo_mode_target_ld_library_path
+}
+
+--
+-- For real host binaries:
+
+exec_policy_host_os = {
+	name = "Host",
+	log_level = "debug",
+	log_message = "executing in host OS mode"
+}
+
 -- =========== Actions for conditional rules ===========
 
 test_first_target_then_tools_default_is_target = {
@@ -317,8 +385,42 @@ qemu_chain = {
 	}
 }
 
-
+-- Path mapping rules.
 export_chains = {
 	qemu_chain,
 	simple_chain
 }
+
+-- Exec policy rules.
+-- These are used only if the mapping rule did not provide an exec policy.
+--
+-- Note that the real path (mapped path) is used
+--  when looking up rules from here!
+maemo_exec_policies = {
+	next_chain = nil,
+	binary = nil,
+	rules = {
+
+		-- ~/bin proobably contains programs for the host OS:
+                {prefix = home_dir.."/bin", exec_policy = exec_policy_host_os},
+
+                -- Other places under the home directory are expected
+                -- to contain target binaries:
+                {prefix = home_dir, exec_policy = exec_policy_target},
+
+		-- Target binaries:
+		{prefix = target_root, exec_policy = exec_policy_target},
+
+		-- Tools:
+		{prefix = tools, exec_policy = exec_policy_tools},
+
+		-- -----------------------------------------------
+		-- DEFAULT RULE (must exist):
+		{prefix = "/", exec_policy = exec_policy_host_os}
+	}
+}
+
+exec_policy_chains = {
+	maemo_exec_policies
+}
+

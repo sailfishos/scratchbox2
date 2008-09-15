@@ -1,5 +1,7 @@
 /*
  * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
+ * Portion Copyright (c) 2008 Nokia Corporation.
+ * (exec postprocessing code implemented by Lauri T. Aarnio at Nokia)
  *
  * Licensed under LGPL version 2.1, see top level LICENSE file for details.
  */
@@ -126,3 +128,93 @@ int sb_execve_preprocess(char **file, char ***argv, char ***envp)
 		"sb_execve_preprocess: at exit, gettop=%d", lua_gettop(luaif->lua));
 	return res;
 }
+
+/* Exec Postprocessing:
+ * Called with "rule" and "exec_policy" already in lua's stack.
+*/
+int sb_execve_postprocess(char *exec_type, 
+	char **mapped_file,
+	char **filename,
+	const char *binary_name,
+	char ***argv,
+	char ***envp)
+{
+	struct lua_instance *luaif;
+	int res, new_argc, new_envc;
+
+	luaif = get_lua();
+	if (!luaif) return(0);
+
+	if (!argv || !envp) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"ERROR: sb_argvenvp: (argv || envp) == NULL");
+		return -1;
+	}
+
+	SB_LOG(SB_LOGLEVEL_NOISE,
+		"sb_execve_postprocess: gettop=%d", lua_gettop(luaif->lua));
+
+	lua_getfield(luaif->lua, LUA_GLOBALSINDEX, "sb_execve_postprocess");
+
+	/* stack now contains "rule", "exec_policy" and "sb_execve_postprocess".	 * move "sb_execve_postprocess" to the bottom : */
+	lua_insert(luaif->lua, -3);
+
+	lua_pushstring(luaif->lua, exec_type);
+	lua_pushstring(luaif->lua, *mapped_file);
+	lua_pushstring(luaif->lua, *filename);
+	lua_pushstring(luaif->lua, binary_name);
+	strvec_to_lua_table(luaif, *argv);
+	strvec_to_lua_table(luaif, *envp);
+
+	/* args: rule, exec_policy, exec_type, mapped_file, filename,
+	 *	 binaryname, argv, envp
+	 * returns: err, mapped_file, filename, argc, argv, envc, envp */
+	lua_call(luaif->lua, 8, 7);
+	
+	res = lua_tointeger(luaif->lua, -7);
+	switch (res) {
+
+	case 0:
+		/* exec arguments were modified, replace contents of
+		 * argv and envp vectors */
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"sb_execve_postprocess: Updated argv&envp");
+		free(*mapped_file);
+		*mapped_file = strdup(lua_tostring(luaif->lua, -6));
+
+		free(*filename);
+		*filename = strdup(lua_tostring(luaif->lua, -5));
+
+		strvec_free(*argv);
+		new_argc = lua_tointeger(luaif->lua, -4);
+		lua_string_table_to_strvec(luaif, -3, argv, new_argc);
+
+		new_envc = lua_tointeger(luaif->lua, -2);
+		strvec_free(*envp);
+		lua_string_table_to_strvec(luaif, -1, envp, new_envc);
+		break;
+
+	case 1:
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"sb_execve_postprocess: argv&envp were not modified");
+		break;
+
+	case -1:
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"sb_execve_postprocess: exec denied");
+		break;
+
+	default:
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"sb_execve_postprocess: Unsupported result %d", res);
+		break;
+	}
+
+	/* remove sb_execve_postprocess return values from the stack.  */
+	lua_pop(luaif->lua, 6);
+
+	SB_LOG(SB_LOGLEVEL_NOISE,
+		"sb_execve_postprocess: at exit, gettop=%d", lua_gettop(luaif->lua));
+	return res;
+}
+

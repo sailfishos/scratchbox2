@@ -156,6 +156,151 @@ function initialize_sb_logging()
 	fi
 }
 
+function write_ld_library_path_replacement_to_exec_config()
+{
+	rootdir=$1
+	varname=$2
+
+	# Build replacement for LD_LIBRARY_PATH:
+
+	# First, make sure that libsb2 is searched
+	liblocations="$SBOX_DIR/lib/libsb2 /usr/lib/libsb2"
+
+	# Include the directories listed in ld.so.conf
+	if [ -f $rootdir/etc/ld.so.conf ]
+	then
+		lloc2=`cat $rootdir/etc/ld.so.conf \
+			$rootdir/etc/ld.so.conf.d/* |
+			egrep '^/'`
+		liblocations="$liblocations $lloc2"
+	fi
+
+	# Next, force libfakeroot to be searced:
+	liblocations="$liblocations /usr/lib/libfakeroot \
+		/usr/lib64/libfakeroot /usr/lib32/libfakeroot"
+
+	# Find all directories that are used in the ld.so cache file:
+	if [ -x $rootdir/sbin/ldconfig ]
+	then
+		# print contents of the cache, take destination
+		# names (the part after "=>"), drop file names (leave
+		# directory names, and remove duplicates:
+		dirs_in_cache=`$rootdir/sbin/ldconfig -p \
+			-C $rootdir/etc/ld.so.cache | 
+			fgrep '=>' | 
+			sed -e 's/^.*=> //' -e 's:/[^/]*$::' | 
+			sort | uniq`
+		liblocations="$liblocations $dirs_in_cache"
+	fi
+
+	# Last, the default locations:
+	# (these may be already included by the previous step)
+	liblocations="$liblocations /lib /usr/lib"
+
+	# Create the variable.
+	echo "$varname =" >>$SBOX_SESSION_DIR/exec_config.lua
+	colon=""
+	for l in $liblocations
+	do
+		if [ -d $rootdir$l ]
+		then
+			echo " \"$colon$rootdir$l\" .." >>$SBOX_SESSION_DIR/exec_config.lua
+			colon=":"
+		fi
+	done
+	# Finalize the library search path.
+	echo " \"\"" >>$SBOX_SESSION_DIR/exec_config.lua
+}
+
+function write_libsb2_and_ld_so_state_to_exec_config()
+{
+	rootdir=$1
+	sb2_installed_varname=$2
+	sbox_dir_varname=$3
+	ld_so_path_varname=$4
+
+	# Check if ld.so can be used from $rootdir by 
+	# checking that libsb2 has been installed to tools
+
+	if [ -d $rootdir/$SBOX_DIR/lib/libsb2 ]
+	then
+		sbox_dir_2=$rootdir/$SBOX_DIR
+	elif [ -d $rootdir/usr/lib/libsb2 ]
+	then
+		sbox_dir_2=$rootdir/usr
+	else
+		sbox_dir_2=""
+	fi
+
+	if [ -f $sbox_dir_2/lib/libsb2/libsb2.so.1 ]
+	then
+		echo "$sb2_installed_varname = true" >>$SBOX_SESSION_DIR/exec_config.lua
+	else
+		echo "$sb2_installed_varname = false" >>$SBOX_SESSION_DIR/exec_config.lua
+	fi
+
+	echo "$sbox_dir_varname = \"$sbox_dir_2\"" >>$SBOX_SESSION_DIR/exec_config.lua
+
+	# check the dynamic linker
+	if [ -f $rootdir/lib/ld-linux.so.2 ]
+	then
+		echo "$ld_so_path_varname = \"$rootdir/lib/ld-linux.so.2\"" >>$SBOX_SESSION_DIR/exec_config.lua
+	else
+		echo "$ld_so_path_varname = nil" >>$SBOX_SESSION_DIR/exec_config.lua
+	fi
+}
+
+# Write configuration file $SBOX_SESSION_DIR/exec_config.lua
+function create_exec_config_file()
+{
+	cat >$SBOX_SESSION_DIR/exec_config.lua <<END
+-- exec settings. Automatically generated file, do not edit.
+END
+
+	# 1. Exec settings for tools
+	if [ "$SBOX_TOOLS_ROOT" != "" ]; then
+		write_ld_library_path_replacement_to_exec_config \
+			$SBOX_TOOLS_ROOT conf_tools_ld_so_library_path 
+
+		write_libsb2_and_ld_so_state_to_exec_config \
+			$SBOX_TOOLS_ROOT \
+			conf_tools_sb2_installed conf_tools_sbox_dir \
+			conf_tools_ld_so
+	else
+		# SBOX_TOOLS_ROOT was empty, tools will be used from
+		# host environment.
+		cat <<END >>$SBOX_SESSION_DIR/exec_config.lua
+conf_tools_ld_so_library_path = nil
+conf_tools_sb2_installed = false
+conf_tools_sbox_dir = ""
+conf_tools_ld_so = nil
+END
+	fi
+
+	# 2. Exec settings for rootstrap
+	if [ "$SBOX_CPUTRANSPARENCY_METHOD" == "" ]; then
+		# CPU transparency method has not been set:
+		# host CPU == target CPU
+
+		write_ld_library_path_replacement_to_exec_config \
+			$SBOX_TARGET_ROOT conf_target_ld_so_library_path 
+
+		write_libsb2_and_ld_so_state_to_exec_config \
+			$SBOX_TARGET_ROOT \
+			conf_target_sb2_installed conf_target_sbox_dir \
+			conf_target_ld_so
+	else
+		# SBOX_TOOLS_ROOT was empty, tools will be used from
+		# host environment.
+		cat <<END >>$SBOX_SESSION_DIR/exec_config.lua
+conf_target_ld_so_library_path = nil
+conf_target_sb2_installed = false
+conf_target_sbox_dir = ""
+conf_target_ld_so = nil
+END
+	fi
+}
+
 my_path=$_
 if [ $(basename $my_path) != $(basename $0) ]; then
 	my_path=$0
@@ -214,6 +359,8 @@ mkdir -p $SBOX_SESSION_DIR
 mkdir -p $SBOX_SESSION_DIR/tmp
 
 sboxify_environment
+
+create_exec_config_file
 
 # set the initial binary name for the mapping engine
 export __SB2_BINARYNAME="bash"

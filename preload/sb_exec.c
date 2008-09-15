@@ -4,6 +4,81 @@
  * Licensed under LGPL version 2.1
  */
 
+/* This file contains the "exec core" of SB2; Being able to alter
+ * how the execl(), execve(), etc. exec-class functions are handled 
+ * is one of the most important features of SB2.
+ *
+ * Brief description of the algorithm follows:
+ * 
+ * 0. When an application wants to execute another program, if makes a call
+ *    to one of execl(), execle(), execlp(), execv(), execve() or execvp().
+ *    That call will be handled by one of the gate functions in 
+ *    preload/libsb2.c. Eventually, the gate function will call "do_exec()"
+ *    from this file; do_exec() is the place where everything interesting
+ *    happens:
+ *
+ * 1. First, do_exec() calls an exec preprocessing function (implemented
+ *    as Lua code, and also known as the argv&envp mangling code).
+ *    The purpose of the preprocessing phase is to determine WHAT FILE needs
+ *    to be executed. And that might well be something else than what the
+ *    application requested: For example, an attempt to run /usr/bin/gcc might 
+ *    be replaced by a path to the cross compiler (e.g. /some/path/to/cross-gcc)
+ *    Arguments may also be added, deleted, or modified during preprocessing.
+ *
+ * 2. Second, do_exec() needs to determine WHERE THE FILE IS. It makes a
+ *    call the regular path mapping engine of SB2 to get a real path to 
+ *    the program. (For example, "/bin/ls" might be replaced by 
+ *    "/opt/tools_root/bin/ls" by the path mapping engine).
+ *    This step involves applying the path mapping Lua code (A notable
+ *    side-effect of that is that the Lua code also returns an "execution
+ *    policy object", that will be used during step 4)
+ *
+ * 3. Third, do_exec() finds out the TYPE OF THE FILE TO EXECUTE. That
+ *    will be done by the inspect_binary() function in this file.
+ *
+ * 4. Last, do_exec() needs to decide HOW TO DO THE ACTUAL EXECUTION of the 
+ *    file. Based on the type of the file, do_exec() will do one of the 
+ *    following:
+ *
+ *    4a. For scripts (files starting with #!), script interpreter name 
+ *        will be read from the file and it will be processed again by 
+ *	  do_exec()
+ *
+ *    4b. For native binaries, an additional call to an exec postprocessing 
+ *        function will be made, because the type of the file is not enough
+ *        to spefify the environment that needs to be used for the file:
+ *        This is the place where the "exec policy" rules (determined by step
+ *        2 above) will be applied.
+ *        There are at least three different cases where additional settings
+ *        may need to be applied:
+ *         - native binaries that are compiled for the host system can
+ *           be started directly (for example, the sb2-show command that
+ *           belongs to SB2's utilities)
+ *         - programs from the tools_root collection may need to load
+ *           dynamic libraries from a different place (e.g.
+ *           "/opt/tools_root/bin/ls" may need to use libraries from
+ *           "/opt/tools_root/lib", instead of using them from "/lib").
+ *           This is implemented by making an explicit call to the 
+ *           dynamic loader (ld.so) to start the program, with additional
+ *           options for ld.so.
+ *         - if the target architecture is the same as the host architecture,
+ *           binaries may also need special settings. This also uses an
+ *           explicit call to ld.so.
+ *
+ *    4c. Target binaries (when target architecture != host architecture)
+ *        are started in "cpu transparency mode", which typically means
+ *        that either "qemu" or "sbrsh" is used to execute them.
+ *        [FIXME: This step should also call the same exec postprocesing code
+ *        as alternative 4b does, but that is not the case currently]
+ *
+ * 5. When all decisions and all possible conversions have been made,
+ *    sb_next_execve() will be called. It transfers control to the real
+ *    execve() funtion of the C library, which will make the system call to
+ *    the kernel.
+ *
+ * (there are some minor execptions, see the code for further details)
+*/
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -369,85 +444,6 @@ static int run_app(const char *file, char *const *argv, char *const *envp)
 	fprintf(stderr, "libsb2.so failed running (%s): %s\n", file,
 			strerror(errno));
 	return -12;
-}
-
-static int ld_so_run_app(const char *file, char *const *argv, char *const *envp)
-{
-	char *binaryname, **my_argv;
-	char *host_libs, *ld_so;
-	char **p;
-	char *tmp;
-	char ld_so_buf[PATH_MAX + 1];
-	char ld_so_basename[PATH_MAX + 1];
-	int argc;
-	int i = 0;
-	
-	tmp = getenv("SBOX_REDIR_LD_LIBRARY_PATH");
-
-	if (!tmp) {
-		fprintf(stderr, "Total failure to execute tools"
-				"SBOX_REDIR_LD_LIBRARY_PATH not specified\n");
-		exit(1);
-	} else {
-		host_libs = strdup(tmp);
-	}
-
-	tmp = getenv("SBOX_REDIR_LD_SO");
-	if (!tmp) {
-		fprintf(stderr, "Total failure to execute tools"
-				"SBOX_REDIR_LD_SO not specified\n");
-		exit(1);
-	} else {
-		ld_so = strdup(tmp);
-	}
-
-	memset(ld_so_buf, '\0', PATH_MAX + 1);
-	memset(ld_so_basename, '\0', PATH_MAX + 1);
-
-	if (readlink_nomap(ld_so, ld_so_buf, PATH_MAX) < 0) {
-		if (errno == EINVAL) {
-			/* it's not a symbolic link, so use it directly */
-			strcpy(ld_so_basename, basename(ld_so));
-
-		} else {
-			/* something strange, bail out */
-			perror("readlink(ld_so) failed badly. aborting\n");
-			return -1;
-		}
-	} else {
-		strcpy(ld_so_basename, basename(ld_so_buf));
-	}
-
-	binaryname = basename(strdup(file));
-	
-	/* if the file to be run is the dynamic loader itself, 
-	 * run it straight
-	 */
-
-	if (strcmp(binaryname, ld_so_basename) == 0) {
-		sb_next_execve(file, argv, envp);
-		perror("failed to directly run the dynamic linker!\n");
-		return -1;
-	}
-
-	argc = elem_count(argv);
-
-	my_argv = (char **)calloc(4 + argc - 1 + 1, sizeof (char *));
-	i = 0;
-	my_argv[i++] = strdup(ld_so);
-	my_argv[i++] = strdup("--library-path");
-	my_argv[i++] = host_libs;
-	my_argv[i++] = strdup(file);
-
-	for (p = (char **)argv + 1; *p; p++)
-		my_argv[i++] = strdup(*p);
-
-	my_argv[i] = NULL;
-
-	sb_next_execve(strdup(ld_so), my_argv, envp);
-
-	fprintf(stderr, "sb2 ld_so_run_app(%s): %s\n", file, strerror(errno));
-	return -11;
 }
 
 static int elf_hdr_match(Elf_Ehdr *ehdr, uint16_t match, int ei_data)
@@ -857,37 +853,41 @@ static int strvec_contains(char *const *strvec, const char *id)
 	return(0);
 }
 
-int do_exec(const char *exec_fn_name, const char *file,
-		char *const *argv, char *const *envp)
+int do_exec(const char *exec_fn_name, const char *orig_file,
+		char *const *orig_argv, char *const *orig_envp)
 {
 	char ***my_envp, ***my_argv, **my_file;
 	char ***my_envp_copy = NULL; /* used only for debug log */
 	char *binaryname, *tmp, *mapped_file;
 	int err = 0;
 	enum binary_type type;
+	int postprocess_result = 0;
 
 	(void)exec_fn_name; /* not yet used */
 
 	if (getenv("SBOX_DISABLE_MAPPING")) {
 		/* just run it, don't worry, be happy! */
-		return sb_next_execve(file, argv, envp);
+		return sb_next_execve(orig_file, orig_argv, orig_envp);
 	}
+
+	SB_LOG(SB_LOGLEVEL_DEBUG,
+		"EXEC: Orig.argv0=<%s> file=<%s>", orig_argv[0], orig_file);
 	
-	tmp = strdup(file);
+	tmp = strdup(orig_file);
 	binaryname = strdup(basename(tmp));
 	free(tmp);
 	
 	my_file = malloc(sizeof(char *));
-	*my_file = strdup(file);
+	*my_file = strdup(orig_file);
 
-	my_envp = prepare_envp_for_do_exec(binaryname, envp);
+	my_envp = prepare_envp_for_do_exec(binaryname, orig_envp);
 	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
 		/* create a copy of intended environment for logging,
 		 * before sb_execve_preprocess() gets control */ 
-		my_envp_copy = prepare_envp_for_do_exec(binaryname, envp);
+		my_envp_copy = prepare_envp_for_do_exec(binaryname, orig_envp);
 	}
 
-	my_argv = duplicate_argv(argv);
+	my_argv = duplicate_argv(orig_argv);
 
 	if ((err = sb_execve_preprocess(my_file, my_argv, my_envp)) != 0) {
 		SB_LOG(SB_LOGLEVEL_ERROR, "argvenvp processing error %i", err);
@@ -895,7 +895,7 @@ int do_exec(const char *exec_fn_name, const char *file,
 
 	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
 		/* find out and log if sb_execve_preprocess() did something */
-		compare_and_log_strvec_changes("argv", argv, *my_argv);
+		compare_and_log_strvec_changes("argv", orig_argv, *my_argv);
 		compare_and_log_strvec_changes("envp", *my_envp_copy, *my_envp);
 	}
 
@@ -907,16 +907,25 @@ int do_exec(const char *exec_fn_name, const char *file,
 			"do_exec(): mapping disabled, *my_file = %s",
 			*my_file);
 		mapped_file = strdup(*my_file);
+
+		/* we won't call scratchbox_path_for_exec() because mapping
+		 * is disabled; instead we must push a string to Lua's stack
+		 * which explains the situation to the Lua code
+		*/
+		sb_push_string_to_lua_stack("no mapping rule (mapping disabled)");
+		sb_push_string_to_lua_stack("no exec_policy (mapping disabled)");
 	} else {
 		/* now we have to do path mapping for *my_file to find exactly
 		 * what is the path we're supposed to deal with
 		 */
 
-		mapped_file = scratchbox_path("do_exec", *my_file,
+		mapped_file = scratchbox_path_for_exec("do_exec", *my_file,
 			NULL/*RO-flag addr.*/, 0/*dont_resolve_final_symlink*/);
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"do_exec(): *my_file = %s, mapped_file = %s",
 			*my_file, mapped_file);
+
+		/* Note: the Lua stack should now have rule and policy objects */
 	}
 
 	/* inspect the completely mangled filename */
@@ -930,11 +939,17 @@ int do_exec(const char *exec_fn_name, const char *file,
 		case BIN_HOST_DYNAMIC:
 			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/host-dynamic %s",
 					mapped_file);
-			tmp = getenv("SBOX_REDIR_LD_SO");
-			if (tmp && strlen(tmp) > 0)
-				return ld_so_run_app(mapped_file, *my_argv, *my_envp);
-			else
-				return run_app(mapped_file, *my_argv, *my_envp);
+
+			postprocess_result = sb_execve_postprocess("native",
+				&mapped_file, my_file, binaryname,	
+				my_argv, my_envp);
+
+			if (postprocess_result < 0) {
+				errno = EINVAL;
+				return(-1);
+			}
+
+			return run_app(mapped_file, *my_argv, *my_envp);
 
 		case BIN_HOST_STATIC:
 			SB_LOG(SB_LOGLEVEL_WARNING, "Executing statically "

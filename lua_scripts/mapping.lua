@@ -99,34 +99,79 @@ if (target_root) then
 	esc_target_root = escape_string(target_root)
 end
 
-function read_mode_part(mode, part)
-	filename = rsdir .. "/pathmaps/" .. mode .. "/" .. part
+-- Load session-specific settings
+function load_and_execute_lua_script(filename)
+	if (debug_messages_enabled) then
+		sb.log("debug", string.format("Loading '%s'", filename))
+	end
 	f, err = loadfile(filename)
 	if (f == nil) then
-		error("\nError while loading " .. filename .. ": \n" .. err .. "\n")
-	else
-		f() -- execute the loaded chunk
-		-- export_chains variable contains now the chains
-		-- from the chunk
-		for i = 1,table.maxn(export_chains) do
-			-- fill in the default values
-			if (not export_chains[i].rules) then
-				export_chains[i].rules = {}
-			end
-			-- loop through the rules
-			for r = 1, table.maxn(export_chains[i].rules) do
-				export_chains[i].rules[r].lua_script = filename
-				if (export_chains[i].binary) then
-					export_chains[i].rules[r].binary_name = export_chains[i].binary
-				else
-					export_chains[i].rules[r].binary_name = "nil"
-				end
-			end
-			export_chains[i].lua_script = filename
-			table.insert(modes[mode].chains, export_chains[i])
-		end
+		error("\nError while loading " .. filename .. ": \n" ..
+			 err .. "\n")
+		-- "error()" never returns
+	end
+
+	f() -- execute the loaded chunk
+	if (debug_messages_enabled) then
+		sb.log("debug", string.format("Loaded '%s'", filename))
 	end
 end
+
+session_dir = os.getenv("SBOX_SESSION_DIR")
+
+-- Load session-specific settings
+function load_session_settings()
+	load_and_execute_lua_script(session_dir .. "/exec_config.lua")
+end
+
+-- Load mode-specific rules.
+-- A mode file should define two variables:
+--  1. export_chains (array) contains mapping rule chains; this array
+--     is searched sequentially with the original (unmapped) path as the key
+--  2. exec_policy_chains (array) contains default execution policies;
+--     real path (mapped path) is used as the key.
+--
+function read_mode_part(mode, part)
+	filename = rsdir .. "/pathmaps/" .. mode .. "/" .. part
+
+	export_chains = {}
+	exec_policy_chains = {}
+
+	load_and_execute_lua_script(filename)
+
+	-- export_chains variable contains now the mapping rule chains
+	-- from the chunk
+	for i = 1,table.maxn(export_chains) do
+		-- fill in the default values
+		if (not export_chains[i].rules) then
+			export_chains[i].rules = {}
+		end
+		-- loop through the rules
+		for r = 1, table.maxn(export_chains[i].rules) do
+			export_chains[i].rules[r].lua_script = filename
+			if (export_chains[i].binary) then
+				export_chains[i].rules[r].binary_name = export_chains[i].binary
+			else
+				export_chains[i].rules[r].binary_name = "nil"
+			end
+			if (export_chains[i].rules[r].name == nil) then
+				export_chains[i].rules[r].name = 
+					string.format("rule:%d.%d",
+						i, r)
+			end
+		end
+		export_chains[i].lua_script = filename
+		table.insert(modes[mode].chains, export_chains[i])
+	end
+
+	-- Handle exec_policy_chains variable from the chunk
+	for i = 1,table.maxn(exec_policy_chains) do
+		table.insert(modes[mode].exec_policy_chains,
+			exec_policy_chains[i])
+	end
+end
+
+load_session_settings()
 
 -- modes represent the different mapping modes supported.
 -- Each mode contains its own set of chains.
@@ -146,7 +191,8 @@ for m = 1, table.maxn(mm) do
 		table.sort(t)
 		modes[mm[m]] = {}
 		modes[mm[m]].chains = {}
-		
+		modes[mm[m]].exec_policy_chains = {}
+
 		-- load the individual parts from
 		-- ($SBOX_REDIR_SCRIPTS/preload/[modename]/*.lua)
 		for n = 1,table.maxn(t) do
@@ -248,16 +294,24 @@ function sbox_execute_conditional_actions(binary_name,
 	return path, false
 end
 
--- returns path and readonly_flag
+-- returns exec_policy, path and readonly_flag
 function sbox_execute_rule(binary_name, func_name, work_dir, rp, path, rule)
+	local ret_exec_policy = nil
 	local ret_path = nil
 	local ret_ro = false
+	local rule_name
+
 	if (rule.readonly ~= nil) then
 		ret_ro = rule.readonly
+	end
+	if (rule.exec_policy ~= nil) then
+		ret_exec_policy = rule.exec_policy
 	end
 	if (rule.use_orig_path) then
 		ret_path = path
 	elseif (rule.actions) then
+		-- FIXME: sbox_execute_conditional_actions should also
+		-- be able to return exec_policy
 		ret_path, ret_ro = sbox_execute_conditional_actions(binary_name,
 			func_name, work_dir, rp, path, rule)
 	elseif (rule.map_to) then
@@ -270,10 +324,16 @@ function sbox_execute_rule(binary_name, func_name, work_dir, rp, path, rule)
 		ret_path = sbox_execute_replace_rule(path, rule.replace_by, rule)
 	else
 		ret_path = path
-		sb.log("error", "mapping rule used does not have any valid actions, path="..path)
+		if (rule.name) then
+			rule_name = rule.name
+		else
+			rule_name = "(no name)"
+		end
+		sb.log("error", string.format("mapping rule '%s' does not "..
+			"have any valid actions, path=%s", rule_name, path))
 	end
 	
-	return ret_path, ret_ro
+	return ret_exec_policy, ret_path, ret_ro
 end
 
 -- returns rule and min_path_len, minimum length which is needed for
@@ -338,16 +398,22 @@ function find_rule(chain, func, full_path)
 	return nil, 0
 end
 
-
+-- returns the same values as sbox_translate_path
+-- (rule,exec_policy,path,ro_flag):
 function map_using_rule(rule, binary_name, func_name, work_dir, path)
 	local ret = path
 	local rp = path
 	local readonly_flag = false
+	local exec_policy = nil
 
 	if (not rule) then
 		-- error, not even a default rule found
 		sb.log("error", string.format("Unable to find a match at all: %s(%s)", func_name, path))
-		return path, readonly_flag
+		return nil, nil, path, readonly_flag
+	end
+
+	if (debug_messages_enabled) then
+		sb.log("noise", string.format("map:%s:%s", work_dir, path))
 	end
 
 	if (rule.log_level) then
@@ -366,17 +432,35 @@ function map_using_rule(rule, binary_name, func_name, work_dir, path)
 			readonly_flag = rule.readonly
 		end
 	else
-		ret, readonly_flag = sbox_execute_rule(binary_name, func_name, work_dir, rp, path, rule)
+		exec_policy, ret, readonly_flag = sbox_execute_rule(binary_name, func_name, work_dir, rp, path, rule)
 	end
-	return ret, readonly_flag
+
+	return rule, exec_policy, ret, readonly_flag
 end
 
 -- sbox_translate_path is the function called from libsb2.so
 -- preload library and the FUSE system for each path that needs 
 -- translating.
--- returns rule, path and the "readonly" flag
+--
+-- returns:
+--   1. the rule used to perform the mapping
+--   2. exec_policy
+--   3. path (mapping result)
+--   4. "readonly" flag
 function sbox_translate_path(rule, binary_name, func_name, work_dir, path)
-	return rule, map_using_rule(rule, binary_name, func_name, work_dir, path)
+	return map_using_rule(rule, binary_name, func_name, work_dir, path)
+end
+
+function find_chain(chains_table, binary_name)
+	local n
+
+	for n=1,table.maxn(chains_table) do
+		if (not chains_table[n].noentry
+		    and (not chains_table[n].binary
+		   	 or binary_name == chains_table[n].binary)) then
+				return(chains_table[n])
+		end
+	end
 end
 
 -- sbox_get_mapping_requirements is called from libsb2.so before
@@ -388,24 +472,23 @@ function sbox_get_mapping_requirements(mapping_mode, binary_name, func_name, wor
 	-- loop through the chains, first match is used
 	local min_path_len = 0
 	local rule = nil
-	for n=1,table.maxn(modes[mapping_mode].chains) do
-		if (not modes[mapping_mode].chains[n].noentry
-			and (not modes[mapping_mode].chains[n].binary
-			or binary_name == modes[mapping_mode].chains[n].binary)) then
-			rule, min_path_len = find_rule(modes[mapping_mode].chains[n], func_name, full_path)
-			if (not rule) then
-				-- error, not even a default rule found
-				sb.log("error", string.format("Unable to find rule for: %s(%s)", func_name, full_path))
-				return nil, false, 0
-			end
+	local chain
 
-			return rule, true, min_path_len
+	chain = find_chain(modes[mapping_mode].chains, binary_name)
+	if (chain == nil) then
+		sb.log("error", string.format("Unable to find chain for: %s(%s)",
+			func_name, full_path))
 
-		end
+		return nil, false, 0
 	end
-	sb.log("error", string.format("Unable to find chain+rule for: %s(%s)",
-		func_name, full_path))
 
-	return nil, false, 0
+	rule, min_path_len = find_rule(chain, func_name, full_path)
+	if (not rule) then
+		-- error, not even a default rule found
+		sb.log("error", string.format("Unable to find rule for: %s(%s)", func_name, full_path))
+		return nil, false, 0
+	end
+
+	return rule, true, min_path_len
 end
 

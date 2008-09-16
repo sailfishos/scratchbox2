@@ -19,6 +19,22 @@
 # too (see how sb2-check-pkg-mappings does it for target's pkg db)
 
 args="$*"
+prog="$0"
+progbase=`basename $0`
+
+function error_not_inside_sb2()
+{
+	echo "SB2: $progbase: This wrapper can only be used from inside"
+	echo "the scratchbox 2'ed environment"
+	exit 1
+}
+
+if [ -z "$SBOX_SESSION_DIR" ]
+then
+	error_not_inside_sb2
+fi
+
+. $SBOX_SESSION_DIR/sb2-session.conf
 
 # Target's real package db:
 TARGET_DPKG_ADMINDIR_ALL_PKGS=$SBOX_TARGET_ROOT/var/lib/dpkg
@@ -28,11 +44,11 @@ HOST_DPKG_ADMINDIR=$SBOX_TOOLS_ROOT/var/lib/dpkg
 
 # A generated, temporary package db which only contains packages that
 # are usable thru the current mapping mode:
-SB2_TEMP_DPKG_ADMIN_DIR=$HOME/.scratchbox2/$SBOX_TARGET.tmp-pkg-db.$SBOX_MAPMODE
+SB2_TEMP_DPKG_ADMIN_DIR=$HOME/.scratchbox2/$SBOX_TARGET.tmp-pkg-db.$sbox_mapmode
 TARGET_DPKG_ADMINDIR_USABLE_PKGS=$SB2_TEMP_DPKG_ADMIN_DIR
 
-cfgfile_host_accepted_pkgs=$SBOX_DIR/share/scratchbox2/modeconf/host-accepted-packages.$SBOX_MAPMODE
-cfgfile_host_ignored_pkgs=$SBOX_DIR/share/scratchbox2/modeconf/host-ignored-packages.$SBOX_MAPMODE
+cfgfile_host_accepted_pkgs=$SBOX_DIR/share/scratchbox2/modeconf/host-accepted-packages.$sbox_mapmode
+cfgfile_host_ignored_pkgs=$SBOX_DIR/share/scratchbox2/modeconf/host-ignored-packages.$sbox_mapmode
 
 # Check if a named package exists of the host.
 # Returns result in three variables:
@@ -246,7 +262,7 @@ then
 	echo
 	sb2-check-pkg-mappings -a
 elif [ $TARGET_DPKG_ADMINDIR_USABLE_PKGS/status -ot \
-       $SBOX_DIR/share/scratchbox2/lua_scripts/pathmaps/$SBOX_MAPMODE/00_default.lua ]
+       $SBOX_DIR/share/scratchbox2/lua_scripts/pathmaps/$sbox_mapmode/00_default.lua ]
 then
 	echo "SB2's mapping rules have been updated =>"
 	echo "$TARGET_DPKG_ADMINDIR_USABLE_PKGS/status might be out of date."
@@ -273,7 +289,7 @@ then
 	echo
 	echo "Configuration file $cfgfile_host_accepted_pkgs"
 	echo "does not exist. This means that no packages have been approved to be used"
-	echo "from the host environment in this mapping mode ($SBOX_MAPMODE)."
+	echo "from the host environment in this mapping mode ($sbox_mapmode)."
 	exit 1
 fi
 

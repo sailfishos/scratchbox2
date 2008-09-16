@@ -295,6 +295,7 @@ static int lua_sb_readlink(lua_State *l)
 	}
 }
 
+#if 0 /* Not used anymore. */
 /* "sb.getdirlisting", to be called from lua code */
 static int lua_sb_getdirlisting(lua_State *l)
 {
@@ -331,6 +332,7 @@ static int lua_sb_getdirlisting(lua_State *l)
 	free(path);
 	return 1;
 }
+#endif
 
 /* "sb.log": interface from lua to the logging system.
  * Parameters:
@@ -440,7 +442,9 @@ static int lua_sb_debug_messages_enabled(lua_State *l)
 /* mappings from c to lua */
 static const luaL_reg reg[] =
 {
+#if 0
 	{"getdirlisting",		lua_sb_getdirlisting},
+#endif
 	{"readlink",			lua_sb_readlink},
 	{"decolonize_path",		lua_sb_decolonize_path},
 	{"log",				lua_sb_log},

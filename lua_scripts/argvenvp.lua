@@ -221,17 +221,11 @@ function sb_execve_postprocess(rule, exec_policy, exec_type,
 	-- provided by the mapping rule), look up the policy from
 	-- exec_policy_chains array.
 	if (exec_policy == nil) then
-		local mapping_mode = os.getenv("SBOX_MAPMODE")
-
-		if (mapping_mode == nil) then
-			mapping_mode = "simple"
-		end
-
 		local rule = nil
 		local chain = nil
 
 		sb.log("debug", "trying exec_policy_chains..")
-		chain = find_chain(modes[mapping_mode].exec_policy_chains, binaryname)
+		chain = find_chain(active_mode_exec_policy_chains, binaryname)
 		if (chain ~= nil) then
 			sb.log("debug", "chain found, find rule for "..mapped_file)
 			rule = find_rule(chain, func_name, mapped_file)

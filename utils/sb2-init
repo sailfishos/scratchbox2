@@ -137,6 +137,12 @@ export SBOX_EXTRA_HOST_COMPILER_ARGS="$HOST_GCC_INC"
 export SBRSH_CONFIG=$HOME/.scratchbox2/$TARGET/sbrsh.config
 
 if [ -z "\$SBOX_MAPMODE" ]; then
+	# FIXME: SBOX_MAPMODE is not used anymore from the environment,
+	# and should not be exported. However, we'll keep it here until
+	# it is time to clean all exported variables (to avoid
+	# frequent changes to configuration system; incrementing
+	# SBOX_CONFIG_VERSION forces everyone to re-initialize their
+	# sb2 environment)
 	export SBOX_MAPMODE=$MAPPING_MODE
 fi
 

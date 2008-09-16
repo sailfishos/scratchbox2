@@ -21,23 +21,34 @@ args="$*"
 prog="$0"
 progbase=`basename $0`
 
-if [ -z "$SBOX_MAPMODE" -o -z "$SBOX_DIR" ]
-then
+function error_not_inside_sb2()
+{
 	echo "SB2: $progbase wrapper: This wrapper can only be used from inside"
-	echo "the scratchbox 2'ed environment (SBOX_MAPMODE and/or SBOX_DIR"
-	echo "environment variables are empty)"
+	echo "the scratchbox 2'ed environment"
 	exit 1
+}
+
+if [ -z "$SBOX_SESSION_DIR" ]
+then
+	error_not_inside_sb2
+fi
+
+. $SBOX_SESSION_DIR/sb2-session.conf
+
+if [ -z "$sbox_mapmode" -o -z "$SBOX_DIR" ]
+then
+	error_not_inside_sb2
 fi
 
 # read-in mode-specific settings
-if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$SBOX_MAPMODE ]
+if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$sbox_mapmode ]
 then
-	. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$SBOX_MAPMODE "$progbase"
+	. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$sbox_mapmode "$progbase"
 fi
 
 function deny_operation()
 {
-	echo "SB2: $progbase wrapper: Operation denied in this mode ($SBOX_MAPMODE)"
+	echo "SB2: $progbase wrapper: Operation denied in this mode ($sbox_mapmode)"
 	echo "SB2: $progbase wrapper: You need to use another mode for installing and"
 	echo "SB2: $progbase wrapper: removing packages (typically the 'emulate' mode will do)"
 	exit 1

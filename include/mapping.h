@@ -16,8 +16,7 @@
 extern char *scratchbox_path(const char *func_name, const char *path,
 	int *ro_flagp, int dont_resolve_final_symlink);
 extern char *scratchbox_path3(const char *binary_name, const char *func_name,
-		const char *path, const char *mapping_mode, int *ro_flagp,
-		int dont_resolve_final_symlink);
+	const char *path, int *ro_flagp, int dont_resolve_final_symlink);
 char *scratchbox_path_for_exec(const char *func_name, const char *path,
 	int *ro_flagp, int dont_resolve_final_symlink);
 

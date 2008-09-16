@@ -800,10 +800,11 @@ char *sb2show__map_path2__(const char *binary_name, const char *mapping_mode,
 {
 	char *mapped__pathname = NULL;
 
+	(void)mapping_mode;	/* mapping_mode is not used anymore. */
+
 	if (pathname != NULL) {
 		mapped__pathname = scratchbox_path3(binary_name, fn_name,
-			pathname, mapping_mode, readonly,
-			0/*dont_resolve_final_symlink*/);
+			pathname, readonly, 0/*dont_resolve_final_symlink*/);
 	}
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s '%s'", __func__, pathname);
 	return(mapped__pathname);

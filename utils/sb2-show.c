@@ -27,8 +27,6 @@ static void usage_exit(const char *progname, const char *errmsg, int exitstatus)
 		"\nOptions:\n"
 		"\t-b binary_name\tshow using binary_name as name of "
 			"the calling program\n"
-		"\t-m mode\t\tshow using named mapping mode "
-			"(default=current mode)\n"
 		"\t-f function\tshow using 'function' as callers name\n"
 		"\t-D\tignore directories while verifying path lists\n"
 		"\t-v\tverbose.\n"
@@ -53,7 +51,6 @@ static void usage_exit(const char *progname, const char *errmsg, int exitstatus)
 
 static void command_show_exec(
 	const char *binary_name,
-	const char *mapping_mode,
 	const char *fn_name,
 	const char *progname, 
 	int argc, char **argv)
@@ -75,7 +72,7 @@ static void command_show_exec(
 	/* do_exec() will map the path just after argvenvp modifications
 	 * have been done, do that here also
 	*/
-	mapped_path = sb2show__map_path2__(binary_name, mapping_mode, fn_name,
+	mapped_path = sb2show__map_path2__(binary_name, "", fn_name,
 		 new_file, &readonly_flag);
 	printf("Mapped\t%s%s\n", mapped_path, (readonly_flag ? " (readonly)" : ""));
 
@@ -85,14 +82,13 @@ static void command_show_exec(
 }
 
 static void command_show_path(const char *binary_name,
-	const char *mapping_mode,
 	const char *fn_name,  char **argv)
 {
 	char	*mapped_path = NULL;
 	int	readonly_flag;
 
 	while (*argv) {
-		mapped_path = sb2show__map_path2__(binary_name, mapping_mode, 
+		mapped_path = sb2show__map_path2__(binary_name, "", 
 			fn_name, *argv, &readonly_flag);
 		printf("%s => %s%s\n", 
 			*argv, mapped_path,
@@ -107,7 +103,6 @@ static void command_show_path(const char *binary_name,
 */
 static int command_verify_pathlist_mappings(
 	const char *binary_name,
-	const char *mapping_mode,
 	const char *fn_name,
 	int ignore_directories,
 	int verbose,
@@ -151,7 +146,7 @@ static int command_verify_pathlist_mappings(
 
 		if (ignore_this) continue;
 
-		mapped_path = sb2show__map_path2__(binary_name, mapping_mode,
+		mapped_path = sb2show__map_path2__(binary_name, "",
 				fn_name, path_buf, &readonly_flag);
 
 		if (ignore_directories) {
@@ -194,7 +189,6 @@ int main(int argc, char *argv[])
 {
 	int	opt;
 	char	*progname = argv[0];
-	char	*mapping_mode = NULL;
 	char	*function_name = "ANYFUNCTION";
 	char	*binary_name = "ANYBINARY";
 	int	ignore_directories = 0;
@@ -210,8 +204,7 @@ int main(int argc, char *argv[])
 	*/
 
 	/* check that we are running inside 'sb2' environment */
-	if (!getenv("SBOX_LUA_SCRIPTS") ||
-	   !getenv("SBOX_MAPMODE")) {
+	if (!getenv("SBOX_LUA_SCRIPTS")) {
 		usage_exit(progname, "Not inside scratchboxed environment", 1);
 	}
 #endif
@@ -219,7 +212,11 @@ int main(int argc, char *argv[])
 	while ((opt = getopt(argc, argv, "hm:f:b:Dv")) != -1) {
 		switch (opt) {
 		case 'h': usage_exit(progname, NULL, 0); break;
-		case 'm': mapping_mode = optarg; break;
+		case 'm':
+			fprintf(stderr,
+				 "%s: Warning: option -m is obsolete\n",
+				argv[0]);
+			break;
 		case 'f': function_name = optarg; break;
 		case 'b': binary_name = optarg; break;
 		case 'D': ignore_directories = 1; break;
@@ -231,15 +228,13 @@ int main(int argc, char *argv[])
 	/* check parameters */
 	if (optind >= argc) 
 		usage_exit(progname, "Wrong number of parameters", 1);
-	if (!mapping_mode) 
-		mapping_mode = getenv("SBOX_MAPMODE");
 
 	/* params ok, go and perform the action */
 	if (!strcmp(argv[optind], "path")) {
-		command_show_path(binary_name, mapping_mode, function_name, 
+		command_show_path(binary_name, function_name, 
 			argv + optind + 1);
 	} else if (!strcmp(argv[optind], "exec")) {
-		command_show_exec(binary_name, mapping_mode, function_name,
+		command_show_exec(binary_name, function_name,
 			progname, argc - (optind+1), argv + optind + 1);
 	} else if (!strcmp(argv[optind], "log-error")) {
 		command_log(argv + optind + 1, SB_LOGLEVEL_ERROR);
@@ -247,7 +242,7 @@ int main(int argc, char *argv[])
 		command_log(argv + optind + 1, SB_LOGLEVEL_WARNING);
 	} else if (!strcmp(argv[optind], "verify-pathlist-mappings")) {
 		return command_verify_pathlist_mappings(binary_name,
-			mapping_mode, function_name, ignore_directories,
+			function_name, ignore_directories,
 			verbose, progname, argv + optind + 1);
 	} else {
 		usage_exit(progname, "Unknown command", 1);

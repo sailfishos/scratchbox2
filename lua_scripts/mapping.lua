@@ -99,7 +99,6 @@ if (target_root) then
 	esc_target_root = escape_string(target_root)
 end
 
--- Load session-specific settings
 function load_and_execute_lua_script(filename)
 	if (debug_messages_enabled) then
 		sb.log("debug", string.format("Loading '%s'", filename))
@@ -121,6 +120,7 @@ session_dir = os.getenv("SBOX_SESSION_DIR")
 
 -- Load session-specific settings
 function load_session_settings()
+	load_and_execute_lua_script(session_dir .. "/sb2-session.conf")
 	load_and_execute_lua_script(session_dir .. "/exec_config.lua")
 end
 
@@ -131,13 +131,12 @@ end
 --  2. exec_policy_chains (array) contains default execution policies;
 --     real path (mapped path) is used as the key.
 --
-function read_mode_part(mode, part)
-	filename = rsdir .. "/pathmaps/" .. mode .. "/" .. part
+function load_and_check_rules()
 
 	export_chains = {}
 	exec_policy_chains = {}
 
-	load_and_execute_lua_script(filename)
+	load_and_execute_lua_script(session_dir .. "/rules.lua")
 
 	-- export_chains variable contains now the mapping rule chains
 	-- from the chunk
@@ -161,47 +160,22 @@ function read_mode_part(mode, part)
 			end
 		end
 		export_chains[i].lua_script = filename
-		table.insert(modes[mode].chains, export_chains[i])
+		table.insert(active_mode_mapping_rule_chains, export_chains[i])
 	end
 
 	-- Handle exec_policy_chains variable from the chunk
 	for i = 1,table.maxn(exec_policy_chains) do
-		table.insert(modes[mode].exec_policy_chains,
+		table.insert(active_mode_exec_policy_chains,
 			exec_policy_chains[i])
 	end
 end
 
 load_session_settings()
 
--- modes represent the different mapping modes supported.
--- Each mode contains its own set of chains.
--- The mode is passed from the libsb2.so to here in the first
--- argument to sbox_translate_path()
-modes = {}
+active_mode_mapping_rule_chains = {}
+active_mode_exec_policy_chains = {}
 
--- sb.getdirlisting is provided by lua_bindings.c
--- it returns a table listing all files in a directory
-mm = sb.getdirlisting(rsdir .. "/pathmaps")
-table.sort(mm);
-for m = 1, table.maxn(mm) do
-	local t = sb.getdirlisting(rsdir .. "/pathmaps/" .. mm[m])
-	local i = 0
-	local r = 0
-	if (mm[m] ~= "." and mm[m] ~= "..") then
-		table.sort(t)
-		modes[mm[m]] = {}
-		modes[mm[m]].chains = {}
-		modes[mm[m]].exec_policy_chains = {}
-
-		-- load the individual parts from
-		-- ($SBOX_REDIR_SCRIPTS/preload/[modename]/*.lua)
-		for n = 1,table.maxn(t) do
-			if (string.match(t[n], "%a*%.lua$")) then
-				read_mode_part(mm[m], t[n])
-			end
-		end
-	end
-end
+load_and_check_rules()
 
 function sbox_execute_replace_rule(path, replacement, rule)
 	local ret = nil
@@ -468,13 +442,13 @@ end
 -- determine where to start resolving symbolic links; shorter paths than
 -- "min_path_len" should not be given to sbox_translate_path()
 -- returns "rule", "rule_found", "min_path_len"
-function sbox_get_mapping_requirements(mapping_mode, binary_name, func_name, work_dir, full_path)
+function sbox_get_mapping_requirements(binary_name, func_name, work_dir, full_path)
 	-- loop through the chains, first match is used
 	local min_path_len = 0
 	local rule = nil
 	local chain
 
-	chain = find_chain(modes[mapping_mode].chains, binary_name)
+	chain = find_chain(active_mode_mapping_rule_chains, binary_name)
 	if (chain == nil) then
 		sb.log("error", string.format("Unable to find chain for: %s(%s)",
 			func_name, full_path))

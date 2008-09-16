@@ -25,6 +25,7 @@ Options:
     -t TARGET    target to use, use sb2-config -d TARGET to set a default
     -e           emulation mode
     -m MODE      use mapping mode MODE
+    -M file      read mapping rules from "file"
     -s DIRECTORY load mapping scripts from alternative location
     -Q BUGLIST   emulate bugs of the old scratchbox 1 (BUGLIST consists of
                  letters: 'x' enables exec permission checking bug emulation)
@@ -52,6 +53,42 @@ function sanity_check()
 		exit_error "Do not use sbox2 as root!"
 	fi
 	# check that most important host and target files exist
+}
+
+# Collect & write all mapping- and policy rules to $SBOX_SESSION_DIR/rules.lua
+#
+# Parameters:
+#  - list of rule files (if specified by the -M option)
+#  - uses rules from $SBOX_LUA_SCRIPTS/pathmaps/$SBOX_MAPMODE if -M was not used
+function write_rules_to_session_dir()
+{
+	input_files="$@"
+
+	cat >$SBOX_SESSION_DIR/rules.lua <<END
+-- Rules for session $SBOX_SESSION_DIR
+-- Automatically generated file, do not edit.
+--
+END
+
+	if [ -z "$input_files" ]
+	then
+		if [ -z "$SBOX_LUA_SCRIPTS" ]
+		then
+			SBOX_LUA_SCRIPTS="$SBOX_DIR/share/scratchbox2/lua_scripts"
+		fi
+		input_files=`ls $SBOX_LUA_SCRIPTS/pathmaps/$SBOX_MAPMODE/*.lua`
+	fi
+	
+	for f in $input_files
+	do
+		if [ -r $f ]
+		then
+			echo "-- [ $f ]" >>$SBOX_SESSION_DIR/rules.lua
+			cat $f >>$SBOX_SESSION_DIR/rules.lua
+		else
+			echo "-- [ Failed to read $f ]" >>$SBOX_SESSION_DIR/rules.lua
+		fi
+	done
 }
 
 function sboxify_environment()
@@ -105,6 +142,8 @@ function sboxify_environment()
 		exit_error "Incorrect target config in ~/.scratchbox2/$SBOX_TARGET/sb2.config"
 	fi
 
+	write_rules_to_session_dir $SBOX_RULEFILES
+
 	export LD_LIBRARY_PATH SBOX_LIBSB2 SBOX_LUA_SCRIPTS SBOX_TARGET_ROOT SBOX_TARGET_COMPILER
 	export SBOX_TARGET_TOOLCHAIN_DIR=$(dirname "$SBOX_CROSS_GCC_DIR")
 
@@ -154,6 +193,21 @@ function initialize_sb_logging()
 			echo
 		fi
 	fi
+}
+
+#
+# Write variables to $SBOX_SESSION_DIR/sb2-session.conf
+# NOTE: this file will be read by lua interpreter and the shell,
+# so only simple string assignments are allowed! 
+# (even comments are different in Lua and shell scripts..)
+function create_common_sb2_conf_file_for_session()
+{
+	cat <<END >>$SBOX_SESSION_DIR/sb2-session.conf
+comment_1=" Common configuration file for Lua and Shell scripts."
+comment_2=" Automatically generated file, do not edit."
+
+sbox_mapmode="$SBOX_MAPMODE"
+END
 }
 
 function write_ld_library_path_replacement_to_exec_config()
@@ -316,7 +370,7 @@ export SBOX_WORKDIR=$(readlink -f $PWD)
 now=`date +%Y%m%d-%H%M%S.%z`
 export SBOX_SESSION=$now.$$
 
-while getopts vdht:em:s:L:Q:p foo
+while getopts vdht:em:s:L:Q:pM: foo
 do
 	case $foo in
 	(v) version ;;
@@ -329,6 +383,7 @@ do
 	(t) export SBOX_TARGET=$OPTARG ;;
 	(e) export SBOX_MAPMODE=emulate ;;
 	(m) export SBOX_MAPMODE=$OPTARG ;;
+	(M) SBOX_RULEFILES="$SBOX_RULEFILES $OPTARG" ;;
 	(s) export SBOX_LUA_SCRIPTS=$OPTARG;;
 	(p) export SBOX_SESSION_NO_CLEANUP=$SBOX_SESSION;;
 	(*) usage ;;
@@ -362,6 +417,8 @@ sboxify_environment
 
 create_exec_config_file
 
+create_common_sb2_conf_file_for_session
+
 # set the initial binary name for the mapping engine
 export __SB2_BINARYNAME="bash"
 
@@ -370,6 +427,14 @@ if [ -n "$SBOX_TOOLS_ROOT" ]; then
 else
 	SHELL=/bin/bash
 fi
+
+# ------------ Temporary cleanup:
+# Unset variables which used to be passed in environment,
+# but have been moved to sb2-session.conf.
+# Once all variables have been moved, "export" statements can be removed
+# from sb2-init...
+unset SBOX_MAPMODE
+# ------------
 
 if [ $# -gt 0 -o "$STDIN" = true ] ; then
 	binary="$1"

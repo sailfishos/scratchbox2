@@ -464,7 +464,6 @@ static char *call_lua_function_sbox_translate_path(
 */
 static int call_lua_function_sbox_get_mapping_requirements(
 	struct lua_instance *luaif,
-	const char *mapping_mode,
 	const char *binary_name,
 	const char *func_name,
 	const char *work_dir,
@@ -483,13 +482,12 @@ static int call_lua_function_sbox_get_mapping_requirements(
 
 	lua_getfield(luaif->lua, LUA_GLOBALSINDEX,
 		"sbox_get_mapping_requirements");
-	lua_pushstring(luaif->lua, mapping_mode);
 	lua_pushstring(luaif->lua, binary_name);
 	lua_pushstring(luaif->lua, func_name);
 	lua_pushstring(luaif->lua, work_dir);
 	lua_pushstring(luaif->lua, full_path_for_rule_selection);
-	/* five arguments, returns (rule, flag, min_path_len) */
-	lua_call(luaif->lua, 5, 3);
+	/* four arguments, returns (rule, rule_found_flag, min_path_len) */
+	lua_call(luaif->lua, 4, 3);
 
 	rule_found = lua_toboolean(luaif->lua, -2);
 	min_path_len = lua_tointeger(luaif->lua, -1);
@@ -540,7 +538,6 @@ static void drop_from_lua_stack(struct lua_instance *luaif,
 static char *sb_path_resolution(
 	int nest_count,
 	struct lua_instance *luaif,
-	const char *mapping_mode,
 	const char *binary_name,
 	const char *func_name,
 	const char *work_dir,
@@ -590,7 +587,7 @@ static char *sb_path_resolution(
 	work = orig_path_list.pl_first;
 
 	if (call_lua_function_sbox_get_mapping_requirements(
-		luaif, mapping_mode, binary_name, func_name,
+		luaif, binary_name, func_name,
 		work_dir, full_path_for_rule_selection,
 		&min_path_len_to_check)) {
 		/* has requirements:
@@ -749,7 +746,7 @@ static char *sb_path_resolution(
 
 			/* Then the recursion */
 			result_path = sb_path_resolution(nest_count + 1,
-				luaif, mapping_mode, binary_name, func_name,
+				luaif, binary_name, func_name,
 				work_dir, new_path,
 				new_path, dont_resolve_final_symlink);
 
@@ -787,7 +784,6 @@ static char *scratchbox_path_internal(
 	const char *binary_name,
 	const char *func_name,
 	const char *path,
-	const char *mapping_mode,
 	int *ro_flagp,
 	int dont_resolve_final_symlink,
 	int leave_mapping_rule_and_policy_to_stack)
@@ -817,12 +813,6 @@ static char *scratchbox_path_internal(
 	if (!luaif) {
 		/* init in progress? */
 		return strdup(path);
-	}
-
-	/* use a sane default for mapping_mode, if not defined by 
-	 * the parameter or environment */
-	if (!mapping_mode && !(mapping_mode = getenv("SBOX_MAPMODE"))) {
-		mapping_mode = "simple";
 	}
 
 	if (!path) {
@@ -870,7 +860,7 @@ static char *scratchbox_path_internal(
 
 		/* sb_path_resolution() leaves the rule to the stack... */
 		decolon_path = sb_path_resolution(0,
-			luaif, mapping_mode, binary_name, func_name,
+			luaif, binary_name, func_name,
 			work_dir, path, full_path_for_rule_selection,
 			dont_resolve_final_symlink);
 
@@ -919,12 +909,11 @@ char *scratchbox_path3(
 	const char *binary_name,
 	const char *func_name,
 	const char *path,
-	const char *mapping_mode,
 	int *ro_flagp,
 	int dont_resolve_final_symlink)
 {
 	return(scratchbox_path_internal(binary_name, func_name, path,
-		mapping_mode, ro_flagp, dont_resolve_final_symlink, 0));
+		ro_flagp, dont_resolve_final_symlink, 0));
 }
 
 char *scratchbox_path(
@@ -935,19 +924,14 @@ char *scratchbox_path(
 {
 	char binary_name[PATH_MAX+1];
 	char *bin_name;
-	const char *mapping_mode;
 
 	if (!(bin_name = getenv("__SB2_BINARYNAME"))) {
 		bin_name = "UNKNOWN";
 	}
 	snprintf(binary_name, sizeof(binary_name), "%s", bin_name);
 
-	if (!(mapping_mode = getenv("SBOX_MAPMODE"))) {
-		mapping_mode = "simple";
-	}
 	return (scratchbox_path_internal(binary_name, func_name,
-		path, mapping_mode,
-		ro_flagp, dont_resolve_final_symlink, 0));
+		path, ro_flagp, dont_resolve_final_symlink, 0));
 }
 
 /* this maps the path and then leaves "rule" and "exec_policy" to the stack, 
@@ -961,7 +945,6 @@ char *scratchbox_path_for_exec(
 {
 	char binary_name[PATH_MAX+1];
 	char *bin_name;
-	const char *mapping_mode;
 
 	memset(binary_name, '\0', PATH_MAX+1);
 	if (!(bin_name = getenv("__SB2_BINARYNAME"))) {
@@ -969,11 +952,7 @@ char *scratchbox_path_for_exec(
 	}
 	strcpy(binary_name, bin_name);
 
-	if (!(mapping_mode = getenv("SBOX_MAPMODE"))) {
-		mapping_mode = "simple";
-	}
 	return (scratchbox_path_internal(binary_name, func_name,
-		path, mapping_mode,
-		ro_flagp, dont_resolve_final_symlink, 1));
+		path, ro_flagp, dont_resolve_final_symlink, 1));
 }
 

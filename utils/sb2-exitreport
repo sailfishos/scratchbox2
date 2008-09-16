@@ -46,7 +46,7 @@ elif [ -f "$SBOX_MAPPING_LOGFILE" ] ; then
 	rm $SBOX_MAPPING_LOGFILE
 fi
 
-if [ "$SBOX_SESSION_NO_CLEANUP" == "$SBOX_SESSION" ]
+if [ -f $SBOX_SESSION_DIR/.preserve-session ]
 then
 	echo
 	echo "Session directories preserved ($SBOX_SESSION_DIR)"

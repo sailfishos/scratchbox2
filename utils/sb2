@@ -366,10 +366,6 @@ fi
 export SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
 export SBOX_WORKDIR=$(readlink -f $PWD)
 
-# Create session ID
-now=`date +%Y%m%d-%H%M%S.%z`
-export SBOX_SESSION=$now.$$
-
 while getopts vdht:em:s:L:Q:pM: foo
 do
 	case $foo in
@@ -385,7 +381,7 @@ do
 	(m) export SBOX_MAPMODE=$OPTARG ;;
 	(M) SBOX_RULEFILES="$SBOX_RULEFILES $OPTARG" ;;
 	(s) export SBOX_LUA_SCRIPTS=$OPTARG;;
-	(p) export SBOX_SESSION_NO_CLEANUP=$SBOX_SESSION;;
+	(p) SBOX_SESSION_NO_CLEANUP="y";;
 	(*) usage ;;
 	esac
 done
@@ -408,10 +404,18 @@ if [ "$1" = "-" ] ; then
 fi
 
 # Create session directories
-SBOX_SESSION_DIR=`mktemp -d /tmp/sb2-$USER-$SBOX_SESSION.XXXXXXXXXX`
+date_and_time_now=`date +%Y%m%d-%H%M%S`
+SBOX_SESSION_DIR=`mktemp -d /tmp/sb2-$USER-$date_and_time_now.XXXXXX`
+
+# SBOX_SESSION_DIR needs to be passed in environment variable, always.
 export SBOX_SESSION_DIR
+
 mkdir -p $SBOX_SESSION_DIR
 mkdir -p $SBOX_SESSION_DIR/tmp
+if [ -n "$SBOX_SESSION_NO_CLEANUP" ]
+then
+	touch $SBOX_SESSION_DIR/.preserve-session
+fi
 
 sboxify_environment
 

@@ -144,7 +144,7 @@ function sboxify_environment()
 
 	write_rules_to_session_dir $SBOX_RULEFILES
 
-	export LD_LIBRARY_PATH SBOX_LIBSB2 SBOX_LUA_SCRIPTS SBOX_TARGET_ROOT SBOX_TARGET_COMPILER
+	export LD_LIBRARY_PATH SBOX_LIBSB2 SBOX_LUA_SCRIPTS SBOX_TARGET_COMPILER
 	export SBOX_TARGET_TOOLCHAIN_DIR=$(dirname "$SBOX_CROSS_GCC_DIR")
 
 	if [ -z "$SBOX_MODE_PATH" ]
@@ -180,6 +180,8 @@ function initialize_sb_logging()
 
 			# log initial environment if logging is enabled
 			env | sed -e 's/^/#/' >>$MAPPING_LOGFILE
+			echo "#SBOX_TARGET_ROOT=$SBOX_TARGET_ROOT" >>$MAPPING_LOGFILE
+			echo "#SBOX_MAPMODE=$SBOX_MAPMODE" >>$MAPPING_LOGFILE
 
 			echo "Running scratchbox with these settings:"
 			echo "SBOX_LIBSB2 = $SBOX_LIBSB2"
@@ -207,6 +209,7 @@ comment_1=" Common configuration file for Lua and Shell scripts."
 comment_2=" Automatically generated file, do not edit."
 
 sbox_mapmode="$SBOX_MAPMODE"
+sbox_target_root="$SBOX_TARGET_ROOT"
 END
 }
 
@@ -438,6 +441,7 @@ fi
 # Once all variables have been moved, "export" statements can be removed
 # from sb2-init...
 unset SBOX_MAPMODE
+unset SBOX_TARGET_ROOT
 # ------------
 
 if [ $# -gt 0 -o "$STDIN" = true ] ; then

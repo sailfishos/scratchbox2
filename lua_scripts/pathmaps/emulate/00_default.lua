@@ -1,7 +1,7 @@
 -- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 -- Licensed under MIT license.
 
-sb1_compat_dir = os.getenv("SBOX_TARGET_ROOT") .. "/scratchbox1-compat"
+sb1_compat_dir = sbox_target_root .. "/scratchbox1-compat"
 
 sb2_session_dir = os.getenv("SBOX_SESSION_DIR")
 if (not sb2_session_dir) then

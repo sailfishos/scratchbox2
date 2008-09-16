@@ -120,7 +120,7 @@ do
 		    -e 's/package diverts others to: //' |
 		sb2-show -D verify-pathlist-mappings \
 			$VERBOSE_OPTION \
-			$SBOX_TARGET_ROOT $SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST
+			$sbox_target_root $SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST
 		if [ $? == 0 ]
 		then
 			echo "	$pkg = OK"

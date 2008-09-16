@@ -8,12 +8,6 @@ if (tools_root == "") then
 end
 
 
-
-target_root = os.getenv("SBOX_TARGET_ROOT")
-if (not target_root) then
-	target_root = "/"
-end
-
 compiler_root = os.getenv("SBOX_COMPILER_ROOT")
 if (not compiler_root) then
 	compiler_root = "/usr"
@@ -89,16 +83,6 @@ function isprefix(a, b)
 	return string.sub(b, 1, string.len(a)) == a
 end
 
--- make versions of tools_root and target_root safe
--- to use in match() functions
-if (tools_root) then
-	esc_tools_root = escape_string(tools_root)
-end
-
-if (target_root) then
-	esc_target_root = escape_string(target_root)
-end
-
 function load_and_execute_lua_script(filename)
 	if (debug_messages_enabled) then
 		sb.log("debug", string.format("Loading '%s'", filename))
@@ -171,6 +155,21 @@ function load_and_check_rules()
 end
 
 load_session_settings()
+
+target_root = sbox_target_root
+if (not target_root or target_root == "") then
+	target_root = "/"
+end
+
+-- make versions of tools_root and target_root safe
+-- to use in match() functions
+if (tools_root) then
+	esc_tools_root = escape_string(tools_root)
+end
+
+if (target_root) then
+	esc_target_root = escape_string(target_root)
+end
 
 active_mode_mapping_rule_chains = {}
 active_mode_exec_policy_chains = {}

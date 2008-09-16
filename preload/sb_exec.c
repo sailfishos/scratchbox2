@@ -276,9 +276,9 @@ static int run_cputransparency(const char *file, const char *unmapped_file,
 	
 	cputransp_bin = strdup(cputransp_tokens[0]);
 
-	target_root = getenv("SBOX_TARGET_ROOT");
-	if (!target_root) {
-		fprintf(stderr, "SBOX_TARGET_ROOT not set, "
+	target_root = sb2__read_string_variable_from_lua__("sbox_target_root");
+	if (!target_root || !*target_root) {
+		fprintf(stderr, "sbox_target_root not set, "
 				"unable to execute the target binary\n");
 		return -1;
 	}

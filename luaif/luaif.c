@@ -246,6 +246,30 @@ void sb2_lua_init(void)
 	lua_engine_state = LES_READY;
 }
 
+/* Read string variables from lua.
+ * Note that this function is exported from libsb2.so (for sb2-show etc): */
+char *sb2__read_string_variable_from_lua__(const char *name)
+{
+	struct lua_instance *luaif;
+	char *result = NULL;
+
+	luaif = get_lua();
+
+	if (luaif && name && *name) {
+		lua_getglobal(luaif->lua, name);
+		result = (char *)lua_tostring(luaif->lua, -1);
+		if (result) {
+			result = strdup(result);
+		}
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"Lua variable %s = '%s', gettop=%d",
+			name, (result ? result : "<NULL>"),
+			lua_gettop(luaif->lua));
+	}
+	return(result);
+}
+
+
 /* "sb.decolonize_path", to be called from lua code */
 static int lua_sb_decolonize_path(lua_State *l)
 {

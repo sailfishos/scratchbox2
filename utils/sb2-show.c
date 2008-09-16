@@ -40,13 +40,34 @@ static void usage_exit(const char *progname, const char *errmsg, int exitstatus)
 		"\tlog-warning 'message'"
 			"\tAdd a warning message to the log\n"
 		"\tverify-pathlist-mappings required-prefix [ignorelist]"
-			"\tread list of paths from stdin and/n"
-			"\t\tcheck that all paths will be mapped to required prefix/n"
+			"\tread list of paths from stdin and\n"
+			"\t\tcheck that all paths will be mapped to required prefix\n"
+		"\tvar variablename"
+			"\tShow value of a string variable\n"
 		"\n'%s' must be executed inside sb2 sandbox"
 			" (see the 'sb2' command)\n",
 		progname, progname, progname);
 
 	exit(exitstatus);
+}
+
+static int command_show_variable(
+	int verbose,
+	const char *progname, 
+	const char *varname)
+{
+	char *value = sb2__read_string_variable_from_lua__(varname);
+
+	if (value) {
+		if (verbose) printf("%s = \"%s\"\n", varname, value);
+		else printf("%s\n", value);
+		free(value);
+		return(0);
+	} 
+	/* failed */
+	if (verbose) printf("%s: %s does not exist\n",
+		progname, varname);
+	return(1);
 }
 
 static void command_show_exec(
@@ -244,6 +265,8 @@ int main(int argc, char *argv[])
 		return command_verify_pathlist_mappings(binary_name,
 			function_name, ignore_directories,
 			verbose, progname, argv + optind + 1);
+	} else if (!strcmp(argv[optind], "var")) {
+		return(command_show_variable(verbose, progname, argv[optind+1]));
 	} else {
 		usage_exit(progname, "Unknown command", 1);
 	}

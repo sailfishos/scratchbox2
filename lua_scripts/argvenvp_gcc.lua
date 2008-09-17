@@ -35,42 +35,29 @@ gcc_tools = {
 "strip"
 }
 
-gcc_bindir = os.getenv("SBOX_CROSS_GCC_DIR")
-gcc_subst_prefix = os.getenv("SBOX_CROSS_GCC_SUBST_PREFIX")
-gcc_extra_args = os.getenv("SBOX_EXTRA_CROSS_COMPILER_ARGS")
-gcc_specs = os.getenv("SBOX_CROSS_GCC_SPECS_FILE")
-gcc_extra_stdinc = os.getenv("SBOX_EXTRA_CROSS_COMPILER_STDINC")
-gcc_block_args = os.getenv("SBOX_BLOCK_CROSS_COMPILER_ARGS")
-ld_extra_args = os.getenv("SBOX_EXTRA_CROSS_LD_ARGS")
-ld_block_args = os.getenv("SBOX_BLOCK_CROSS_LD_ARGS")
-host_gcc_bindir = os.getenv("SBOX_HOST_GCC_DIR")
-host_gcc_subst_prefix = os.getenv("SBOX_HOST_GCC_SUBST_PREFIX")
-host_gcc_extra_args = os.getenv("SBOX_EXTRA_HOST_COMPILER_ARGS")
-host_gcc_block_args = os.getenv("SBOX_BLOCK_HOST_COMPILER_ARGS")
-
 -- The trick with ":" .. is to have a non-prefixed gcc call caught here
-for prefix in string.gmatch(":" .. os.getenv("SBOX_CROSS_GCC_PREFIX_LIST"), "[^:]*") do
+for prefix in string.gmatch(":" .. sbox_cross_gcc_prefix_list, "[^:]*") do
 	for i = 1, table.maxn(gcc_compilers) do
 		tmp = {}
 		tmp.name = prefix .. gcc_compilers[i]
-		tmp.new_filename = gcc_bindir .. "/" .. gcc_subst_prefix .. gcc_compilers[i]
+		tmp.new_filename = sbox_cross_gcc_dir .. "/" .. sbox_cross_gcc_subst_prefix .. gcc_compilers[i]
 		tmp.add_tail = {}
 		tmp.remove = {}
-		if (gcc_specs and gcc_specs ~= "") then
-			table.insert(tmp.add_tail, "-specs="..gcc_specs)
+		if (sbox_cross_gcc_specs_file and sbox_cross_gcc_specs_file ~= "") then
+			table.insert(tmp.add_tail, "-specs="..sbox_cross_gcc_specs_file)
 		end
-		if (gcc_extra_args and gcc_extra_args ~= "") then
-			for gcc_extra in string.gmatch(gcc_extra_args, "[^ ]+") do
+		if (sbox_extra_cross_compiler_args and sbox_extra_cross_compiler_args ~= "") then
+			for gcc_extra in string.gmatch(sbox_extra_cross_compiler_args, "[^ ]+") do
 				table.insert(tmp.add_tail, gcc_extra)
 			end
 		end
-		if (gcc_extra_stdinc and gcc_extra_stdinc ~= "") then
-			for gcc_stdinc in string.gmatch(gcc_extra_stdinc, "[^ ]+") do
+		if (sbox_extra_cross_compiler_stdinc and sbox_extra_cross_compiler_stdinc ~= "") then
+			for gcc_stdinc in string.gmatch(sbox_extra_cross_compiler_stdinc, "[^ ]+") do
 				table.insert(tmp.add_tail, gcc_stdinc)
 			end
 		end
-		if (gcc_block_args and gcc_extra_args ~= "") then
-			for gcc_block in string.gmatch(gcc_block_args, "[^ ]+") do
+		if (sbox_block_cross_compiler_args and sbox_block_cross_compiler_args ~= "") then
+			for gcc_block in string.gmatch(sbox_block_cross_compiler_args, "[^ ]+") do
 				table.insert(tmp.remove, gcc_block)
 			end
 		end
@@ -81,16 +68,16 @@ for prefix in string.gmatch(":" .. os.getenv("SBOX_CROSS_GCC_PREFIX_LIST"), "[^:
 	for i = 1, table.maxn(gcc_linkers) do
 		tmp = {}
 		tmp.name = prefix .. gcc_linkers[i]
-		tmp.new_filename = gcc_bindir .. "/" .. gcc_subst_prefix .. gcc_linkers[i]
+		tmp.new_filename = sbox_cross_gcc_dir .. "/" .. sbox_cross_gcc_subst_prefix .. gcc_linkers[i]
 		tmp.add_tail = {}
 		tmp.remove = {}
-		if (ld_extra_args) then
-			for ld_extra in string.gmatch(ld_extra_args, "[^ ]+") do
+		if (sbox_extra_cross_ld_args and sbox_extra_cross_ld_args ~= "") then
+			for ld_extra in string.gmatch(sbox_extra_cross_ld_args, "[^ ]+") do
 				table.insert(tmp.add_tail, ld_extra)
 			end
 		end
-		if (ld_block_args) then
-			for ld_block in string.gmatch(ld_block_args, "[^ ]+") do
+		if (sbox_block_cross_ld_args and sbox_block_cross_ld_args ~= "") then
+			for ld_block in string.gmatch(sbox_block_cross_ld_args, "[^ ]+") do
 				table.insert(tmp.remove, ld_block)
 			end
 		end
@@ -99,28 +86,28 @@ for prefix in string.gmatch(":" .. os.getenv("SBOX_CROSS_GCC_PREFIX_LIST"), "[^:
 	for i = 1, table.maxn(gcc_tools) do
 		tmp = {}
 		tmp.name = prefix .. gcc_tools[i]
-		tmp.new_filename = gcc_bindir .. "/" .. gcc_subst_prefix .. gcc_tools[i]
+		tmp.new_filename = sbox_cross_gcc_dir .. "/" .. sbox_cross_gcc_subst_prefix .. gcc_tools[i]
 		argvmods[tmp.name] = tmp
 	end
 end
 
 
 -- deal with host-gcc functionality, disables mapping
-for prefix in string.gmatch(os.getenv("SBOX_HOST_GCC_PREFIX_LIST"), "[^:]+") do
+for prefix in string.gmatch(sbox_host_gcc_prefix_list, "[^:]+") do
 	for i = 1, table.maxn(gcc_compilers) do
 		tmp = {}
 		tmp.name = prefix .. gcc_compilers[i]
-		tmp.new_filename = host_gcc_bindir .. "/" .. host_gcc_subst_prefix .. gcc_compilers[i]
+		tmp.new_filename = sbox_host_gcc_dir .. "/" .. sbox_host_gcc_subst_prefix .. gcc_compilers[i]
 		tmp.add_tail = {}
 		tmp.remove = {}
 		tmp.disable_mapping = 1
-		if (host_gcc_extra_args) then
-			for gcc_extra in string.gmatch(host_gcc_extra_args, "[^ ]+") do
+		if (sbox_extra_host_compiler_args and sbox_extra_host_compiler_args ~= "") then
+			for gcc_extra in string.gmatch(sbox_extra_host_compiler_args, "[^ ]+") do
 				table.insert(tmp.add_tail, gcc_extra)
 			end
 		end
-		if (host_gcc_block_args) then
-			for gcc_block in string.gmatch(host_gcc_block_args, "[^ ]+") do
+		if (sbox_block_host_compiler_args and sbox_block_host_compiler_args ~= "") then
+			for gcc_block in string.gmatch(sbox_block_host_compiler_args, "[^ ]+") do
 				table.insert(tmp.remove, gcc_block)
 			end
 		end
@@ -131,14 +118,14 @@ for prefix in string.gmatch(os.getenv("SBOX_HOST_GCC_PREFIX_LIST"), "[^:]+") do
 	for i = 1, table.maxn(gcc_linkers) do
 		tmp = {}
 		tmp.name = prefix .. gcc_linkers[i]
-		tmp.new_filename = host_gcc_bindir .. "/" .. host_gcc_subst_prefix .. gcc_linkers[i]
+		tmp.new_filename = sbox_host_gcc_dir .. "/" .. sbox_host_gcc_subst_prefix .. gcc_linkers[i]
 		tmp.disable_mapping = 1
 		argvmods[tmp.name] = tmp
 	end
 	for i = 1, table.maxn(gcc_tools) do
 		tmp = {}
 		tmp.name = prefix .. gcc_tools[i]
-		tmp.new_filename = host_gcc_bindir .. "/" .. host_gcc_subst_prefix .. gcc_tools[i]
+		tmp.new_filename = sbox_host_gcc_dir .. "/" .. sbox_host_gcc_subst_prefix .. gcc_tools[i]
 		tmp.disable_mapping = 1
 		argvmods[tmp.name] = tmp
 	end

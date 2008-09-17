@@ -83,7 +83,7 @@ static void command_show_exec(
 	int	readonly_flag;
 	int	i;
 	
-	if (argc < 2) {
+	if (argc < 1) {
 		usage_exit(progname, "Too few parameters for this command", 1);
 	}
 	sb2show__execve_mods__(argv[0], argv, environ,

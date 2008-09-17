@@ -6,18 +6,7 @@ if (not tools) then
 	tools = "/"
 end
 
-sb2_home_dir = os.getenv("HOME") .. "/.scratchbox2/"
-sb2_share_dir = sb2_home_dir .. os.getenv("SBOX_TARGET") .. "/share"
-
-sb2_session_dir = os.getenv("SBOX_SESSION_DIR")
-if (not sb2_session_dir) then
-	sb2_session_dir = "/tmp"
-end
-
-home_dir = os.getenv("HOME")
-if (home_dir == nil) then
-	home_dir = "/home/unknown_user"
-end
+sb2_share_dir = sbox_user_home_dir.."/.scratchbox2/"..sbox_target.."/share"
 
 -- =========== Exec policies:  ===========
 --
@@ -299,8 +288,8 @@ simple_chain = {
 
 		-- -----------------------------------------------
 		-- 85. /tmp
-		{prefix = sb2_session_dir, use_orig_path = true},
-		{prefix = "/tmp", map_to = sb2_session_dir},
+		{prefix = session_dir, use_orig_path = true},
+		{prefix = "/tmp", map_to = session_dir},
 
 		-- -----------------------------------------------
 		-- 90. Top-level directories that must not be mapped:
@@ -358,14 +347,14 @@ simple_chain = {
 
 qemu_chain = {
 	next_chain = nil,
-	binary = basename(os.getenv("SBOX_CPUTRANSPARENCY_METHOD")),
+	binary = basename(sbox_cputransparency_method),
 	rules = {
 		{prefix = "/lib", map_to = target_root},
 		{prefix = "/usr/lib", map_to = target_root},
 		{prefix = "/usr/local/lib", map_to = target_root},
 
-		{prefix = sb2_session_dir, use_orig_path = true},
-		{prefix = "/tmp", map_to = sb2_session_dir},
+		{prefix = session_dir, use_orig_path = true},
+		{prefix = "/tmp", map_to = session_dir},
 
 		{prefix = "/dev", use_orig_path = true},
 		{prefix = "/proc", use_orig_path = true},
@@ -402,11 +391,11 @@ maemo_exec_policies = {
 	rules = {
 
 		-- ~/bin proobably contains programs for the host OS:
-                {prefix = home_dir.."/bin", exec_policy = exec_policy_host_os},
+                {prefix = sbox_user_home_dir.."/bin", exec_policy = exec_policy_host_os},
 
                 -- Other places under the home directory are expected
                 -- to contain target binaries:
-                {prefix = home_dir, exec_policy = exec_policy_target},
+                {prefix = sbox_user_home_dir, exec_policy = exec_policy_target},
 
 		-- Target binaries:
 		{prefix = target_root, exec_policy = exec_policy_target},

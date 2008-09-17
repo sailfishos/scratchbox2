@@ -6,11 +6,6 @@ if (not tools) then
 	tools = "/"
 end
 
-sb2_session_dir = os.getenv("SBOX_SESSION_DIR")
-if (not sb2_session_dir) then
-	sb2_session_dir = "/tmp"
-end
-
 simple_chain = {
 	next_chain = nil,
 	binary = nil,
@@ -32,8 +27,8 @@ simple_chain = {
 		{prefix = "/home", use_orig_path = true},
 		{prefix = "/host_usr", map_to = target_root},
 
-		{prefix = sb2_session_dir, use_orig_path = true},
-		{prefix = "/tmp", map_to = sb2_session_dir},
+		{prefix = session_dir, use_orig_path = true},
+		{prefix = "/tmp", map_to = session_dir},
 
 		{prefix = "/dev", use_orig_path = true},
 		{prefix = "/proc", use_orig_path = true},
@@ -48,14 +43,14 @@ simple_chain = {
 
 qemu_chain = {
 	next_chain = nil,
-	binary = basename(os.getenv("SBOX_CPUTRANSPARENCY_METHOD")),
+	binary = basename(sbox_cputransparency_method),
 	rules = {
 		{prefix = "/lib", map_to = target_root},
 		{prefix = "/usr/lib", map_to = target_root},
 		{prefix = "/usr/local/lib", map_to = target_root},
 
-		{prefix = sb2_session_dir, use_orig_path = true},
-		{prefix = "/tmp", map_to = sb2_session_dir},
+		{prefix = session_dir, use_orig_path = true},
+		{prefix = "/tmp", map_to = session_dir},
 
 		{prefix = "/dev", use_orig_path = true},
 		{prefix = "/proc", use_orig_path = true},

@@ -205,13 +205,28 @@ function initialize_sb_logging()
 # (even comments are different in Lua and shell scripts..)
 function create_common_sb2_conf_file_for_session()
 {
+	sbox_user_home_dir=$HOME
+	if [ -z "$HOME" ]
+	then
+		sbox_user_home_dir="/home/unknown_user"
+	fi
+
 	cat <<END >>$SBOX_SESSION_DIR/sb2-session.conf
 comment_1=" Common configuration file for Lua and Shell scripts."
 comment_2=" Automatically generated file, do not edit."
 
+sbox_target="$SBOX_TARGET"
+
+sbox_dir="$SBOX_DIR"
+sbox_workdir="$SBOX_WORKDIR"
+sbox_user_home_dir="$sbox_user_home_dir"
+sbox_target_toolchain_dir="$SBOX_TARGET_TOOLCHAIN_DIR"
+
 sbox_mapmode="$SBOX_MAPMODE"
 sbox_target_root="$SBOX_TARGET_ROOT"
 sbox_tools_root="$SBOX_TOOLS_ROOT"
+
+sbox_cputransparency_method="$SBOX_CPUTRANSPARENCY_METHOD"
 END
 }
 

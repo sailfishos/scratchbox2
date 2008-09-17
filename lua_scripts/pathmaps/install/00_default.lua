@@ -10,12 +10,7 @@ else
 	tools_target = "/"
 end
 
-sb2_session_dir = os.getenv("SBOX_SESSION_DIR")
-if (not sb2_session_dir) then
-	sb2_session_dir = "/tmp"
-end
-
-interp_wrapper = os.getenv("SBOX_DIR") .. "/bin/sb2-interp-wrapper"
+interp_wrapper = sbox_dir .. "/bin/sb2-interp-wrapper"
 
 default_chain = {
 	next_chain = nil,
@@ -34,14 +29,14 @@ default_chain = {
 		{ prefix = "/proc", use_orig_path = true },
 		{ prefix = "/sys", use_orig_path = true },
 
-		{ prefix = sb2_session_dir, use_orig_path = true },
-		{ prefix = "/tmp", map_to = sb2_session_dir },
+		{ prefix = session_dir, use_orig_path = true },
+		{ prefix = "/tmp", map_to = session_dir },
 
-		{ prefix = os.getenv("HOME"), use_orig_path = true },
-		{ prefix = os.getenv("SBOX_WORKDIR"), use_orig_path = true },
-		{ prefix = os.getenv("SBOX_DIR") .. "/share/scratchbox2", use_orig_path = true, readonly = true },
-		{ prefix = os.getenv("SBOX_DIR") .. "/bin", use_orig_path = true, readonly = true },
-		{ prefix = os.getenv("SBOX_TARGET_TOOLCHAIN_DIR"), use_orig_path = true, readonly = true },
+		{ prefix = sbox_user_home_dir, use_orig_path = true },
+		{ prefix = sbox_workdir, use_orig_path = true },
+		{ prefix = sbox_dir .. "/share/scratchbox2", use_orig_path = true, readonly = true },
+		{ prefix = sbox_dir .. "/bin", use_orig_path = true, readonly = true },
+		{ prefix = sbox_target_toolchain_dir, use_orig_path = true, readonly = true },
 
 		{ prefix = "/", map_to = target_root },
 	}

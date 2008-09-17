@@ -225,7 +225,7 @@ int main(int argc, char *argv[])
 	*/
 
 	/* check that we are running inside 'sb2' environment */
-	if (!getenv("SBOX_LUA_SCRIPTS")) {
+	if (!getenv("SBOX_SESSION_DIR")) {
 		usage_exit(progname, "Not inside scratchboxed environment", 1);
 	}
 #endif

@@ -120,9 +120,12 @@ static void alloc_lua_key(void)
 /* used only if pthread lib is not available: */
 static	struct lua_instance *my_lua_instance = NULL;
 
+static char *sbox_session_dir = NULL;
+
 static void alloc_lua(void)
 {
 	struct lua_instance *tmp;
+	char *main_lua_script = NULL;
 
 	check_pthread_library();
 
@@ -150,40 +153,33 @@ static void alloc_lua(void)
 		my_lua_instance = tmp;
 	}
 	
-	tmp->script_dir = getenv("SBOX_LUA_SCRIPTS");
-
-	if (!tmp->script_dir) {
-		tmp->script_dir = "/scratchbox/lua_scripts";
-	} else {
-		tmp->script_dir = strdup(tmp->script_dir);
+	if (!sbox_session_dir) sbox_session_dir = getenv("SBOX_SESSION_DIR");
+	if (!sbox_session_dir || !*sbox_session_dir) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"alloc_lua: no SBOX_SESSION_DIR");
+		return; /* can't live without a session */
 	}
+	sbox_session_dir = strdup(sbox_session_dir);
+
+	asprintf(&main_lua_script, "%s/lua_scripts/main.lua", sbox_session_dir);
 		
-	tmp->main_lua_script = calloc(strlen(tmp->script_dir)
-			+ strlen("/main.lua") + 1, sizeof(char));
-
-	strcpy(tmp->main_lua_script, tmp->script_dir);
-	strcat(tmp->main_lua_script, "/main.lua");
-
-	SB_LOG(SB_LOGLEVEL_DEBUG, "script_dir: '%s'",
-			tmp->script_dir);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "Loading '%s'", main_lua_script);
 
 	tmp->lua = luaL_newstate();
 
 	disable_mapping(tmp);
 	luaL_openlibs(tmp->lua);
 	lua_bind_sb_functions(tmp->lua); /* register our sb_ functions */
-	switch(luaL_loadfile(tmp->lua, tmp->main_lua_script)) {
+	switch(luaL_loadfile(tmp->lua, main_lua_script)) {
 	case LUA_ERRFILE:
-		fprintf(stderr, "Error loading %s\n",
-				tmp->main_lua_script);
+		fprintf(stderr, "Error loading %s\n", main_lua_script);
 		exit(1);
 	case LUA_ERRSYNTAX:
-		fprintf(stderr, "Syntax error in %s\n",
-				tmp->main_lua_script);
+		fprintf(stderr, "Syntax error in %s\n", main_lua_script);
 		exit(1);
 	case LUA_ERRMEM:
 		fprintf(stderr, "Memory allocation error while "
-				"loading %s\n", tmp->main_lua_script);
+				"loading %s\n", main_lua_script);
 		exit(1);
 	default:
 		;
@@ -192,6 +188,8 @@ static void alloc_lua(void)
 	enable_mapping(tmp);
 	SB_LOG(SB_LOGLEVEL_DEBUG, "lua initialized.");
 	SB_LOG(SB_LOGLEVEL_NOISE, "gettop=%d", lua_gettop(tmp->lua));
+
+	free(main_lua_script);
 }
 
 enum lua_engine_states {

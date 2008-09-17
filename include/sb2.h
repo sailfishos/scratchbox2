@@ -17,8 +17,6 @@
 
 struct lua_instance {
 	lua_State *lua;
-	char *script_dir;
-	char *main_lua_script;
 	int mapping_disabled;
 };
 

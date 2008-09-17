@@ -10,7 +10,7 @@ argvmods = {}
 gcc_bindir = os.getenv("SBOX_CROSS_GCC_DIR")
 if (gcc_bindir ~= nil and gcc_bindir ~= "") then
 	-- this generates gcc related argv/envp manglings
-	do_file(lua_scripts .. "/argvenvp_gcc.lua")
+	do_file(session_dir .. "/lua_scripts/argvenvp_gcc.lua")
 end
 
 -- regular mangling rules go here

@@ -24,10 +24,6 @@ end
 
 session_dir = os.getenv("SBOX_SESSION_DIR")
 
--- SBOX_LUA_SCRIPTS environment variable controls where
--- we look for the scriptlets defining the path mappings
-lua_scripts = os.getenv("SBOX_LUA_SCRIPTS")
-
 compiler_root = os.getenv("SBOX_COMPILER_ROOT")
 if (not compiler_root) then
 	compiler_root = "/usr"
@@ -38,7 +34,7 @@ do_file(session_dir .. "/sb2-session.conf")
 do_file(session_dir .. "/exec_config.lua")
 
 -- Load mapping- and exec functions
-do_file(lua_scripts .. "/mapping.lua")
-do_file(lua_scripts .. "/argvenvp.lua")
+do_file(session_dir .. "/lua_scripts/mapping.lua")
+do_file(session_dir .. "/lua_scripts/argvenvp.lua")
 
 -- sb2 is ready for operation!

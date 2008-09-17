@@ -24,11 +24,6 @@ end
 
 session_dir = os.getenv("SBOX_SESSION_DIR")
 
-compiler_root = os.getenv("SBOX_COMPILER_ROOT")
-if (not compiler_root) then
-	compiler_root = "/usr"
-end
-
 -- Load session-specific settings
 do_file(session_dir .. "/sb2-session.conf")
 do_file(session_dir .. "/exec_config.lua")

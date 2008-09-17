@@ -423,8 +423,6 @@ fi
 
 HOST_GCC_INC=$(echo "#include <stdio.h>" | gcc -M -E - | perl -e 'while(<STDIN>) { $foo{$1} = 1 if m/\/usr([^[:space:]]*\/include)/;}; foreach my $k (keys %foo) {print " -isystem $ENV{SBOX_DIR}/share/scratchbox2/host_usr$k"};')
 
-SBOX_COMPILER_ROOT=$(readlink -f $SBOX_CROSS_GCC_DIR/..)
-
 mkdir -p $HOME/.scratchbox2/$TARGET/bin
 write_target_config
 

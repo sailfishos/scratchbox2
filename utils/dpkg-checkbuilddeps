@@ -11,7 +11,7 @@
 # -------------------
 # Idea behind operation is to first check target's package db,
 # then check if missing packages are tools that could be used
-# from the host (or SBOX_TOOLS_ROOT, if that has been set)
+# from the host (or sbox_tools_root, if that has been set)
 #
 # FIXME: This implementation is still incomplete, as this does not
 # check package versions while checking host/tools_root tools.
@@ -40,7 +40,7 @@ fi
 TARGET_DPKG_ADMINDIR_ALL_PKGS=$sbox_target_root/var/lib/dpkg
 
 # Host (or built env.) package db:
-HOST_DPKG_ADMINDIR=$SBOX_TOOLS_ROOT/var/lib/dpkg
+HOST_DPKG_ADMINDIR=$sbox_tools_root/var/lib/dpkg
 
 # A generated, temporary package db which only contains packages that
 # are usable thru the current mapping mode:

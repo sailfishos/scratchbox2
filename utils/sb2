@@ -181,6 +181,7 @@ function initialize_sb_logging()
 			# log initial environment if logging is enabled
 			env | sed -e 's/^/#/' >>$MAPPING_LOGFILE
 			echo "#SBOX_TARGET_ROOT=$SBOX_TARGET_ROOT" >>$MAPPING_LOGFILE
+			echo "#SBOX_TOOLS_ROOT=$SBOX_TOOLS_ROOT" >>$MAPPING_LOGFILE
 			echo "#SBOX_MAPMODE=$SBOX_MAPMODE" >>$MAPPING_LOGFILE
 
 			echo "Running scratchbox with these settings:"
@@ -210,6 +211,7 @@ comment_2=" Automatically generated file, do not edit."
 
 sbox_mapmode="$SBOX_MAPMODE"
 sbox_target_root="$SBOX_TARGET_ROOT"
+sbox_tools_root="$SBOX_TOOLS_ROOT"
 END
 }
 
@@ -442,6 +444,7 @@ fi
 # from sb2-init...
 unset SBOX_MAPMODE
 unset SBOX_TARGET_ROOT
+unset SBOX_TOOLS_ROOT
 # ------------
 
 if [ $# -gt 0 -o "$STDIN" = true ] ; then

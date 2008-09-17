@@ -24,6 +24,12 @@
 #include <sys/wait.h>
 #include <dlfcn.h>
 #include <unistd.h>
+#include <config.h>
+#include <config_hardcoded.h>
+#include <sys/socket.h>
+#include <sys/resource.h>
+
+#include "exported.h"
 
 #define PROGNAME	"sb2-interp-wrapper"
 
@@ -213,7 +219,7 @@ int main(int argc, char **argv)
 		char *tools;
 		char *interp;
 
-		tools = getenv("SBOX_TOOLS_ROOT");
+		tools = sb2__read_string_variable_from_lua__("sbox_tools_root");
 		if (tools && tools[0] != '\0' && strcmp(tools, "/") != 0) {
 			interp = malloc(strlen(tools) + strlen(argv[0]) + 1);
 			if (interp == NULL) {

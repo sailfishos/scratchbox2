@@ -2,11 +2,6 @@
 -- Copyright (C) 2006, 2007 Lauri Leukkunen
 -- Licensed under MIT license.
 
-tools_root = os.getenv("SBOX_TOOLS_ROOT")
-if (tools_root == "") then
-	tools_root = nil
-end
-
 
 compiler_root = os.getenv("SBOX_COMPILER_ROOT")
 if (not compiler_root) then
@@ -159,6 +154,11 @@ load_session_settings()
 target_root = sbox_target_root
 if (not target_root or target_root == "") then
 	target_root = "/"
+end
+
+tools_root = sbox_tools_root
+if (tools_root == "") then
+	tools_root = nil
 end
 
 -- make versions of tools_root and target_root safe

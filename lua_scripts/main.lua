@@ -2,19 +2,43 @@
 -- Copyright (C) 2006, 2007 Lauri Leukkunen
 -- Licensed under MIT license.
 
+-- This file is loaded by the libsb2.so preload library, from the 
+-- constructor to initialize sb2's "Lua-side"
+
+debug = os.getenv("SBOX_MAPPING_DEBUG")
+debug_messages_enabled = sb.debug_messages_enabled()
 
 function do_file(filename)
+	if (debug_messages_enabled) then
+		sb.log("debug", string.format("Loading '%s'", filename))
+	end
 	f, err = loadfile(filename)
 	if (f == nil) then
 		error("\nError while loading " .. filename .. ": \n" 
 			.. err .. "\n")
+		-- "error()" never returns
 	else
 		f() -- execute the loaded chunk
 	end
 end
 
+session_dir = os.getenv("SBOX_SESSION_DIR")
+
+-- SBOX_LUA_SCRIPTS environment variable controls where
+-- we look for the scriptlets defining the path mappings
 lua_scripts = os.getenv("SBOX_LUA_SCRIPTS")
 
+compiler_root = os.getenv("SBOX_COMPILER_ROOT")
+if (not compiler_root) then
+	compiler_root = "/usr"
+end
+
+-- Load session-specific settings
+do_file(session_dir .. "/sb2-session.conf")
+do_file(session_dir .. "/exec_config.lua")
+
+-- Load mapping- and exec functions
 do_file(lua_scripts .. "/mapping.lua")
 do_file(lua_scripts .. "/argvenvp.lua")
 
+-- sb2 is ready for operation!

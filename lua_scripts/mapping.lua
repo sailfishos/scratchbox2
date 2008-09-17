@@ -2,24 +2,6 @@
 -- Copyright (C) 2006, 2007 Lauri Leukkunen
 -- Licensed under MIT license.
 
-
-compiler_root = os.getenv("SBOX_COMPILER_ROOT")
-if (not compiler_root) then
-	compiler_root = "/usr"
-end
-
-debug = os.getenv("SBOX_MAPPING_DEBUG")
-
-debug_messages_enabled = sb.debug_messages_enabled()
-
--- SBOX_LUA_SCRIPTS environment variable controls where
--- we look for the scriptlets defining the path mappings
-
-rsdir = os.getenv("SBOX_LUA_SCRIPTS")
-if (rsdir == nil) then
-	rsdir = "/scratchbox/lua_scripts"
-end
-
 -- escape_string() prefixes the magic pattern matching
 -- characters ^$()%.[]*+-?) with '%'
 function escape_string(a)
@@ -78,31 +60,6 @@ function isprefix(a, b)
 	return string.sub(b, 1, string.len(a)) == a
 end
 
-function load_and_execute_lua_script(filename)
-	if (debug_messages_enabled) then
-		sb.log("debug", string.format("Loading '%s'", filename))
-	end
-	f, err = loadfile(filename)
-	if (f == nil) then
-		error("\nError while loading " .. filename .. ": \n" ..
-			 err .. "\n")
-		-- "error()" never returns
-	end
-
-	f() -- execute the loaded chunk
-	if (debug_messages_enabled) then
-		sb.log("debug", string.format("Loaded '%s'", filename))
-	end
-end
-
-session_dir = os.getenv("SBOX_SESSION_DIR")
-
--- Load session-specific settings
-function load_session_settings()
-	load_and_execute_lua_script(session_dir .. "/sb2-session.conf")
-	load_and_execute_lua_script(session_dir .. "/exec_config.lua")
-end
-
 -- Load mode-specific rules.
 -- A mode file should define two variables:
 --  1. export_chains (array) contains mapping rule chains; this array
@@ -115,7 +72,7 @@ function load_and_check_rules()
 	export_chains = {}
 	exec_policy_chains = {}
 
-	load_and_execute_lua_script(session_dir .. "/rules.lua")
+	do_file(session_dir .. "/rules.lua")
 
 	-- export_chains variable contains now the mapping rule chains
 	-- from the chunk
@@ -148,8 +105,6 @@ function load_and_check_rules()
 			exec_policy_chains[i])
 	end
 end
-
-load_session_settings()
 
 target_root = sbox_target_root
 if (not target_root or target_root == "") then

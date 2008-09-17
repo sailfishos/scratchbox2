@@ -7,8 +7,7 @@
 argvmods = {}
 
 -- only map gcc & friends if a cross compiler has been defined
-gcc_bindir = os.getenv("SBOX_CROSS_GCC_DIR")
-if (gcc_bindir ~= nil and gcc_bindir ~= "") then
+if (sbox_cross_gcc_dir ~= nil and sbox_cross_gcc_dir ~= "") then
 	-- this generates gcc related argv/envp manglings
 	do_file(session_dir .. "/lua_scripts/argvenvp_gcc.lua")
 end

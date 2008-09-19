@@ -1,10 +1,24 @@
 #!/bin/sh -e
 
+function error_not_inside_sb2()
+{
+	echo "SB2: This script can only be used from inside"
+	echo "the scratchbox 2'ed environment"
+	exit 1
+}
+
+if [ -z "$SBOX_SESSION_DIR" ]
+then
+	error_not_inside_sb2
+fi
+
+. $SBOX_SESSION_DIR/sb2-session.conf
+
 . ~/.scratchbox2/config
 
-[ ! -z "$SBOX_TARGET" ] || SBOX_TARGET=$DEFAULT_TARGET
+[ ! -z "$sbox_target" ] || sbox_target=$DEFAULT_TARGET
 
-. ~/.scratchbox2/$SBOX_TARGET/sb2.config
+. ~/.scratchbox2/$sbox_target/sb2.config
 
 # ------------
 # FIXME: / LTA 2008-09-18:

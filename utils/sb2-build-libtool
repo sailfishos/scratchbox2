@@ -2,14 +2,25 @@
 # sb2-build-libtool - Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 # Licensed under GPL version 2
 
+prog="$0"
+progbase=`basename $0`
+
 # test that we're inside sb2
-if [ -z "$SBOX_TARGET" ]; then
+function error_not_inside_sb2()
+{
 	echo "Please run this script inside sb2, like this:
 $ sb2 $0"
 	exit 1
+}
+
+if [ -z "$SBOX_SESSION_DIR" ]
+then
+	error_not_inside_sb2
 fi
 
-TARGET="$SBOX_TARGET"
+. $SBOX_SESSION_DIR/sb2-session.conf
+
+TARGET="$sbox_target"
 
 set -e
 

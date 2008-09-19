@@ -1,7 +1,7 @@
 #!/bin/sh
 
-export SBOX_DIR=/scratchbox
-export SBOX_LOGIN=$SBOX_DIR/login
+#export SBOX_DIR=/scratchbox
+#export SBOX_LOGIN=$SBOX_DIR/login
 
 tdir=`mktemp -d test.XXXXXX` || exit 1
 status=0

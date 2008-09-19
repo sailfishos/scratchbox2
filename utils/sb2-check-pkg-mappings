@@ -93,9 +93,9 @@ num_failed=0
 
 # Read the mode-specific path ignore list.
 SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST=""
-if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$sbox_mapmode ]
+if [ -f $sbox_dir/share/scratchbox2/modeconf/sb2rc.$sbox_mapmode ]
 then
-	. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$sbox_mapmode "sb2-check-pkg-mappings"
+	. $sbox_dir/share/scratchbox2/modeconf/sb2rc.$sbox_mapmode "sb2-check-pkg-mappings"
 fi
 
 # for all installed packages..
@@ -145,7 +145,7 @@ echo "Checked $pkgnum packages: Ok=$num_ok, unusable=$num_failed"
 
 if [ $check_all_pkgs = "yes" ]
 then
-	SB2_TEMP_DPKG_ADMIN_DIR=$HOME/.scratchbox2/$SBOX_TARGET.tmp-pkg-db.$sbox_mapmode
+	SB2_TEMP_DPKG_ADMIN_DIR=$HOME/.scratchbox2/$sbox_target.tmp-pkg-db.$sbox_mapmode
 	if [ ! -d $SB2_TEMP_DPKG_ADMIN_DIR ]
 	then
 		mkdir $SB2_TEMP_DPKG_ADMIN_DIR

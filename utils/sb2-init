@@ -203,7 +203,7 @@ you can re-run this script."
 
 if [ -z "$SBOX_DIR" ]
 then
-	export SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
+	SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
 fi
 
 # SBOX_INIT_* variables are used to record who initialized, and when and 
@@ -381,9 +381,8 @@ if [ -n "$TOOLS_ROOT" ]; then
 		# this is a scratchbox 1.x directory, tread carefully
 		# sb1 is not FHS, *sigh*
 		TOOLS_ROOT=$TOOLS_ROOT/tools
-	else
-		# assume standard FHS system
 	fi
+	# else assume standard FHS system
 fi
 
 # Use "specs" file for gcc if it exists, otherwise add -I/usr/include to params
@@ -404,7 +403,7 @@ if [ $? = 0 ] ; then
 	SBOX_EXTRA_CROSS_COMPILER_ARGS="$SBOX_EXTRA_CROSS_COMPILER_ARGS -Wno-poison-system-directories"
 fi
 
-HOST_GCC_INC=$(echo "#include <stdio.h>" | gcc -M -E - | perl -e 'while(<STDIN>) { $foo{$1} = 1 if m/\/usr([^[:space:]]*\/include)/;}; foreach my $k (keys %foo) {print " -isystem $ENV{SBOX_DIR}/share/scratchbox2/host_usr$k"};')
+HOST_GCC_INC=$(echo "#include <stdio.h>" | gcc -M -E - | SBOX_DIR=$SBOX_DIR perl -e 'while(<STDIN>) { $foo{$1} = 1 if m/\/usr([^[:space:]]*\/include)/;}; foreach my $k (keys %foo) {print " -isystem $ENV{SBOX_DIR}/share/scratchbox2/host_usr$k"};')
 
 mkdir -p $HOME/.scratchbox2/$TARGET/bin
 write_target_config

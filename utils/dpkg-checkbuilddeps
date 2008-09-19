@@ -44,11 +44,11 @@ HOST_DPKG_ADMINDIR=$sbox_tools_root/var/lib/dpkg
 
 # A generated, temporary package db which only contains packages that
 # are usable thru the current mapping mode:
-SB2_TEMP_DPKG_ADMIN_DIR=$HOME/.scratchbox2/$SBOX_TARGET.tmp-pkg-db.$sbox_mapmode
+SB2_TEMP_DPKG_ADMIN_DIR=$HOME/.scratchbox2/$sbox_target.tmp-pkg-db.$sbox_mapmode
 TARGET_DPKG_ADMINDIR_USABLE_PKGS=$SB2_TEMP_DPKG_ADMIN_DIR
 
-cfgfile_host_accepted_pkgs=$SBOX_DIR/share/scratchbox2/modeconf/host-accepted-packages.$sbox_mapmode
-cfgfile_host_ignored_pkgs=$SBOX_DIR/share/scratchbox2/modeconf/host-ignored-packages.$sbox_mapmode
+cfgfile_host_accepted_pkgs=$sbox_dir/share/scratchbox2/modeconf/host-accepted-packages.$sbox_mapmode
+cfgfile_host_ignored_pkgs=$sbox_dir/share/scratchbox2/modeconf/host-ignored-packages.$sbox_mapmode
 
 # Check if a named package exists of the host.
 # Returns result in three variables:
@@ -262,7 +262,7 @@ then
 	echo
 	sb2-check-pkg-mappings -a
 elif [ $TARGET_DPKG_ADMINDIR_USABLE_PKGS/status -ot \
-       $SBOX_DIR/share/scratchbox2/lua_scripts/pathmaps/$sbox_mapmode/00_default.lua ]
+       $sbox_dir/share/scratchbox2/lua_scripts/pathmaps/$sbox_mapmode/00_default.lua ]
 then
 	echo "SB2's mapping rules have been updated =>"
 	echo "$TARGET_DPKG_ADMINDIR_USABLE_PKGS/status might be out of date."

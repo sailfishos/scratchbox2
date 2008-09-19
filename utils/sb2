@@ -397,8 +397,8 @@ if [ $(basename $my_path) != $(basename $0) ]; then
 	fi
 fi
 
-export SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
-export SBOX_WORKDIR=$(readlink -f $PWD)
+SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
+SBOX_WORKDIR=$(readlink -f $PWD)
 
 while getopts vdht:em:s:L:Q:pM: foo
 do
@@ -410,9 +410,9 @@ do
 	    export SBOX_MAPPING_LOGLEVEL=$OPTARG ;;
 	(Q) export SBOX_EMULATE_SB1_BUGS=$OPTARG ;;
 	(h) usage ;;
-	(t) export SBOX_TARGET=$OPTARG ;;
-	(e) export SBOX_MAPMODE=emulate ;;
-	(m) export SBOX_MAPMODE=$OPTARG ;;
+	(t) SBOX_TARGET=$OPTARG ;;
+	(e) SBOX_MAPMODE=emulate ;;
+	(m) SBOX_MAPMODE=$OPTARG ;;
 	(M) SBOX_RULEFILES="$SBOX_RULEFILES $OPTARG" ;;
 	(s) SBOX_LUA_SCRIPTS=$OPTARG;;
 	(p) SBOX_SESSION_NO_CLEANUP="y";;
@@ -480,8 +480,6 @@ unset SBOX_TOOLS_ROOT
 #
 # FIXME: Currently this list contains many variables that should not 
 # be in the environment. Cleanup continues...
-
-export SBOX_TARGET
 
 export SBOX_CPU
 export SBOX_CPUTRANSPARENCY_METHOD

@@ -222,6 +222,7 @@ sbox_mapmode="$SBOX_MAPMODE"
 sbox_target_root="$SBOX_TARGET_ROOT"
 sbox_tools_root="$SBOX_TOOLS_ROOT"
 
+sbox_cpu="$SBOX_CPU"
 sbox_cputransparency_method="$SBOX_CPUTRANSPARENCY_METHOD"
 
 sbox_cross_gcc_prefix_list="$SBOX_CROSS_GCC_PREFIX_LIST"
@@ -241,6 +242,7 @@ sbox_extra_host_compiler_args="$SBOX_EXTRA_HOST_COMPILER_ARGS"
 sbox_host_gcc_subst_prefix="$SBOX_HOST_GCC_SUBST_PREFIX"
 sbox_block_host_compiler_args="$SBOX_BLOCK_HOST_COMPILER_ARGS"
 
+sbox_uname_machine="$SBOX_UNAME_MACHINE"
 END
 }
 
@@ -480,10 +482,6 @@ unset SBOX_TOOLS_ROOT
 #
 # FIXME: Currently this list contains many variables that should not 
 # be in the environment. Cleanup continues...
-
-export SBOX_CPU
-export SBOX_CPUTRANSPARENCY_METHOD
-export SBOX_UNAME_MACHINE
 
 export DEB_BUILD_ARCH
 export DEB_BUILD_ARCH_CPU

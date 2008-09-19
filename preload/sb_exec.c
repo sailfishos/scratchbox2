@@ -247,14 +247,20 @@ static int run_sbrsh(const char *sbrsh_bin, char *const *sbrsh_args,
 static int run_cputransparency(const char *file, const char *unmapped_file,
 			char *const *argv, char *const *envp)
 {
-	char *cputransp_method, *cputransp_bin, *target_root;
+	static char *cputransp_method = NULL;
+	static char *target_root = NULL;
+	char *cputransp_bin;
 	char **cputransp_tokens, **cputransp_args, **p;
 	char *basec, *bname;
 	int token_count, i;
 
-	cputransp_method = getenv("SBOX_CPUTRANSPARENCY_METHOD");
 	if (!cputransp_method) {
-		fprintf(stderr, "SBOX_CPUTRANSPARENCY_METHOD not set, "
+		cputransp_method = sb2__read_string_variable_from_lua__(
+			"sbox_cputransparency_method");
+	}
+
+	if (!cputransp_method) {
+		fprintf(stderr, "sbox_cputransparency_method not set, "
 				"unable to execute the target binary\n");
 		return -1;
 	}
@@ -263,7 +269,7 @@ static int run_cputransparency(const char *file, const char *unmapped_file,
 	token_count = elem_count(cputransp_tokens);
 	if (token_count < 1) {
 		free(cputransp_tokens);
-		fprintf(stderr, "Invalid SBOX_CPUTRANSPARENCY_METHOD set\n");
+		fprintf(stderr, "Invalid sbox_cputransparency_method set\n");
 		return -1;
 	}
 
@@ -276,7 +282,10 @@ static int run_cputransparency(const char *file, const char *unmapped_file,
 	
 	cputransp_bin = strdup(cputransp_tokens[0]);
 
-	target_root = sb2__read_string_variable_from_lua__("sbox_target_root");
+	if (!target_root) {
+		target_root = sb2__read_string_variable_from_lua__(
+			"sbox_target_root");
+	}
 	if (!target_root || !*target_root) {
 		fprintf(stderr, "sbox_target_root not set, "
 				"unable to execute the target binary\n");
@@ -473,7 +482,7 @@ static enum binary_type inspect_binary(const char *filename)
 	enum binary_type retval;
 	int fd, phnum, j;
 	struct stat status;
-	char *region, *target_cpu;
+	char *region;
 	unsigned int ph_base, ph_frag, ei_data;
 	uint16_t e_machine;
 #ifdef __x86_64__
@@ -591,9 +600,15 @@ static enum binary_type inspect_binary(const char *filename)
 			retval = BIN_HOST_DYNAMIC;
 		}
 	} else {
-		target_cpu = getenv("SBOX_CPU");
-		if (!target_cpu)
-			target_cpu = "arm";
+		static char *target_cpu = NULL;
+
+		if (!target_cpu) {
+			target_cpu = sb2__read_string_variable_from_lua__(
+				"sbox_cpu");
+
+			if (!target_cpu)
+				target_cpu = "arm";
+		}
 
 		ei_data = ELFDATANONE;
 		e_machine = EM_NONE;

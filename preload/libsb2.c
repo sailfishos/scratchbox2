@@ -657,19 +657,23 @@ int uname_gate(
 	const char *realfnname,
 	struct utsname *buf)
 {
+	static char *uname_machine = NULL;
+
 	(void)realfnname;	/* not used here */
 
 	if ((*real_uname_ptr)(buf) < 0) {
 		return -1;
 	}
-	/* this may be called before environ is properly setup */
-	if (environ) {
-		char *uname_machine = getenv("SBOX_UNAME_MACHINE");
 
-		if(uname_machine)
-			snprintf(buf->machine, sizeof(buf->machine),
-					"%s", uname_machine);
+	if (!uname_machine || !*uname_machine) {
+		uname_machine = sb2__read_string_variable_from_lua__(
+			"sbox_uname_machine");
 	}
+
+	if (uname_machine && *uname_machine)
+		snprintf(buf->machine, sizeof(buf->machine),
+				"%s", uname_machine);
+	
 	return 0;
 }
 

@@ -120,7 +120,13 @@ static void alloc_lua_key(void)
 /* used only if pthread lib is not available: */
 static	struct lua_instance *my_lua_instance = NULL;
 
-static char *sbox_session_dir = NULL;
+/* used to store session directory & ld setting: 
+ * set up as early as possible, so that if the application clears our 
+ * environment we'll still know the original values.
+*/
+char *sbox_session_dir = NULL;
+char *sbox_orig_ld_preload = NULL;
+char *sbox_orig_ld_library_path = NULL;
 
 static void alloc_lua(void)
 {
@@ -153,7 +159,13 @@ static void alloc_lua(void)
 		my_lua_instance = tmp;
 	}
 	
-	if (!sbox_session_dir) sbox_session_dir = getenv("SBOX_SESSION_DIR");
+	if (!sbox_session_dir)
+		sbox_session_dir = getenv("SBOX_SESSION_DIR");
+	if (!sbox_orig_ld_preload)
+		sbox_orig_ld_preload = getenv("LD_PRELOAD");
+	if (!sbox_orig_ld_library_path)
+		sbox_orig_ld_library_path = getenv("LD_LIBRARY_PATH");
+
 	if (!sbox_session_dir || !*sbox_session_dir) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"alloc_lua: no SBOX_SESSION_DIR");

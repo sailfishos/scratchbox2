@@ -753,37 +753,58 @@ static char ***prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 	int	envc = 0;
 	char	***my_envp;
 	int	has_ld_preload = 0;
+	int	has_ld_library_path = 0;
 	int	i;
-	char	*tmp;
+	char	*new_binaryname_var;
+	int	has_sbox_session_dir = 0;
+	const int sbox_session_dir_varname_len = strlen("SBOX_SESSION_DIR");
 
+	/* FIXME: This routine checks that we have LD_PRELOAD and
+	 * LD_LIBRARY_PATH, but doesn't check contents of those, so it is
+	 * still possible to get out from sb2 by accident if someone modifies
+	 * those variables and leaves sb2's settings out. But the most common
+	 * problem which was caused by completely missing variables has
+	 * been solved now.
+	 * 
+	 * SBOX_SESSION_DIR is now preserved properly (it is practically
+	 * a read-only variable now)
+	*/
+	
 	/* if we have LD_PRELOAD env var set, make sure the new my_envp
 	 * has it as well
 	 */
 
 	/* count the environment variables and arguments, also check
-	 * for LD_PRELOAD
+	 * for LD_PRELOAD, LD_LIBRARY_PATH and SBOX_SESSION_DIR
 	 */
-	for (p=(char **)envp; *p; p++, envc++) {
+	for (p=(char **)envp, envc=0; *p; p++, envc++) {
 		if (strncmp("LD_PRELOAD=", *p, strlen("LD_PRELOAD=")) == 0)
 			has_ld_preload = 1;
+		if (strncmp("LD_LIBRARY_PATH=", *p, strlen("LD_LIBRARY_PATH=")) == 0)
+			has_ld_library_path = 1;
+		if (strncmp("SBOX_SESSION_DIR=", *p,
+		     sbox_session_dir_varname_len+1) == 0) {
+			has_sbox_session_dir = 1;
+			if (strcmp(*p+sbox_session_dir_varname_len+1,
+				sbox_session_dir)) {
+					SB_LOG(SB_LOGLEVEL_WARNING, 
+						"Detected attempt to set %s,"
+						" restored to %s",
+						*p, sbox_session_dir);
+			}
+		}
+	}
+	if (!has_sbox_session_dir) {
+		SB_LOG(SB_LOGLEVEL_WARNING, 
+			"Detected attempt to clear SBOX_SESSION_DIR, "
+				"restored to %s", sbox_session_dir);
 	}
 
 	my_envp = malloc(sizeof(char **));
 
-	if (has_ld_preload || !getenv("LD_PRELOAD")) {
-		*my_envp = (char **)calloc(envc + 2, sizeof(char *));
-	} else {
-		*my_envp = (char **)calloc(envc + 3, sizeof(char *));
-	}
-
-	/* __SB2_BINARYNAME is used to communicate the binary name
-	 * to the new process so that it's available even before
-	 * its main function is called
-	 */
-	i = strlen(binaryname) + strlen("__SB2_BINARYNAME=") + 1;
-	tmp = malloc(i * sizeof(char));
-	strcpy(tmp, "__SB2_BINARYNAME=");
-	strcat(tmp, binaryname);
+	/* allocate new environment. Add 5 extra elements (all may not be
+	 * needed always) */
+	*my_envp = (char **)calloc(envc + 5, sizeof(char *));
 
 	for (i = 0, p=(char **)envp; *p; p++) {
 		if (strncmp(*p, "__SB2_BINARYNAME=",
@@ -791,23 +812,49 @@ static char ***prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 			/* this is current process' name, skip it */
 			continue;
 		}
+		if (strncmp(*p, "SBOX_SESSION_DIR=",
+				sbox_session_dir_varname_len+1) == 0) {
+			/* this is user-provided SBOX_SESSION_DIR, skip it. */
+			continue;
+		}
 
 		(*my_envp)[i++] = strdup(*p);
 	}
-	(*my_envp)[i++] = tmp; /* add the new process' name */
+
+	/* add our session directory */
+	asprintf(&((*my_envp)[i]), "SBOX_SESSION_DIR=%s", sbox_session_dir);
+	i++;
+
+	/* __SB2_BINARYNAME is used to communicate the binary name
+	 * to the new process so that it's available even before
+	 * its main function is called
+	 */
+	asprintf(&new_binaryname_var, "__SB2_BINARYNAME=%s", binaryname);
+	(*my_envp)[i++] = new_binaryname_var; /* add the new process' name */
 
 	/* If our environ has LD_PRELOAD, but the given envp doesn't,
-	 * add it.
+	 * add the value that was active when this process was started.
 	 */
-	if (!has_ld_preload && getenv("LD_PRELOAD")) {
-		tmp = malloc(strlen("LD_PRELOAD=")
-				+ strlen(getenv("LD_PRELOAD")) + 1);
-		if (!tmp)
+	if (!has_ld_preload && sbox_orig_ld_preload) {
+		char *new_ld_preload_var;
+
+		asprintf(&new_ld_preload_var, "LD_PRELOAD=%s",
+			sbox_orig_ld_preload);
+		if (!new_ld_preload_var)
 			exit(1);
-		strcpy(tmp, "LD_PRELOAD=");
-		strcat(tmp, getenv("LD_PRELOAD"));
-		(*my_envp)[i++] = strdup(tmp);
-		free(tmp);
+		(*my_envp)[i++] = new_ld_preload_var;
+	}
+	/* If our environ has LD_LIBRARY_PATH, but the given envp doesn't,
+	 * add the value that was active when this process was started.
+	 */
+	if (!has_ld_library_path && sbox_orig_ld_library_path) {
+		char *new_ld_library_path;
+
+		asprintf(&new_ld_library_path, "LD_LIBRARY_PATH=%s",
+			sbox_orig_ld_library_path);
+		if (!new_ld_library_path)
+			exit(1);
+		(*my_envp)[i++] = new_ld_library_path;
 	}
 	(*my_envp)[i] = NULL;
 

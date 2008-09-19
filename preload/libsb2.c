@@ -665,15 +665,16 @@ int uname_gate(
 		return -1;
 	}
 
-	if (!uname_machine || !*uname_machine) {
-		uname_machine = sb2__read_string_variable_from_lua__(
-			"sbox_uname_machine");
+	if (sbox_session_dir) {
+		/* sb2 has been initialized. */
+		if (!uname_machine || !*uname_machine) {
+			uname_machine = sb2__read_string_variable_from_lua__(
+				"sbox_uname_machine");
+		}
+		if (uname_machine && *uname_machine)
+			snprintf(buf->machine, sizeof(buf->machine),
+					"%s", uname_machine);
 	}
-
-	if (uname_machine && *uname_machine)
-		snprintf(buf->machine, sizeof(buf->machine),
-				"%s", uname_machine);
-	
 	return 0;
 }
 

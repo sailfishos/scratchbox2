@@ -63,4 +63,8 @@ extern int sb_loglevel__; /* do not access directly */
 
 #define LIBSB2 "libsb2.so.1"
 
+extern char *sbox_session_dir;
+extern char *sbox_orig_ld_preload;
+extern char *sbox_orig_ld_library_path;
+
 #endif

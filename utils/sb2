@@ -186,8 +186,6 @@ function initialize_sb_logging()
 			echo "SBOX_LIBSB2 = $SBOX_LIBSB2"
 			echo "SBOX_LUA_SCRIPTS = $SBOX_LUA_SCRIPTS"
 			echo "SBOX_TOOLS_ROOT = $SBOX_TOOLS_ROOT"
-			echo "SBOX_REDIR_LD_SO = $SBOX_REDIR_LD_SO"
-			echo "SBOX_REDIR_LD_LIBRARY_PATH = $SBOX_REDIR_LD_LIBRARY_PATH"
 			echo "SBOX_TARGET_ROOT = $SBOX_TARGET_ROOT"
 			echo "SBOX_MAPPING_LOGFILE = $SBOX_MAPPING_LOGFILE"
 			echo "SBOX_MAPPING_LOGLEVEL = $SBOX_MAPPING_LOGLEVEL"
@@ -486,21 +484,8 @@ unset SBOX_TOOLS_ROOT
 export SBOX_TARGET
 
 export SBOX_CPU
-export SBOX_GCC_TARGET
 export SBOX_CPUTRANSPARENCY_METHOD
 export SBOX_UNAME_MACHINE
-
-export SBOX_DEFAULT_GCC_PREFIX
-
-export SBOX_CROSS_GCC_NAME
-export SBOX_CROSS_GCC_PREFIX_LIST
-export SBOX_CROSS_GCC_SUBST_PREFIX
-export SBOX_CROSS_GCC_SPECS_FILE
-export SBOX_CROSS_GCC_DIR
-export SBOX_CROSS_GCC_LD_ARGS
-export SBOX_EXTRA_CROSS_COMPILER_ARGS
-export SBOX_EXTRA_CROSS_COMPILER_STDINC
-export SBOX_EXTRA_CROSS_LD_ARGS
 
 export DEB_BUILD_ARCH
 export DEB_BUILD_ARCH_CPU
@@ -517,24 +502,10 @@ export DEB_HOST_GNU_CPU
 export DEB_HOST_GNU_TYPE
 export DEB_HOST_GNU_SYSTEM
 
-export SBOX_HOST_GCC_NAME
-export SBOX_HOST_GCC_PREFIX_LIST
-export SBOX_HOST_GCC_SUBST_PREFIX
-export SBOX_HOST_GCC_SPECS_FILE
-export SBOX_HOST_GCC_DIR
-export SBOX_HOST_GCC_LD_ARGS
-export SBOX_EXTRA_HOST_COMPILER_ARGS
-
 export SBRSH_CONFIG
-
-export SBOX_REDIR_LD_SO
-export SBOX_REDIR_LD_LIBRARY_PATH
 
 export LD_LIBRARY_PATH
 
-export SBOX_LIBSB2
-export SBOX_TARGET_COMPILER
-export SBOX_TARGET_TOOLCHAIN_DIR
 # ------------
 
 if [ $# -gt 0 -o "$STDIN" = true ] ; then
@@ -542,11 +513,11 @@ if [ $# -gt 0 -o "$STDIN" = true ] ; then
 	shift 1
 	args="$@"
 	initialize_sb_logging $(echo $binary | sed 's/\//_/g') "$args"
-	exec sb2-monitor -x $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
+	exec sb2-monitor -L $SBOX_LIBSB2 -x $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
 		-- $SHELL -c "$binary $args"
 else
 	initialize_sb_logging sb2
-	exec sb2-monitor -x $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
+	exec sb2-monitor -L $SBOX_LIBSB2 -x $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
 		-- $SHELL --noprofile --norc
 fi
 

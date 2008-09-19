@@ -230,12 +230,13 @@ int main(int argc, char *argv[])
 	char	*exit_reason;
 	char	exit_status[100];
 	int	new_stdin;
-	char	*sbox_libsb2;
+	char	*sbox_libsb2 = NULL;
 
 	progname = argv[0];
 	
-	while ((opt = getopt(argc, argv, "x:dh")) != -1) {
+	while ((opt = getopt(argc, argv, "L:x:dh")) != -1) {
 		switch (opt) {
+		case 'L': sbox_libsb2 = optarg; break;
 		case 'h': usage_exit(NULL, 0); break;
 		case 'd': debug = 1; break;
 		case 'x': command_to_exec_at_end = optarg; break;
@@ -277,7 +278,6 @@ int main(int argc, char *argv[])
 		 * the mapping mode & rules, it might not be possible
 		 * to execute 'sb2-monitor' in that environment)
 		*/
-		sbox_libsb2 = getenv("SBOX_LIBSB2");
 		if (sbox_libsb2) {
 			char	*old_ld_preload = getenv("LD_PRELOAD");
 			char	*new_ld_preload = NULL;
@@ -307,7 +307,7 @@ int main(int argc, char *argv[])
 			}
 		} else {
 			DEBUG_MSG("child: WARNING: "
-				"no SBOX_LIBSB2 => LD_PRELOAD not set\n");
+				"no '-L lib' option => LD_PRELOAD not set\n");
 		}
 
 		execvp(argv[optind], argv+optind);

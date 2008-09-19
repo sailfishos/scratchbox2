@@ -110,7 +110,6 @@ function sboxify_environment()
 		echo "Invalid target specified, aborting."
 		exit 2
 	fi
-	export SBOX_TARGET
 
 	LD_LIBRARY_PATH=$SBOX_DIR/lib/libsb2:$SBOX_DIR/lib64/libsb2:$SBOX_DIR/lib32/libsb2:/emul/lib64/libsb2:/emul/lib32/libsb2
 	SBOX_LIBSB2="libsb2.so.1"
@@ -123,7 +122,7 @@ function sboxify_environment()
 		. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$SBOX_MAPMODE starting
 	fi
 
-	if [ "$SBOX_CONFIG_VERSION" != "7" ]; then
+	if [ "$SBOX_CONFIG_VERSION" != "8" ]; then
 		echo "Please run sb2-init for your target:"
 		echo "name: $SBOX_TARGET"
 		echo "dir:  $SBOX_TARGET_ROOT"
@@ -144,8 +143,7 @@ function sboxify_environment()
 
 	write_rules_to_session_dir $SBOX_RULEFILES
 
-	export LD_LIBRARY_PATH SBOX_LIBSB2 SBOX_TARGET_COMPILER
-	export SBOX_TARGET_TOOLCHAIN_DIR=$(dirname "$SBOX_CROSS_GCC_DIR")
+	SBOX_TARGET_TOOLCHAIN_DIR=$(dirname "$SBOX_CROSS_GCC_DIR")
 
 	if [ -z "$SBOX_MODE_PATH" ]
 	then
@@ -472,14 +470,71 @@ else
 	SHELL=/bin/bash
 fi
 
-# ------------ Temporary cleanup:
+# ------------ cleanup:
 # Unset variables which used to be passed in environment,
 # but have been moved to sb2-session.conf.
-# Once all variables have been moved, "export" statements can be removed
-# from sb2-init...
 unset SBOX_MAPMODE
 unset SBOX_TARGET_ROOT
 unset SBOX_TOOLS_ROOT
+# ------------
+# Export variables that need to be available in environment;
+# don't export anything unnecessary!
+#
+# FIXME: Currently this list contains many variables that should not 
+# be in the environment. Cleanup continues...
+
+export SBOX_TARGET
+
+export SBOX_CPU
+export SBOX_GCC_TARGET
+export SBOX_CPUTRANSPARENCY_METHOD
+export SBOX_UNAME_MACHINE
+
+export SBOX_DEFAULT_GCC_PREFIX
+
+export SBOX_CROSS_GCC_NAME
+export SBOX_CROSS_GCC_PREFIX_LIST
+export SBOX_CROSS_GCC_SUBST_PREFIX
+export SBOX_CROSS_GCC_SPECS_FILE
+export SBOX_CROSS_GCC_DIR
+export SBOX_CROSS_GCC_LD_ARGS
+export SBOX_EXTRA_CROSS_COMPILER_ARGS
+export SBOX_EXTRA_CROSS_COMPILER_STDINC
+export SBOX_EXTRA_CROSS_LD_ARGS
+
+export DEB_BUILD_ARCH
+export DEB_BUILD_ARCH_CPU
+export DEB_BUILD_ARCH_ABI
+export DEB_BUILD_GNU_CPU
+export DEB_BUILD_GNU_TYPE
+export DEB_BUILD_GNU_SYSTEM
+
+export DEB_HOST_ARCH
+export DEB_HOST_ARCH_OS
+export DEB_HOST_ARCH_CPU
+
+export DEB_HOST_GNU_CPU
+export DEB_HOST_GNU_TYPE
+export DEB_HOST_GNU_SYSTEM
+
+export SBOX_HOST_GCC_NAME
+export SBOX_HOST_GCC_PREFIX_LIST
+export SBOX_HOST_GCC_SUBST_PREFIX
+export SBOX_HOST_GCC_SPECS_FILE
+export SBOX_HOST_GCC_DIR
+export SBOX_HOST_GCC_LD_ARGS
+export SBOX_EXTRA_HOST_COMPILER_ARGS
+
+export SBRSH_CONFIG
+
+export SBOX_REDIR_LD_SO
+export SBOX_REDIR_LD_LIBRARY_PATH
+
+export LD_LIBRARY_PATH
+
+export SBOX_LIBSB2
+export SBOX_TARGET_COMPILER
+export SBOX_TARGET_TOOLCHAIN_DIR
 # ------------
 
 if [ $# -gt 0 -o "$STDIN" = true ] ; then

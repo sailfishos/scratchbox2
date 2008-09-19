@@ -6,6 +6,62 @@
 
 . ~/.scratchbox2/$SBOX_TARGET/sb2.config
 
+# ------------
+# FIXME: / LTA 2008-09-18:
+# Export variables from sb2.config; These used to be exported from sb2.config,
+# but the export statements were moved out from the config file.
+# I'm not sure how many of these are really needed by this script.
+
+export SBOX_CONFIG_VERSION
+
+export SBOX_CPU
+export SBOX_GCC_TARGET
+export SBOX_CPUTRANSPARENCY_METHOD
+export SBOX_UNAME_MACHINE
+
+export SBOX_DEFAULT_GCC_PREFIX
+
+export SBOX_CROSS_GCC_NAME
+export SBOX_CROSS_GCC_PREFIX_LIST
+export SBOX_CROSS_GCC_SUBST_PREFIX
+export SBOX_CROSS_GCC_SPECS_FILE
+export SBOX_CROSS_GCC_DIR
+export SBOX_CROSS_GCC_LD_ARGS
+export SBOX_EXTRA_CROSS_COMPILER_ARGS
+export SBOX_EXTRA_CROSS_COMPILER_STDINC
+export SBOX_EXTRA_CROSS_LD_ARGS
+
+export DEB_BUILD_ARCH
+export DEB_BUILD_ARCH_CPU
+export DEB_BUILD_ARCH_ABI
+export DEB_BUILD_GNU_CPU
+export DEB_BUILD_GNU_TYPE
+export DEB_BUILD_GNU_SYSTEM
+
+export DEB_HOST_ARCH
+export DEB_HOST_ARCH_OS
+export DEB_HOST_ARCH_CPU
+
+export DEB_HOST_GNU_CPU
+export DEB_HOST_GNU_TYPE
+export DEB_HOST_GNU_SYSTEM
+
+export SBOX_HOST_GCC_NAME
+export SBOX_HOST_GCC_PREFIX_LIST
+export SBOX_HOST_GCC_SUBST_PREFIX
+export SBOX_HOST_GCC_SPECS_FILE
+export SBOX_HOST_GCC_DIR
+export SBOX_HOST_GCC_LD_ARGS
+export SBOX_EXTRA_HOST_COMPILER_ARGS
+
+export SBRSH_CONFIG
+
+export SBOX_REDIR_LD_SO
+export SBOX_REDIR_LD_LIBRARY_PATH
+
+export LD_LIBRARY_PATH
+# ------------
+
 export COMPILER=$SBOX_CROSS_GCC_DIR/$SBOX_CROSS_GCC_SUBST_PREFIX
 
 # uh evil hack sb2 need --copy-clibrary

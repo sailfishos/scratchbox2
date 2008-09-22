@@ -280,6 +280,7 @@ function write_ld_library_path_replacement_to_exec_config()
 			fgrep '=>' | 
 			sed -e 's/^.*=> //' -e 's:/[^/]*$::' | 
 			sort | uniq`
+		ld_library_extras_from_cache=$dirs_in_cache
 		liblocations="$liblocations $dirs_in_cache"
 	fi
 
@@ -325,8 +326,10 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 	if [ -f $sbox_dir_2/lib/libsb2/libsb2.so.1 ]
 	then
 		echo "$sb2_installed_varname = true" >>$SBOX_SESSION_DIR/exec_config.lua
+		ld_so_found="yes"
 	else
 		echo "$sb2_installed_varname = false" >>$SBOX_SESSION_DIR/exec_config.lua
+		ld_so_found="no"
 	fi
 
 	echo "$sbox_dir_varname = \"$sbox_dir_2\"" >>$SBOX_SESSION_DIR/exec_config.lua
@@ -356,6 +359,18 @@ END
 			$SBOX_TOOLS_ROOT \
 			conf_tools_sb2_installed conf_tools_sbox_dir \
 			conf_tools_ld_so
+
+		if [ ld_so_found != "yes" ]
+		then
+			# ld.so from tools can not be used. Add tools' shared
+			# library locations to the normal LD_LIBRARY_PATH;	
+			# this is risky but the best what we can do now
+			# (these extra locations must be after other locations
+			# in LD_LIBRARY_PATH => $ld_library_path_extras won't
+			# be added to LD_LIBRARY_PATH here, but later)
+			ld_library_path_extras=`echo $ld_library_extras_from_cache |
+				sed -e s:^:$rootdir:g -e "s; ;:$rootdir;g"`
+		fi
 	else
 		# SBOX_TOOLS_ROOT was empty, tools will be used from
 		# host environment.
@@ -468,6 +483,12 @@ if [ -n "$SBOX_TOOLS_ROOT" ]; then
 	SHELL=$SBOX_TOOLS_ROOT/bin/bash
 else
 	SHELL=/bin/bash
+fi
+
+# Final addition to LD_LIBRARY_PATH, if needed
+if [ -n "$ld_library_path_extras" ]
+then
+	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ld_library_path_extras
 fi
 
 # ------------ cleanup:

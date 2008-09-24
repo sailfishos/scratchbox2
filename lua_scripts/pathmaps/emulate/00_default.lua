@@ -3,6 +3,15 @@
 
 sb1_compat_dir = sbox_target_root .. "/scratchbox1-compat"
 
+-- Don't map the working directory where sb2 was started, unless
+-- that happens to be the root directory.
+if sbox_workdir == "/" then
+	-- FIXME. There should be a way to skip a rule...
+	unmapped_workdir = "/XXXXXX" 
+else
+	unmapped_workdir = sbox_workdir
+end
+
 mapall_chain = {
 	next_chain = nil,
 	binary = nil,
@@ -32,6 +41,10 @@ mapall_chain = {
 
 		{prefix = "/etc/resolv.conf", use_orig_path = true},
 
+		-- The default is to map everything to target_root,
+		-- execpt that we don't map the directory tree where
+		-- sb2 was started.
+		{prefix = unmapped_workdir, use_orig_path = true},
 		{path = "/", use_orig_path = true},
 		{prefix = "/", map_to = target_root}
 	}

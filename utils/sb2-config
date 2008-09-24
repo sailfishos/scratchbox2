@@ -29,7 +29,7 @@ function version()
 
 function list_targets()
 {
-	for f in $(find $HOME/.scratchbox2/ -maxdepth 1 -mindepth 1 -type d); do echo $(basename $f); done
+	for f in $(find $HOME/.scratchbox2/ -maxdepth 1 -mindepth 1 -type d -and ! -name '*.tmp-pkg-db.*'); do echo $(basename $f); done
 	exit 0
 }
 

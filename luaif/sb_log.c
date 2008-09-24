@@ -5,6 +5,29 @@
  * Licensed under LGPL version 2.1, see top level LICENSE file for details.
  */
 
+/* Two log formats are supported:
+ * 1) Normal (default) log entry consists of three or four tab-separated
+ *    fields:
+ *     - Timestamp and log level
+ *     - Process name ("binaryname") and process id (number)
+ *     - The log message. If the original message contains tabs and/or
+ *       newlines, those will be filtered out.
+ *     - Optionally, source file name and line number.
+ * 2) Simple format minimizes varying information and makes it easier to 
+ *    compare log files from different runs. Fields are:
+ *     - Log level
+ *     - Process name
+ *     - The message
+ *     - Optionally, source file name and line number.
+ *    Simple format can be enabled by setting environment variable 
+ *    "SBOX_MAPPING_LOGFORMAT" to "simple".
+ *
+ * Note that logfiles are used by at least two other components
+ * of sb2: sb2-monitor/sb2-exitreport notices if errors or warnings have
+ * been generated during the session, and sb2-logz can be used to generate
+ * summaries.
+*/
+
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -36,10 +59,12 @@ static struct sb_log_state_s {
 	const char	*sbl_logfile;
 	const char	*sbl_binary_name;
 	int		sbl_print_file_and_line;
+	int		sbl_simple_format;
 } sb_log_state = {
 	.sbl_logfile = NULL,
 	.sbl_binary_name = "UNKNOWN",
 	.sbl_print_file_and_line = 0,
+	.sbl_simple_format = 0,
 };
 
 /* ===================== public variables ===================== */
@@ -100,6 +125,7 @@ void sblog_init(void)
 {
 	if (sb_loglevel__ == SB_LOGLEVEL_uninitialized) {
 		const char	*level_str;
+		const char	*format_str;
 		const char	*bin;
 
 		bin = getenv("__SB2_BINARYNAME");
@@ -138,6 +164,14 @@ void sblog_init(void)
 			/* no logfile, don't log anything. */
 			sb_loglevel__ = SB_LOGLEVEL_NONE;
 		}
+
+		format_str = getenv("SBOX_MAPPING_LOGFORMAT");
+		if (format_str) {
+			if (!strcmp(format_str,"simple")) {
+				sb_log_state.sbl_simple_format = 1;
+			}
+		}
+
 		/* initialized, write a mark to logfile. */
 		SB_LOG(SB_LOGLEVEL_INFO, "---------- Starting ----------");
 	}
@@ -164,8 +198,12 @@ void sblog_vprintf_line_to_logfile(
 
 	if (sb_loglevel__ == SB_LOGLEVEL_uninitialized) sblog_init();
 
-	/* first, the timestamp: */
-	make_log_timestamp(tstamp, sizeof(tstamp));
+	if (sb_log_state.sbl_simple_format) {
+		*tstamp = '\0';
+	} else {
+		/* first, the timestamp: */
+		make_log_timestamp(tstamp, sizeof(tstamp));
+	}
 
 	/* next, print the log message to a buffer: */
 	vasprintf(&logmsg, format, ap);
@@ -209,14 +247,30 @@ void sblog_vprintf_line_to_logfile(
 	/* default is to pass level info as numbers */
 	}
 	
-	if(levelname) {
-		asprintf(&finalmsg, "%s (%s)\t%s[%d]\t%s%s\n",
-			tstamp, levelname, sb_log_state.sbl_binary_name, 
-			getpid(), logmsg, optional_src_location);
+	if (sb_log_state.sbl_simple_format) {
+		/* simple format. No timestamp or pid, this makes
+		 * it easier to compare logfiles.
+		*/
+		if(levelname) {
+			asprintf(&finalmsg, "(%s)\t%s\t%s%s\n",
+				levelname, sb_log_state.sbl_binary_name, 
+				logmsg, optional_src_location);
+		} else {
+			asprintf(&finalmsg, "(%d)\t%s\t%s%s\n",
+				level, sb_log_state.sbl_binary_name, 
+				logmsg, optional_src_location);
+		}
 	} else {
-		asprintf(&finalmsg, "%s (%d)\t%s[%d]\t%s%s\n",
-			tstamp, level, sb_log_state.sbl_binary_name, 
-			getpid(), logmsg, optional_src_location);
+		/* full format */
+		if(levelname) {
+			asprintf(&finalmsg, "%s (%s)\t%s[%d]\t%s%s\n",
+				tstamp, levelname, sb_log_state.sbl_binary_name, 
+				getpid(), logmsg, optional_src_location);
+		} else {
+			asprintf(&finalmsg, "%s (%d)\t%s[%d]\t%s%s\n",
+				tstamp, level, sb_log_state.sbl_binary_name, 
+				getpid(), logmsg, optional_src_location);
+		}
 	}
 
 	write_to_logfile(finalmsg, strlen(finalmsg));

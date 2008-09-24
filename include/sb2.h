@@ -20,6 +20,15 @@ struct lua_instance {
 	int mapping_disabled;
 };
 
+/* This version string is used to check that the lua scripts offer 
+ * what the C files expect, and v.v.
+ * Increment the serial number (first number) and update the initials
+ * and date whenever the interface beween Lua and C is changed.
+ *
+ * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
+*/
+#define SB2_LUA_C_INTERFACE_VERSION "28,lta-2008-09-23"
+
 void sb2_lua_init(void);
 struct lua_instance *get_lua(void);
 char *sb_decolonize_path(const char *path);

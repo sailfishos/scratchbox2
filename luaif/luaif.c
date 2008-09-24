@@ -106,6 +106,26 @@ static int lua_bind_sb_functions(lua_State *l);
 static pthread_key_t lua_key;
 static pthread_once_t lua_key_once = PTHREAD_ONCE_INIT;
 
+static char *read_string_variable_from_lua(
+	struct lua_instance *luaif,
+	const char *name)
+{
+	char *result = NULL;
+
+	if (luaif && name && *name) {
+		lua_getglobal(luaif->lua, name);
+		result = (char *)lua_tostring(luaif->lua, -1);
+		if (result) {
+			result = strdup(result);
+		}
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"Lua variable %s = '%s', gettop=%d",
+			name, (result ? result : "<NULL>"),
+			lua_gettop(luaif->lua));
+	}
+	return(result);
+}
+
 static void free_lua(void *buf)
 {
 	free(buf);
@@ -132,6 +152,7 @@ static void alloc_lua(void)
 {
 	struct lua_instance *tmp;
 	char *main_lua_script = NULL;
+	char *lua_if_version = NULL;
 
 	check_pthread_library();
 
@@ -198,6 +219,25 @@ static void alloc_lua(void)
 	}
 	lua_call(tmp->lua, 0, 0);
 	enable_mapping(tmp);
+
+	/* check Lua/C interface version. */
+	lua_if_version = read_string_variable_from_lua(tmp,
+		"sb2_lua_c_interface_version");
+	if (!lua_if_version) {
+		SB_LOG(SB_LOGLEVEL_ERROR, "FATAL ERROR: "
+			"sb2's Lua scripts didn't provide"
+			" 'sb2_lua_c_interface_version' identifier!");
+		exit(1);
+	}
+	if (strcmp(lua_if_version, SB2_LUA_C_INTERFACE_VERSION)) {
+		SB_LOG(SB_LOGLEVEL_ERROR, "FATAL ERROR: "
+			"sb2's Lua script interface version mismatch:"
+			" scripts provide '%s', but '%s' was expected",
+			lua_if_version, SB2_LUA_C_INTERFACE_VERSION);
+		exit(1);
+	}
+	free(lua_if_version);
+
 	SB_LOG(SB_LOGLEVEL_DEBUG, "lua initialized.");
 	SB_LOG(SB_LOGLEVEL_NOISE, "gettop=%d", lua_gettop(tmp->lua));
 
@@ -261,22 +301,9 @@ void sb2_lua_init(void)
 char *sb2__read_string_variable_from_lua__(const char *name)
 {
 	struct lua_instance *luaif;
-	char *result = NULL;
 
 	luaif = get_lua();
-
-	if (luaif && name && *name) {
-		lua_getglobal(luaif->lua, name);
-		result = (char *)lua_tostring(luaif->lua, -1);
-		if (result) {
-			result = strdup(result);
-		}
-		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"Lua variable %s = '%s', gettop=%d",
-			name, (result ? result : "<NULL>"),
-			lua_gettop(luaif->lua));
-	}
-	return(result);
+	return(read_string_variable_from_lua(luaif, name));
 }
 
 

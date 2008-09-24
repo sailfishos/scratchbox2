@@ -8,6 +8,14 @@
 debug = os.getenv("SBOX_MAPPING_DEBUG")
 debug_messages_enabled = sb.debug_messages_enabled()
 
+-- This version string is used to check that the lua scripts offer 
+-- what the C files expect, and v.v.
+-- Increment the serial number (first number) and update the initials
+-- and date whenever the interface beween Lua and C is changed.
+--
+-- NOTE: the corresponding identifier for C is in include/sb2.h
+sb2_lua_c_interface_version = "28,lta-2008-09-23"
+
 function do_file(filename)
 	if (debug_messages_enabled) then
 		sb.log("debug", string.format("Loading '%s'", filename))

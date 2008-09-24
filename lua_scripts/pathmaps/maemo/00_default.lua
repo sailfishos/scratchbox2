@@ -304,6 +304,10 @@ simple_chain = {
 		-- 95. Some virtual paths:
 		{prefix = "/host_usr", map_to = target_root},
 
+		-- unmodified view of the rootstrap, can be used as destination
+		-- directory when installing stuff to the rootstrap
+		{prefix = "/target_root", replace_by = target_root},
+
 		-- -----------------------------------------------
 		-- 98. Scratchbox 1 emulation rules
 		-- (some packages have hard-coded paths to the SB1 enviroment;
@@ -370,6 +374,10 @@ qemu_chain = {
 		 use_orig_path = true, readonly = true},
 
 		{prefix = tools, use_orig_path = true},
+
+		-- unmodified view of the rootstrap, can be used as destination
+		-- directory when installing stuff to the rootstrap
+		{prefix = "/target_root", replace_by = target_root},
 
 		{path = "/", use_orig_path = true},
 		{prefix = "/", map_to = tools}

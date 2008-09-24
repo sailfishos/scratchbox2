@@ -146,17 +146,25 @@ function sb_execve_postprocess_native_executable(rule, exec_policy,
 			table.insert(new_argv, exec_policy.native_app_ld_library_path)
 		end
 
-		-- NOTE/WARNING: (FIXME, well, FIX-ld.so in fact!)
-		-- Currently argv[0] will be lost, always.
+		-- NOTE/WARNING: The default ld.so (ld-linux.so) will loose
+		-- argv[0], when the binary is executed by ld.so's
+		-- command line (which we will be doing). It will always copy 
+		-- the filename to argv[0].
 		--
-		-- There is no way to give argv[0] to ld.so when executing
-		-- ls.so "from the command line", because ld.so will always
-		-- use the pathname as argv[0] to main() of the loaded program.
-		-- This should be fixed by fixing ld.so (which is part of
-		-- glibc in Linux). To Be Implemented. 
+		-- We now have a patch for ld.so which introduces a new
+		-- option, "--argv0 argument", and a flag is used to tell
+		-- if a patched ld.so is available (the "sb2" script finds 
+		-- that out during startup phase).
 		--
-		-- Replace argv[0] by pathname:
-		table.insert(new_argv, mapped_file)
+		if (exec_policy.native_app_ld_so_supports_argv0) then
+			table.insert(new_argv, "--argv0")
+			-- C's argv[0] is in argv[1] here!
+			table.insert(new_argv, argv[1])
+			table.insert(new_argv, mapped_file)
+		else
+			-- Replace argv[0] by pathname:
+			table.insert(new_argv, mapped_file)
+		end
 		first_argv_element_to_copy = 2
 
 		updated_args = 1

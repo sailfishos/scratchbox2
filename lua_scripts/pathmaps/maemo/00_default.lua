@@ -28,6 +28,7 @@ end
 exec_policy_tools = {
 	name = "Tools",
 	native_app_ld_so = maemo_mode_tools_ld_so,
+	native_app_ld_so_supports_argv0 = conf_tools_ld_so_supports_argv0,
 	native_app_ld_library_path = maemo_mode_tools_ld_library_path
 }
 
@@ -59,6 +60,7 @@ end
 exec_policy_target = {
 	name = "Rootstrap",
 	native_app_ld_so = maemo_mode_target_ld_so,
+	native_app_ld_so_supports_argv0 = conf_target_ld_so_supports_argv0,
 	native_app_ld_library_path = maemo_mode_target_ld_library_path
 }
 

@@ -303,12 +303,33 @@ function write_ld_library_path_replacement_to_exec_config()
 	echo " \"\"" >>$SBOX_SESSION_DIR/exec_config.lua
 }
 
+# Test if the "--argv0" flag is supported by the ld.so
+function check_ld_so_argv0_feature()
+{
+	rootdir=$1
+	ld_so_path=$2
+
+	ld_so_argv_flag_works="false" # the default
+
+	test_output=`$ld_so_path --argv0 Hello $rootdir/bin/bash -c 'echo $0' 2>/dev/null`
+	if [ $? == 0 ]
+	then
+		# at least ld.so didn't fail...
+		if [ "$test_output" == "Hello" ]
+		then
+			# ..and the option worked, great!
+			ld_so_argv_flag_works="true"
+		fi
+	fi
+}
+
 function write_libsb2_and_ld_so_state_to_exec_config()
 {
 	rootdir=$1
 	sb2_installed_varname=$2
 	sbox_dir_varname=$3
 	ld_so_path_varname=$4
+	ld_so_supports_argv0_varname=$5
 
 	# Check if ld.so can be used from $rootdir by 
 	# checking that libsb2 has been installed to tools
@@ -334,12 +355,47 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 
 	echo "$sbox_dir_varname = \"$sbox_dir_2\"" >>$SBOX_SESSION_DIR/exec_config.lua
 
-	# check the dynamic linker
-	if [ -f $rootdir/lib/ld-linux.so.2 ]
+	# check the dynamic linker:
+
+	# First try if the default linker can be used
+	ld_so_candidate=$rootdir/lib/ld-linux.so.2
+	if [ -f $ld_so_candidate ]
 	then
-		echo "$ld_so_path_varname = \"$rootdir/lib/ld-linux.so.2\"" >>$SBOX_SESSION_DIR/exec_config.lua
+		check_ld_so_argv0_feature $rootdir $ld_so_candidate
+		if [ "$ld_so_argv_flag_works" != "true" ]
+		then
+			# the default ld.so does not support --argv0.
+			# Find out if a replacement has been installed for sb2:
+			ld_so_with_version=`readlink $ld_so_candidate`
+			ld_so_candidate2=$SBOX_DIR/lib/libsb2/$ld_so_with_version
+			if [ -f "$ld_so_candidate2" ]
+			then
+				check_ld_so_argv0_feature $rootdir $ld_so_candidate2
+				if [ "$ld_so_argv_flag_works" == "true" ]
+				then
+					ld_so_candidate=$ld_so_candidate2
+				fi # else keep the default ld_so_candidate
+			fi # no replacement, use the default ld.so. No --argv0
+		fi
+	else
+		ld_so_candidate=""
+		ld_so_argv_flag_works="false"
+	fi
+			
+	if [ -n "$SBOX_OPT_Z_NO_LD_SO_EXEC" ]
+	then
+		ld_so_candidate=""
+		ld_so_argv_flag_works="false"
+	fi
+
+	if [ -n "$ld_so_candidate" ]
+	then
+		echo "$ld_so_path_varname = \"$ld_so_candidate\"" >>$SBOX_SESSION_DIR/exec_config.lua
+		echo "$ld_so_supports_argv0_varname = $ld_so_argv_flag_works" >>$SBOX_SESSION_DIR/exec_config.lua
+
 	else
 		echo "$ld_so_path_varname = nil" >>$SBOX_SESSION_DIR/exec_config.lua
+		echo "$ld_so_supports_argv0_varname = false" >>$SBOX_SESSION_DIR/exec_config.lua
 	fi
 }
 
@@ -358,7 +414,7 @@ END
 		write_libsb2_and_ld_so_state_to_exec_config \
 			$SBOX_TOOLS_ROOT \
 			conf_tools_sb2_installed conf_tools_sbox_dir \
-			conf_tools_ld_so
+			conf_tools_ld_so conf_tools_ld_so_supports_argv0
 
 		if [ ld_so_found != "yes" ]
 		then
@@ -379,6 +435,7 @@ conf_tools_ld_so_library_path = nil
 conf_tools_sb2_installed = false
 conf_tools_sbox_dir = ""
 conf_tools_ld_so = nil
+conf_tools_ld_so_supports_argv0 = false
 END
 	fi
 
@@ -393,7 +450,7 @@ END
 		write_libsb2_and_ld_so_state_to_exec_config \
 			$SBOX_TARGET_ROOT \
 			conf_target_sb2_installed conf_target_sbox_dir \
-			conf_target_ld_so
+			conf_target_ld_so conf_target_ld_so_supports_argv0
 	else
 		# SBOX_TOOLS_ROOT was empty, tools will be used from
 		# host environment.
@@ -402,6 +459,7 @@ conf_target_ld_so_library_path = nil
 conf_target_sb2_installed = false
 conf_target_sbox_dir = ""
 conf_target_ld_so = nil
+conf_target_ld_so_supports_argv0 = false
 END
 	fi
 }
@@ -417,7 +475,7 @@ fi
 SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
 SBOX_WORKDIR=$(readlink -f $PWD)
 
-while getopts vdht:em:s:L:Q:pM: foo
+while getopts vdht:em:s:L:Q:pM:Z foo
 do
 	case $foo in
 	(v) version ;;
@@ -433,6 +491,7 @@ do
 	(M) SBOX_RULEFILES="$SBOX_RULEFILES $OPTARG" ;;
 	(s) SBOX_LUA_SCRIPTS=$OPTARG;;
 	(p) SBOX_SESSION_NO_CLEANUP="y";;
+	(Z) SBOX_OPT_Z_NO_LD_SO_EXEC="y";;
 	(*) usage ;;
 	esac
 done

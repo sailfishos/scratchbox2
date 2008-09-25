@@ -118,6 +118,7 @@ static char *read_string_variable_from_lua(
 		if (result) {
 			result = strdup(result);
 		}
+		lua_pop(luaif->lua, 1);
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"Lua variable %s = '%s', gettop=%d",
 			name, (result ? result : "<NULL>"),

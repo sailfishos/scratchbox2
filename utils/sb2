@@ -335,15 +335,13 @@ function check_ld_so_argv0_feature()
 
 	ld_so_argv_flag_works="false" # the default
 
-	test_output=`$ld_so_path --argv0 Hello $rootdir/bin/bash -c 'echo $0' 2>/dev/null`
-	if [ $? == 0 ]
+	# Executing ld.so without any arguments should print 
+	# usage information to stderr:
+	test_output=`$ld_so_path 2>&1 | grep 'argv0 STRING'`
+	if [ -n "$test_output" ]
 	then
-		# at least ld.so didn't fail...
-		if [ "$test_output" == "Hello" ]
-		then
-			# ..and the option worked, great!
-			ld_so_argv_flag_works="true"
-		fi
+		# description about --argv0 exists!
+		ld_so_argv_flag_works="true"
 	fi
 }
 

@@ -202,6 +202,66 @@ function sb_execve_postprocess_native_executable(rule, exec_policy,
 	return 1, mapped_file, filename, #argv, argv, #envp, envp
 end
 
+if string.match(sbox_cputransparency_method, "qemu") then
+	cputransparency_method_is_qemu = true
+end
+
+function sb_execve_postprocess_cpu_transparency_executable(rule, exec_policy,
+    exec_type, mapped_file, filename, argv, envp)
+	sb.log("debug", "postprocessing cpu_transparency for " .. filename)
+
+	if cputransparency_method_is_qemu then
+		local new_envp = {}
+		local new_argv = {}
+		local new_filename = sbox_cputransparency_method
+
+		new_argv[1] = sbox_cputransparency_method
+		-- drop LD_PRELOAD env.var.
+		new_argv[2] = "-drop-ld-preload"
+		-- target runtime linker comes from /
+		new_argv[3] = "-L"
+		new_argv[4] = "/"
+
+		if conf_cputransparency_has_argv0_flag then
+			-- set target argv[0]
+			new_argv[5] = "-0"
+			new_argv[6] = argv[1] 
+		end
+
+		if conf_cputransparency_qemu_has_env_control_flags then
+			for i = 1, #envp do
+				-- drop LD_TRACE_ from target environment
+				if not string.match(envp[i], "^LD_TRACE_.*") then
+					table.insert(new_envp, envp[i])
+				else                    
+					-- .. and move it to qemu command line 
+					table.insert(new_argv, "-E")
+					table.insert(new_argv, envp[i])
+				end
+			end
+		end
+
+		-- unmapped file is exec'd
+		table.insert(new_argv, filename)
+		--
+		-- Append arguments for target process (skip argv[0]
+		-- as this is done using -0 switch).
+		--
+		for i = 2, #argv do
+			table.insert(new_argv, argv[i])
+		end
+
+		-- environment&args were changed
+		return 0, new_filename, filename, #new_argv, new_argv,
+			#new_envp, new_envp
+	-- FIXME: here we should have "elseif cputransparency_method_is_sbrsh"..
+	end
+
+	-- no changes
+	return 1, mapped_file, filename, #argv, argv, #envp, envp
+end
+
+
 -- This is called from C:
 function sb_execve_postprocess(rule, exec_policy, exec_type,
 	mapped_file, filename, binaryname, argv, envp)
@@ -267,17 +327,22 @@ function sb_execve_postprocess(rule, exec_policy, exec_type,
 			exec_policy.name))
 	end
 
+	sb.log("debug", string.format("sb_execve_postprocess:type=%s",
+		exec_type))
+
 	-- End of generic part. Rest of postprocessing depends on type of
 	-- the executable.
 
 	if (exec_type == "native") then
-		sb.log("debug", string.format("sb_execve_postprocess:type=%s", exec_type))
 		return sb_execve_postprocess_native_executable(rule,
+			exec_policy, exec_type, mapped_file,
+			filename, argv, envp)
+	elseif (exec_type == "cpu_transparency") then
+		return sb_execve_postprocess_cpu_transparency_executable(rule,
 			exec_policy, exec_type, mapped_file,
 			filename, argv, envp)
 	else
 		-- all other exec_types: allow exec with orig.args
-		sb.log("debug", string.format("sb_execve_postprocess:type=%s", exec_type))
 		return 1, mapped_file, filename, #argv, argv, #envp, envp
 	end
 end

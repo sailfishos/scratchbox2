@@ -303,6 +303,30 @@ function write_ld_library_path_replacement_to_exec_config()
 	echo " \"\"" >>$SBOX_SESSION_DIR/exec_config.lua
 }
 
+# Test if qemu has "-0 argv0" and "-E envvar=value" flags
+function check_qemu_features()
+{
+	qemu_path=$1
+
+	test_output=`$qemu_path -h | grep '^-0'`
+	if [ -n "$test_output" ]
+	then
+		# -0 is suported
+		conf_cputransparency_has_argv0_flag="true"
+	else
+		conf_cputransparency_has_argv0_flag="false"
+	fi
+
+	test_output=`$qemu_path -h | grep '^-E'`
+	if [ -n "$test_output" ]
+	then
+		# -E is suported
+		conf_cputransparency_qemu_has_env_control_flags="true"
+	else
+		conf_cputransparency_qemu_has_env_control_flags="false"
+	fi
+}
+
 # Test if the "--argv0" flag is supported by the ld.so
 function check_ld_so_argv0_feature()
 {
@@ -440,6 +464,9 @@ END
 	fi
 
 	# 2. Exec settings for rootstrap
+	conf_cputransparency_has_argv0_flag="false"
+	conf_cputransparency_qemu_has_env_control_flags="false"
+
 	if [ "$SBOX_CPUTRANSPARENCY_METHOD" == "" ]; then
 		# CPU transparency method has not been set:
 		# host CPU == target CPU
@@ -461,7 +488,17 @@ conf_target_sbox_dir = ""
 conf_target_ld_so = nil
 conf_target_ld_so_supports_argv0 = false
 END
+
+		case "$SBOX_CPUTRANSPARENCY_METHOD" in	
+		*qemu*)	check_qemu_features $SBOX_CPUTRANSPARENCY_METHOD
+			;;
+		esac
 	fi
+
+	cat <<END >>$SBOX_SESSION_DIR/exec_config.lua
+conf_cputransparency_has_argv0_flag=$conf_cputransparency_has_argv0_flag
+conf_cputransparency_qemu_has_env_control_flags=$conf_cputransparency_qemu_has_env_control_flags
+END
 }
 
 my_path=$_

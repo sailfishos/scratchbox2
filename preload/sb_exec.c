@@ -68,8 +68,10 @@
  *    4c. Target binaries (when target architecture != host architecture)
  *        are started in "cpu transparency mode", which typically means
  *        that either "qemu" or "sbrsh" is used to execute them.
- *        [FIXME: This step should also call the same exec postprocesing code
- *        as alternative 4b does, but that is not the case currently]
+ *        This is partially handled by exec postprocessing (like 4b. above),
+ *        but "sbrsh" method is still handled here.
+ *        [FIXME: This step should also call the exec postprocesing code
+ *        for "sbrsh", but that haven't been implemented yet]
  *
  * 5. When all decisions and all possible conversions have been made,
  *    sb_next_execve() will be called. It transfers control to the real
@@ -243,27 +245,25 @@ static int run_sbrsh(const char *sbrsh_bin, char *const *sbrsh_args,
 		const char *target_root, const char *orig_file,
 		char *const *argv, char *const *envp);
 
+static char *cputransp_method = NULL;
+
+static enum {
+	CPUTRANSP_UNKNOWN = 0,
+	CPUTRANSP_QEMU,
+	CPUTRANSP_SBRSH,
+} cputransp_type = CPUTRANSP_UNKNOWN;
+
 /* file is mangled, unmapped_file is not */
 static int run_cputransparency(const char *file, const char *unmapped_file,
 			char *const *argv, char *const *envp)
 {
-	static char *cputransp_method = NULL;
 	static char *target_root = NULL;
 	char *cputransp_bin;
 	char **cputransp_tokens, **cputransp_args, **p;
 	char *basec, *bname;
 	int token_count, i;
 
-	if (!cputransp_method) {
-		cputransp_method = sb2__read_string_variable_from_lua__(
-			"sbox_cputransparency_method");
-	}
-
-	if (!cputransp_method) {
-		fprintf(stderr, "sbox_cputransparency_method not set, "
-				"unable to execute the target binary\n");
-		return -1;
-	}
+	if (!cputransp_method) return -1;
 
 	cputransp_tokens = split_to_tokens(cputransp_method);
 	token_count = elem_count(cputransp_tokens);
@@ -915,6 +915,7 @@ static int strvec_contains(char *const *strvec, const char *id)
 	return(0);
 }
 
+
 int do_exec(const char *exec_fn_name, const char *orig_file,
 		char *const *orig_argv, char *const *orig_envp)
 {
@@ -1022,8 +1023,42 @@ int do_exec(const char *exec_fn_name, const char *orig_file,
 			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/target %s",
 					mapped_file);
 
-			return run_cputransparency(mapped_file, *my_file,
-					*my_argv, *my_envp);
+			if (!cputransp_method) {
+				cputransp_method = sb2__read_string_variable_from_lua__(
+					"sbox_cputransparency_method");
+				if (strstr(cputransp_method, "qemu")) {
+					cputransp_type = CPUTRANSP_QEMU;
+				} else if (strstr(cputransp_method, "sbrsh")) {
+					cputransp_type = CPUTRANSP_SBRSH;
+				} else {
+					cputransp_type = CPUTRANSP_UNKNOWN;
+				}
+			}
+
+			if (!cputransp_method) {
+				fprintf(stderr, "sbox_cputransparency_method not set, "
+						"unable to execute the target binary\n");
+				errno = EINVAL;
+				return -1;
+			}
+
+			if (cputransp_type == CPUTRANSP_SBRSH) {
+				/* FIXME: to be converted to use 
+				 * exec postprocesing
+				*/
+				return run_cputransparency(mapped_file,
+					*my_file, *my_argv, *my_envp);
+			}
+
+			postprocess_result = sb_execve_postprocess(
+				"cpu_transparency", &mapped_file, my_file,
+				binaryname, my_argv, my_envp);
+			if (postprocess_result < 0) {
+				errno = EINVAL;
+				return (-1);
+			}
+
+			return sb_next_execve(mapped_file, *my_argv, *my_envp);
 
 		case BIN_INVALID: /* = can't be executed, no X permission */
 	 		/* don't even try to exec, errno has been set.*/

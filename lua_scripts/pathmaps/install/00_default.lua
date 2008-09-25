@@ -2,6 +2,11 @@
 -- Copyright (C) 2008 Movial
 -- Licensed under MIT license.
 
+-- Rule file interface version, mandatory.
+--
+rule_file_interface_version = "15"
+----------------------------------
+
 if (tools_root and tools_root ~= "/") then
 	tools_source = tools_root
 	tools_target = tools_root
@@ -78,3 +83,24 @@ export_chains = {
 	interp_wrapper_chain,
 	default_chain,
 }
+
+-- Exec policy rules.
+
+default_exec_policy = {
+	name = "Default"
+}
+
+-- Note that the real path (mapped path) is used when looking up rules!
+all_exec_policies_chain = {
+	next_chain = nil,
+	binary = nil,
+	rules = {
+		-- DEFAULT RULE (must exist):
+		{prefix = "/", exec_policy = default_exec_policy}
+	}
+}
+
+exec_policy_chains = {
+	all_exec_policies_chain
+}
+

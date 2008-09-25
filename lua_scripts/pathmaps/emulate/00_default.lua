@@ -1,6 +1,11 @@
 -- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 -- Licensed under MIT license.
 
+-- Rule file interface version, mandatory.
+--
+rule_file_interface_version = "15"
+----------------------------------
+
 sb1_compat_dir = sbox_target_root .. "/scratchbox1-compat"
 
 -- Don't map the working directory where sb2 was started, unless
@@ -53,3 +58,24 @@ mapall_chain = {
 export_chains = {
 	mapall_chain
 }
+
+-- Exec policy rules.
+
+default_exec_policy = {
+	name = "Default"
+}
+
+-- Note that the real path (mapped path) is used when looking up rules!
+all_exec_policies_chain = {
+	next_chain = nil,
+	binary = nil,
+	rules = {
+		-- DEFAULT RULE (must exist):
+		{prefix = "/", exec_policy = default_exec_policy}
+	}
+}
+
+exec_policy_chains = {
+	all_exec_policies_chain
+}
+

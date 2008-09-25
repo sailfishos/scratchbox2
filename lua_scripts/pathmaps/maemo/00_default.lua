@@ -1,6 +1,11 @@
 -- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 -- Licensed under MIT license.
 
+-- Rule file interface version, mandatory.
+--
+rule_file_interface_version = "15"
+----------------------------------
+
 tools = tools_root
 if (not tools) then
 	tools = "/"

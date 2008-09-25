@@ -1,6 +1,11 @@
 -- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 -- Licensed under MIT license.
 
+-- Rule file interface version, mandatory.
+--
+rule_file_interface_version = "15"
+----------------------------------
+
 tools = tools_root
 if (not tools) then
 	tools = "/"
@@ -67,3 +72,24 @@ export_chains = {
 	qemu_chain,
 	simple_chain
 }
+
+-- Exec policy rules.
+
+default_exec_policy = {
+	name = "Default"
+}
+
+-- Note that the real path (mapped path) is used when looking up rules!
+all_exec_policies_chain = {
+	next_chain = nil,
+	binary = nil,
+	rules = {
+		-- DEFAULT RULE (must exist):
+		{prefix = "/", exec_policy = default_exec_policy}
+	}
+}
+
+exec_policy_chains = {
+	all_exec_policies_chain
+}
+

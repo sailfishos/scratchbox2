@@ -61,18 +61,41 @@ function isprefix(a, b)
 end
 
 -- Load mode-specific rules.
--- A mode file should define two variables:
---  1. export_chains (array) contains mapping rule chains; this array
+-- A mode file must define three variables:
+--  1. rule_file_interface_version (string) is checked and must match,
+--     mismatch is a fatal error.
+--  2. export_chains (array) contains mapping rule chains; this array
 --     is searched sequentially with the original (unmapped) path as the key
---  2. exec_policy_chains (array) contains default execution policies;
---     real path (mapped path) is used as the key.
+--  3. exec_policy_chains (array) contains default execution policies;
+--     real path (mapped path) is used as the key. A default exec_policy
+--     must be present.
 --
 function load_and_check_rules()
 
+	rule_file_interface_version = nil
 	export_chains = {}
 	exec_policy_chains = {}
 
+	local current_rule_interface_version = "15"
+
 	do_file(session_dir .. "/rules.lua")
+
+	-- fail and die if interface version is incorrect
+	if (rule_file_interface_version == nil) or 
+           (type(rule_file_interface_version) ~= "string") then
+		sb.log("error", string.format(
+			"Fatal: Rule file interface version check failed: "..
+			"No version information in %s",
+			session_dir .. "/rules.lua"))
+		os.exit(99)
+	end
+	if rule_file_interface_version ~= current_rule_interface_version then
+		sb.log("error", string.format(
+			"Fatal: Rule file interface version check failed: "..
+			"got %s, expected %s", rule_file_interface_version,
+			current_rule_interface_version))
+		os.exit(99)
+	end
 
 	-- export_chains variable contains now the mapping rule chains
 	-- from the chunk

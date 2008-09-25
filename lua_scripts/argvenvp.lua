@@ -239,6 +239,10 @@ function sb_execve_postprocess_cpu_transparency_executable(rule, exec_policy,
 					table.insert(new_argv, envp[i])
 				end
 			end
+		else
+			-- copy environment. Some things will be broken with
+			-- this qemu (for example, prelinking won't work)
+			new_envp = envp
 		end
 
 		-- unmapped file is exec'd

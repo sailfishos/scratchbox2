@@ -80,7 +80,10 @@ sources-release:
 
 
 install-noarch: $(BUILD_TARGET)
-	install -d -m 755 $(prefix)/bin
+	if [ -d $(prefix)/bin ] ; \
+	then echo "$(prefix)/bin present" ; \
+	else install -d -m 755 $(prefix)/bin ; \
+	fi
 	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts
 	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps
 	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/emulate
@@ -91,7 +94,10 @@ install-noarch: $(BUILD_TARGET)
 	install -d -m 755 $(prefix)/share/scratchbox2/scripts
 	install -d -m 755 $(prefix)/share/scratchbox2/tests
 	install -d -m 755 $(prefix)/share/scratchbox2/modeconf
-	install -d -m 755 $(prefix)/share/man/man1
+	if [ -d $(prefix)/share/man/man1 ] ; \
+	then echo "$(prefix)/share/man/man1 present" ; \
+	else install -d -m 755 $(prefix)/share/man/man1 ; \
+	fi
 	echo "$(PACKAGE_VERSION)" > $(prefix)/share/scratchbox2/version
 	install -c -m 755 $(SRCDIR)/utils/sb2 $(prefix)/bin/sb2
 	install -c -m 755 $(SRCDIR)/utils/sb2-init $(prefix)/bin/sb2-init
@@ -132,7 +138,10 @@ install-noarch: $(BUILD_TARGET)
 install: do-install
 
 do-install: install-noarch
-	install -d -m 755 $(prefix)/lib
+	if [ -d $(prefix)/lib ] ; \
+	then echo "$(prefix)/lib present" ; \
+	else install -d -m 755 $(prefix)/lib ; \
+	fi
 	install -d -m 755 $(prefix)/lib/libsb2
 	install -c -m 755 $(OBJDIR)/preload/libsb2.so $(prefix)/lib/libsb2/libsb2.so.$(PACKAGE_VERSION)
 	install -c -m 755 $(OBJDIR)/utils/sb2-show $(prefix)/bin/sb2-show
@@ -148,7 +157,10 @@ install-multilib: install-noarch
 	$(MAKE) -C obj-64 --include-dir=.. -f ../Makefile SRCDIR=.. do-install
 
 do-install-multilib:
-	install -d -m 755 $(multilib_prefix)/lib$(bitness)
+	if [ -d $(multilib_prefix)/lib$(bitness) ] ; \
+	then echo "$(prefix)/lib$(bitness) present" ; \
+	else install -d -m 755 $(prefix)/lib$(bitness) ; \
+	fi
 	install -d -m 755 $(multilib_prefix)/lib$(bitness)/libsb2
 	install -c -m 755 preload/libsb2.so $(multilib_prefix)/lib$(bitness)/libsb2/libsb2.so.$(PACKAGE_VERSION)
 	/sbin/ldconfig -n $(multilib_prefix)/lib$(bitness)/libsb2

@@ -381,7 +381,7 @@ sub create_code_for_va_list_get_mode {
 	if($condition ne '') {
 		$condition = "if($condition) ";
 	}
-	return( "\t${condition}{\n".
+	return( "\t" . $condition . "{\n".
 		"\t\tva_list arg;\n".
                 "\t\tva_start (arg, $last_named_var);\n".
                 "\t\tmode = va_arg (arg, int);\n".

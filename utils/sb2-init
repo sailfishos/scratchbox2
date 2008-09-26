@@ -3,6 +3,12 @@
 # Licensed under GPL version 2
 
 my_path=$_
+if [ $(basename $my_path) != $(basename $0) ]; then
+	my_path=$0
+	if [ $(basename $my_path) = $my_path ]; then
+		my_path=$(which $my_path)
+	fi
+fi
 
 function show_existing_config_info()
 {

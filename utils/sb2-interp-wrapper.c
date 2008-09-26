@@ -87,7 +87,7 @@ int main(int argc, char **argv)
 {
 	int envlen;
 	const char *interpname;
-	enum interp_type type;
+	enum interp_type type = INTERP_SHELL;
 	int script;
 	const char *scriptname;
 	int signum;

@@ -290,11 +290,7 @@ else
 	fi
 fi
 
-
 DEBIAN_CPU=$ARCH
-if [ -z "$CPUTRANSP" ]; then
-	CPUTRANSP="$(which qemu-$ARCH)"
-fi
 
 HOST_ARCH="$(uname --machine)"
 if echo "$HOST_ARCH" | grep -q "^i.86*"; then

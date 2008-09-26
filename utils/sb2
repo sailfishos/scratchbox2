@@ -256,12 +256,16 @@ function write_ld_library_path_replacement_to_exec_config()
 	# First, make sure that libsb2 is searched
 	liblocations="$SBOX_DIR/lib/libsb2 /usr/lib/libsb2"
 
-	# Include the directories listed in ld.so.conf
+	# Include directories listed in ld.so.conf
 	if [ -f $rootdir/etc/ld.so.conf ]
 	then
-		lloc2=`cat $rootdir/etc/ld.so.conf \
-			$rootdir/etc/ld.so.conf.d/* |
-			egrep '^/'`
+		lloc2=`egrep '^/' $rootdir/etc/ld.so.conf`
+		liblocations="$liblocations $lloc2"
+	fi
+	# Include directories listed in ld.so.conf.d/*
+	if [ -d $rootdir/etc/ld.so.conf.d ]
+	then
+		lloc2=`cat $rootdir/etc/ld.so.conf.d/* 2>/dev/null | egrep '^/'`
 		liblocations="$liblocations $lloc2"
 	fi
 

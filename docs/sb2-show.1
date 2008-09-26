@@ -1,0 +1,91 @@
+.TH sb2-show 1 "23 September 2008" "2.0" "sb2-show man page"
+.SH NAME
+sb2-show \- sb2 diagnostics tool
+.SH SYNOPSIS
+.B sb2-show [\-b binary_name ] [\-m mode ] [\-f function ] [\-D ] [\-v ] command_tag [parameters] 
+
+.SH DESCRIPTION
+.B sb2-show
+command must be run from inside scratchbox2. The sb2-show provides
+developer valuable information about pathmappings that the sb2
+pathmapping engine is executing during runtime. This diagnostics tool
+helps you understand what files are used and from what location when using
+the sb2 development environment.
+
+.SH OPTIONS
+.TP
+\-v
+verbose. Give lots of output.
+.TP
+\-b binary_name
+This option outputs the mapping modifications that are related to the binary name ie program name that you specify with this option.
+.TP
+\-m mode
+Show using named mapping sb2 mode (default=current sb2 mode)
+.TP
+\-f function
+This option can be used when you are debugging mapping rules in sb2. The function name is the full name of library or system call that you want to monitor.
+.TP
+\-D
+Ignore directories while verifying path lists
+
+.SH COMMAND TAGS
+.TP
+path [path1] [path2] [pathN]
+Show mappings of pathnames
+.TP
+exec file [argv0] [argv1] [argvN] 
+Show execve() modifications done by sb2
+.TP
+log-error 'message' 
+Add an error message to logfile
+.TP
+log-warning 'message' 
+Add a warning message to the logfile
+.TP
+verify-pathlist-mappings required-fix [ignorelist] 
+Read list of paths from stdina and check that all paths will be mapped to required 'prefix/n'
+
+
+.SH EXAMPLES
+
+.nf
+$ sb2 sb2-show path /etc
+/etc => /opt/maemo/dists/etch/etc (readonly)
+
+This shows where the /etc directory gets mapped under your active sb2
+target.  In this example the /etc gets mapped to
+/opt/maemo/dists/etch/etc directory in your host.  The /etc directory
+has been defined to be readonly.
+
+$ sb2 sb2-show path /home/yourname
+/home/yourname => /home/yourname
+
+This example shows where your own home directory gets mapped. By
+default under sb2 environment your home directory is the one you use
+as your real home directory. Your home directory is read-write.
+
+$ sb2 sb2-show exec /bin/ls
+File    /bin/ls
+Mapped  /opt/maemo/dists/etch/bin/ls (readonly)
+argv[0] /bin/ls
+
+This command shows what execve() modifications are done by sb2 engine
+to the binary that is being executed. It also shows you the argument
+vector.  In the above example you can see that in maemo mode (ie build
+mode) the /bin/ls program is actually executed from location
+/opt/maemo/dists/etch/bin/ls in your linux pc.
+
+
+.fi
+
+
+.SH SEE ALSO
+.BR sb2 (1),
+.BR sb2-config (1),
+.BR sb2-init (1)
+
+.SH AUTHOR
+.nf
+Lauri Aarnio
+.fi

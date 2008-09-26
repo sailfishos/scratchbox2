@@ -122,6 +122,7 @@ install-noarch: $(BUILD_TARGET)
 	chmod a+x $(prefix)/share/scratchbox2/tests/run.sh
 
 	install -c -m 644 $(SRCDIR)/docs/sb2.1 $(prefix)/share/man/man1/sb2.1
+	install -c -m 644 $(SRCDIR)/docs/sb2-show.1 $(prefix)/share/man/man1/sb2-show.1
 	rm -f $(prefix)/share/scratchbox2/host_usr
 	ln -sf /usr $(prefix)/share/scratchbox2/host_usr
 	@for f in $(gcc_bins_expanded); do \

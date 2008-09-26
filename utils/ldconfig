@@ -1,0 +1,41 @@
+#!/bin/bash
+#
+# "ldconfig" wrapper for scratchbox 2:
+# ldconfig is a statically linked binary.
+#
+# Copyright (c) 2008 Nokia Corporation.
+# All rights reserved.
+# Author: Lauri T. Aarnio
+#
+# Licensed under GPL version 2
+
+args="$*"
+prog="$0"
+progbase=`basename $0`
+
+function error_not_inside_sb2()
+{
+	echo "SB2: $progbase wrapper: This wrapper can only be used from inside"
+	echo "the scratchbox 2'ed environment"
+	exit 1
+}
+
+if [ -z "$SBOX_SESSION_DIR" ]
+then
+	error_not_inside_sb2
+fi
+
+. $SBOX_SESSION_DIR/sb2-session.conf
+
+if [ -z "$sbox_mapmode" -o -z "$sbox_dir" ]
+then
+	error_not_inside_sb2
+fi
+
+# read-in mode-specific settings
+if [ -f $sbox_dir/share/scratchbox2/modeconf/sb2rc.$sbox_mapmode ]
+then
+	. $sbox_dir/share/scratchbox2/modeconf/sb2rc.$sbox_mapmode "$progbase"
+fi
+
+exec /sbin/ldconfig -r "$sbox_target_root" $args

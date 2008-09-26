@@ -2,6 +2,15 @@
 # Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
 # Licensed under GPL version 2
 
+my_path=$_
+if [ $(basename $my_path) != $(basename $0) ]; then
+	my_path=$0
+	if [ $(basename $my_path) = $my_path ]; then
+		my_path=$(which $my_path)
+	fi
+fi
+
+
 function usage()
 {
 	cat <<EOF
@@ -40,7 +49,7 @@ DEFAULT_TARGET=$DEFAULT_TARGET
 " > $HOME/.scratchbox2/config
 }
 
-SBOX_DIR=$(readlink -f $(dirname $(readlink -f $_))/..)
+SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
 WRITE_CONFIG=0
 
 while getopts d:hlv foo

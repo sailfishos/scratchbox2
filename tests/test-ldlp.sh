@@ -15,5 +15,5 @@ gcc foouser.c -L. -lfoo -o foouser
 if ./foouser 2> /dev/null; then
    echo Something wrong in the linking or rt-linker.
 else
-   LD_LIBRARY_PATH=. ./foouser
+   LD_LIBRARY_PATH=$LD_LIBRARY_PATH:. ./foouser
 fi

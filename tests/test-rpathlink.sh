@@ -20,6 +20,6 @@ EOF
 mkdir lo hi
 gcc -fPIC liblo.c -shared -o lo/liblo.so
 gcc -fPIC libhi.c -shared -o hi/libhi.so -Llo -llo
-LD_LIBRARY_PATH=lo gcc hiuser.c -Lhi -lhi -o foouser
-LD_LIBRARY_PATH=hi:lo ./foouser
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:lo gcc hiuser.c -Lhi -lhi -o foouser
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:hi:lo ./foouser
 

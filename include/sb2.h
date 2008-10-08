@@ -11,6 +11,13 @@
 #include <time.h>
 #include <stdarg.h>
 
+/* WARNING!!
+ * pthread functions MUST NOT be used directly in the preload library.
+ * see the warning in luaif/luaif.c, also see the examples in that
+ * file (how to detect if pthread library is available, etc)
+*/
+#include <pthread.h>
+
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
@@ -75,5 +82,7 @@ extern int sb_loglevel__; /* do not access directly */
 extern char *sbox_session_dir;
 extern char *sbox_orig_ld_preload;
 extern char *sbox_orig_ld_library_path;
+
+extern pthread_t (*pthread_self_fnptr)(void);
 
 #endif

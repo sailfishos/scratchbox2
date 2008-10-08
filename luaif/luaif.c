@@ -48,7 +48,7 @@
  * pthread library has already been loaded (most likely, by the real program
  * that we are serving).
 */
-#include <pthread.h>
+
 #include <dlfcn.h>
 
 /* pointers to pthread library functions, if the pthread library is in use.
@@ -59,6 +59,7 @@ static void *(*pthread_getspecific_fnptr)(pthread_key_t key) = NULL;
 static int (*pthread_setspecific_fnptr)(pthread_key_t key,
 	const void *value) = NULL;
 static int (*pthread_once_fnptr)(pthread_once_t *, void (*)(void)) = NULL;
+pthread_t (*pthread_self_fnptr)(void) = NULL;
 
 static void check_pthread_library()
 {
@@ -73,6 +74,8 @@ static void check_pthread_library()
 			"pthread_setspecific");
 		pthread_once_fnptr = dlsym(RTLD_DEFAULT,
 			"pthread_once");
+		pthread_self_fnptr = dlsym(RTLD_DEFAULT,
+			"pthread_self");
 
 		if (pthread_key_create_fnptr &&
 		    pthread_getspecific_fnptr &&

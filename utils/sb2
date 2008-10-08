@@ -536,6 +536,14 @@ do
 done
 shift $(($OPTIND - 1))
 
+if [ -n "$SBOX_SESSION_DIR" -a -f "$SBOX_SESSION_DIR/rules.lua" ]
+then
+	# already inside an sb2 session; ignore all options and just exec the command.
+	echo "WARNING: recursive calls to sb2 are not supported (session already exists)"
+	echo "WARNING: going to execute '$*' in this session"
+	exec $*
+fi
+
 if [ "$SBOX_MAPPING_DEBUG" == "1" ]; then
 	# check that loglevel is valid
 	case $SBOX_MAPPING_LOGLEVEL in

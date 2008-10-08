@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/resource.h>
+#include <sys/time.h>
 
 #include "exported.h"
 #include "sb2.h"
@@ -30,6 +31,15 @@ static void usage_exit(const char *progname, const char *errmsg, int exitstatus)
 		"\t-f function\tshow using 'function' as callers name\n"
 		"\t-D\tignore directories while verifying path lists\n"
 		"\t-v\tverbose.\n"
+		"\t-t"
+			"\treport elapsed time (real time elapsed while "
+			"executing 'command')\n"
+		"\t-x filename"
+			"\tLoad and execute Lua code from file before "
+			"executing 'command'\n"
+		"\t-X filename"
+			"\tLoad and execute Lua code from file after "
+			"executing 'command'\n"
 		"\nCommands:\n"
 		"\tpath [path1] [path2].."
 			"\tShow mappings of pathnames\n"
@@ -44,6 +54,9 @@ static void usage_exit(const char *progname, const char *errmsg, int exitstatus)
 			"\t\tcheck that all paths will be mapped to required prefix\n"
 		"\tvar variablename"
 			"\tShow value of a string variable\n"
+		"\texecluafile filename"
+			"\tLoad and execute Lua code from file\n"
+			"\t\t(useful for debugging and/or benchmarking sb2 itself)\n"
 		"\n'%s' must be executed inside sb2 sandbox"
 			" (see the 'sb2' command)\n",
 		progname, progname, progname);
@@ -214,6 +227,11 @@ int main(int argc, char *argv[])
 	char	*binary_name = "ANYBINARY";
 	int	ignore_directories = 0;
 	int	verbose = 0;
+	int	report_time = 0;
+	struct timeval	start_time, stop_time;
+	int	ret = 0;
+	char	*pre_cmd_file = NULL;
+	char	*post_cmd_file = NULL;
 	
 #if 0 || defined(enable_this_after_sb2_preload_library_startup_has_been_fixed)
 	/* FIXME: this should be able to check if we are inside the sb2
@@ -230,7 +248,7 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-	while ((opt = getopt(argc, argv, "hm:f:b:Dv")) != -1) {
+	while ((opt = getopt(argc, argv, "hm:f:b:Dvtx:X:")) != -1) {
 		switch (opt) {
 		case 'h': usage_exit(progname, NULL, 0); break;
 		case 'm':
@@ -242,6 +260,9 @@ int main(int argc, char *argv[])
 		case 'b': binary_name = optarg; break;
 		case 'D': ignore_directories = 1; break;
 		case 'v': verbose = 1; break;
+		case 't': report_time = 1; break;
+		case 'x': pre_cmd_file = optarg; break;
+		case 'X': post_cmd_file = optarg; break;
 		default: usage_exit(progname, "Illegal option", 1); break;
 		}
 	}
@@ -249,6 +270,19 @@ int main(int argc, char *argv[])
 	/* check parameters */
 	if (optind >= argc) 
 		usage_exit(progname, "Wrong number of parameters", 1);
+
+	/* Execute the "pre-command" file before starting the clock (if both
+	 * -x and -t options were used)
+	*/
+	if (pre_cmd_file)
+		sb2__load_and_execute_lua_file__(pre_cmd_file);
+
+	if (report_time) {
+		if (gettimeofday(&start_time, (struct timezone *)NULL) < 0) {
+			fprintf(stderr, "%s: Failed to get time\n", progname);
+			report_time = 0;
+		}
+	}
 
 	/* params ok, go and perform the action */
 	if (!strcmp(argv[optind], "path")) {
@@ -262,15 +296,40 @@ int main(int argc, char *argv[])
 	} else if (!strcmp(argv[optind], "log-warning")) {
 		command_log(argv + optind + 1, SB_LOGLEVEL_WARNING);
 	} else if (!strcmp(argv[optind], "verify-pathlist-mappings")) {
-		return command_verify_pathlist_mappings(binary_name,
+		ret = command_verify_pathlist_mappings(binary_name,
 			function_name, ignore_directories,
 			verbose, progname, argv + optind + 1);
 	} else if (!strcmp(argv[optind], "var")) {
-		return(command_show_variable(verbose, progname, argv[optind+1]));
+		ret = command_show_variable(verbose, progname, argv[optind+1]);
+	} else if (!strcmp(argv[optind], "execluafile")) {
+		sb2__load_and_execute_lua_file__(argv[optind+1]);
 	} else {
 		usage_exit(progname, "Unknown command", 1);
 	}
 
-	return(0);
+	if (report_time) {
+		if (gettimeofday(&stop_time, (struct timezone *)NULL) < 0) {
+			fprintf(stderr, "%s: Failed to get time\n", progname);
+		} else {
+			long secs;
+			long usecs;
+
+			secs = stop_time.tv_sec - start_time.tv_sec;
+			usecs = stop_time.tv_usec - start_time.tv_usec;
+			if (usecs < 0) {
+				usecs += 1000000;
+				secs--;
+			}
+			printf("TIME: %ld.%06ld\n", secs, usecs);
+		}
+	}
+
+	/* Execute the "prost-command" file after the clock has been stopped
+	 * (if both -X and -t options were used)
+	*/
+	if (post_cmd_file)
+		sb2__load_and_execute_lua_file__(post_cmd_file);
+
+	return(ret);
 }
 

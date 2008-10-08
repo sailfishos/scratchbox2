@@ -28,6 +28,17 @@ This option can be used when you are debugging mapping rules in sb2. The functio
 .TP
 \-D
 Ignore directories while verifying path lists
+.TP
+\-t
+report elapsed time (real time elapsed while executing the command)
+.TP
+\-x file
+Load and execute Lua code from file before executing the command.
+Useful for debugging and tuning lua scripts of sb2.
+.TP
+\-X file
+Load and execute Lua code from file after executing the command.
+Useful for debugging and tuning lua scripts of sb2.
 
 .SH COMMAND TAGS
 .TP
@@ -45,6 +56,9 @@ Add a warning message to the logfile
 .TP
 verify-pathlist-mappings required-fix [ignorelist] 
 Read list of paths from stdina and check that all paths will be mapped to required 'prefix/n'
+.TP
+execluafile filename
+Load and execute Lua code from file.
 
 
 .SH EXAMPLES

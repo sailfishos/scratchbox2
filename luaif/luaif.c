@@ -149,6 +149,25 @@ char *sbox_session_dir = NULL;
 char *sbox_orig_ld_preload = NULL;
 char *sbox_orig_ld_library_path = NULL;
 
+static void load_and_execute_lua_file(struct lua_instance *luaif, const char *filename)
+{
+	switch(luaL_loadfile(luaif->lua, filename)) {
+	case LUA_ERRFILE:
+		fprintf(stderr, "Error loading %s\n", filename);
+		exit(1);
+	case LUA_ERRSYNTAX:
+		fprintf(stderr, "Syntax error in %s\n", filename);
+		exit(1);
+	case LUA_ERRMEM:
+		fprintf(stderr, "Memory allocation error while "
+				"loading %s\n", filename);
+		exit(1);
+	default:
+		;
+	}
+	lua_call(luaif->lua, 0, 0);
+}
+
 static void alloc_lua(void)
 {
 	struct lua_instance *tmp;
@@ -204,21 +223,9 @@ static void alloc_lua(void)
 	disable_mapping(tmp);
 	luaL_openlibs(tmp->lua);
 	lua_bind_sb_functions(tmp->lua); /* register our sb_ functions */
-	switch(luaL_loadfile(tmp->lua, main_lua_script)) {
-	case LUA_ERRFILE:
-		fprintf(stderr, "Error loading %s\n", main_lua_script);
-		exit(1);
-	case LUA_ERRSYNTAX:
-		fprintf(stderr, "Syntax error in %s\n", main_lua_script);
-		exit(1);
-	case LUA_ERRMEM:
-		fprintf(stderr, "Memory allocation error while "
-				"loading %s\n", main_lua_script);
-		exit(1);
-	default:
-		;
-	}
-	lua_call(tmp->lua, 0, 0);
+
+	load_and_execute_lua_file(tmp, main_lua_script);
+
 	enable_mapping(tmp);
 
 	/* check Lua/C interface version. */
@@ -307,6 +314,18 @@ char *sb2__read_string_variable_from_lua__(const char *name)
 	return(read_string_variable_from_lua(luaif, name));
 }
 
+/* Read and execute an lua file. Used from sb2-show, useful
+ * for debugging and benchmarking since the script is executed
+ * in a context which already contains all SB2's varariables etc.
+ * Note that this function is exported from libsb2.so:
+*/
+void sb2__load_and_execute_lua_file__(const char *filename)
+{
+	struct lua_instance *luaif;
+
+	luaif = get_lua();
+	load_and_execute_lua_file(luaif, filename);
+}
 
 /* "sb.decolonize_path", to be called from lua code */
 static int lua_sb_decolonize_path(lua_State *l)

@@ -197,7 +197,7 @@ end
 
 -- returns path and readonly_flag
 function sbox_execute_conditional_actions(binary_name,
-		func_name, work_dir, rp, path, rule)
+		func_name, rp, path, rule)
 	local actions = rule.actions
 
 	local a
@@ -246,7 +246,7 @@ function sbox_execute_conditional_actions(binary_name,
 end
 
 -- returns exec_policy, path and readonly_flag
-function sbox_execute_rule(binary_name, func_name, work_dir, rp, path, rule)
+function sbox_execute_rule(binary_name, func_name, rp, path, rule)
 	local ret_exec_policy = nil
 	local ret_path = nil
 	local ret_ro = false
@@ -264,7 +264,7 @@ function sbox_execute_rule(binary_name, func_name, work_dir, rp, path, rule)
 		-- FIXME: sbox_execute_conditional_actions should also
 		-- be able to return exec_policy
 		ret_path, ret_ro = sbox_execute_conditional_actions(binary_name,
-			func_name, work_dir, rp, path, rule)
+			func_name, rp, path, rule)
 	elseif (rule.map_to) then
 		if (rule.map_to == "/") then
 			ret_path = path
@@ -349,9 +349,16 @@ function find_rule(chain, func, full_path)
 	return nil, 0
 end
 
--- returns the same values as sbox_translate_path
--- (rule,exec_policy,path,ro_flag):
-function map_using_rule(rule, binary_name, func_name, work_dir, path)
+-- sbox_translate_path is the function called from libsb2.so
+-- preload library and the FUSE system for each path that needs
+-- translating.
+--
+-- returns:
+--   1. the rule used to perform the mapping
+--   2. exec_policy
+--   3. path (mapping result)
+--   4. "readonly" flag
+function sbox_translate_path(rule, binary_name, func_name, path)
 	local ret = path
 	local rp = path
 	local readonly_flag = false
@@ -364,7 +371,7 @@ function map_using_rule(rule, binary_name, func_name, work_dir, path)
 	end
 
 	if (debug_messages_enabled) then
-		sb.log("noise", string.format("map:%s:%s", work_dir, path))
+		sb.log("noise", string.format("map:%s", path))
 	end
 
 	if (rule.log_level) then
@@ -378,28 +385,17 @@ function map_using_rule(rule, binary_name, func_name, work_dir, path)
 	end
 
 	if (rule.custom_map_func ~= nil) then
-		ret = rule.custom_map_func(binary_name, func_name, work_dir, rp, path, rules[n])
+		-- FIXME: no work_dir, can't give it to custom_map_funct!!
+		ret = rule.custom_map_func(binary_name, func_name, "", rp, path, rules[n])
 		if (rule.readonly ~= nil) then
 			readonly_flag = rule.readonly
 		end
 	else
-		exec_policy, ret, readonly_flag = sbox_execute_rule(binary_name, func_name, work_dir, rp, path, rule)
+		exec_policy, ret, readonly_flag = sbox_execute_rule(
+			binary_name, func_name, rp, path, rule)
 	end
 
 	return rule, exec_policy, ret, readonly_flag
-end
-
--- sbox_translate_path is the function called from libsb2.so
--- preload library and the FUSE system for each path that needs 
--- translating.
---
--- returns:
---   1. the rule used to perform the mapping
---   2. exec_policy
---   3. path (mapping result)
---   4. "readonly" flag
-function sbox_translate_path(rule, binary_name, func_name, work_dir, path)
-	return map_using_rule(rule, binary_name, func_name, work_dir, path)
 end
 
 function find_chain(chains_table, binary_name)
@@ -419,7 +415,7 @@ end
 -- determine where to start resolving symbolic links; shorter paths than
 -- "min_path_len" should not be given to sbox_translate_path()
 -- returns "rule", "rule_found", "min_path_len"
-function sbox_get_mapping_requirements(binary_name, func_name, work_dir, full_path)
+function sbox_get_mapping_requirements(binary_name, func_name, full_path)
 	-- loop through the chains, first match is used
 	local min_path_len = 0
 	local rule = nil

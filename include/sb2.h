@@ -32,9 +32,13 @@ struct lua_instance {
  * Increment the serial number (first number) and update the initials
  * and date whenever the interface beween Lua and C is changed.
  *
+ * * Differences between "28,lta-2008-09-23" and "35,lta-2008-10-01":
+ *   - sbox_get_mapping_requirements(): parameter work_dir was removed
+ *   - sbox_translate_path(): as above
+ *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "28,lta-2008-09-23"
+#define SB2_LUA_C_INTERFACE_VERSION "35,lta-2008-10-01"
 
 void sb2_lua_init(void);
 struct lua_instance *get_lua(void);

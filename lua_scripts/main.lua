@@ -13,8 +13,9 @@ debug_messages_enabled = sb.debug_messages_enabled()
 -- Increment the serial number (first number) and update the initials
 -- and date whenever the interface beween Lua and C is changed.
 --
--- NOTE: the corresponding identifier for C is in include/sb2.h
-sb2_lua_c_interface_version = "28,lta-2008-09-23"
+-- NOTE: the corresponding identifier for C is in include/sb2.h,
+-- see that file for description about differences
+sb2_lua_c_interface_version = "35,lta-2008-10-01"
 
 function do_file(filename)
 	if (debug_messages_enabled) then

@@ -3,7 +3,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "15"
+rule_file_interface_version = "16"
 ----------------------------------
 
 sb1_compat_dir = sbox_target_root .. "/scratchbox1-compat"
@@ -21,7 +21,9 @@ mapall_chain = {
 	next_chain = nil,
 	binary = nil,
 	rules = {
-		{match = ".*qemu.*", use_orig_path = true},
+		{path = sbox_cputransparency_method, use_orig_path = true, readonly = true},
+		{path = "/usr/bin/sb2-show", use_orig_path = true, readonly = true},
+
 		{prefix = target_root, use_orig_path = true},
 
 		-- Scratchbox 1 compatibility rules:

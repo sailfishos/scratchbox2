@@ -2,31 +2,6 @@
 -- Copyright (C) 2006, 2007 Lauri Leukkunen
 -- Licensed under MIT license.
 
--- escape_string() prefixes the magic pattern matching
--- characters ^$()%.[]*+-?) with '%'
-function escape_string(a)
-	b = ""
-	for i = 1, string.len(a) do
-		c = string.sub(a, i, i)
-		-- escape the magic chars
-		if (c == "^" or
-			c == "$" or
-			c == "(" or
-			c == ")" or
-			c == "%" or
-			c == "." or
-			c == "[" or
-			c == "]" or
-			c == "*" or
-			c == "+" or
-			c == "-" or
-			c == "?") then
-			b = b .. "%"
-		end
-		b = b .. c
-	end
-	return b
-end
 
 function basename(path)
 	if (path == "/") then
@@ -76,7 +51,15 @@ function load_and_check_rules()
 	export_chains = {}
 	exec_policy_chains = {}
 
-	local current_rule_interface_version = "15"
+	-- Differences between version 15 and 16:
+	-- - "match" rules are not supported anymore
+	-- - interface to custom_map_func was modified:
+	--   "work_dir" was removed, name changed to "custom_map_funct",
+	--   and such functions are now expected to return 3 values
+	--   (previously only one was expected)
+	-- - variables "esc_tools_root" and "esc_target_root"
+	--   were removed
+	local current_rule_interface_version = "16"
 
 	do_file(session_dir .. "/rules.lua")
 
@@ -139,15 +122,6 @@ if (tools_root == "") then
 	tools_root = nil
 end
 
--- make versions of tools_root and target_root safe
--- to use in match() functions
-if (tools_root) then
-	esc_tools_root = escape_string(tools_root)
-end
-
-if (target_root) then
-	esc_target_root = escape_string(target_root)
-end
 
 active_mode_mapping_rule_chains = {}
 active_mode_exec_policy_chains = {}
@@ -321,24 +295,9 @@ function find_rule(chain, func, full_path)
 					min_path_len = string.len(wrk.rules[i].path)
 					return wrk.rules[i], min_path_len
 				end
-				-- "match" rules use a lua "regexp".
-				-- these will be obsoleted, as this kind of rule
-				-- is almost impossible to reverse (backward mapping
-				-- is not possible as long as there are "match" rules)
-				if (wrk.rules[i].match) then
-					if (string.match(full_path, wrk.rules[i].match)) then
-						if (debug_messages_enabled) then
-							sb.log("noise", string.format("selected match rule %d (%s)", i, wrk.rules[i].match))
-						end
-						-- there is no easy and reliable
-						-- way to determine min_path_len
-						-- so leave it to zero
-						return wrk.rules[i], min_path_len
-					end
-				end
 				-- FIXME: Syntax checking should be added:
 				-- it should be tested that exactly one of
-				-- "prefix","path" or "match" was present
+				-- "prefix" or "path" was present
 			end
 		end
 		wrk = wrk.next_chain
@@ -384,9 +343,9 @@ function sbox_translate_path(rule, binary_name, func_name, path)
 		end
 	end
 
-	if (rule.custom_map_func ~= nil) then
-		-- FIXME: no work_dir, can't give it to custom_map_funct!!
-		ret = rule.custom_map_func(binary_name, func_name, "", rp, path, rules[n])
+	if (rule.custom_map_funct ~= nil) then
+		exec_policy, ret, readonly_flag = rule.custom_map_funct(
+			binary_name, func_name, rp, path, rules[n])
 		if (rule.readonly ~= nil) then
 			readonly_flag = rule.readonly
 		end

@@ -67,6 +67,8 @@ extern void sblog_printf_line_to_logfile(const char *file, int line,
 
 extern int sb_loglevel__; /* do not access directly */
 
+#define SB_LOG_INITIALIZED() (sb_loglevel__ >= SB_LOGLEVEL_NONE)
+
 #define SB_LOG_IS_ACTIVE(level) ((level) <= sb_loglevel__)
 
 #define SB_LOG(level, ...) \
@@ -83,6 +85,7 @@ extern char *sbox_session_dir;
 extern char *sbox_orig_ld_preload;
 extern char *sbox_orig_ld_library_path;
 
+extern int pthread_library_is_available; /* flag */
 extern pthread_t (*pthread_self_fnptr)(void);
 
 #endif

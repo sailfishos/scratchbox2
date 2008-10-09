@@ -51,6 +51,8 @@
 
 #include <dlfcn.h>
 
+int pthread_library_is_available = 0; /* flag */
+static int pthread_detection_done = 0;
 /* pointers to pthread library functions, if the pthread library is in use.
 */
 static int (*pthread_key_create_fnptr)(pthread_key_t *key,
@@ -63,9 +65,8 @@ pthread_t (*pthread_self_fnptr)(void) = NULL;
 
 static void check_pthread_library()
 {
-	static int pthread_detection_done = 0;
-
 	if (pthread_detection_done == 0) {
+		/* these are available only in libpthread: */
 		pthread_key_create_fnptr = dlsym(RTLD_DEFAULT,
 			"pthread_key_create");
 		pthread_getspecific_fnptr = dlsym(RTLD_DEFAULT,
@@ -74,6 +75,9 @@ static void check_pthread_library()
 			"pthread_setspecific");
 		pthread_once_fnptr = dlsym(RTLD_DEFAULT,
 			"pthread_once");
+
+		/* Linux/glibc: pthread_self seems to exist in both
+		 * glibc and libpthread. */
 		pthread_self_fnptr = dlsym(RTLD_DEFAULT,
 			"pthread_self");
 
@@ -83,19 +87,28 @@ static void check_pthread_library()
 		    pthread_once_fnptr) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"pthread library FOUND");
+			pthread_detection_done = 1;
+			pthread_library_is_available = 1;
 		} else if (!pthread_key_create_fnptr &&
 		   !pthread_getspecific_fnptr &&
 		   !pthread_setspecific_fnptr &&
 		   !pthread_once_fnptr) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"pthread library not found");
+			pthread_detection_done = -1;
+			pthread_library_is_available = 0;
 		} else {
 			SB_LOG(SB_LOGLEVEL_ERROR,
 				"pthread library is only partially available"
 				" - operation may become unstable");
+			pthread_detection_done = -2;
+			pthread_library_is_available = 0;
 		}
 
-		pthread_detection_done = 1;
+	} else {
+		SB_LOG(SB_LOGLEVEL_NOISE,
+			"pthread detection already done (%d)",
+			pthread_detection_done);
 	}
 }
 
@@ -171,30 +184,31 @@ static void load_and_execute_lua_file(struct lua_instance *luaif, const char *fi
 	lua_call(luaif->lua, 0, 0);
 }
 
-static void alloc_lua(void)
+static struct lua_instance *alloc_lua(void)
 {
 	struct lua_instance *tmp;
 	char *main_lua_script = NULL;
 	char *lua_if_version = NULL;
 
-	check_pthread_library();
-
-	if (pthread_once_fnptr)
-		(*pthread_once_fnptr)(&lua_key_once, alloc_lua_key);
-
 	if (pthread_getspecific_fnptr) {
-		if ((*pthread_getspecific_fnptr)(lua_key) != NULL) {
+		tmp = (*pthread_getspecific_fnptr)(lua_key);
+		if (tmp != NULL) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"alloc_lua: already done (pt-getspec.)");
-			return;
+			return(tmp);
 		}
 	} else if (my_lua_instance) {
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"alloc_lua: already done (has my_lua_instance)");
-		return;
+		return(my_lua_instance);
 	}
 
 	tmp = malloc(sizeof(struct lua_instance));
+	if (!tmp) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"alloc_lua: Failed to allocate memory");
+		return(NULL);
+	}
 	memset(tmp, 0, sizeof(struct lua_instance));
 
 	if (pthread_setspecific_fnptr) {
@@ -213,7 +227,7 @@ static void alloc_lua(void)
 	if (!sbox_session_dir || !*sbox_session_dir) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"alloc_lua: no SBOX_SESSION_DIR");
-		return; /* can't live without a session */
+		return(NULL); /* can't live without a session */
 	}
 	sbox_session_dir = strdup(sbox_session_dir);
 
@@ -253,44 +267,43 @@ static void alloc_lua(void)
 	SB_LOG(SB_LOGLEVEL_NOISE, "gettop=%d", lua_gettop(tmp->lua));
 
 	free(main_lua_script);
+	return(tmp);
 }
-
-enum lua_engine_states {
-	LES_NOT_INITIALIZED = 0,
-	LES_INIT_IN_PROCESS,
-	LES_READY
-};
-
-static int lua_engine_state = 0;
 
 struct lua_instance *get_lua(void)
 {
-	struct lua_instance *ptr;
+	struct lua_instance *ptr = NULL;
 
-	switch (lua_engine_state) {
-	case LES_NOT_INITIALIZED:
-		sb2_lua_init();
-		break;
-	case LES_INIT_IN_PROCESS:
-		/* FIXME: This should probably wait.. */
-		return NULL;
-	case LES_READY:
-	default:
-		/* Do nothing */
-		break;
-	}
+	if (!SB_LOG_INITIALIZED()) sblog_init();
 
-	if (pthread_getspecific_fnptr) {
-		ptr = (*pthread_getspecific_fnptr)(lua_key);
+	if (pthread_detection_done == 0) check_pthread_library();
+
+	if (pthread_library_is_available) {
+		if (pthread_once_fnptr)
+			(*pthread_once_fnptr)(&lua_key_once, alloc_lua_key);
+		if (pthread_getspecific_fnptr)
+			ptr = (*pthread_getspecific_fnptr)(lua_key);
+		if (!ptr) ptr = alloc_lua();
 		if (!ptr) {
-			fprintf(stderr, "Something's wrong with"
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"Something's wrong with"
+				" the pthreads support");
+			fprintf(stderr, "FATAL: sb2 preload library:"
+				" Something's wrong with"
 				" the pthreads support.\n");
 			exit(1);
 		}
 	} else {
+		/* no pthreads, single-thread application */
 		ptr = my_lua_instance;
+		if (!ptr) ptr = alloc_lua();
 		if (!ptr) {
-			fprintf(stderr, "Failed to get Lua instance"
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"Failed to get Lua instance"
+				" (and the pthreads support is "
+				" disabled!)");
+			fprintf(stderr, "FATAL: sb2 preload library:"
+				" Failed to get Lua instance"
 				" (and the pthreads support is disabled!)\n");
 			exit(1);
 		}
@@ -298,13 +311,18 @@ struct lua_instance *get_lua(void)
 	return(ptr);
 }
 
-void sb2_lua_init(void) __attribute((constructor));
-void sb2_lua_init(void)
+/* Preload library constructor. Unfortunately this can
+ * be called after other parts of this library have been called
+ * if the program uses multiple threads (unbelievable, but true!),
+ * so this isn't really too useful. Lua initialization was
+ * moved to get_lua() because of this.
+*/
+void sb2_preload_library_constructor(void) __attribute((constructor));
+void sb2_preload_library_constructor(void)
 {
-	lua_engine_state = LES_INIT_IN_PROCESS;
+	SB_LOG(SB_LOGLEVEL_DEBUG, "sb2_preload_library_constructor called");
 	sblog_init();
-	alloc_lua();
-	lua_engine_state = LES_READY;
+	SB_LOG(SB_LOGLEVEL_DEBUG, "sb2_preload_library_constructor: done");
 }
 
 /* Read string variables from lua.

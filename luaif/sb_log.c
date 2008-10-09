@@ -263,7 +263,7 @@ void sblog_vprintf_line_to_logfile(
 	} else {
 		char	process_and_thread_id[80];
 
-		if (pthread_self_fnptr) {
+		if (pthread_library_is_available && pthread_self_fnptr) {
 			pthread_t	tid = (*pthread_self_fnptr)();
 
 			snprintf(process_and_thread_id, sizeof(process_and_thread_id),

@@ -63,8 +63,6 @@
 #   - "postprocess(varname)" can be used to call  postprocessor functions for
 #     mapped variables.
 #   - "return(expr)" can be used to alter the return value.
-#
-# For "WRAP" only:
 #   - "create_nomap_nolog_version" creates a direct interface function to the
 #     next function (for internal use inside the preload library)
 # For "GATE" only:
@@ -549,9 +547,7 @@ sub process_wrap_or_gate_modifiers {
 			process_readonly_check_modifier($mods, $extra_check,
 				$param_to_be_mapped, $return_value, 
 				$error_code);
-		} elsif(($modifiers[$i] eq 'create_nomap_nolog_version') &&
-			($command eq 'WRAP')) {
-
+		} elsif($modifiers[$i] eq 'create_nomap_nolog_version') {
 			$mods->{'make_nomap_nolog_function'} = 1;
 		} elsif($modifiers[$i] =~ m/^hardcode_param\((.*),(.*)\)$/) {
 			my $param_number = $1;
@@ -720,13 +716,17 @@ sub create_call_to_gate_fn {
 		create_postprocessors($fn, $mods);
 
 	my $unmapped_call = "${fn_name}_gate($orig_param_list);\n";
-	# nomap_nolog is not possible for GATEs
+
+	# nomap_nolog for a gate is a direct call to the real function
+	my $unmapped_nolog_call = "${fn_name}_next__(".
+		join(", ", @{$mods->{'parameter_names'}}).
+		");\n";
 
 	my $gate_function_prototype =
 		"extern ".$fn->{'fn_return_type'}." ${fn_name}_gate(".
 			"$prototype_params);\n";
 
-	return($mapped_call, $unmapped_call,
+	return($mapped_call, $unmapped_call, $unmapped_nolog_call,
 		$gate_function_prototype.$postprocessor_prototypes,
 		$postprocessor_calls);
 }
@@ -937,10 +937,9 @@ sub command_wrap_or_gate {
 		 $postprocesors, $prototypes) = create_call_to_real_fn(
 			$fn, $mods, @param_list_in_next_call);
 	} else { # GATE
-		($mapped_call, $unmapped_call, $prototypes,
-		 $postprocesors) = create_call_to_gate_fn($fn, $mods,
-				@param_list_in_next_call);
-		$unmapped_nolog_call = ""; # not supported for GATEs
+		($mapped_call, $unmapped_call, $unmapped_nolog_call,
+		 $prototypes, $postprocesors) = create_call_to_gate_fn(
+			$fn, $mods, @param_list_in_next_call);
 	}
 	$export_h_buffer .= $prototypes;
 

@@ -286,7 +286,7 @@ static char *absolute_path(const char *path)
 		char cwd[PATH_MAX + 1];
 
 		memset(cwd, '\0', sizeof(cwd));
-		if (!getcwd(cwd, sizeof(cwd))) {
+		if (!getcwd_nomap_nolog(cwd, sizeof(cwd))) {
 			/* getcwd() returns NULL if the path is really long.
 			 * In this case this really won't be able to do all 
 			 * path mapping steps, but sb_decolonize_path()
@@ -852,7 +852,7 @@ static char *scratchbox_path_internal(
 
 		/* FIXME: work_dir should be unnecessary if path is absolute? */
 		memset(work_dir, '\0', sizeof(work_dir));
-		getcwd(work_dir, sizeof(work_dir)-1);
+		getcwd_nomap_nolog(work_dir, sizeof(work_dir)-1);
 
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"scratchbox_path_internal: process '%s', n='%s'",

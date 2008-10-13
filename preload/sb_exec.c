@@ -1075,7 +1075,7 @@ int do_exec(const char *exec_fn_name, const char *orig_file,
 	return sb_next_execve(mapped_file, *my_argv, *my_envp);
 }
 
-/* ---------- */
+/* ----- EXPORTED from interface.master: ----- */
 int sb2show__execve_mods__(
 	char *file,
 	char *const *orig_argv, char *const *orig_envp,
@@ -1084,6 +1084,8 @@ int sb2show__execve_mods__(
 	char *binaryname, *tmp;
 	int err = 0;
 	char ***my_envp, ***my_argv, **my_file;
+
+	if (!sb2_global_vars_initialized__) sb2_initialize_global_variables();
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s '%s'", __func__, orig_argv[0]);
 

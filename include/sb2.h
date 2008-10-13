@@ -40,7 +40,6 @@ struct lua_instance {
 */
 #define SB2_LUA_C_INTERFACE_VERSION "35,lta-2008-10-01"
 
-void sb2_lua_init(void);
 struct lua_instance *get_lua(void);
 char *sb_decolonize_path(const char *path);
 
@@ -85,6 +84,8 @@ extern int sb_loglevel__; /* do not access directly */
 
 #define LIBSB2 "libsb2.so.1"
 
+extern int sb2_global_vars_initialized__;
+extern void sb2_initialize_global_variables(void);
 extern char *sbox_session_dir;
 extern char *sbox_orig_ld_preload;
 extern char *sbox_orig_ld_library_path;

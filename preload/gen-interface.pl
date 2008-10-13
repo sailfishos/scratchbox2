@@ -94,6 +94,16 @@ my $num_errors = 0;
 my $generated_code_loglevel = "LOGLEVEL_statement_missing_from_interface_master";
 
 #============================================
+# This will be added to all generated interface functions:
+# (global variables need to be initialized by a function call
+# because the library constructor function seems to be unreliable:
+# it may not be the first executed function in a multithreaded
+# environment!)
+my $common_initcode_for_all_functions =
+	"\tif (!sb2_global_vars_initialized__)\n".
+	"\t\tsb2_initialize_global_variables();\n";
+
+#============================================
 
 sub write_output_file {
 	my $filename = shift;
@@ -840,6 +850,11 @@ sub command_wrap_or_gate {
 	$wrapper_fn_c_code .=	"\tint saved_errno = errno;\n".
 				"\terrno = 0;\n";
 	$nomap_fn_c_code .=	"\tint saved_errno = errno;\n";
+
+	# variables have been introduced, add the code:
+	$wrapper_fn_c_code .=		$common_initcode_for_all_functions;
+	$nomap_fn_c_code .=		$common_initcode_for_all_functions;
+	$nomap_nolog_fn_c_code .=	$common_initcode_for_all_functions;
 
 	$wrapper_fn_c_code .=		$mods->{'path_mapping_code'}.
 					$mods->{'path_ro_check_code'};

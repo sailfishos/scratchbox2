@@ -293,15 +293,12 @@ static char *absolute_path(const char *path)
 			 * must not fail!
 			*/
 			SB_LOG(SB_LOGLEVEL_ERROR,
-				"absolute_path failed to get current dir"
-				" (processing continues with relative path)");
-			if (!(cpath = strdup(path)))
-				abort();
-		} else {
-			asprintf(&cpath, "%s/%s", cwd, path);
-			if (!cpath)
-				abort();
+				"absolute_path failed to get current dir");
+			return(NULL);
 		}
+		asprintf(&cpath, "%s/%s", cwd, path);
+		if (!cpath)
+			abort();
 		SB_LOG(SB_LOGLEVEL_NOISE, "absolute_path done, '%s'", cpath);
 	}
 	return(cpath);
@@ -326,13 +323,18 @@ char *sb_decolonize_path(const char *path)
 	list.pl_first = NULL;
 
 	cpath = absolute_path(path);
+	if (!cpath) {
+		SB_LOG(SB_LOGLEVEL_NOTICE,
+			"sb_decolonize_path forced to use relative path '%s'",
+			path);
+		buf = strdup(path);
+	} else {
+		split_path_to_path_entries(cpath, &list);
+		remove_dots_and_dotdots_from_path_entries(&list);
 
-	split_path_to_path_entries(cpath, &list);
-	remove_dots_and_dotdots_from_path_entries(&list);
-
-	buf = path_entries_to_string(list.pl_first);
-	free_path_entries(&list);
-
+		buf = path_entries_to_string(list.pl_first);
+		free_path_entries(&list);
+	}
 	SB_LOG(SB_LOGLEVEL_NOISE, "sb_decolonize_path returns '%s'", buf);
 	return buf;
 }
@@ -352,6 +354,7 @@ static char *sb_abs_dirname(const char *path)
 	list.pl_first = NULL;
 
 	cpath = absolute_path(path);
+	if (!cpath) return(NULL);
 
 	split_path_to_path_entries(cpath, &list);
 	remove_last_path_entry(&list);
@@ -422,6 +425,12 @@ static char *call_lua_function_sbox_translate_path(
 		char *cleaned_path;
 
 		cleaned_path = sb_decolonize_path(traslate_result);
+		if (*cleaned_path != '/') {
+			/* oops, got a relative path. CWD is too long. */
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"OOPS, call_lua_function_sbox_translate_path:"
+				" relative");
+		}
 		free(traslate_result);
 		traslate_result = NULL;
 
@@ -698,6 +707,20 @@ static char *sb_path_resolution(
 				int last_in_dirnam_is_slash;
 
 				dirnam = sb_abs_dirname(work->pe_full_path);
+				if (!dirname) {
+					/* this should not happen.
+					 * work->pe_full_path is supposed to
+					 * be absolute path.
+					*/
+					char *cp;
+					SB_LOG(SB_LOGLEVEL_ERROR,
+						"relative symlink forced to"
+						" use relative path '%s'",
+						work->pe_full_path);
+					dirnam = strdup(work->pe_full_path);
+					cp = strrchr(dirnam,'/');
+					if (cp) *cp = '\0';
+				}
 				last_in_dirnam_is_slash =
 					(last_char_in_str(dirnam) == '/');
 
@@ -853,6 +876,22 @@ static char *scratchbox_path_internal(
 
 		full_path_for_rule_selection = sb_decolonize_path(path);
 
+		if (*full_path_for_rule_selection != '/') {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"scratchbox_path_internal: sb_decolonize_path"
+				" failed to return absolute path (can't"
+				" map this)");
+			mapping_result = strdup(path);
+			if (process_path_for_exec) {
+				/* can't map, but still need to leave "rule"
+				 * (string) and "policy" (nil) to the stack */
+				lua_pushstring(luaif->lua,
+					"mapping failed (failed to make it absolute)");
+				lua_pushnil(luaif->lua);
+			}
+			goto forget_mapping;
+		}
+
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"scratchbox_path_internal: process '%s', n='%s'",
 			path, full_path_for_rule_selection);
@@ -891,18 +930,20 @@ static char *scratchbox_path_internal(
 				drop_rule_from_lua_stack(luaif);
 			}
 		}
+	forget_mapping:
 		if(decolon_path) free(decolon_path);
 		if(full_path_for_rule_selection) free(full_path_for_rule_selection);
 	}
 	enable_mapping(luaif);
 
-	/* now "mapping_result" is an absolute path.
+	/* now "mapping_result" is (should be) an absolute path.
 	 * sb2's exec logic needs absolute paths, but otherwise,
 	 * try to return a relative path if the original path was relative.
 	*/
 	if ((process_path_for_exec == 0) &&
 	    (path[0] != '/') &&
-	    mapping_result) {
+	    mapping_result &&
+	    (*mapping_result == '/')) {
 		char cwd[PATH_MAX + 1];
 
 		if (getcwd_nomap_nolog(cwd, sizeof(cwd))) {

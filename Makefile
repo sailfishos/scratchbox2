@@ -123,7 +123,7 @@ install-noarch: $(BUILD_TARGET)
 	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/simple/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/simple/
 	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/devel/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/devel/
 	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/install/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/install/
-	ln -sf $(prefix)/share/scratchbox2/lua_scripts/pathmaps/devel $(prefix)/share/scratchbox2/lua_scripts/pathmaps/maemo
+	(cd $(prefix)/share/scratchbox2/lua_scripts/pathmaps; ln -sf devel maemo)
 
 	install -c -m 644 $(SRCDIR)/modeconf/* $(prefix)/share/scratchbox2/modeconf/
 	install -c -m 644 $(SRCDIR)/tests/* $(prefix)/share/scratchbox2/tests

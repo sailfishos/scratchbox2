@@ -1,5 +1,10 @@
 -- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
+-- Copyright (c) 2008 Nokia Corporation.
 -- Licensed under MIT license.
+--
+-- "devel" mode, to be used for software development & building when
+-- the "simple" mode is not enough.
+
 
 -- Rule file interface version, mandatory.
 --
@@ -19,22 +24,22 @@ sb2_share_dir = sbox_user_home_dir.."/.scratchbox2/"..sbox_target.."/share"
 -- then dynamic libraries can be used from tools_root (otherwise we'll
 -- be using the libs from the host OS)
 
-maemo_mode_tools_ld_so = nil		-- default = not needed
-maemo_mode_tools_ld_library_path = nil	-- default = not needed
+devel_mode_tools_ld_so = nil		-- default = not needed
+devel_mode_tools_ld_library_path = nil	-- default = not needed
 
 if ((tools_root ~= nil) and conf_tools_sb2_installed) then
 	if (conf_tools_ld_so ~= nil) then
 		-- Ok to use dynamic libraries from tools!
-		maemo_mode_tools_ld_so = conf_tools_ld_so
-		maemo_mode_tools_ld_library_path = conf_tools_ld_so_library_path
+		devel_mode_tools_ld_so = conf_tools_ld_so
+		devel_mode_tools_ld_library_path = conf_tools_ld_so_library_path
 	end
 end
 
 exec_policy_tools = {
 	name = "Tools",
-	native_app_ld_so = maemo_mode_tools_ld_so,
+	native_app_ld_so = devel_mode_tools_ld_so,
 	native_app_ld_so_supports_argv0 = conf_tools_ld_so_supports_argv0,
-	native_app_ld_library_path = maemo_mode_tools_ld_library_path
+	native_app_ld_library_path = devel_mode_tools_ld_library_path
 }
 
 -- For target binaries:
@@ -45,28 +50,28 @@ exec_policy_tools = {
 -- loaders and dynamic libraries! The solution is that we use the location
 -- (as determined by the mapping engine) to decide the execution policy.
 
-maemo_mode_target_ld_so = nil		-- default = not needed
-maemo_mode_target_ld_library_path = nil	-- default = not needed
+devel_mode_target_ld_so = nil		-- default = not needed
+devel_mode_target_ld_library_path = nil	-- default = not needed
 
 if (conf_target_sb2_installed) then
 	if (conf_target_ld_so ~= nil) then
 		-- use dynamic libraries from target, 
 		-- when executing native binaries!
-		maemo_mode_target_ld_so = conf_target_ld_so
-		maemo_mode_target_ld_library_path = conf_target_ld_so_library_path
+		devel_mode_target_ld_so = conf_target_ld_so
+		devel_mode_target_ld_library_path = conf_target_ld_so_library_path
 
 		-- FIXME: This exec policy should process (map components of)
 		-- the current value of LD_LIBRARY_PATH, and add the results
-		-- to maemo_mode_target_ld_library_path just before exec.
+		-- to devel_mode_target_ld_library_path just before exec.
 		-- This has not been done yet.
 	end
 end
 
 exec_policy_target = {
 	name = "Rootstrap",
-	native_app_ld_so = maemo_mode_target_ld_so,
+	native_app_ld_so = devel_mode_target_ld_so,
 	native_app_ld_so_supports_argv0 = conf_target_ld_so_supports_argv0,
-	native_app_ld_library_path = maemo_mode_target_ld_library_path
+	native_app_ld_library_path = devel_mode_target_ld_library_path
 }
 
 --
@@ -98,11 +103,9 @@ simple_chain = {
 	binary = nil,
 	rules = {
 		-- -----------------------------------------------
-		-- 1. General SB2 & maemo environment:
+		-- 1. General SB2 environment:
 
 		{prefix = "/usr/bin/sb2-",
-		 use_orig_path = true, readonly = true},
-		{prefix = "/opt/maemo",
 		 use_orig_path = true, readonly = true},
 		{prefix = "/usr/share/scratchbox2/host_usr",
 		 replace_by = "/usr", readonly = true},
@@ -110,12 +113,18 @@ simple_chain = {
 		 use_orig_path = true, readonly = true},
 
 		-- -----------------------------------------------
-		-- 2. Home directories
+		-- 5. Maemo SDK+
+
+		{prefix = "/opt/maemo",
+		 use_orig_path = true, readonly = true},
 
 		-- "user" is a special username on the Maemo platform:
 		{prefix = "/home/user", map_to = target_root},
 
-		-- Other users = not mapped, R/W access
+		-- -----------------------------------------------
+		-- 5. Home directories
+
+		-- Home directories = not mapped, R/W access
 		{prefix = "/home", use_orig_path = true},
 
 		-- -----------------------------------------------
@@ -400,7 +409,7 @@ export_chains = {
 --
 -- Note that the real path (mapped path) is used
 --  when looking up rules from here!
-maemo_exec_policies = {
+devel_exec_policies = {
 	next_chain = nil,
 	binary = nil,
 	rules = {
@@ -425,6 +434,6 @@ maemo_exec_policies = {
 }
 
 exec_policy_chains = {
-	maemo_exec_policies
+	devel_exec_policies
 }
 

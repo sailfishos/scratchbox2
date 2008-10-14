@@ -83,35 +83,181 @@ static int command_show_variable(
 	return(1);
 }
 
+static int elem_count(char *const *elems)
+{
+	int count = 0;
+	char **p = (char **)elems;
+	while (*p) {
+		p++; count++;
+	}
+	return count;
+}
+
+static char **join_env_vecs(char **env1, char **env2)
+{
+	int     elemc1 = (env1 ? elem_count(env1) : 0);
+	int     elemc2 = (env2 ? elem_count(env2) : 0);
+	char    **p;
+	int     i;
+	char    **new_elems;
+
+	new_elems = (char **)calloc(elemc1 + elemc2 + 1, sizeof(char *));
+	for (i = 0, p = env1; p && *p; p++) {
+		int insert_to_new_elems = 1;
+
+		/* variables in "env2" override "env1": */
+		if (env2) {
+			char *cp = strchr(*p, '=');
+			int namelen = 0;
+
+			if (cp) namelen = cp - *p;
+			if (namelen) {
+				char **p2;
+				for (p2 = env2; p2 && *p2; p2++) {
+					if (!strncmp(*p,*p2,namelen+1)) {
+						/* same variable found from
+						 * env2, ignore the value from
+						 * env1 */
+						insert_to_new_elems = 0;							break;
+					}
+				}
+			}
+		}
+		if (insert_to_new_elems)
+			new_elems[i++] = strdup(*p);
+	}
+	for (p = env2; p && *p; p++) {
+		new_elems[i++] = strdup(*p);
+	}
+	new_elems[i] = NULL;
+
+	return(new_elems);
+}
+
+static int compar_strvec_elems(const void *e1, const void *e2)
+{
+	char **s1 = (char **)e1, **s2 = (char **)e2;
+
+	return(strcmp(*s1,*s2));
+}
+
+static int diff_strvecs(char **orig_vec, char **new_vec, int verbose)
+{
+	char **op = orig_vec;
+	char **np = new_vec;
+	int num_diffs = 0;
+
+	while (op && *op && np && *np) {
+		int r = strcmp(*op,*np);
+		if (r == 0) {
+			if (verbose)
+				printf("%15s: %s\n", "unmodified", *op);
+			op++, np++;
+		} else {
+			const char *cp = strchr(*op,'=');
+			int namelen = 0;
+
+			if (cp) namelen = cp - *op;
+			if (namelen) {
+				if (!strncmp(*op,*np,namelen+1)) {
+					/* same name: value was modified */
+					printf("%15s: %s\n", "modified, old",
+						 *op);
+					printf("%15s: %s\n", "          new",
+						 *np);
+					op++, np++;
+					num_diffs++;
+					continue;
+				}
+			}
+			/* not modified. Something was added or removed. */
+			if (r < 0) {
+				printf("%15s: %s\n", "removed", *op);
+				op++;
+				num_diffs++;
+				continue;
+			}
+			printf("%15s: %s\n", "added", *np);
+			num_diffs++;
+			np++;
+		}
+	}
+	/* now either "op" or "np" or both have been processed*/
+	while (op && *op) {
+		printf("%15s: %s\n", "Removed", *op);
+		num_diffs++;
+		op++;
+	}
+	while (np && *np) {
+		printf("%15s: %s\n", "Added", *np);
+		num_diffs++;
+		np++;
+	}
+	return(num_diffs);
+}
+
+/* sort argv / envp */
+static void sort_strvec(char **elems)
+{
+	qsort(elems, elem_count(elems), sizeof(char *), compar_strvec_elems);
+}
+
 static void command_show_exec(
 	const char *binary_name,
 	const char *fn_name,
 	const char *progname, 
-	int argc, char **argv)
+	int argc, char **argv,
+	char **additional_env,
+	int verbose)
 {
 	char	*new_file;
 	char	**new_argv;
 	char	**new_envp;
+	char	**orig_env0;
+	char	**orig_env;
 	char	*mapped_path = NULL;
 	int	readonly_flag;
 	int	i;
+	char	*ba[2];
 	
 	if (argc < 1) {
 		usage_exit(progname, "Too few parameters for this command", 1);
 	}
-	sb2show__execve_mods__(argv[0], argv, environ,
-		&new_file, &new_argv, &new_envp);
-	printf("File\t%s\n", new_file);
 
-	/* do_exec() will map the path just after argvenvp modifications
-	 * have been done, do that here also
+	/* fix __SB2_BINARYNAME in the environment that is going to be
+	 * given to sb2show__execve_mods__() (otherwise it would be "sb2-show"
 	*/
-	mapped_path = sb2show__map_path2__(binary_name, "", fn_name,
-		 new_file, &readonly_flag);
-	printf("Mapped\t%s%s\n", mapped_path, (readonly_flag ? " (readonly)" : ""));
+	asprintf(&ba[0], "__SB2_BINARYNAME=%s", binary_name);
+	ba[1] = NULL;
+	orig_env0 = join_env_vecs(environ, ba);
+	/* add user-specified environment varaibles */
+	orig_env = join_env_vecs(orig_env0, additional_env);
 
-	for (i = 0; new_argv[i]; i++) {
-		printf("argv[%d]\t%s\n", i, new_argv[i]);
+	if (sb2show__execve_mods__(argv[0], argv, orig_env,
+		&new_file, &new_argv, &new_envp) < 0) {
+		printf("Exec denied.\n");
+	} else {
+		printf("File\t%s\n", new_file);
+
+		/* do_exec() will map the path just after argvenvp modifications
+		 * have been done, do that here also
+		*/
+		mapped_path = sb2show__map_path2__(binary_name, "", fn_name,
+			 new_file, &readonly_flag);
+		printf("Mapped\t%s%s\n", mapped_path, (readonly_flag ? " (readonly)" : ""));
+
+		for (i = 0; new_argv[i]; i++) {
+			printf("argv[%d]\t%s\n", i, new_argv[i]);
+		}
+
+		/* compare orig. and new envs. a very simple diff. */
+		sort_strvec(orig_env);
+		sort_strvec(new_envp);
+
+		printf("Environment:\n");
+		if (diff_strvecs(orig_env, new_envp, verbose) == 0) {
+			printf(" (no changes)\n");
+		}
 	}
 }
 
@@ -232,6 +378,7 @@ int main(int argc, char *argv[])
 	int	ret = 0;
 	char	*pre_cmd_file = NULL;
 	char	*post_cmd_file = NULL;
+	char	**additional_env = NULL;
 	
 #if 0 || defined(enable_this_after_sb2_preload_library_startup_has_been_fixed)
 	/* FIXME: this should be able to check if we are inside the sb2
@@ -248,7 +395,7 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-	while ((opt = getopt(argc, argv, "hm:f:b:Dvtx:X:")) != -1) {
+	while ((opt = getopt(argc, argv, "hm:f:b:Dvtx:X:E:")) != -1) {
 		switch (opt) {
 		case 'h': usage_exit(progname, NULL, 0); break;
 		case 'm':
@@ -263,6 +410,22 @@ int main(int argc, char *argv[])
 		case 't': report_time = 1; break;
 		case 'x': pre_cmd_file = optarg; break;
 		case 'X': post_cmd_file = optarg; break;
+		case 'E':
+			if (!strchr(optarg,'=')) {
+				fprintf(stderr,
+					 "%s: Error: parameter error in -E\n",
+					argv[0]);
+			} else if (!additional_env) {
+				additional_env = calloc(2, sizeof(char*));
+				additional_env[0] = strdup(optarg);
+			} else {
+				int n_elem = elem_count(additional_env);
+				additional_env = realloc(additional_env,
+					(n_elem+2)*sizeof(char*));
+				additional_env[n_elem] = strdup(optarg);
+				additional_env[n_elem+1] = NULL;
+			}
+			break;
 		default: usage_exit(progname, "Illegal option", 1); break;
 		}
 	}
@@ -290,7 +453,8 @@ int main(int argc, char *argv[])
 			argv + optind + 1);
 	} else if (!strcmp(argv[optind], "exec")) {
 		command_show_exec(binary_name, function_name,
-			progname, argc - (optind+1), argv + optind + 1);
+			progname, argc - (optind+1), argv + optind + 1,
+			additional_env, verbose);
 	} else if (!strcmp(argv[optind], "log-error")) {
 		command_log(argv + optind + 1, SB_LOGLEVEL_ERROR);
 	} else if (!strcmp(argv[optind], "log-warning")) {

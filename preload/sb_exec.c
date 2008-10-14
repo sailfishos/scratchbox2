@@ -14,10 +14,10 @@
  *    to one of execl(), execle(), execlp(), execv(), execve() or execvp().
  *    That call will be handled by one of the gate functions in 
  *    preload/libsb2.c. Eventually, the gate function will call "do_exec()"
- *    from this file; do_exec() is the place where everything interesting
- *    happens:
+ *    from this file; do_exec() calls prepare_exec() and that is the place
+ *    where everything interesting happens:
  *
- * 1. First, do_exec() calls an exec preprocessing function (implemented
+ * 1. First, prepare_exec() calls an exec preprocessing function (implemented
  *    as Lua code, and also known as the argv&envp mangling code).
  *    The purpose of the preprocessing phase is to determine WHAT FILE needs
  *    to be executed. And that might well be something else than what the
@@ -25,7 +25,7 @@
  *    be replaced by a path to the cross compiler (e.g. /some/path/to/cross-gcc)
  *    Arguments may also be added, deleted, or modified during preprocessing.
  *
- * 2. Second, do_exec() needs to determine WHERE THE FILE IS. It makes a
+ * 2. Second, prepare_exec() needs to determine WHERE THE FILE IS. It makes a
  *    call the regular path mapping engine of SB2 to get a real path to 
  *    the program. (For example, "/bin/ls" might be replaced by 
  *    "/opt/tools_root/bin/ls" by the path mapping engine).
@@ -33,16 +33,16 @@
  *    side-effect of that is that the Lua code also returns an "execution
  *    policy object", that will be used during step 4)
  *
- * 3. Third, do_exec() finds out the TYPE OF THE FILE TO EXECUTE. That
+ * 3. Third, prepare_exec() finds out the TYPE OF THE FILE TO EXECUTE. That
  *    will be done by the inspect_binary() function in this file.
  *
- * 4. Last, do_exec() needs to decide HOW TO DO THE ACTUAL EXECUTION of the 
- *    file. Based on the type of the file, do_exec() will do one of the 
+ * 4. Last, prepare_exec() needs to decide HOW TO DO THE ACTUAL EXECUTION of the
+ *    file. Based on the type of the file, prepare_exec() will do one of the
  *    following:
  *
  *    4a. For scripts (files starting with #!), script interpreter name 
  *        will be read from the file and it will be processed again by 
- *	  do_exec()
+ *	  prepare_exec()
  *
  *    4b. For native binaries, an additional call to an exec postprocessing 
  *        function will be made, because the type of the file is not enough
@@ -74,9 +74,14 @@
  *        for "sbrsh", but that haven't been implemented yet]
  *
  * 5. When all decisions and all possible conversions have been made,
- *    sb_next_execve() will be called. It transfers control to the real
- *    execve() funtion of the C library, which will make the system call to
- *    the kernel.
+ *    prepare_exec() returns argument- and environment vectors to
+ *    do_exec(), which will call sb_next_execve(). It transfers control to
+ *    the real execve() funtion of the C library, which will make the
+ *    system call to the kernel.
+ *
+ * N.B. For debugging, prepare_exec() can also be called from the
+ * "sb2-show" application, so that "sb2-show" can print out how the
+ * parameters are mangled without performing step 5.
  *
  * (there are some minor execptions, see the code for further details)
 */
@@ -157,7 +162,9 @@ static const struct target_info target_table[] = {
 
 static int elf_hdr_match(Elf_Ehdr *ehdr, uint16_t match, int ei_data);
 
-static uint16_t byte_swap(uint16_t a);
+static int prepare_exec(const char *exec_fn_name,
+	const char *orig_file, char *const *orig_argv, char *const *orig_envp,
+	char **new_file, char ***new_argv, char ***new_envp);
 
 static uint16_t byte_swap(uint16_t a)
 {
@@ -181,6 +188,16 @@ enum binary_type {
 	BIN_HASHBANG,
 };
 
+static int is_subdir(const char *root, const char *subdir)
+{
+	size_t rootlen;
+
+	if (strstr(subdir, root) != subdir)
+		return 0;
+
+	rootlen = strlen(root);
+	return subdir[rootlen] == '/' || subdir[rootlen] == '\0';
+}
 
 static int elem_count(char *const *elems)
 {
@@ -239,12 +256,6 @@ char **split_to_tokens(char *str)
 	return tokens;
 }
 
-static int run_qemu(const char *qemu_bin, char *const *qemu_args,
-		const char *file, char *const *argv, char *const *envp);
-static int run_sbrsh(const char *sbrsh_bin, char *const *sbrsh_args,
-		const char *target_root, const char *orig_file,
-		char *const *argv, char *const *envp);
-
 static char *cputransp_method = NULL;
 
 static enum {
@@ -253,15 +264,17 @@ static enum {
 	CPUTRANSP_SBRSH,
 } cputransp_type = CPUTRANSP_UNKNOWN;
 
-/* file is mangled, unmapped_file is not */
-static int run_cputransparency(const char *file, const char *unmapped_file,
-			char *const *argv, char *const *envp)
+/* FIXME: To be rewritten in Lua...
+ * (this is called only for sbrsh, qemu is already handled in argvenvp.lua) */
+static int prepare_sbrsh_cputransparency(char **mapped_file,
+	char ***argvp, char ***envpp)
 {
 	static char *target_root = NULL;
-	char *cputransp_bin;
-	char **cputransp_tokens, **cputransp_args, **p;
-	char *basec, *bname;
+	char *sbrsh_bin;
+	char **cputransp_tokens, **sbrsh_args, **p;
 	int token_count, i;
+	char *config, *file, *dir, **my_argv;
+	int len;
 
 	if (!cputransp_method) return -1;
 
@@ -273,14 +286,14 @@ static int run_cputransparency(const char *file, const char *unmapped_file,
 		return -1;
 	}
 
-	cputransp_args = calloc(token_count, sizeof(char *));
-	for (i = 1, p = cputransp_args; i < token_count; i++, p++) {
+	sbrsh_args = calloc(token_count, sizeof(char *));
+	for (i = 1, p = sbrsh_args; i < token_count; i++, p++) {
 		*p = strdup(cputransp_tokens[i]);
 	}
 
 	*p = NULL;
 	
-	cputransp_bin = strdup(cputransp_tokens[0]);
+	sbrsh_bin = strdup(cputransp_tokens[0]);
 
 	if (!target_root) {
 		target_root = sb2__read_string_variable_from_lua__(
@@ -292,46 +305,8 @@ static int run_cputransparency(const char *file, const char *unmapped_file,
 		return -1;
 	}
 
-	basec = strdup(cputransp_bin);
-	bname = basename(basec);
-
-	if (strstr(bname, "qemu")) {
-		free(basec);
-		return run_qemu(cputransp_bin, cputransp_args,
-				unmapped_file, argv, envp);
-	} else if (strstr(bname, "sbrsh")) {
-		free(basec);
-		return run_sbrsh(cputransp_bin, cputransp_args,
-				target_root, file, argv, envp);
-	}
-
-	free(basec);
-	fprintf(stderr, "run_cputransparency() error: "
-			"Unknown cputransparency method: [%s]\n",
-			cputransp_bin);
-	return -1;
-}
-
-static int is_subdir(const char *root, const char *subdir)
-{
-	size_t rootlen;
-
-	if (strstr(subdir, root) != subdir)
-		return 0;
-
-	rootlen = strlen(root);
-	return subdir[rootlen] == '/' || subdir[rootlen] == '\0';
-}
-
-static int run_sbrsh(const char *sbrsh_bin, char *const *sbrsh_args,
-		const char *target_root, const char *orig_file,
-		char *const *argv, char *const *envp)
-{
-	char *config, *file, *dir, **my_argv, **p;
-	int len, i = 0;
-
 	SB_LOG(SB_LOGLEVEL_INFO, "Exec:sbrsh (%s,%s,%s)",
-		sbrsh_bin, target_root, orig_file);
+		sbrsh_bin, target_root, *mapped_file);
 
 	config = getenv("SBRSH_CONFIG");
 	if (config && strlen(config) == 0)
@@ -341,7 +316,7 @@ static int run_sbrsh(const char *sbrsh_bin, char *const *sbrsh_args,
 	if (len > 0 && target_root[len - 1] == '/')
 		--len;
 
-	file = strdup(orig_file);
+	file = strdup(*mapped_file);
 	if (file[0] == '/') {
 		if (is_subdir(target_root, file)) {
 			file += len;
@@ -368,9 +343,10 @@ static int run_sbrsh(const char *sbrsh_bin, char *const *sbrsh_args,
 		dir = "/tmp";
 	}
 
-	my_argv = calloc(elem_count(sbrsh_args) + 6 + elem_count(argv) + 1,
+	my_argv = calloc(elem_count(sbrsh_args) + 6 + elem_count(*argvp) + 1,
 			sizeof (char *));
 
+	i = 0;
 	my_argv[i++] = strdup(sbrsh_bin);
 	for (p = (char **)sbrsh_args; *p; p++)
 		my_argv[i++] = strdup(*p);
@@ -383,10 +359,10 @@ static int run_sbrsh(const char *sbrsh_bin, char *const *sbrsh_args,
 	my_argv[i++] = dir;
 	my_argv[i++] = file;
 
-	for (p = (char **)&argv[1]; *p; p++)
+	for (p = (*argvp)+1; *p; p++)
 		my_argv[i++] = strdup(*p);
 
-	for (p = (char **) envp; *p; ++p) {
+	for (p = *envpp; *p; ++p) {
 		char *start, *end;
 
 		if (strncmp("LD_PRELOAD=", *p, strlen("LD_PRELOAD=")) != 0)
@@ -407,52 +383,9 @@ static int run_sbrsh(const char *sbrsh_bin, char *const *sbrsh_args,
 		memmove(start, end, strlen(end) + 1);
 	}
 
-	return sb_next_execve(sbrsh_bin, my_argv, envp);
-}
-
-static int run_qemu(const char *qemu_bin, char *const *qemu_args,
-		const char *file, char *const *argv, char *const *envp)
-{
-	char **my_argv, **p;
-	int i = 0;
-
-	SB_LOG(SB_LOGLEVEL_INFO, "Exec:qemu (%s,%s)",
-		qemu_bin, file);
-
-	my_argv = (char **)calloc(elem_count(qemu_args) + elem_count(argv)
-				+ 5 + 1, sizeof(char *));
-
-	my_argv[i++] = strdup(qemu_bin);
-
-	for (p = (char **)qemu_args; *p; p++) {
-		my_argv[i++] = strdup(*p);
-		printf(*p);
-	}
-
-	my_argv[i++] = "-drop-ld-preload";
-	my_argv[i++] = "-L";
-	my_argv[i++] = "/";
-	my_argv[i++] = strdup(file); /* we're passing the unmapped file
-				      * here, it works because qemu will
-				      * do open() on it, and that gets
-				      * mapped again.
-				      */
-	for (p = (char **)&argv[1]; *p; p++) {
-		my_argv[i++] = strdup(*p);
-	}
-
-	my_argv[i] = NULL;
-
-	return sb_next_execve(qemu_bin, my_argv, envp);
-}
-
-static int run_app(const char *file, char *const *argv, char *const *envp)
-{
-	sb_next_execve(file, argv, envp);
-
-	fprintf(stderr, "libsb2.so failed running (%s): %s\n", file,
-			strerror(errno));
-	return -12;
+	*mapped_file = sbrsh_bin;
+	*argvp = my_argv;
+	return(0);
 }
 
 static int elf_hdr_match(Elf_Ehdr *ehdr, uint16_t match, int ei_data)
@@ -648,11 +581,11 @@ _out:
 	return retval;
 }
 
-static int run_hashbang(
-	const char *mapped_file,
-	const char *orig_file,
-	char *const *argv,
-	char *const *envp)
+static int prepare_hashbang(
+	char **mapped_file,
+	char *orig_file,
+	char ***argvp,
+	char ***envpp)
 {
 	int argc, fd, c, i, j, n, ret;
 	char ch;
@@ -661,18 +594,18 @@ static int run_hashbang(
 	char hashbang[SBOX_MAXPATH]; /* only 60 needed on linux, just be safe */
 	char interpreter[SBOX_MAXPATH];
 
-	if ((fd = open_nomap(mapped_file, O_RDONLY)) < 0) {
+	if ((fd = open_nomap(*mapped_file, O_RDONLY)) < 0) {
 		/* unexpected error, just run it */
-		return run_app(mapped_file, argv, envp);
+		return 0;
 	}
 
 	if ((c = read(fd, &hashbang[0], SBOX_MAXPATH - 1)) < 2) {
 		/* again unexpected error, close fd and run it */
 		close(fd);
-		return run_app(mapped_file, argv, envp);
+		return 0;
 	}
 
-	argc = elem_count(argv);
+	argc = elem_count(*argvp);
 
 	/* extra element for hashbang argument */
 	new_argv = calloc(argc + 3, sizeof(char *));
@@ -710,48 +643,45 @@ static int run_hashbang(
 
 	mapped_interpreter = scratchbox_path("execve", interpreter, 
 		NULL/*RO-flag addr.*/, 0/*dont_resolve_final_symlink*/);
-	SB_LOG(SB_LOGLEVEL_DEBUG, "run_hashbang(): interpreter=%s,"
+	SB_LOG(SB_LOGLEVEL_DEBUG, "prepare_hashbang(): interpreter=%s,"
 			"mapped_interpreter=%s", interpreter,
 			mapped_interpreter);
 	new_argv[n++] = strdup(orig_file); /* the unmapped script path */
 
-	for (i = 1; argv[i] != NULL && i < argc; ) {
-		new_argv[n++] = argv[i++];
+	for (i = 1; (*argvp)[i] != NULL && i < argc; ) {
+		new_argv[n++] = (*argvp)[i++];
 	}
 
 	new_argv[n] = NULL;
 
-	/* feed this through do_exec to let it deal with
+	/* feed this through prepare_exec to let it deal with
 	 * cpu transparency etc.
 	 */
-	ret = do_exec("run_hashbang", mapped_interpreter, new_argv, envp);
-
-	if (mapped_interpreter) free(mapped_interpreter);
-	return ret;
+	return prepare_exec("run_hashbang", mapped_interpreter,
+		new_argv, *envpp, mapped_file, argvp, envpp);
 }
 
-static char ***duplicate_argv(char *const *argv)
+static char **duplicate_argv(char *const *argv)
 {
 	int	argc = elem_count(argv);
 	char	**p;
 	int	i;
-	char	***my_argv;
+	char	**my_argv;
 
-	my_argv = malloc(sizeof(char **));
-	*my_argv = (char **)calloc(argc + 1, sizeof(char *));
+	my_argv = (char **)calloc(argc + 1, sizeof(char *));
 	for (i = 0, p = (char **)argv; *p; p++) {
-		(*my_argv)[i++] = strdup(*p);
+		my_argv[i++] = strdup(*p);
 	}
-	(*my_argv)[i] = NULL;
+	my_argv[i] = NULL;
 
 	return(my_argv);
 }
 
-static char ***prepare_envp_for_do_exec(char *binaryname, char *const *envp)
+static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 {
 	char	**p;
 	int	envc = 0;
-	char	***my_envp;
+	char	**my_envp;
 	int	has_ld_preload = 0;
 	int	has_ld_library_path = 0;
 	int	i;
@@ -800,11 +730,9 @@ static char ***prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 				"restored to %s", sbox_session_dir);
 	}
 
-	my_envp = malloc(sizeof(char **));
-
 	/* allocate new environment. Add 5 extra elements (all may not be
 	 * needed always) */
-	*my_envp = (char **)calloc(envc + 5, sizeof(char *));
+	my_envp = (char **)calloc(envc + 5, sizeof(char *));
 
 	for (i = 0, p=(char **)envp; *p; p++) {
 		if (strncmp(*p, "__SB2_BINARYNAME=",
@@ -818,11 +746,11 @@ static char ***prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 			continue;
 		}
 
-		(*my_envp)[i++] = strdup(*p);
+		my_envp[i++] = strdup(*p);
 	}
 
 	/* add our session directory */
-	asprintf(&((*my_envp)[i]), "SBOX_SESSION_DIR=%s", sbox_session_dir);
+	asprintf(&(my_envp[i]), "SBOX_SESSION_DIR=%s", sbox_session_dir);
 	i++;
 
 	/* __SB2_BINARYNAME is used to communicate the binary name
@@ -830,7 +758,7 @@ static char ***prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 	 * its main function is called
 	 */
 	asprintf(&new_binaryname_var, "__SB2_BINARYNAME=%s", binaryname);
-	(*my_envp)[i++] = new_binaryname_var; /* add the new process' name */
+	my_envp[i++] = new_binaryname_var; /* add the new process' name */
 
 	/* If our environ has LD_PRELOAD, but the given envp doesn't,
 	 * add the value that was active when this process was started.
@@ -842,7 +770,7 @@ static char ***prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 			sbox_orig_ld_preload);
 		if (!new_ld_preload_var)
 			exit(1);
-		(*my_envp)[i++] = new_ld_preload_var;
+		my_envp[i++] = new_ld_preload_var;
 	}
 	/* If our environ has LD_LIBRARY_PATH, but the given envp doesn't,
 	 * add the value that was active when this process was started.
@@ -854,9 +782,9 @@ static char ***prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 			sbox_orig_ld_library_path);
 		if (!new_ld_library_path)
 			exit(1);
-		(*my_envp)[i++] = new_ld_library_path;
+		my_envp[i++] = new_ld_library_path;
 	}
-	(*my_envp)[i] = NULL;
+	my_envp[i] = NULL;
 
 	return(my_envp);
 }
@@ -916,21 +844,30 @@ static int strvec_contains(char *const *strvec, const char *id)
 }
 
 
-int do_exec(const char *exec_fn_name, const char *orig_file,
-		char *const *orig_argv, char *const *orig_envp)
+static int prepare_exec(const char *exec_fn_name,
+	const char *orig_file,
+	char *const *orig_argv,
+	char *const *orig_envp,
+	char **new_file,
+	char ***new_argv,
+	char ***new_envp)
 {
-	char ***my_envp, ***my_argv, **my_file;
-	char ***my_envp_copy = NULL; /* used only for debug log */
+	char **my_envp, **my_argv, *my_file;
+	char **my_envp_copy = NULL; /* used only for debug log */
 	char *binaryname, *tmp, *mapped_file;
 	int err = 0;
 	enum binary_type type;
 	int postprocess_result = 0;
+	int ret = 0; /* 0: ok to exec, ret<0: exec fails */
 
 	(void)exec_fn_name; /* not yet used */
 
 	if (getenv("SBOX_DISABLE_MAPPING")) {
 		/* just run it, don't worry, be happy! */
-		return sb_next_execve(orig_file, orig_argv, orig_envp);
+		*new_file = NULL;
+		*new_argv = NULL;
+		*new_envp = NULL;
+		return(0);
 	}
 
 	SB_LOG(SB_LOGLEVEL_DEBUG,
@@ -940,8 +877,7 @@ int do_exec(const char *exec_fn_name, const char *orig_file,
 	binaryname = strdup(basename(tmp));
 	free(tmp);
 	
-	my_file = malloc(sizeof(char *));
-	*my_file = strdup(orig_file);
+	my_file = strdup(orig_file);
 
 	my_envp = prepare_envp_for_do_exec(binaryname, orig_envp);
 	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
@@ -952,24 +888,23 @@ int do_exec(const char *exec_fn_name, const char *orig_file,
 
 	my_argv = duplicate_argv(orig_argv);
 
-	if ((err = sb_execve_preprocess(my_file, my_argv, my_envp)) != 0) {
+	if ((err = sb_execve_preprocess(&my_file, &my_argv, &my_envp)) != 0) {
 		SB_LOG(SB_LOGLEVEL_ERROR, "argvenvp processing error %i", err);
 	}
 
 	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
 		/* find out and log if sb_execve_preprocess() did something */
-		compare_and_log_strvec_changes("argv", orig_argv, *my_argv);
-		compare_and_log_strvec_changes("envp", *my_envp_copy, *my_envp);
+		compare_and_log_strvec_changes("argv", orig_argv, my_argv);
+		compare_and_log_strvec_changes("envp", my_envp_copy, my_envp);
 	}
 
 	/* test if mapping is enabled during the exec()..
 	 * (host-* tools disable it)
 	*/
-	if (strvec_contains(*my_envp, "SBOX_DISABLE_MAPPING=1")) {
+	if (strvec_contains(my_envp, "SBOX_DISABLE_MAPPING=1")) {
 		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"do_exec(): mapping disabled, *my_file = %s",
-			*my_file);
-		mapped_file = strdup(*my_file);
+			"do_exec(): mapping disabled, my_file = %s", my_file);
+		mapped_file = strdup(my_file);
 
 		/* we won't call scratchbox_path_for_exec() because mapping
 		 * is disabled; instead we must push a string to Lua's stack
@@ -978,15 +913,15 @@ int do_exec(const char *exec_fn_name, const char *orig_file,
 		sb_push_string_to_lua_stack("no mapping rule (mapping disabled)");
 		sb_push_string_to_lua_stack("no exec_policy (mapping disabled)");
 	} else {
-		/* now we have to do path mapping for *my_file to find exactly
+		/* now we have to do path mapping for my_file to find exactly
 		 * what is the path we're supposed to deal with
 		 */
 
-		mapped_file = scratchbox_path_for_exec("do_exec", *my_file,
+		mapped_file = scratchbox_path_for_exec("do_exec", my_file,
 			NULL/*RO-flag addr.*/, 0/*dont_resolve_final_symlink*/);
 		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"do_exec(): *my_file = %s, mapped_file = %s",
-			*my_file, mapped_file);
+			"do_exec(): my_file = %s, mapped_file = %s",
+			my_file, mapped_file);
 
 		/* Note: the Lua stack should now have rule and policy objects */
 	}
@@ -997,28 +932,32 @@ int do_exec(const char *exec_fn_name, const char *orig_file,
 	switch (type) {
 		case BIN_HASHBANG:
 			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/hashbang %s", mapped_file);
-			return run_hashbang(mapped_file, *my_file,
-					*my_argv, *my_envp);
+			/* prepare_hashbang() will call prepare_exec()
+			 * recursively */
+			ret = prepare_hashbang(&mapped_file, my_file,
+					&my_argv, &my_envp);
+			break;
+
 		case BIN_HOST_DYNAMIC:
 			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/host-dynamic %s",
 					mapped_file);
 
 			postprocess_result = sb_execve_postprocess("native",
-				&mapped_file, my_file, binaryname,	
-				my_argv, my_envp);
+				&mapped_file, &my_file, binaryname,
+				&my_argv, &my_envp);
 
 			if (postprocess_result < 0) {
 				errno = EINVAL;
-				return(-1);
+				ret = -1;
 			}
-
-			return run_app(mapped_file, *my_argv, *my_envp);
+			break;
 
 		case BIN_HOST_STATIC:
 			SB_LOG(SB_LOGLEVEL_WARNING, "Executing statically "
 					"linked native binary %s",
 					mapped_file);
-			return run_app(mapped_file, *my_argv, *my_envp);
+			break;
+
 		case BIN_TARGET:
 			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/target %s",
 					mapped_file);
@@ -1039,30 +978,29 @@ int do_exec(const char *exec_fn_name, const char *orig_file,
 				fprintf(stderr, "sbox_cputransparency_method not set, "
 						"unable to execute the target binary\n");
 				errno = EINVAL;
-				return -1;
+				ret = -1;
 			}
 
 			if (cputransp_type == CPUTRANSP_SBRSH) {
 				/* FIXME: to be converted to use 
 				 * exec postprocesing
 				*/
-				return run_cputransparency(mapped_file,
-					*my_file, *my_argv, *my_envp);
+				prepare_sbrsh_cputransparency(&mapped_file,
+					&my_argv, &my_envp);
+			} else {
+				postprocess_result = sb_execve_postprocess(
+					"cpu_transparency", &mapped_file, &my_file,
+					binaryname, &my_argv, &my_envp);
+				if (postprocess_result < 0) {
+					errno = EINVAL;
+					ret = -1;
+				}
 			}
-
-			postprocess_result = sb_execve_postprocess(
-				"cpu_transparency", &mapped_file, my_file,
-				binaryname, my_argv, my_envp);
-			if (postprocess_result < 0) {
-				errno = EINVAL;
-				return (-1);
-			}
-
-			return sb_next_execve(mapped_file, *my_argv, *my_envp);
+			break;
 
 		case BIN_INVALID: /* = can't be executed, no X permission */
 	 		/* don't even try to exec, errno has been set.*/
-			return (-1);
+			ret = -1;
 
 		case BIN_NONE:
 		case BIN_UNKNOWN:
@@ -1072,7 +1010,29 @@ int do_exec(const char *exec_fn_name, const char *orig_file,
 			break;
 	}
 
-	return sb_next_execve(mapped_file, *my_argv, *my_envp);
+	*new_file = mapped_file;
+	*new_argv = my_argv;
+	*new_envp = my_envp;
+	return(ret);
+}
+
+int do_exec(const char *exec_fn_name, const char *orig_file,
+		char *const *orig_argv, char *const *orig_envp)
+{
+	int	r;
+	char *new_file = NULL;
+	char **new_argv = NULL;
+	char **new_envp = NULL;
+
+	r = prepare_exec(exec_fn_name, orig_file, orig_argv, orig_envp,
+		&new_file, &new_argv, &new_envp);
+
+	if (r < 0) return(r); /* exec denied */
+
+	return sb_next_execve(
+		(new_file ? new_file : orig_file),
+		(new_argv ? new_argv : orig_argv),
+		(new_envp ? new_envp : orig_envp));
 }
 
 /* ----- EXPORTED from interface.master: ----- */
@@ -1081,36 +1041,19 @@ int sb2show__execve_mods__(
 	char *const *orig_argv, char *const *orig_envp,
 	char **new_file, char ***new_argv, char ***new_envp)
 {
-	char *binaryname, *tmp;
-	int err = 0;
-	char ***my_envp, ***my_argv, **my_file;
+	int	ret = 0;
 
 	if (!sb2_global_vars_initialized__) sb2_initialize_global_variables();
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s '%s'", __func__, orig_argv[0]);
 
-	tmp = strdup(file);
-	binaryname = strdup(basename(tmp));
-	free(tmp);
-	
-	my_file = malloc(sizeof(char *));
-	*my_file = strdup(file);
+	ret = prepare_exec("sb2show_exec", file, orig_argv, orig_envp,
+		new_file, new_argv, new_envp);
 
-	my_envp = prepare_envp_for_do_exec(binaryname, orig_envp);
-	my_argv = duplicate_argv(orig_argv);
+	if (!*new_file) *new_file = strdup(file);
+	if (!*new_argv) *new_argv = duplicate_argv(orig_argv);
+	if (!*new_envp) *new_envp = duplicate_argv(orig_envp);
 
-	if ((err = sb_execve_preprocess(my_file, my_argv, my_envp)) != 0) {
-		SB_LOG(SB_LOGLEVEL_ERROR, "argvenvp processing error %i", err);
-		
-		*new_file = NULL;
-		*new_argv = NULL;
-		*new_envp = NULL;
-	} else {
-		*new_file = *my_file;
-		*new_argv = *my_argv;
-		*new_envp = *my_envp;
-	}
-
-	return(0);
+	return(ret);
 }
 

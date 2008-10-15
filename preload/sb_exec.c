@@ -426,10 +426,18 @@ static enum binary_type inspect_binary(const char *filename)
 	Elf_Ehdr *ehdr;
 	Elf_Phdr *phdr;
 
-	retval = BIN_NONE;
+	retval = BIN_NONE; /* assume it doesn't exist, until proven otherwise */
 	if (access_nomap_nolog(filename, X_OK) < 0) {
 		int saved_errno = errno;
 		char *sb1_bug_emulation_mode = getenv("SBOX_EMULATE_SB1_BUGS");
+
+		if (access_nomap_nolog(filename, F_OK) < 0) {
+			/* file is missing completely, or can't be accessed
+			 * at all.
+			 * errno has been set */
+			goto _out;
+		}
+
 		if (sb1_bug_emulation_mode && 
 		    strchr(sb1_bug_emulation_mode,'x')) {
 			/* the old scratchbox didn't have the x-bit check, so 
@@ -1001,8 +1009,13 @@ static int prepare_exec(const char *exec_fn_name,
 		case BIN_INVALID: /* = can't be executed, no X permission */
 	 		/* don't even try to exec, errno has been set.*/
 			ret = -1;
+			break;
 
 		case BIN_NONE:
+			/* file does not exist. errno has been set. */
+			ret = -1;
+			break;
+
 		case BIN_UNKNOWN:
 			SB_LOG(SB_LOGLEVEL_ERROR,
 				"Unidentified executable detected (%s)",

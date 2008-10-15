@@ -107,12 +107,6 @@ install-noarch: $(BUILD_TARGET)
 	install -c -m 755 $(SRCDIR)/utils/sb2-build-qemuserver $(prefix)/bin/sb2-build-qemuserver
 	install -c -m 755 $(SRCDIR)/utils/sb2-mkinitramfs $(prefix)/bin/sb2-mkinitramfs
 	install -c -m 755 $(SRCDIR)/utils/sb2-start-qemuserver $(prefix)/bin/sb2-start-qemuserver
-	install -c -m 755 $(SRCDIR)/utils/deb-pkg-tools-wrapper $(prefix)/share/scratchbox2/scripts/dpkg
-	install -c -m 755 $(SRCDIR)/utils/deb-pkg-tools-wrapper $(prefix)/share/scratchbox2/scripts/apt-get
-	install -c -m 755 $(SRCDIR)/utils/ldconfig $(prefix)/share/scratchbox2/scripts/ldconfig
-	install -c -m 755 $(SRCDIR)/utils/texi2html $(prefix)/share/scratchbox2/scripts/texi2html
-	install -c -m 755 $(SRCDIR)/utils/dpkg-checkbuilddeps $(prefix)/share/scratchbox2/scripts/dpkg-checkbuilddeps
-	install -c -m 755 $(SRCDIR)/utils/debconf2po-update $(prefix)/share/scratchbox2/scripts/debconf2po-update
 	install -c -m 755 $(SRCDIR)/utils/sb2-check-pkg-mappings $(prefix)/share/scratchbox2/scripts/sb2-check-pkg-mappings
 	install -c -m 755 $(SRCDIR)/utils/sb2-exitreport $(prefix)/share/scratchbox2/scripts/sb2-exitreport
 	install -c -m 755 $(SRCDIR)/utils/sb2-logz $(prefix)/bin/sb2-logz
@@ -139,6 +133,13 @@ install-noarch: $(BUILD_TARGET)
 	install -c -m 644 $(SRCDIR)/docs/sb2-config.1 $(prefix)/share/man/man1/sb2-config.1
 	rm -f $(prefix)/share/scratchbox2/host_usr
 	ln -sf /usr $(prefix)/share/scratchbox2/host_usr
+	# Wrappers:
+	install -c -m 755 $(SRCDIR)/wrappers/deb-pkg-tools-wrapper $(prefix)/share/scratchbox2/wrappers/dpkg
+	install -c -m 755 $(SRCDIR)/wrappers/deb-pkg-tools-wrapper $(prefix)/share/scratchbox2/wrappers/apt-get
+	install -c -m 755 $(SRCDIR)/wrappers/ldconfig $(prefix)/share/scratchbox2/wrappers/ldconfig
+	install -c -m 755 $(SRCDIR)/wrappers/texi2html $(prefix)/share/scratchbox2/wrappers/texi2html
+	install -c -m 755 $(SRCDIR)/wrappers/dpkg-checkbuilddeps $(prefix)/share/scratchbox2/wrappers/dpkg-checkbuilddeps
+	install -c -m 755 $(SRCDIR)/wrappers/debconf2po-update $(prefix)/share/scratchbox2/wrappers/debconf2po-update
 	(cd $(prefix)/share/scratchbox2/wrappers; \
 	 for f in $(host_prefixed_gcc_bins); do \
 		ln -sf /bin/true $$f; \

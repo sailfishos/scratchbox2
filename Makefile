@@ -126,6 +126,9 @@ install-noarch: $(BUILD_TARGET)
 	(cd $(prefix)/share/scratchbox2/lua_scripts/pathmaps; ln -sf devel maemo)
 
 	install -c -m 644 $(SRCDIR)/modeconf/* $(prefix)/share/scratchbox2/modeconf/
+	(cd $(prefix)/share/scratchbox2/modeconf; for f in *.devel; do \
+		b=`basename $$f .devel`; ln -sf $$f $$b.maemo; \
+	done)
 	install -c -m 644 $(SRCDIR)/tests/* $(prefix)/share/scratchbox2/tests
 	chmod a+x $(prefix)/share/scratchbox2/tests/run.sh
 

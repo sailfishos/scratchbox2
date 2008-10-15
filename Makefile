@@ -109,6 +109,7 @@ install-noarch: $(BUILD_TARGET)
 	install -c -m 755 $(SRCDIR)/utils/deb-pkg-tools-wrapper $(prefix)/share/scratchbox2/scripts/dpkg
 	install -c -m 755 $(SRCDIR)/utils/deb-pkg-tools-wrapper $(prefix)/share/scratchbox2/scripts/apt-get
 	install -c -m 755 $(SRCDIR)/utils/ldconfig $(prefix)/share/scratchbox2/scripts/ldconfig
+	install -c -m 755 $(SRCDIR)/utils/texi2html $(prefix)/share/scratchbox2/scripts/texi2html
 	install -c -m 755 $(SRCDIR)/utils/dpkg-checkbuilddeps $(prefix)/share/scratchbox2/scripts/dpkg-checkbuilddeps
 	install -c -m 755 $(SRCDIR)/utils/debconf2po-update $(prefix)/share/scratchbox2/scripts/debconf2po-update
 	install -c -m 755 $(SRCDIR)/utils/sb2-check-pkg-mappings $(prefix)/share/scratchbox2/scripts/sb2-check-pkg-mappings

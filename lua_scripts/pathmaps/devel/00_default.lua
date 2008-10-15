@@ -113,6 +113,17 @@ simple_chain = {
 		 use_orig_path = true, readonly = true},
 
 		-- -----------------------------------------------
+		-- 2. Development environment special destinations:
+
+		{prefix = "/sb2/wrappers",
+		 replace_by = sbox_dir.."/share/scratchbox2/wrappers",
+		 readonly = true},
+
+		{prefix = "/sb2/scripts",
+		 replace_by = sbox_dir.."/share/scratchbox2/scripts",
+		 readonly = true},
+
+		-- -----------------------------------------------
 		-- 5. Maemo SDK+
 
 		{prefix = "/opt/maemo",

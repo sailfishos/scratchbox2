@@ -72,7 +72,7 @@ multilib: .configure-multilib
 
 
 gcc_bins = addr2line ar as cc c++ c++filt cpp g++ gcc gcov gdb gdbtui gprof ld nm objcopy objdump ranlib rdi-stub readelf run size strings strip
-gcc_bins_expanded = $(foreach v,$(gcc_bins),$(prefix)/bin/host-$(v))
+host_prefixed_gcc_bins = $(foreach v,$(gcc_bins),host-$(v))
 
 
 sources-release:
@@ -92,6 +92,7 @@ install-noarch: $(BUILD_TARGET)
 	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/install
 
 	install -d -m 755 $(prefix)/share/scratchbox2/scripts
+	install -d -m 755 $(prefix)/share/scratchbox2/wrappers
 	install -d -m 755 $(prefix)/share/scratchbox2/tests
 	install -d -m 755 $(prefix)/share/scratchbox2/modeconf
 	if [ -d $(prefix)/share/man/man1 ] ; \
@@ -138,9 +139,10 @@ install-noarch: $(BUILD_TARGET)
 	install -c -m 644 $(SRCDIR)/docs/sb2-config.1 $(prefix)/share/man/man1/sb2-config.1
 	rm -f $(prefix)/share/scratchbox2/host_usr
 	ln -sf /usr $(prefix)/share/scratchbox2/host_usr
-	@for f in $(gcc_bins_expanded); do \
+	(cd $(prefix)/share/scratchbox2/wrappers; \
+	 for f in $(host_prefixed_gcc_bins); do \
 		ln -sf /bin/true $$f; \
-	done
+	done)
 
 install: do-install
 

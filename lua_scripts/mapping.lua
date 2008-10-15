@@ -44,6 +44,10 @@ end
 --  3. exec_policy_chains (array) contains default execution policies;
 --     real path (mapped path) is used as the key. A default exec_policy
 --     must be present.
+-- Additionally, following variables may be modified:
+-- "enable_cross_gcc_toolchain" (default=true): All special processing
+--     for the gcc-related tools (gcc,as,ld,..) will be disabled if set
+--     to false.
 --
 function load_and_check_rules()
 
@@ -122,6 +126,7 @@ if (tools_root == "") then
 	tools_root = nil
 end
 
+enable_cross_gcc_toolchain = true
 
 active_mode_mapping_rule_chains = {}
 active_mode_exec_policy_chains = {}

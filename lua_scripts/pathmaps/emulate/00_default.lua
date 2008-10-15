@@ -17,6 +17,11 @@ else
 	unmapped_workdir = sbox_workdir
 end
 
+-- disable the gcc toolchain tricks. gcc & friends will be available, if
+-- those have been installed to target_root (but then they will probably run
+-- under cpu transparency = very slowly..)
+enable_cross_gcc_toolchain = false
+
 mapall_chain = {
 	next_chain = nil,
 	binary = nil,

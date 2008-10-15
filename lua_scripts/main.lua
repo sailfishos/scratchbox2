@@ -38,6 +38,9 @@ do_file(session_dir .. "/sb2-session.conf")
 do_file(session_dir .. "/exec_config.lua")
 
 -- Load mapping- and exec functions
+--
+-- NOTE: "mapping.lua" loads the mapping mode config, which may be needed
+-- by "argvenvp.lua", so order is important!
 do_file(session_dir .. "/lua_scripts/mapping.lua")
 do_file(session_dir .. "/lua_scripts/argvenvp.lua")
 

@@ -1,10 +1,4 @@
-* libtool: kdrive x server fails to build because of libtool (???)
-
-* apt/dpkg build dependency checks for host and target need to be dealt
-  appropriately. Currently full checks are done against both, which is not
-  necessarily correct.
-
 * Cleanup lua_scripts/argvenvp.lua, there's duplicate code in it at the
   moment. Naming should be changed to indicate it's really about
   controlling execve.
-
+* sb2-init -c needs a full path to the qemu-arm, fix it to find it from PATH

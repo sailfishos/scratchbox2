@@ -10,7 +10,7 @@
  *
  * Brief description of the algorithm follows:
  * 
- * 0. When an application wants to execute another program, if makes a call
+ * 0. When an application wants to execute another program, it makes a call
  *    to one of execl(), execle(), execlp(), execv(), execve() or execvp().
  *    That call will be handled by one of the gate functions in 
  *    preload/libsb2.c. Eventually, the gate function will call "do_exec()"
@@ -518,7 +518,12 @@ static enum binary_type inspect_binary(const char *filename)
 
 	ehdr = (Elf_Ehdr *) region;
 
+#ifdef __x86_64__
+	if (elf_hdr_match(ehdr, EM_386, HOST_ELF_DATA) ||
+		elf_hdr_match(ehdr, EM_X86_64, HOST_ELF_DATA)) {
+#else
 	if (elf_hdr_match(ehdr, HOST_ELF_MACHINE, HOST_ELF_DATA)) {
+#endif
 		retval = BIN_HOST_STATIC;
 
 		phnum = ehdr->e_phnum;

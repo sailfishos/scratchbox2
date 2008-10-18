@@ -68,7 +68,7 @@ To complete sb2 target setup:
 $ mkdir $HOME/buildroot
 $ cd $HOME/buildroot
 [extract or copy your rootfs contents into place]
-$ $HOME/scratchbox/bin/sb2-init my_target /path/to/compiler/bin/arm-linux-gcc
+$ $HOME/scratchbox/bin/sb2-init -c qemu-arm my_target arm-linux-gcc
 
 That will automatically generate a working target config for the compiler
 given on the command line and run sb2-build-libtool script to get you a
@@ -118,10 +118,10 @@ Then get a nice toolchain from the locations mentioned above.
 After that you can setup sb2 by running:
 
 $ cd $HOME/maemo-root
-$ sb2-init -m maemo maemo /path/to/compiler/bin/arm-none-linux-gnueabi-gcc
+$ sb2-init -c qemu-arm -m devel maemo arm-none-linux-gnueabi-gcc
 
 If you want to use a separate tool distribution, do this instead:
-$ sb2-init -m maemo -t /etch_root maemo /path/to/compiler/bin/arm-linux-gcc
+$ sb2-init -c qemu-arm -m devel -t /etch_root maemo arm-none-linux-gnueabi-gcc
 
 Now you should have a fully functioning development environment.
 To try it out you can build for example fontconfig like this:

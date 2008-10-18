@@ -286,27 +286,27 @@ static char *absolute_path(const char *path)
 		char cwd[PATH_MAX + 1];
 
 		memset(cwd, '\0', sizeof(cwd));
-		if (!getcwd(cwd, sizeof(cwd))) {
+		if (!getcwd_nomap_nolog(cwd, sizeof(cwd))) {
 			/* getcwd() returns NULL if the path is really long.
 			 * In this case this really won't be able to do all 
 			 * path mapping steps, but sb_decolonize_path()
 			 * must not fail!
 			*/
 			SB_LOG(SB_LOGLEVEL_ERROR,
-				"absolute_path failed to get current dir"
-				" (processing continues with relative path)");
-			if (!(cpath = strdup(path)))
-				abort();
-		} else {
-			asprintf(&cpath, "%s/%s", cwd, path);
-			if (!cpath)
-				abort();
+				"absolute_path failed to get current dir");
+			return(NULL);
 		}
+		asprintf(&cpath, "%s/%s", cwd, path);
+		if (!cpath)
+			abort();
 		SB_LOG(SB_LOGLEVEL_NOISE, "absolute_path done, '%s'", cpath);
 	}
 	return(cpath);
 }
 
+/* returns an allocated buffer containing absolute,
+ * decolonized version of "path"
+*/
 char *sb_decolonize_path(const char *path)
 {
 	char *cpath;
@@ -323,13 +323,18 @@ char *sb_decolonize_path(const char *path)
 	list.pl_first = NULL;
 
 	cpath = absolute_path(path);
+	if (!cpath) {
+		SB_LOG(SB_LOGLEVEL_NOTICE,
+			"sb_decolonize_path forced to use relative path '%s'",
+			path);
+		buf = strdup(path);
+	} else {
+		split_path_to_path_entries(cpath, &list);
+		remove_dots_and_dotdots_from_path_entries(&list);
 
-	split_path_to_path_entries(cpath, &list);
-	remove_dots_and_dotdots_from_path_entries(&list);
-
-	buf = path_entries_to_string(list.pl_first);
-	free_path_entries(&list);
-
+		buf = path_entries_to_string(list.pl_first);
+		free_path_entries(&list);
+	}
 	SB_LOG(SB_LOGLEVEL_NOISE, "sb_decolonize_path returns '%s'", buf);
 	return buf;
 }
@@ -349,6 +354,7 @@ static char *sb_abs_dirname(const char *path)
 	list.pl_first = NULL;
 
 	cpath = absolute_path(path);
+	if (!cpath) return(NULL);
 
 	split_path_to_path_entries(cpath, &list);
 	remove_last_path_entry(&list);
@@ -380,7 +386,6 @@ static char *call_lua_function_sbox_translate_path(
 	struct lua_instance *luaif,
 	const char *binary_name,
 	const char *func_name,
-	const char *work_dir,
 	const char *decolon_path,
 	int *ro_flagp)
 {
@@ -400,10 +405,9 @@ static char *call_lua_function_sbox_translate_path(
 	/* add other parameters */
 	lua_pushstring(luaif->lua, binary_name);
 	lua_pushstring(luaif->lua, func_name);
-	lua_pushstring(luaif->lua, work_dir);
 	lua_pushstring(luaif->lua, decolon_path);
-	 /* 5 arguments, returns rule,policy,path,ro_flag */
-	lua_call(luaif->lua, 5, 4);
+	 /* 4 arguments, returns rule,policy,path,ro_flag */
+	lua_call(luaif->lua, 4, 4);
 
 	traslate_result = (char *)lua_tostring(luaif->lua, -2);
 	if (traslate_result) {
@@ -421,6 +425,12 @@ static char *call_lua_function_sbox_translate_path(
 		char *cleaned_path;
 
 		cleaned_path = sb_decolonize_path(traslate_result);
+		if (*cleaned_path != '/') {
+			/* oops, got a relative path. CWD is too long. */
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"OOPS, call_lua_function_sbox_translate_path:"
+				" relative");
+		}
 		free(traslate_result);
 		traslate_result = NULL;
 
@@ -466,7 +476,6 @@ static int call_lua_function_sbox_get_mapping_requirements(
 	struct lua_instance *luaif,
 	const char *binary_name,
 	const char *func_name,
-	const char *work_dir,
 	const char *full_path_for_rule_selection,
 	int *min_path_lenp)
 {
@@ -484,10 +493,9 @@ static int call_lua_function_sbox_get_mapping_requirements(
 		"sbox_get_mapping_requirements");
 	lua_pushstring(luaif->lua, binary_name);
 	lua_pushstring(luaif->lua, func_name);
-	lua_pushstring(luaif->lua, work_dir);
 	lua_pushstring(luaif->lua, full_path_for_rule_selection);
-	/* four arguments, returns (rule, rule_found_flag, min_path_len) */
-	lua_call(luaif->lua, 4, 3);
+	/* 3 arguments, returns (rule, rule_found_flag, min_path_len) */
+	lua_call(luaif->lua, 3, 3);
 
 	rule_found = lua_toboolean(luaif->lua, -2);
 	min_path_len = lua_tointeger(luaif->lua, -1);
@@ -528,29 +536,25 @@ static void drop_from_lua_stack(struct lua_instance *luaif,
  * Note: when this function returns, lua stack contains the rule which was
  *       used to do the path resolution. drop_rule_from_lua_stack() must
  *       be called after it is not needed anymore!
- *
- * FIXME: It might be possible to eliminate parameter
- * "full_path_for_rule_selection" now when the separate call to
- * sbox_get_mapping_requirements is used to ensure that "path" is long
- * enough. However, this has been left to be done in the future, together
- * with other optimizations.
 */
 static char *sb_path_resolution(
 	int nest_count,
 	struct lua_instance *luaif,
 	const char *binary_name,
 	const char *func_name,
-	const char *work_dir,
-	const char *path,
-	const char *full_path_for_rule_selection,
+	const char *abs_path,
 	int dont_resolve_final_symlink)
 {
-	char *cpath;
 	struct path_entry_list orig_path_list;
 	char *buf = NULL;
 	struct path_entry *work;
 	int	component_index = 0;
 	int	min_path_len_to_check;
+	char	*decolon_tmp;
+	char	*prefix_mapping_result;
+	struct path_entry_list prefix_path_list;
+	int	ro_tmp;
+	char	*path_copy;
 
 	if (nest_count > 16) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
@@ -569,26 +573,25 @@ static char *sb_path_resolution(
 		return NULL;
 	}
 
-	if (!path) {
+	if (!abs_path) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"sb_path_resolution called with NULL path");
 		return NULL;
 	}
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
-		"sb_path_resolution %d '%s'", nest_count, path);
+		"sb_path_resolution %d '%s'", nest_count, abs_path);
 
 	orig_path_list.pl_first = NULL;
 
-	cpath = absolute_path(path);
-
-	split_path_to_path_entries(cpath, &orig_path_list);
+	path_copy = strdup(abs_path);
+	split_path_to_path_entries(path_copy, &orig_path_list);
+	free(path_copy);
 
 	work = orig_path_list.pl_first;
 
 	if (call_lua_function_sbox_get_mapping_requirements(
-		luaif, binary_name, func_name,
-		work_dir, full_path_for_rule_selection,
+		luaif, binary_name, func_name, abs_path,
 		&min_path_len_to_check)) {
 		/* has requirements:
 		 * skip over path components that we are not supposed to check,
@@ -602,16 +605,33 @@ static char *sb_path_resolution(
 		}
 	}
 
+	SB_LOG(SB_LOGLEVEL_NOISE, "Map prefix [%d] '%s'",
+		component_index, work->pe_full_path);
+
+	prefix_path_list.pl_first = NULL;
+	split_path_to_path_entries(work->pe_full_path, &prefix_path_list);
+	remove_dots_and_dotdots_from_path_entries(&prefix_path_list);
+	decolon_tmp = path_entries_to_string(prefix_path_list.pl_first);
+	free_path_entries(&prefix_path_list);
+
+	SB_LOG(SB_LOGLEVEL_NOISE, "decolon_tmp => %s", decolon_tmp);
+
+	prefix_mapping_result = call_lua_function_sbox_translate_path(
+		SB_LOGLEVEL_NOISE,
+		luaif, binary_name, "PATH_RESOLUTION",
+		decolon_tmp, &ro_tmp);
+	free(decolon_tmp);
+	drop_policy_from_lua_stack(luaif);
+
+	SB_LOG(SB_LOGLEVEL_NOISE, "prefix_mapping_result before loop => %s",
+		prefix_mapping_result);
+
 	/* Path resolution loop = walk thru directories, and if a symlink
 	 * is found, recurse..
 	*/
 	while (work) {
 		char	link_dest[PATH_MAX+1];
-		char	*decolon_tmp;
 		int	link_len;
-		char	*prefix_mapping_result;
-		struct path_entry_list prefix_path_list;
-		int	ro_tmp;
 
 		if (dont_resolve_final_symlink && (work->pe_next == NULL)) {
 			/* this is last component, but here a final symlink
@@ -624,24 +644,8 @@ static char *sb_path_resolution(
 			break;
 		}
 
-		SB_LOG(SB_LOGLEVEL_NOISE2, "test [%d] '%s'",
-			component_index, work->pe_full_path);
-
-		prefix_path_list.pl_first = NULL;
-		split_path_to_path_entries(work->pe_full_path, &prefix_path_list);
-		remove_dots_and_dotdots_from_path_entries(&prefix_path_list);
-		decolon_tmp = path_entries_to_string(prefix_path_list.pl_first);
-		free_path_entries(&prefix_path_list);
-
-		prefix_mapping_result = call_lua_function_sbox_translate_path(
-			SB_LOGLEVEL_NOISE,
-			luaif, binary_name, "PATH_RESOLUTION",
-			work_dir, decolon_tmp, &ro_tmp);
-		free(decolon_tmp);
-		drop_policy_from_lua_stack(luaif);
-
-		SB_LOG(SB_LOGLEVEL_NOISE2, "prefix_mapping_result='%s'",
-			prefix_mapping_result);
+		SB_LOG(SB_LOGLEVEL_NOISE, "path_resolution: test if symlink [%d] '%s'",
+			component_index, prefix_mapping_result);
 
 		/* determine if "prefix_mapping_result" is a symbolic link.
 		 * this can't be done with lstat(), because lstat() does not
@@ -703,6 +707,20 @@ static char *sb_path_resolution(
 				int last_in_dirnam_is_slash;
 
 				dirnam = sb_abs_dirname(work->pe_full_path);
+				if (!dirname) {
+					/* this should not happen.
+					 * work->pe_full_path is supposed to
+					 * be absolute path.
+					*/
+					char *cp;
+					SB_LOG(SB_LOGLEVEL_ERROR,
+						"relative symlink forced to"
+						" use relative path '%s'",
+						work->pe_full_path);
+					dirnam = strdup(work->pe_full_path);
+					cp = strrchr(dirnam,'/');
+					if (cp) *cp = '\0';
+				}
 				last_in_dirnam_is_slash =
 					(last_char_in_str(dirnam) == '/');
 
@@ -747,15 +765,24 @@ static char *sb_path_resolution(
 			/* Then the recursion */
 			result_path = sb_path_resolution(nest_count + 1,
 				luaif, binary_name, func_name,
-				work_dir, new_path,
 				new_path, dont_resolve_final_symlink);
 
 			/* and finally, cleanup */
 			free(new_path);
 			return(result_path);
 		}
-		free(prefix_mapping_result);
 		work = work->pe_next;
+		if (work) {
+			char	*next_dir = NULL;
+
+			asprintf(&next_dir, "%s/%s", prefix_mapping_result, work->pe_last_component_name);
+			if (prefix_mapping_result) {
+				free(prefix_mapping_result);
+			}
+			prefix_mapping_result = next_dir;
+		} else {
+			free(prefix_mapping_result);
+		}
 		component_index++;
 	}
 
@@ -786,8 +813,8 @@ static char *scratchbox_path_internal(
 	const char *path,
 	int *ro_flagp,
 	int dont_resolve_final_symlink,
-	int leave_mapping_rule_and_policy_to_stack)
-{	
+	int process_path_for_exec)
+{
 	struct lua_instance *luaif;
 	char *mapping_result;
 
@@ -845,14 +872,25 @@ static char *scratchbox_path_internal(
 	{
 		/* Mapping disabled inside this block - do not use "return"!! */
 		char *decolon_path = NULL;
-		char *full_path_for_rule_selection;
-		char work_dir[PATH_MAX + 1];
+		char *full_path_for_rule_selection = NULL;
 
 		full_path_for_rule_selection = sb_decolonize_path(path);
 
-		/* FIXME: work_dir should be unnecessary if path is absolute? */
-		memset(work_dir, '\0', sizeof(work_dir));
-		getcwd(work_dir, sizeof(work_dir)-1);
+		if (*full_path_for_rule_selection != '/') {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"scratchbox_path_internal: sb_decolonize_path"
+				" failed to return absolute path (can't"
+				" map this)");
+			mapping_result = strdup(path);
+			if (process_path_for_exec) {
+				/* can't map, but still need to leave "rule"
+				 * (string) and "policy" (nil) to the stack */
+				lua_pushstring(luaif->lua,
+					"mapping failed (failed to make it absolute)");
+				lua_pushnil(luaif->lua);
+			}
+			goto forget_mapping;
+		}
 
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"scratchbox_path_internal: process '%s', n='%s'",
@@ -861,7 +899,7 @@ static char *scratchbox_path_internal(
 		/* sb_path_resolution() leaves the rule to the stack... */
 		decolon_path = sb_path_resolution(0,
 			luaif, binary_name, func_name,
-			work_dir, path, full_path_for_rule_selection,
+			full_path_for_rule_selection,
 			dont_resolve_final_symlink);
 
 		if (!decolon_path) {
@@ -870,7 +908,7 @@ static char *scratchbox_path_internal(
 				"decolon_path failed [%s]",
 				func_name);
 			mapping_result = NULL;
-			if (leave_mapping_rule_and_policy_to_stack) {
+			if (process_path_for_exec) {
 				/* can't map, but still need to leave "rule"
 				 * (string) and "policy" (nil) to the stack */
 				lua_pushstring(luaif->lua, 
@@ -879,26 +917,64 @@ static char *scratchbox_path_internal(
 			}
 		} else {
 			SB_LOG(SB_LOGLEVEL_NOISE2,
-				"scratchbox_path_internal: decolon_path='%s'"
-				" work_dir='%s'",
-				decolon_path, work_dir);
+				"scratchbox_path_internal: decolon_path='%s'",
+				decolon_path);
 
 			mapping_result = call_lua_function_sbox_translate_path(
 				SB_LOGLEVEL_INFO,
 				luaif, binary_name, func_name,
-				work_dir, decolon_path, ro_flagp);
+				decolon_path, ro_flagp);
 			/* ...and remove the rule from stack */
-			if (leave_mapping_rule_and_policy_to_stack == 0) {
+			if (process_path_for_exec == 0) {
 				drop_policy_from_lua_stack(luaif);
 				drop_rule_from_lua_stack(luaif);
 			}
 		}
+	forget_mapping:
 		if(decolon_path) free(decolon_path);
 		if(full_path_for_rule_selection) free(full_path_for_rule_selection);
 	}
 	enable_mapping(luaif);
 
-	SB_LOG(SB_LOGLEVEL_NOISE2, "scratchbox_path_internal: mapping_result='%s'",
+	/* now "mapping_result" is (should be) an absolute path.
+	 * sb2's exec logic needs absolute paths, but otherwise,
+	 * try to return a relative path if the original path was relative.
+	*/
+	if ((process_path_for_exec == 0) &&
+	    (path[0] != '/') &&
+	    mapping_result &&
+	    (*mapping_result == '/')) {
+		char cwd[PATH_MAX + 1];
+
+		if (getcwd_nomap_nolog(cwd, sizeof(cwd))) {
+			int	cwd_len = strlen(cwd);
+			int	result_len = strlen(mapping_result);
+
+			if ((result_len == cwd_len) &&
+			    !strcmp(cwd, mapping_result)) {
+				SB_LOG(SB_LOGLEVEL_DEBUG,
+					"scratchbox_path_internal: result==CWD");
+				free(mapping_result);
+				mapping_result = strdup(".");
+			} else if ((result_len > cwd_len) &&
+			           (mapping_result[cwd_len] == '/') &&
+			           (mapping_result[cwd_len+1] != '/') &&
+			           (mapping_result[cwd_len+1] != '\0') &&
+			           !strncmp(cwd, mapping_result, cwd_len)) {
+				/* cwd is a prefix of result; convert result
+				 * back to a relative path
+				*/
+				char *relative_result = strdup(mapping_result+cwd_len+1);
+				SB_LOG(SB_LOGLEVEL_DEBUG,
+					"scratchbox_path_internal: result==relative (%s) (%s)",
+					relative_result, mapping_result);
+				free(mapping_result);
+				mapping_result = relative_result;
+			}
+		}
+	}
+
+	SB_LOG(SB_LOGLEVEL_NOISE, "scratchbox_path_internal: mapping_result='%s'",
 		mapping_result ? mapping_result : "<No result>");
 	return(mapping_result);
 }

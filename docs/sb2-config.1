@@ -1,0 +1,46 @@
+.TH sb2-config 1 "10 October 2008" "2.0" "sb2-config man page"
+.SH NAME
+sb2-config \- set the default target or list available targets
+.SH SYNOPSIS
+.B sb2-config [\-d default_target ] [\-l ] [\-h ] [\-v ]
+
+.SH DESCRIPTION
+.B sb2-config is part of the sb2 family of tools.
+You can set your default sb2 target with this tool and also get a listing of all available targets in your host.
+
+.SH OPTIONS
+.TP
+\-d default_target
+This option sets the default sb2 target. The name of the target will be written to your $HOME/.scratchbox2/config file.
+.TP
+\-l list targets
+This option lists all available targets in your system. The names listed can be used as a parameter to the -d option.
+.TP
+\-f
+Display short help.
+.TP
+\-v
+Show version of this tool.
+
+.SH EXAMPLES
+
+.nf
+$ sb2-config -d diablo41_armel
+
+This command sets your default target to be diablo41_armel.
+
+$ sb2-config -l
+
+This example lists all installed targets in your host. The names listed can be used as a parameter to the -d option.
+
+.fi
+
+
+.SH SEE ALSO
+.BR sb2 (1),
+.BR sb2-init (1)
+
+.SH AUTHOR
+.nf
+Lauri Leukkunen
+.fi

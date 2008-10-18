@@ -11,6 +11,13 @@
 #include <time.h>
 #include <stdarg.h>
 
+/* WARNING!!
+ * pthread functions MUST NOT be used directly in the preload library.
+ * see the warning in luaif/luaif.c, also see the examples in that
+ * file (how to detect if pthread library is available, etc)
+*/
+#include <pthread.h>
+
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
@@ -25,11 +32,14 @@ struct lua_instance {
  * Increment the serial number (first number) and update the initials
  * and date whenever the interface beween Lua and C is changed.
  *
+ * * Differences between "28,lta-2008-09-23" and "35,lta-2008-10-01":
+ *   - sbox_get_mapping_requirements(): parameter work_dir was removed
+ *   - sbox_translate_path(): as above
+ *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "28,lta-2008-09-23"
+#define SB2_LUA_C_INTERFACE_VERSION "35,lta-2008-10-01"
 
-void sb2_lua_init(void);
 struct lua_instance *get_lua(void);
 char *sb_decolonize_path(const char *path);
 
@@ -60,6 +70,8 @@ extern void sblog_printf_line_to_logfile(const char *file, int line,
 
 extern int sb_loglevel__; /* do not access directly */
 
+#define SB_LOG_INITIALIZED() (sb_loglevel__ >= SB_LOGLEVEL_NONE)
+
 #define SB_LOG_IS_ACTIVE(level) ((level) <= sb_loglevel__)
 
 #define SB_LOG(level, ...) \
@@ -72,8 +84,13 @@ extern int sb_loglevel__; /* do not access directly */
 
 #define LIBSB2 "libsb2.so.1"
 
+extern int sb2_global_vars_initialized__;
+extern void sb2_initialize_global_variables(void);
 extern char *sbox_session_dir;
 extern char *sbox_orig_ld_preload;
 extern char *sbox_orig_ld_library_path;
+
+extern int pthread_library_is_available; /* flag */
+extern pthread_t (*pthread_self_fnptr)(void);
 
 #endif

@@ -73,8 +73,8 @@ Options:
     -v                display version
 
 Examples:
-    sb2-init ARM arm-linux-gcc
-    sb2-init -m maemo ARM arm-linux-gcc
+    sb2-init -c qemu-arm ARM arm-linux-gcc
+    sb2-init -c qemu-arm -m devel ARM arm-linux-gcc
     sb2-init -sn -c sbrsh armel-debian /path/to/arm-linux-gcc
 
 EOF

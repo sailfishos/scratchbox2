@@ -72,7 +72,7 @@ multilib: .configure-multilib
 
 
 gcc_bins = addr2line ar as cc c++ c++filt cpp g++ gcc gcov gdb gdbtui gprof ld nm objcopy objdump ranlib rdi-stub readelf run size strings strip
-gcc_bins_expanded = $(foreach v,$(gcc_bins),$(prefix)/bin/host-$(v))
+host_prefixed_gcc_bins = $(foreach v,$(gcc_bins),host-$(v))
 
 
 sources-release:
@@ -88,10 +88,11 @@ install-noarch: $(BUILD_TARGET)
 	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps
 	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/emulate
 	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/simple
-	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/maemo
+	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/devel
 	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/install
 
 	install -d -m 755 $(prefix)/share/scratchbox2/scripts
+	install -d -m 755 $(prefix)/share/scratchbox2/wrappers
 	install -d -m 755 $(prefix)/share/scratchbox2/tests
 	install -d -m 755 $(prefix)/share/scratchbox2/modeconf
 	if [ -d $(prefix)/share/man/man1 ] ; \
@@ -106,11 +107,6 @@ install-noarch: $(BUILD_TARGET)
 	install -c -m 755 $(SRCDIR)/utils/sb2-build-qemuserver $(prefix)/bin/sb2-build-qemuserver
 	install -c -m 755 $(SRCDIR)/utils/sb2-mkinitramfs $(prefix)/bin/sb2-mkinitramfs
 	install -c -m 755 $(SRCDIR)/utils/sb2-start-qemuserver $(prefix)/bin/sb2-start-qemuserver
-	install -c -m 755 $(SRCDIR)/utils/deb-pkg-tools-wrapper $(prefix)/share/scratchbox2/scripts/dpkg
-	install -c -m 755 $(SRCDIR)/utils/deb-pkg-tools-wrapper $(prefix)/share/scratchbox2/scripts/apt-get
-	install -c -m 755 $(SRCDIR)/utils/ldconfig $(prefix)/share/scratchbox2/scripts/ldconfig
-	install -c -m 755 $(SRCDIR)/utils/dpkg-checkbuilddeps $(prefix)/share/scratchbox2/scripts/dpkg-checkbuilddeps
-	install -c -m 755 $(SRCDIR)/utils/debconf2po-update $(prefix)/share/scratchbox2/scripts/debconf2po-update
 	install -c -m 755 $(SRCDIR)/utils/sb2-check-pkg-mappings $(prefix)/share/scratchbox2/scripts/sb2-check-pkg-mappings
 	install -c -m 755 $(SRCDIR)/utils/sb2-exitreport $(prefix)/share/scratchbox2/scripts/sb2-exitreport
 	install -c -m 755 $(SRCDIR)/utils/sb2-logz $(prefix)/bin/sb2-logz
@@ -121,19 +117,33 @@ install-noarch: $(BUILD_TARGET)
 
 	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/emulate/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/emulate/
 	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/simple/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/simple/
-	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/maemo/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/maemo/
+	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/devel/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/devel/
 	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/install/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/install/
+	(cd $(prefix)/share/scratchbox2/lua_scripts/pathmaps; ln -sf devel maemo)
+
 	install -c -m 644 $(SRCDIR)/modeconf/* $(prefix)/share/scratchbox2/modeconf/
+	(cd $(prefix)/share/scratchbox2/modeconf; for f in *.devel; do \
+		b=`basename $$f .devel`; ln -sf $$f $$b.maemo; \
+	done)
 	install -c -m 644 $(SRCDIR)/tests/* $(prefix)/share/scratchbox2/tests
 	chmod a+x $(prefix)/share/scratchbox2/tests/run.sh
 
 	install -c -m 644 $(SRCDIR)/docs/sb2.1 $(prefix)/share/man/man1/sb2.1
 	install -c -m 644 $(SRCDIR)/docs/sb2-show.1 $(prefix)/share/man/man1/sb2-show.1
+	install -c -m 644 $(SRCDIR)/docs/sb2-config.1 $(prefix)/share/man/man1/sb2-config.1
 	rm -f $(prefix)/share/scratchbox2/host_usr
 	ln -sf /usr $(prefix)/share/scratchbox2/host_usr
-	@for f in $(gcc_bins_expanded); do \
+	# Wrappers:
+	install -c -m 755 $(SRCDIR)/wrappers/deb-pkg-tools-wrapper $(prefix)/share/scratchbox2/wrappers/dpkg
+	install -c -m 755 $(SRCDIR)/wrappers/deb-pkg-tools-wrapper $(prefix)/share/scratchbox2/wrappers/apt-get
+	install -c -m 755 $(SRCDIR)/wrappers/ldconfig $(prefix)/share/scratchbox2/wrappers/ldconfig
+	install -c -m 755 $(SRCDIR)/wrappers/texi2html $(prefix)/share/scratchbox2/wrappers/texi2html
+	install -c -m 755 $(SRCDIR)/wrappers/dpkg-checkbuilddeps $(prefix)/share/scratchbox2/wrappers/dpkg-checkbuilddeps
+	install -c -m 755 $(SRCDIR)/wrappers/debconf2po-update $(prefix)/share/scratchbox2/wrappers/debconf2po-update
+	(cd $(prefix)/share/scratchbox2/wrappers; \
+	 for f in $(host_prefixed_gcc_bins); do \
 		ln -sf /bin/true $$f; \
-	done
+	done)
 
 install: do-install
 

@@ -2,31 +2,6 @@
 -- Copyright (C) 2006, 2007 Lauri Leukkunen
 -- Licensed under MIT license.
 
--- escape_string() prefixes the magic pattern matching
--- characters ^$()%.[]*+-?) with '%'
-function escape_string(a)
-	b = ""
-	for i = 1, string.len(a) do
-		c = string.sub(a, i, i)
-		-- escape the magic chars
-		if (c == "^" or
-			c == "$" or
-			c == "(" or
-			c == ")" or
-			c == "%" or
-			c == "." or
-			c == "[" or
-			c == "]" or
-			c == "*" or
-			c == "+" or
-			c == "-" or
-			c == "?") then
-			b = b .. "%"
-		end
-		b = b .. c
-	end
-	return b
-end
 
 function basename(path)
 	if (path == "/") then
@@ -69,6 +44,10 @@ end
 --  3. exec_policy_chains (array) contains default execution policies;
 --     real path (mapped path) is used as the key. A default exec_policy
 --     must be present.
+-- Additionally, following variables may be modified:
+-- "enable_cross_gcc_toolchain" (default=true): All special processing
+--     for the gcc-related tools (gcc,as,ld,..) will be disabled if set
+--     to false.
 --
 function load_and_check_rules()
 
@@ -76,7 +55,15 @@ function load_and_check_rules()
 	export_chains = {}
 	exec_policy_chains = {}
 
-	local current_rule_interface_version = "15"
+	-- Differences between version 15 and 16:
+	-- - "match" rules are not supported anymore
+	-- - interface to custom_map_func was modified:
+	--   "work_dir" was removed, name changed to "custom_map_funct",
+	--   and such functions are now expected to return 3 values
+	--   (previously only one was expected)
+	-- - variables "esc_tools_root" and "esc_target_root"
+	--   were removed
+	local current_rule_interface_version = "16"
 
 	do_file(session_dir .. "/rules.lua")
 
@@ -139,15 +126,7 @@ if (tools_root == "") then
 	tools_root = nil
 end
 
--- make versions of tools_root and target_root safe
--- to use in match() functions
-if (tools_root) then
-	esc_tools_root = escape_string(tools_root)
-end
-
-if (target_root) then
-	esc_target_root = escape_string(target_root)
-end
+enable_cross_gcc_toolchain = true
 
 active_mode_mapping_rule_chains = {}
 active_mode_exec_policy_chains = {}
@@ -197,7 +176,7 @@ end
 
 -- returns path and readonly_flag
 function sbox_execute_conditional_actions(binary_name,
-		func_name, work_dir, rp, path, rule)
+		func_name, rp, path, rule)
 	local actions = rule.actions
 
 	local a
@@ -246,7 +225,7 @@ function sbox_execute_conditional_actions(binary_name,
 end
 
 -- returns exec_policy, path and readonly_flag
-function sbox_execute_rule(binary_name, func_name, work_dir, rp, path, rule)
+function sbox_execute_rule(binary_name, func_name, rp, path, rule)
 	local ret_exec_policy = nil
 	local ret_path = nil
 	local ret_ro = false
@@ -264,7 +243,7 @@ function sbox_execute_rule(binary_name, func_name, work_dir, rp, path, rule)
 		-- FIXME: sbox_execute_conditional_actions should also
 		-- be able to return exec_policy
 		ret_path, ret_ro = sbox_execute_conditional_actions(binary_name,
-			func_name, work_dir, rp, path, rule)
+			func_name, rp, path, rule)
 	elseif (rule.map_to) then
 		if (rule.map_to == "/") then
 			ret_path = path
@@ -321,24 +300,9 @@ function find_rule(chain, func, full_path)
 					min_path_len = string.len(wrk.rules[i].path)
 					return wrk.rules[i], min_path_len
 				end
-				-- "match" rules use a lua "regexp".
-				-- these will be obsoleted, as this kind of rule
-				-- is almost impossible to reverse (backward mapping
-				-- is not possible as long as there are "match" rules)
-				if (wrk.rules[i].match) then
-					if (string.match(full_path, wrk.rules[i].match)) then
-						if (debug_messages_enabled) then
-							sb.log("noise", string.format("selected match rule %d (%s)", i, wrk.rules[i].match))
-						end
-						-- there is no easy and reliable
-						-- way to determine min_path_len
-						-- so leave it to zero
-						return wrk.rules[i], min_path_len
-					end
-				end
 				-- FIXME: Syntax checking should be added:
 				-- it should be tested that exactly one of
-				-- "prefix","path" or "match" was present
+				-- "prefix" or "path" was present
 			end
 		end
 		wrk = wrk.next_chain
@@ -349,9 +313,16 @@ function find_rule(chain, func, full_path)
 	return nil, 0
 end
 
--- returns the same values as sbox_translate_path
--- (rule,exec_policy,path,ro_flag):
-function map_using_rule(rule, binary_name, func_name, work_dir, path)
+-- sbox_translate_path is the function called from libsb2.so
+-- preload library and the FUSE system for each path that needs
+-- translating.
+--
+-- returns:
+--   1. the rule used to perform the mapping
+--   2. exec_policy
+--   3. path (mapping result)
+--   4. "readonly" flag
+function sbox_translate_path(rule, binary_name, func_name, path)
 	local ret = path
 	local rp = path
 	local readonly_flag = false
@@ -364,7 +335,7 @@ function map_using_rule(rule, binary_name, func_name, work_dir, path)
 	end
 
 	if (debug_messages_enabled) then
-		sb.log("noise", string.format("map:%s:%s", work_dir, path))
+		sb.log("noise", string.format("map:%s", path))
 	end
 
 	if (rule.log_level) then
@@ -377,29 +348,18 @@ function map_using_rule(rule, binary_name, func_name, work_dir, path)
 		end
 	end
 
-	if (rule.custom_map_func ~= nil) then
-		ret = rule.custom_map_func(binary_name, func_name, work_dir, rp, path, rules[n])
+	if (rule.custom_map_funct ~= nil) then
+		exec_policy, ret, readonly_flag = rule.custom_map_funct(
+			binary_name, func_name, rp, path, rules[n])
 		if (rule.readonly ~= nil) then
 			readonly_flag = rule.readonly
 		end
 	else
-		exec_policy, ret, readonly_flag = sbox_execute_rule(binary_name, func_name, work_dir, rp, path, rule)
+		exec_policy, ret, readonly_flag = sbox_execute_rule(
+			binary_name, func_name, rp, path, rule)
 	end
 
 	return rule, exec_policy, ret, readonly_flag
-end
-
--- sbox_translate_path is the function called from libsb2.so
--- preload library and the FUSE system for each path that needs 
--- translating.
---
--- returns:
---   1. the rule used to perform the mapping
---   2. exec_policy
---   3. path (mapping result)
---   4. "readonly" flag
-function sbox_translate_path(rule, binary_name, func_name, work_dir, path)
-	return map_using_rule(rule, binary_name, func_name, work_dir, path)
 end
 
 function find_chain(chains_table, binary_name)
@@ -419,7 +379,7 @@ end
 -- determine where to start resolving symbolic links; shorter paths than
 -- "min_path_len" should not be given to sbox_translate_path()
 -- returns "rule", "rule_found", "min_path_len"
-function sbox_get_mapping_requirements(binary_name, func_name, work_dir, full_path)
+function sbox_get_mapping_requirements(binary_name, func_name, full_path)
 	-- loop through the chains, first match is used
 	local min_path_len = 0
 	local rule = nil

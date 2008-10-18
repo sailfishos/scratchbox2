@@ -799,13 +799,15 @@ void *sbox_find_next_symbol(int log_enabled, const char *fn_name)
 	return(fn_ptr);
 }
 
-/* ---------- */
+/* ----- EXPORTED from interface.master: ----- */
 char *sb2show__map_path2__(const char *binary_name, const char *mapping_mode, 
         const char *fn_name, const char *pathname, int *readonly)
 {
 	char *mapped__pathname = NULL;
 
 	(void)mapping_mode;	/* mapping_mode is not used anymore. */
+
+	if (!sb2_global_vars_initialized__) sb2_initialize_global_variables();
 
 	if (pathname != NULL) {
 		mapped__pathname = scratchbox_path3(binary_name, fn_name,
@@ -1077,5 +1079,53 @@ int setrlimit64_gate(
 		}
 	}
 	return((*real_setrlimit64_ptr)(resource,rlp));
+}
+
+/* global variables, these come from the environment:
+ * used to store session directory & ld.so settings.
+ * set up as early as possible, so that if the application clears our
+ * environment we'll still know the original values.
+*/
+char *sbox_session_dir = NULL;
+char *sbox_orig_ld_preload = NULL;
+char *sbox_orig_ld_library_path = NULL;
+
+int sb2_global_vars_initialized__ = 0;
+
+/* NOTE: This function can be called before the environment
+ * is available. This happens at least on Linux when the
+ * pthreads library is initializing; it calls uname(), which
+ * will be handled by our uname() wrapper (it has been prepared
+ * for this situation, too)
+ *
+ * WARNING: Never call the logger from this function
+ * before "sb2_global_vars_initialized__" has been set!
+ * (the result would be infinite recursion, because the logger wants
+ * to open() the logfile..)
+*/
+void sb2_initialize_global_variables(void)
+{
+	if (!sb2_global_vars_initialized__) {
+		char	*cp;
+
+		if (!sbox_session_dir) {
+			cp = getenv("SBOX_SESSION_DIR");
+			if (cp) sbox_session_dir = strdup(cp);
+		}
+		if (!sbox_orig_ld_preload) {
+			cp = getenv("LD_PRELOAD");
+			if (cp) sbox_orig_ld_preload = strdup(cp);
+		}
+		if (!sbox_orig_ld_library_path) {
+			cp = getenv("LD_LIBRARY_PATH");
+			if (cp) sbox_orig_ld_library_path = strdup(cp);
+		}
+
+		if (sbox_session_dir) {
+			/* seems that we got it.. */
+			sb2_global_vars_initialized__ = 1;
+			SB_LOG(SB_LOGLEVEL_DEBUG, "global vars initialized from env");
+		}
+	}
 }
 

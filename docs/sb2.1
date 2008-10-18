@@ -3,7 +3,7 @@
 sb2 \- crosscompiling environment
 .SH SYNOPSIS
 .B sb2
-[ \-v ] [ \-d ] [ \-h ] [ \-t TARGET ] [ \-e ] [ \-m MODE ] [ -s DIRECTORY] [command] [arguments] [...]
+[ \-R ] [ \-v ] [ \-d ] [ \-h ] [ \-t TARGET ] [ \-e ] [ \-m MODE ] [ -s DIRECTORY] [command] [arguments] [...]
 .SH DESCRIPTION
 .B sb2
 Runs command in scratchbox2. If no command is given, a bash shell
@@ -12,6 +12,9 @@ in scratchbox2 environment is started.
 .TP
 \-v
 Display version number.
+.TP
+\-R
+Execute commands in fakeroot environment.
 .TP
 \-d
 Output all path mappings to $HOME/sb2_mapping.log.
@@ -55,6 +58,7 @@ sb2-config -d another_target
 .SH SEE ALSO
 .BR gcc (1),
 .BR ld (1),
+.BR fakeroot (1),
 No known bugs at this time.
 .SH AUTHOR
 .nf

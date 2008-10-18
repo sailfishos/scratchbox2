@@ -6,8 +6,10 @@
 
 argvmods = {}
 
--- only map gcc & friends if a cross compiler has been defined
-if (sbox_cross_gcc_dir ~= nil and sbox_cross_gcc_dir ~= "") then
+-- only map gcc & friends if a cross compiler has been defined,
+-- and it has not been disabled by the mapping rules:
+if (sbox_cross_gcc_dir ~= nil and sbox_cross_gcc_dir ~= "" and
+    enable_cross_gcc_toolchain == true) then
 	-- this generates gcc related argv/envp manglings
 	do_file(session_dir .. "/lua_scripts/argvenvp_gcc.lua")
 end

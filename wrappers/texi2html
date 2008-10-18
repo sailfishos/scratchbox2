@@ -1,0 +1,59 @@
+#!/bin/bash
+#
+# Copyright (c) 2008 Nokia Corporation.
+# All rights reserved.
+#
+# Licensed under GPL version 2
+#
+# texi2html wrapper: Check that the output file(s) will be placed to
+# the current directory. Old version of texi2html did that by default,
+# but newer versions create a subdirectory for the output files.
+# Unfortunately many packages depend on the old way (because the old tool
+# is the one that was used with scratchbox 1)
+#
+# Author: Lauri T. Aarnio
+
+args="$*"
+prog="$0"
+progbase=`basename $0`
+
+function error_not_inside_sb2()
+{
+	echo "SB2: $progbase: This wrapper can only be used from inside"
+	echo "the scratchbox 2'ed environment"
+	exit 1
+}
+
+if [ -z "$SBOX_SESSION_DIR" ]
+then
+	error_not_inside_sb2
+fi
+
+. $SBOX_SESSION_DIR/sb2-session.conf
+
+real_tool=$sbox_tools/usr/bin/texi2html
+
+if [ -z "$args" ]
+then
+	# No arguments
+	exec $real_tool
+fi
+
+# check options
+for i in $args
+do
+	case "$i" in
+	--output*)	# Output already assigned, don't change it
+			exec $real_tool $args
+			;;
+	-monolithic)	# create a single file to current directory:
+			# no need to modify output directory
+			exec $real_tool $args
+			;;
+	esac
+done
+
+# No --output or -monolithic; use --output=. to force the output files
+# to current directory
+exec $real_tool --output=. $args
+

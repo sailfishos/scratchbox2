@@ -31,6 +31,8 @@ Options:
                  letters: 'x' enables exec permission checking bug emulation)
     -p           Preserve session directories (including the directory
                  which is used for /tmp by most mapping modes)
+    -R           use simulated root permissions (currently activates
+                 "fakeroot" for this functionality)
 
 Examples:
     sb2 ./configure
@@ -147,7 +149,10 @@ function sboxify_environment()
 
 	if [ -z "$SBOX_MODE_PATH" ]
 	then
-		export PATH=$HOME/.scratchbox2/$SBOX_TARGET/bin:$SBOX_DIR/share/scratchbox2/scripts:$SBOX_DIR/bin:$PATH:/sbin:/usr/sbin:$SBOX_TARGET_ROOT/bin:$SBOX_TARGET_ROOT/usr/bin:$SBOX_TARGET_ROOT/usr/local/bin
+		# /sb2/wrappers and /sb2/scripts contain utilities for
+		# development support, and are available in the
+		# software development modes ("simple" and "devel")
+		export PATH=/sb2/wrappers:/sb2/scripts:$HOME/.scratchbox2/$SBOX_TARGET/bin:$SBOX_DIR/bin:$PATH:/sbin:/usr/sbin:$SBOX_TARGET_ROOT/bin:$SBOX_TARGET_ROOT/usr/bin:$SBOX_TARGET_ROOT/usr/local/bin
 	else
 		export PATH=$SBOX_MODE_PATH
 	fi
@@ -513,8 +518,9 @@ fi
 
 SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
 SBOX_WORKDIR=$(readlink -f $PWD)
+SBOX_FAKEROOT_PREFIX=""
 
-while getopts vdht:em:s:L:Q:pM:Z foo
+while getopts vdht:em:s:L:Q:pM:ZR foo
 do
 	case $foo in
 	(v) version ;;
@@ -531,10 +537,19 @@ do
 	(s) SBOX_LUA_SCRIPTS=$OPTARG;;
 	(p) SBOX_SESSION_NO_CLEANUP="y";;
 	(Z) SBOX_OPT_Z_NO_LD_SO_EXEC="y";;
+	(R) SBOX_FAKEROOT_PREFIX="fakeroot";;
 	(*) usage ;;
 	esac
 done
 shift $(($OPTIND - 1))
+
+if [ -n "$SBOX_SESSION_DIR" -a -f "$SBOX_SESSION_DIR/rules.lua" ]
+then
+	# already inside an sb2 session; ignore all options and just exec the command.
+	echo "WARNING: recursive calls to sb2 are not supported (session already exists)"
+	echo "WARNING: going to execute '$*' in this session"
+	exec $*
+fi
 
 if [ "$SBOX_MAPPING_DEBUG" == "1" ]; then
 	# check that loglevel is valid
@@ -628,11 +643,11 @@ if [ $# -gt 0 -o "$STDIN" = true ] ; then
 	shift 1
 	args="$@"
 	initialize_sb_logging $(echo $binary | sed 's/\//_/g') "$args"
-	exec sb2-monitor -L $SBOX_LIBSB2 -x $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
+	exec $SBOX_FAKEROOT_PREFIX sb2-monitor -L $SBOX_LIBSB2 -x $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
 		-- $SHELL -c "$binary $args"
 else
 	initialize_sb_logging sb2
-	exec sb2-monitor -L $SBOX_LIBSB2 -x $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
+	exec $SBOX_FAKEROOT_PREFIX sb2-monitor -L $SBOX_LIBSB2 -x $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
 		-- $SHELL --noprofile --norc
 fi
 

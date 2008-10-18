@@ -1,9 +1,13 @@
 -- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 -- Licensed under MIT license.
+--
+-- "simple" mode, to be used for software development & building
+-- (as the name says, this is the simple solution; See/use the "devel"
+-- mode when a more full-featured environment is needed)
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "15"
+rule_file_interface_version = "16"
 ----------------------------------
 
 tools = tools_root
@@ -15,6 +19,19 @@ simple_chain = {
 	next_chain = nil,
 	binary = nil,
 	rules = {
+		-- -----------------------------------------------
+		-- 2. Development environment special destinations:
+
+		{prefix = "/sb2/wrappers",
+		 replace_by = sbox_dir.."/share/scratchbox2/wrappers",
+		 readonly = true},
+
+		{prefix = "/sb2/scripts",
+		 replace_by = sbox_dir.."/share/scratchbox2/scripts",
+		 readonly = true},
+
+		-- -----------------------------------------------
+		-- 99. Other rules.
 		{prefix = "/lib", map_to = target_root},
 		{prefix = "/usr/share/osso", map_to = target_root},
 		{prefix = "/usr/lib/perl", map_to = tools},

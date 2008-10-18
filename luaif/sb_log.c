@@ -261,15 +261,27 @@ void sblog_vprintf_line_to_logfile(
 				logmsg, optional_src_location);
 		}
 	} else {
+		char	process_and_thread_id[80];
+
+		if (pthread_library_is_available && pthread_self_fnptr) {
+			pthread_t	tid = (*pthread_self_fnptr)();
+
+			snprintf(process_and_thread_id, sizeof(process_and_thread_id),
+				"[%d/%ld]", getpid(), (long)tid);
+		} else {
+			snprintf(process_and_thread_id, sizeof(process_and_thread_id),
+				"[%d]", getpid());
+		}
+
 		/* full format */
 		if(levelname) {
-			asprintf(&finalmsg, "%s (%s)\t%s[%d]\t%s%s\n",
+			asprintf(&finalmsg, "%s (%s)\t%s%s\t%s%s\n",
 				tstamp, levelname, sb_log_state.sbl_binary_name, 
-				getpid(), logmsg, optional_src_location);
+				process_and_thread_id, logmsg, optional_src_location);
 		} else {
-			asprintf(&finalmsg, "%s (%d)\t%s[%d]\t%s%s\n",
+			asprintf(&finalmsg, "%s (%d)\t%s%s\t%s%s\n",
 				tstamp, level, sb_log_state.sbl_binary_name, 
-				getpid(), logmsg, optional_src_location);
+				process_and_thread_id, logmsg, optional_src_location);
 		}
 	}
 

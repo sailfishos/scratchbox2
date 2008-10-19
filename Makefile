@@ -7,16 +7,13 @@ SRCDIR = $(TOPDIR)
 VPATH = $(SRCDIR)
 
 
-ifeq ($(MAKECMDGOALS),install-multilib)
-BUILD_TARGET=multilib
-else
-BUILD_TARGET=$(targets)
-endif
-
 ifeq ($(shell uname -m),x86_64)
+X86_64 = y
 PRI_OBJDIR = obj-64
+BUILD_TARGET = multilib
 else
 PRI_OBJDIR = obj-32
+BUILD_TARGET = $(targets)
 endif
 
 
@@ -53,8 +50,13 @@ else
 CONFIGURE_ARGS = 
 endif
 
+ifeq ($(X86_64),y)
+all: multilib
+else
+all: do-all
+endif
 
-all: $(targets)
+do-all: $(targets)
 
 .configure-multilib:
 	rm -rf obj-32 obj-64
@@ -67,19 +69,19 @@ all: $(targets)
 	touch .configure-multilib
 
 multilib: .configure-multilib
-	$(MAKE) -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=..
-	$(MAKE) -C obj-64 --include-dir=.. -f ../Makefile SRCDIR=..
+	$(MAKE) -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. do-all
+	$(MAKE) -C obj-64 --include-dir=.. -f ../Makefile SRCDIR=.. do-all
 
 
 gcc_bins = addr2line ar as cc c++ c++filt cpp g++ gcc gcov gdb gdbtui gprof ld nm objcopy objdump ranlib rdi-stub readelf run size strings strip
 host_prefixed_gcc_bins = $(foreach v,$(gcc_bins),host-$(v))
 
 
-sources-release:
+tarball:
 	git archive --format=tar --prefix=sbox2-$(PACKAGE_VERSION)/ $(PACKAGE_VERSION) | bzip2 >sbox2-$(PACKAGE_VERSION).tar.bz2
 
 
-install-noarch: $(BUILD_TARGET)
+install-noarch: $(targets)
 	if [ -d $(prefix)/bin ] ; \
 	then echo "$(prefix)/bin present" ; \
 	else install -d -m 755 $(prefix)/bin ; \
@@ -145,7 +147,11 @@ install-noarch: $(BUILD_TARGET)
 		ln -sf /bin/true $$f; \
 	done)
 
+ifeq ($(X86_64),y)
+install: install-multilib
+else
 install: do-install
+endif
 
 do-install: install-noarch
 	if [ -d $(prefix)/lib ] ; \
@@ -162,7 +168,7 @@ do-install: install-noarch
 
 multilib_prefix=$(prefix)
 
-install-multilib: install-noarch
+install-multilib: multilib
 	$(MAKE) -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. do-install-multilib bitness=32
 	$(MAKE) -C obj-64 --include-dir=.. -f ../Makefile SRCDIR=.. do-install
 
@@ -184,9 +190,15 @@ superclean: clean
 	rm -rf obj-32 obj-64 .configure-multilib
 
 clean-multilib:
-	$(MAKE) -C obj-32 --include-dir .. -f ../Makefile clean
-	$(MAKE) -C obj-64 --include-dir .. -f ../Makefile clean
+	-$(MAKE) -C obj-32 --include-dir .. -f ../Makefile do-clean
+	-$(MAKE) -C obj-64 --include-dir .. -f ../Makefile do-clean
 
-clean:
+ifeq ($(X86_64),y)
+clean: clean-multilib
+else
+clean: do-clean
+endif
+
+do-clean:
 	$(ll_clean)
 

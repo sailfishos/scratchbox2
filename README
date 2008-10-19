@@ -1,7 +1,7 @@
 SCRATCHBOX 2 README
 
 author: Lauri Leukkunen <lle@rahina.org>
-date:   2008-01-03
+date:   2008-10-20
 
 
 
@@ -14,10 +14,8 @@ stated otherwise in the file itself.
 
 GENERAL NOTICE
 
-This is development code, it is broken. Don't expect to use it for
-anything resembling production use. However, I firmly believe this is
-infinitely more functional than Scratchbox 1.x can ever be.
-
+This is no longer only development code, it is expected to work.
+If it doesn't, please file a bug at: https://bugs.freedesktop.org/
 
 
 INSTALLATION
@@ -27,48 +25,40 @@ You need git to work with sbox2, get it from http://git.or.cz/.
 Clone the scratchbox 2 repository:
 $ git clone git://anongit.freedesktop.org/git/sbox2
 
-There are two ways to build sb2, with and without multilib support.
-To be able to run 32bit binaries on a 64bit host, do this:
+For x86_64 hosts Scratchbox 2 automatically builds both i386
+and x86_64 versions of libsb2.so, for this reason you need
+to have the necessary 32bit support libs available (libc6-dev-i386,
+lib32gcc1 & co. on debian).
+
+To build SB2:
 
 $ cd sbox2
 $ ./autogen.sh
-$ make install-multilib prefix=$HOME/scratchbox
+$ make install prefix=$HOME/sb2
 
-If you only want your host's "native" version of the library, do:
-
-$ cd sbox2
-$ ./autogen.sh
-$ ./configure --prefix=$HOME/scratchbox
-$ make install
-
-
-You need Qemu for cpu-transparency. As of 2007-09-11 it's recommended to use
-debian/unstable's qemu-0.9.0+20070816-1 (or newer), it's by far the best that
-can be used with sb2.
-
-Qemu has many issues on amd64 host systems, at least when trying to
-do user-space emulation of ARM. Better results can be achieved on 32bit
-i386 hosts.
+You need Qemu for cpu-transparency. As of 2008-10, the SVN version of qemu
+seems to work pretty well even with modern codesourcery toolchains (2008q3).
 
 If you're targeting ARM you can get a good toolchain from CodeSourcery:
 http://www.codesourcery.com/gnu_toolchains/arm/download.html
-You need to build sb2 with multilib support to use CodeSourcery toolchains
-on amd64 host.
 
-Notice! Old Scratchbox 1 toolchains don't work with sb2.
+Notice! Old Scratchbox 1 toolchains don't work with SB2.
 
 To use sb2 you need to get a rootfs for your target and put it into
 some useful directory, alternatively you can copy the necessary files
 into right places from your toolchain. The essential thing is that
-sb2 needs FHS compliant target directory structure to work. For an example
-of such a system you can look at the Maemo example later in this README.
+sb2 needs FHS compliant target directory structure to work.
+
+From a codesourcery toolchain, you can find the "seed" target rootfs contents
+from arm-2008q3/arm-none-linux-gnueabi/libc, simply copy that to the buildroot.
 
 To complete sb2 target setup:
 
 $ mkdir $HOME/buildroot
 $ cd $HOME/buildroot
-[extract or copy your rootfs contents into place]
-$ $HOME/scratchbox/bin/sb2-init -c qemu-arm my_target arm-linux-gcc
+$ cp -a $HOME/arm-2008q3/arm-none-linux-gnueabi/libc/{lib,etc,usr} .
+$ $HOME/sb2/bin/sb2-init -c /abs/path/to/qemu-arm my_target \
+	arm-none-linux-gnueabi-gcc
 
 That will automatically generate a working target config for the compiler
 given on the command line and run sb2-build-libtool script to get you a
@@ -78,15 +68,15 @@ can always run it manually later.
 
 At this point you can simply run sb2:
 
-$ $HOME/scratchbox/bin/sb2
+$ $HOME/sb2/bin/sb2
 
 sb2-init made this target your default if you had no prior sb2 targets
 configured. To change the default use sb2-config -d your_target.
 
-Perhaps adding $HOME/scratchbox/bin to your PATH is also a good idea, put
+Perhaps adding $HOME/sb2/bin to your PATH is also a good idea, put
 this in your $HOME/.bashrc:
 -- snip --
-export PATH=$PATH:$HOME/scratchbox/bin
+export PATH=$PATH:$HOME/sb2/bin
 -- snip --
 
 After that you can run sb2 easily from anywhere and it'll just do its magic.
@@ -95,45 +85,8 @@ After that you can run sb2 easily from anywhere and it'll just do its magic.
 
 MAEMO DEVELOPMENT
 
-First install sb2 as described above, or if you're using debian testing or
-unstable you can simply "apt-get install scratchbox2". If you're running
-a non-debian system you need to debootstrap debian/etch to some directory,
-sb2 can use it as a tool distribution.
-
-Download the latest rootstrap from:
-
-http://repository.maemo.org/stable/3.1/armel/maemo-sdk-rootstrap_3.1_armel.tgz
-
-Extract that to $HOME/maemo-root
-
-Edit $HOME/maemo-root/etc/apt/apt.conf so that it looks like this:
--- snip --
-APT {
-Architecture armel;
-}
--- snip --
-
-Then get a nice toolchain from the locations mentioned above.
-
-After that you can setup sb2 by running:
-
-$ cd $HOME/maemo-root
-$ sb2-init -c qemu-arm -m devel maemo arm-none-linux-gnueabi-gcc
-
-If you want to use a separate tool distribution, do this instead:
-$ sb2-init -c qemu-arm -m devel -t /etch_root maemo arm-none-linux-gnueabi-gcc
-
-Now you should have a fully functioning development environment.
-To try it out you can build for example fontconfig like this:
-
-$ sb2 apt-get source fontconfig
-$ cd fontconfig-2.4.1
-$ sb2 dpkg-buildpackage -rfakeroot -d
-
-You don't need to be in $HOME/maemo-root to do that, I typically do all
-development work in $HOME/src. The "-d" switch is needed to skip checking build
-dependencies, this is one of the remaining TODO items of SB2.
-
+The Maemo SDK+ project at http://maemo-sdk.garage.maemo.org/ provides
+everything you need to develop for Maemo using SB2.
 
 
 DIAGNOSING PROBLEMS WITH SB2

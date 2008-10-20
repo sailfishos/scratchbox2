@@ -11,33 +11,19 @@ ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
 INSTALL_PROGRAM += -s
 endif
 
-DEB_HOST_GNU_TYPE = $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
-
-ifeq (x86_64-linux-gnu,$(DEB_HOST_GNU_TYPE))
-BUILD_TARGET=multilib
-INSTALL_TARGET=install-multilib multilib_prefix="$(CURDIR)/debian/scratchbox2/emul"
-else
-BUILD_TARGET=all
-INSTALL_TARGET=install
-endif
-
 build: build-stamp
 build-stamp:
 	dh_testdir
 	./autogen.sh
-	./configure --prefix=/usr
-	make $(BUILD_TARGET)
-
+	$(MAKE) prefix=/usr
 	touch build-stamp
 
 # this is really not part of debian package build, but just for convinience
 
 clean: checkroot
 	$(checkdir)
-	make clean
-	rm -f configure config.mak build-stamp .configure-multilib
-	rm -f include/config.h include/config.h.in
-	rm -rf obj-64 obj-32
+	make superclean
+	rm -f build-stamp
 	dh_clean
 
 # Build architecture-independent files here.
@@ -49,7 +35,7 @@ install: build
 	dh_testdir
 	dh_testroot
 	dh_installdirs
-	$(MAKE) prefix="$(CURDIR)/debian/scratchbox2/usr" $(INSTALL_TARGET)
+	$(MAKE) prefix="$(CURDIR)/debian/scratchbox2/usr" install
 	# make lintian happy
 	rm -f debian/scratchbox2/usr/share/scratchbox2/host_usr
 	ln -sf ../.. debian/scratchbox2/usr/share/scratchbox2/host_usr

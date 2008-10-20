@@ -38,6 +38,12 @@ $ make install prefix=$HOME/sb2
 
 You need Qemu for cpu-transparency. As of 2008-10, the SVN version of qemu
 seems to work pretty well even with modern codesourcery toolchains (2008q3).
+Get the latest Qemu with: 
+
+$ svn co svn://svn.savannah.nongnu.org/qemu/trunk qemu
+$ cd qemu
+$ ./configure --prefix=$HOME/sb2 --target-list=arm-linux-user
+$ make && make install
 
 If you're targeting ARM you can get a good toolchain from CodeSourcery:
 http://www.codesourcery.com/gnu_toolchains/arm/download.html

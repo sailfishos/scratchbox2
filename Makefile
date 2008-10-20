@@ -78,7 +78,7 @@ tarball:
 	git archive --format=tar --prefix=sbox2-$(PACKAGE_VERSION)/ $(PACKAGE_VERSION) | bzip2 >sbox2-$(PACKAGE_VERSION).tar.bz2
 
 
-install-noarch: do-all
+install-noarch: regular
 	if [ -d $(prefix)/bin ] ; \
 	then echo "$(prefix)/bin present" ; \
 	else install -d -m 755 $(prefix)/bin ; \

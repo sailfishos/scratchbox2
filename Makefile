@@ -36,6 +36,8 @@ CFLAGS += -I$(OBJDIR)/include -I$(SRCDIR)/include
 CFLAGS += -I$(SRCDIR)/luaif/lua-5.1.4/src
 CFLAGS += -D_GNU_SOURCE=1 -D_LARGEFILE_SOURCE=1 -D_LARGEFILE64_SOURCE=1
 CFLAGS += -DSCRATCHBOX_ROOT="$(prefix)"
+CFLAGS += $(MACH_CFLAG)
+LDFLAGS += $(MACH_CFLAG)
 CXXFLAGS = 
 
 include $(LLBUILD)/Makefile.include
@@ -55,25 +57,17 @@ endif
 do-all: $(targets)
 
 .configure:
-	./configure $(CONFIGURE_ARGS)
+	$(SRCDIR)/configure $(CONFIGURE_ARGS)
 	touch .configure
 
-.configure-multilib:
-	rm -rf obj-32 obj-64
-	mkdir -p obj-32
-	mkdir -p obj-64
-	cd obj-32 && \
-	CFLAGS=-m32 LDFLAGS=-m32 ../configure $(CONFIGURE_ARGS)
-	cd obj-64 && \
-	CFLAGS=-m64 LDFLAGS=-m64 ../configure $(CONFIGURE_ARGS)
-	touch .configure-multilib
-
 regular: .configure
-	$(MAKE) do-all
+	$(MAKE) -f $(SRCDIR)/Makefile --include-dir=$(SRCDIR) SRCDIR=$(SRCDIR) do-all
 
-multilib: .configure-multilib
-	$(MAKE) -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. do-all
-	$(MAKE) -C obj-64 --include-dir=.. -f ../Makefile SRCDIR=.. do-all
+multilib:
+	@mkdir -p obj-32
+	@mkdir -p obj-64
+	$(MAKE) MACH_CFLAG=-m32 -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. regular
+	$(MAKE) MACH_CFLAG=-m64 -C obj-64 --include-dir=.. -f ../Makefile SRCDIR=.. regular
 
 
 gcc_bins = addr2line ar as cc c++ c++filt cpp g++ gcc gcov gdb gdbtui gprof ld nm objcopy objdump ranlib rdi-stub readelf run size strings strip

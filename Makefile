@@ -86,7 +86,7 @@ tarball:
 	git archive --format=tar --prefix=sbox2-$(PACKAGE_VERSION)/ $(PACKAGE_VERSION) | bzip2 >sbox2-$(PACKAGE_VERSION).tar.bz2
 
 
-install-noarch: $(targets)
+install-noarch: all
 	if [ -d $(prefix)/bin ] ; \
 	then echo "$(prefix)/bin present" ; \
 	else install -d -m 755 $(prefix)/bin ; \
@@ -191,6 +191,7 @@ CLEAN_FILES += $(targets) config.status config.log
 
 superclean: clean
 	rm -rf obj-32 obj-64 .configure-multilib .configure
+	rm -rf include/config.h
 
 clean-multilib:
 	-$(MAKE) -C obj-32 --include-dir .. -f ../Makefile do-clean

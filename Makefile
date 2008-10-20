@@ -10,10 +10,8 @@ VPATH = $(SRCDIR)
 ifeq ($(shell uname -m),x86_64)
 X86_64 = y
 PRI_OBJDIR = obj-64
-BUILD_TARGET = multilib
 else
 PRI_OBJDIR = obj-32
-BUILD_TARGET = $(targets)
 endif
 
 

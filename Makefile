@@ -40,8 +40,6 @@ CXXFLAGS =
 
 include $(LLBUILD)/Makefile.include
 
-export CC CFLAGS LDFLAGS CXX CXXFLAGS TOPDIR LLBUILD
-
 ifdef prefix
 CONFIGURE_ARGS = --prefix=$(prefix)
 else
@@ -191,7 +189,7 @@ CLEAN_FILES += $(targets) config.status config.log
 
 superclean: clean
 	rm -rf obj-32 obj-64 .configure-multilib .configure
-	rm -rf include/config.h
+	rm -rf include/config.h config.mak
 
 clean-multilib:
 	-$(MAKE) -C obj-32 --include-dir .. -f ../Makefile do-clean

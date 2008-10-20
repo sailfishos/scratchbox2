@@ -51,10 +51,14 @@ endif
 ifeq ($(X86_64),y)
 all: multilib
 else
-all: do-all
+all: regular
 endif
 
 do-all: $(targets)
+
+.configure:
+	./configure $(CONFIGURE_ARGS)
+	touch .configure
 
 .configure-multilib:
 	rm -rf obj-32 obj-64
@@ -65,6 +69,9 @@ do-all: $(targets)
 	cd obj-64 && \
 	CFLAGS=-m64 LDFLAGS=-m64 ../configure $(CONFIGURE_ARGS)
 	touch .configure-multilib
+
+regular: .configure
+	$(MAKE) do-all
 
 multilib: .configure-multilib
 	$(MAKE) -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. do-all
@@ -182,10 +189,8 @@ do-install-multilib:
 
 CLEAN_FILES += $(targets) config.status config.log
 
-# make all object files depend on include/config.h
-
 superclean: clean
-	rm -rf obj-32 obj-64 .configure-multilib
+	rm -rf obj-32 obj-64 .configure-multilib .configure
 
 clean-multilib:
 	-$(MAKE) -C obj-32 --include-dir .. -f ../Makefile do-clean

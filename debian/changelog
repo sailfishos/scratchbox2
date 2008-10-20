@@ -1,6 +1,9 @@
-scratchbox2 (1.99.0.25) unstable; urgency=low
-  * fill me up
- -- Lauri Aarnio <lauri.aarnio@iki.fi>  Tue, 06 May 2008 17:50:00 +0300
+scratchbox2 (1.99.0.27-1) unstable; urgency=low
+
+  * New upstream version
+  * Simplify build rules
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Mon, 20 Oct 2008 20:23:05 +0300
 
 scratchbox2 (1.99.0.24-2) unstable; urgency=low
 

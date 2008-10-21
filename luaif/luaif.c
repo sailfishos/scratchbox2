@@ -528,6 +528,19 @@ static int lua_sb_debug_messages_enabled(lua_State *l)
 	return 1;
 }
 
+/* "sb.getcwd", to be called from lua code */
+static int lua_sb_getcwd(lua_State *l)
+{
+	char cwd[PATH_MAX + 1];
+
+	if (getcwd_nomap_nolog(cwd, sizeof(cwd))) {
+		lua_pushstring(l, cwd);
+	} else {
+		lua_pushstring(l, NULL);
+	}
+	return 1;
+}
+
 /* mappings from c to lua */
 static const luaL_reg reg[] =
 {
@@ -540,6 +553,7 @@ static const luaL_reg reg[] =
 	{"setenv",			lua_sb_setenv},
 	{"path_exists",			lua_sb_path_exists},
 	{"debug_messages_enabled",	lua_sb_debug_messages_enabled},
+	{"getcwd",			lua_sb_getcwd},
 	{NULL,				NULL}
 };
 

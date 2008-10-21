@@ -246,30 +246,7 @@ fi
 # Next, check that the list of usable packages exists and is up-to-date.
 # That list is really a temporary package database, which contains only
 # packages that are usable thru this mapping mode.
-
-if [ ! -f $TARGET_DPKG_ADMINDIR_USABLE_PKGS/status ]
-then
-	echo "$TARGET_DPKG_ADMINDIR_USABLE_PKGS/status does not exist."
-	echo "going to create it now. This is going to take a while.."
-	echo
-	sb2-check-pkg-mappings -a
-elif [ $TARGET_DPKG_ADMINDIR_USABLE_PKGS/status -ot \
-       $TARGET_DPKG_ADMINDIR_ALL_PKGS/status ]
-then
-	echo "Target's primary package database has been updated =>"
-	echo "$TARGET_DPKG_ADMINDIR_USABLE_PKGS/status is out of date."
-	echo "going to update it now. This is going to take a while.."
-	echo
-	sb2-check-pkg-mappings -a
-elif [ $TARGET_DPKG_ADMINDIR_USABLE_PKGS/status -ot \
-       $sbox_dir/share/scratchbox2/lua_scripts/pathmaps/$sbox_mapmode/00_default.lua ]
-then
-	echo "SB2's mapping rules have been updated =>"
-	echo "$TARGET_DPKG_ADMINDIR_USABLE_PKGS/status might be out of date."
-	echo "going to update it now. This is going to take a while.."
-	echo
-	sb2-check-pkg-mappings -a
-fi
+sb2-check-pkg-mappings -u
 
 check_target_builddeps
 if [ $? == 0 ]; then

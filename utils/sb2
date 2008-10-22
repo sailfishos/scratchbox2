@@ -432,6 +432,24 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 	fi
 }
 
+function write_locale_paths_to_exec_config()
+{
+	local rootdir
+	local locale_path_varname
+	local message_catalog_prefix_varname
+	locale locale_path
+
+	rootdir=$1
+	locale_path_varname=$2
+	message_catalog_prefix_varname=$3
+	locale_path=$HOME/.scratchbox2/$SBOX_TARGET/locales
+
+	echo "$locale_path_varname=\"$locale_path\"" \
+	    >> $SBOX_SESSION_DIR/exec_config.lua
+	echo "$message_catalog_prefix_varname=\"$SBOX_TARGET_ROOT\"" \
+	    >> $SBOX_SESSION_DIR/exec_config.lua
+}
+
 # Write configuration file $SBOX_SESSION_DIR/exec_config.lua
 function create_exec_config_file()
 {
@@ -487,6 +505,11 @@ END
 			$SBOX_TARGET_ROOT \
 			conf_target_sb2_installed conf_target_sbox_dir \
 			conf_target_ld_so conf_target_ld_so_supports_argv0
+
+		write_locale_paths_to_exec_config \
+			$SBOX_TARGET_ROOT \
+			conf_target_locale_path \
+			conf_target_message_catalog_prefix
 	else
 		# SBOX_TOOLS_ROOT was empty, tools will be used from
 		# host environment.
@@ -496,6 +519,8 @@ conf_target_sb2_installed = false
 conf_target_sbox_dir = ""
 conf_target_ld_so = nil
 conf_target_ld_so_supports_argv0 = false
+conf_target_locale_path = nil
+conf_target_message_catalog_prefix = nil
 END
 
 		case "$SBOX_CPUTRANSPARENCY_METHOD" in	

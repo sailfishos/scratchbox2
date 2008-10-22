@@ -475,3 +475,38 @@ WRAP: char *mktemp(char *template) : \
 GATE: int setrlimit(SETRLIMIT_ARG1_TYPE resource, const struct rlimit *rlp)
 GATE: int setrlimit64(SETRLIMIT_ARG1_TYPE resource, const struct rlimit64 *rlp)
 
+--
+-- gettext(3) and related message translation functions.
+--
+-- We need to wrap all functions that accept 'domainname' as
+-- parameter.  Normal way of using gettext(3) is 
+--	bindtextdomain("mydomain", "/path/to/locales");
+--	textdomain("mydomain");
+--	gettext(...);
+--
+-- But we have seen in several applications that bindtextdomain(3)
+-- and textdomain(3) can be skipped and dcgettext(3) and the like
+-- functions are used:
+-- 	dcgettext("mydomain", ...);
+--
+-- We solve this by wrapping all gettext functions that take domainname
+-- and call explicitly bindtextdomain(3). This way message catalog
+-- directories will get mapped to correct place.  These paths are
+-- specified in exec_policy as follows:
+-- 	{
+--		...
+--		native_app_message_catalog_prefix = <prefix>
+--	}
+-- When this variable is set, we map '/path/to/locales' to
+-- '<prefix>/path/to/locales'.
+--
+-- TODO: should we wrap also plain gettext() and ngettext()?
+--
+GATE: char *bindtextdomain(const char *domainname, const char *dirname)
+GATE: char *textdomain(const char *domainname)
+GATE: char *dgettext(const char *domainname, const char *msgid)
+GATE: char *dcgettext(const char *domainname, const char *msgid, int category)
+GATE: char *dngettext(const char *domainname, const char *msgid, \
+    const char *msgid_plural, unsigned long int n)
+GATE: char *dcngettext(const char *domainname, const char *msgid, \
+    const char *msgid_plural, unsigned long int n, int category)

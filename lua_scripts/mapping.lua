@@ -403,3 +403,27 @@ function sbox_get_mapping_requirements(binary_name, func_name, full_path)
 	return rule, true, min_path_len
 end
 
+--
+-- Tries to find exec_policy for given binary using exec_policy_chains.
+--
+-- Returns: 1, exec_policy when exec_policy was found, otherwise
+-- returns 0, nil.
+--
+-- Called from libsb2.so, too.
+function sb_find_exec_policy(binaryname, mapped_file)
+	local rule = nil
+	local chain = nil
+
+	chain = find_chain(active_mode_exec_policy_chains, binaryname)
+	if chain ~= nil then
+		sb.log("debug", "chain found, find rule for "..mapped_file)
+		-- func_name == nil
+		rule = find_rule(chain, nil, mapped_file)
+	end
+	if rule ~= nil then
+		sb.log("debug", "rule found..")
+		return 1, rule.exec_policy
+	end
+	return 0, nil
+end
+

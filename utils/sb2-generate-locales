@@ -1,0 +1,141 @@
+#!/bin/sh
+#
+# Copyright (C) 2008 Nokia Corporation.
+# Licensed under GPL version 2
+#
+# Generate locale definition files under $HOME/.scratchbox2/$sbox_target
+# in extracted form.  We need to do this because otherwise it is impossible
+# to map locales under sb2 to $sbox_target_root using environment variable
+# $LOCPATH. 
+#
+# $LOCPATH is the only way to change path of locale files when using
+# glibc (other systems use $NLSPATH but we don't need to do this extraction
+# there).  Problem is that when $LOCPATH is defined, glibc doesn't want
+# to read file named '$LOCPATH/locale-archive' but it assumes that files
+# under $LOCPATH are in extracted form.
+#
+# This is only needed when we are running binaries without cpu transparency.
+#
+
+prog="$0"
+progbase=`basename $0`
+
+generate_localization_files()
+{
+	local sbox_target
+	local force
+
+	sbox_target=$1
+	force=$2
+
+	# this is where new extracted locales are generated
+	gendir=$HOME/.scratchbox2/$sbox_target/locales
+	if [ -d $gendir ]; then
+		if [ $force -eq 0 ]; then
+			return
+		fi
+	fi
+
+	# do we have locale-archive in target_root?
+	if [ ! -f /target_root/usr/lib/locale/locale-archive ]; then
+		return
+	fi
+
+	# does localedef exist?
+	if [ ! -x /target_root/usr/bin/localedef ]; then
+		# nothing to do
+		return
+	fi
+
+	# list currently archived locales
+	archived_locales=`/target_root/usr/bin/localedef --list-archive \
+	    --prefix /target_root`
+
+	if [ -z "$archived_locales" ]; then
+		return
+	fi
+
+	echo "Generating locales under '$gendir'"
+
+	/bin/mkdir $gendir > /dev/null 2>&1
+
+	#
+	# Now we force localedef to use our target_root as
+	# root for all locale operations.
+	#
+	I18NPATH=/target_root/usr/share/i18n; export I18NPATH
+	LOCPATH=/target_root/usr/lib/locale; export LOCPATH
+
+	#
+	# Find out supported variations for a locale and generate
+	# the files.
+	#
+	for l in $archived_locales; do
+		echo -n "generating locale $l ..."
+		/target_root/usr/bin/localedef \
+		    --no-archive \
+		    -c \
+		    -i $l \
+		    $gendir/$l > /dev/null 2>&1
+		echo " done"
+	done
+
+	unset I18NPATH
+	unset LOCPATH
+}
+
+usage()
+{
+	cat <<EOF
+Usage: $progbase [OPTION]
+
+Options:
+   -f    forces generation of locales even if they already exists
+   -h    displays this help text
+
+Generates locale specific files based on archived ones under
+target_root/usr/lib/locale/locale-archive.  These files are
+used to map locales into target_root by scratchbox2.
+
+You need to do this only with binaries that have same architecture
+than host has.  Binaries that are run through cpu transparency get
+mapped correctly.
+EOF
+	exit 1
+}
+
+error_not_inside_sb2()
+{
+	echo "SB2: $progbase: This program can only be used from inside"
+	echo "the scratchbox 2'ed environment"
+	exit 1
+}
+
+if [ -z "$SBOX_SESSION_DIR" ]; then
+	error_not_inside_sb2
+fi
+
+. $SBOX_SESSION_DIR/sb2-session.conf
+
+args=`getopt hf $*`
+if [ $? -ne 0 ]; then
+        usage
+fi
+
+force=0
+for a in $args; do
+	case $a in
+	-f)
+		force=1;
+		shift
+		;;
+	--)
+		break
+		;;
+	*)
+		usage
+		;;
+	esac
+done
+
+generate_localization_files $sbox_target $force

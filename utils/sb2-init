@@ -65,6 +65,7 @@ Options:
     -m [mapping_mode] use mapping_mode as default
     -h                print this help
     -n                don't build libtool for the target
+    -N                don't generate localization files for the target
     -s                skip checks for target root's /usr/include etc.
     -t [tools_dir]    set directory containing the build tools distribution
     -C "options"      add extra options for the compiler, for example:
@@ -228,6 +229,7 @@ LOCALHOST=
 
 set_as_default=0
 with_libtool=1
+with_locales=1
 skip_checks=false
 
 SBOX_EXTRA_CROSS_COMPILER_ARGS=""
@@ -236,7 +238,7 @@ if [ -z "$*" ]; then
 	usage
 fi
 
-while getopts A:c:C:r:l:m:dhnst:v foo
+while getopts A:c:C:r:l:m:dhnNst:v foo
 do
 	case $foo in
 	(A) ARCH=$OPTARG ;;
@@ -247,6 +249,7 @@ do
 	(h) usage ;;
 	(m) MAPPING_MODE=$OPTARG ;;
 	(n) with_libtool=0 ;;
+	(N) with_locales=0 ;;
 	(s) skip_checks=true ;;
 	(t) TOOLS_ROOT=$OPTARG ;;
 	(v) version ;;
@@ -422,6 +425,18 @@ fi
 
 if [ $set_as_default == 1 ]; then
 	sb2-config -d $TARGET
+fi
+
+#
+# If target architecture is same as host (currently i386)
+# we need to extract localization archive from target and
+# place resulting files under ~/.scratchbox2/locales.
+#
+if [ $with_locales == 1 ]; then
+	if [ -z "$CPUTRANSP" ]; then
+		$SBOX_DIR/bin/sb2 -t $TARGET \
+		    $SBOX_DIR/share/scratchbox2/scripts/sb2-generate-locales
+	fi
 fi
 
 if [ $with_libtool == 1 ]; then

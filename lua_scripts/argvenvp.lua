@@ -189,6 +189,23 @@ function sb_execve_postprocess_native_executable(rule, exec_policy,
 		end
 		updated_args = 1
 	end
+
+	--
+	-- When exec_policy contains field 'native_app_locale_path' we
+	-- need to set environment variables $LOCPATH (and $NLSPATH) to
+	-- point there.  Localization functions (e.g isalpha(), etc.)
+	-- gets their locale specific information from $LOCPATH when
+	-- it is set.
+	--
+	if exec_policy.native_app_locale_path ~= nil then
+		sb.log("debug", string.format("setting LOCPATH=%s",
+		    exec_policy.native_app_locale_path))
+		table.insert(new_envp, "LOCPATH=" ..
+		    exec_policy.native_app_locale_path)
+		table.insert(new_envp, "NLSPATH=" ..
+		    exec_policy.native_app_locale_path)
+		updated_args = 1
+	end
 	
 	if (updated_args == 1) then
 		-- Add components from original argv[]
@@ -437,21 +454,11 @@ function sb_execve_postprocess(rule, exec_policy, exec_type,
 	-- provided by the mapping rule), look up the policy from
 	-- exec_policy_chains array.
 	if (exec_policy == nil) then
-		local rule = nil
-		local chain = nil
+		local res
 
 		sb.log("debug", "trying exec_policy_chains..")
-		chain = find_chain(active_mode_exec_policy_chains, binaryname)
-		if (chain ~= nil) then
-			sb.log("debug", "chain found, find rule for "..mapped_file)
-			rule = find_rule(chain, func_name, mapped_file)
-		end
-		if (rule ~= nil) then
-			sb.log("debug", "rule found..")
-			exec_policy = rule.exec_policy
-		end
-		
-		if (exec_policy == nil) then
+		res, exec_policy = sb_find_exec_policy(binaryname, mapped_file)
+		if res == 0 then
 			-- there is no default policy for this mode
 			sb.log("notice",
 				"sb_execve_postprocess: No exec_policy for "..filename)

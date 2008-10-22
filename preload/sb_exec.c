@@ -465,7 +465,7 @@ static int prepare_hashbang(
 	char ***argvp,
 	char ***envpp)
 {
-	int argc, fd, c, i, j, n, ret;
+	int argc, fd, c, i, j, n;
 	char ch;
 	char *ptr, *mapped_interpreter;
 	char **new_argv;
@@ -618,6 +618,11 @@ static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 			/* this is current process' name, skip it */
 			continue;
 		}
+		if (strncmp(*p, "__SB2_REAL_BINARYNAME=",
+				strlen("__SB2_REAL_BINARYNAME=")) == 0) {
+			/* skip current process' real binary name */
+			continue;
+		}
 		if (strncmp(*p, "SBOX_SESSION_DIR=",
 				sbox_session_dir_varname_len+1) == 0) {
 			/* this is user-provided SBOX_SESSION_DIR, skip it. */
@@ -637,6 +642,9 @@ static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 	 */
 	asprintf(&new_binaryname_var, "__SB2_BINARYNAME=%s", binaryname);
 	my_envp[i++] = new_binaryname_var; /* add the new process' name */
+
+	/* allocate slot for __SB2_REAL_BINARYNAME that is filled later on */
+	my_envp[i++] = strdup("__SB2_REAL_BINARYNAME=");
 
 	/* If our environ has LD_PRELOAD, but the given envp doesn't,
 	 * add the value that was active when this process was started.
@@ -708,17 +716,19 @@ static void compare_and_log_strvec_changes(const char *vecname,
 	}
 }
 
-static int strvec_contains(char *const *strvec, const char *id)
+static int strvec_contains(char *const *strvec, const char *id,
+    size_t *index)
 {
-	char *const *ptr2vec = strvec;
+	int i;
 
-	while (*ptr2vec) {
-		if (!strcmp(*ptr2vec, id)) {
-			return(1);
+	for (i = 0; strvec[i] != NULL; i++) {
+		if (strcmp(strvec[i], id) == 0) {
+			if (index != NULL)
+				*index = i;
+			return (1);
 		}
-		ptr2vec++;
 	}
-	return(0);
+	return (0);
 }
 
 
@@ -737,6 +747,7 @@ static int prepare_exec(const char *exec_fn_name,
 	enum binary_type type;
 	int postprocess_result = 0;
 	int ret = 0; /* 0: ok to exec, ret<0: exec fails */
+	size_t idx;
 
 	(void)exec_fn_name; /* not yet used */
 
@@ -779,7 +790,7 @@ static int prepare_exec(const char *exec_fn_name,
 	/* test if mapping is enabled during the exec()..
 	 * (host-* tools disable it)
 	*/
-	if (strvec_contains(my_envp, "SBOX_DISABLE_MAPPING=1")) {
+	if (strvec_contains(my_envp, "SBOX_DISABLE_MAPPING=1", NULL)) {
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"do_exec(): mapping disabled, my_file = %s", my_file);
 		mapped_file = strdup(my_file);
@@ -802,6 +813,28 @@ static int prepare_exec(const char *exec_fn_name,
 			my_file, mapped_file);
 
 		/* Note: the Lua stack should now have rule and policy objects */
+	}
+
+	/*
+	 * prepare_envp_for_do_exec() left us placeholder in envp array
+	 * that we will fill now with fully mangled binary name.
+	 */
+	if (strvec_contains(my_envp, "__SB2_REAL_BINARYNAME=", &idx)) {
+		char *real_binaryname, *orig_real_binaryname;
+
+		/* release the placeholder */
+		orig_real_binaryname = my_envp[idx];
+		free(orig_real_binaryname);
+
+		/*
+		 * Append fully mangled binary name to exec'd process
+		 * environment with name __SB2_REAL_BINARYNAME.
+		 */
+		(void) asprintf(&real_binaryname, "__SB2_REAL_BINARYNAME=%s",
+		    mapped_file);
+		my_envp[idx] = real_binaryname;
+
+		SB_LOG(SB_LOGLEVEL_DEBUG, "setting %s", real_binaryname);
 	}
 
 	/* inspect the completely mangled filename */

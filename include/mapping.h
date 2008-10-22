@@ -26,5 +26,7 @@ extern void sb_push_string_to_lua_stack(char *str);
 extern int sb_execve_postprocess(char *exec_type,
 	char **mapped_file, char **filename, const char *binary_name,
 	char ***argv, char ***envp);
+extern char *sb_query_exec_policy(const char *field_name,
+	const char *binary_name, const char *real_binary_name);
 
 #endif

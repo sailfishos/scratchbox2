@@ -18,7 +18,7 @@ endif
 CC = gcc
 CXX = g++
 LD = ld
-PACKAGE_VERSION = "1.99.0.26"
+PACKAGE_VERSION = "1.99.0.27"
 PACKAGE = "SB2"
 LIBSB2_SONAME = "libsb2.so.1"
 LLBUILD ?= $(SRCDIR)/llbuild

@@ -33,6 +33,16 @@ Use mapping mode given in argument.
 .TP
 \-s
 Use redirection rules from the directory given in argument.
+.TP
+\-S file
+Create a persistent session: Write session information to "file"
+.TP
+\-J file
+Join a persistent session.
+.TP
+\-D file
+Delete a persistent session. Warning: this does not
+check if the session is still in use!
 
 .SH ENVIRONMENT
 There are quite many environment variables being used. Since sb2 is still

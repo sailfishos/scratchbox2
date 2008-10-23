@@ -43,6 +43,8 @@ static void usage_exit(const char *progname, const char *errmsg, int exitstatus)
 		"\nCommands:\n"
 		"\tpath [path1] [path2].."
 			"\tShow mappings of pathnames\n"
+		"\trealcwd"
+			"\tShow real current working directory\n"
 		"\texec file argv0 [argv1] [argv2].."
 			"\tShow execve() modifications\n"
 		"\tlog-error 'message'"
@@ -277,6 +279,14 @@ static void command_show_path(const char *binary_name,
 	}
 }
 
+static void command_show_realcwd(const char *binary_name, const char *fn_name)
+{
+	char	*real_cwd_path = NULL;
+
+	real_cwd_path = sb2show__get_real_cwd__(binary_name, fn_name);
+	printf("%s\n", real_cwd_path ? real_cwd_path : "<null>");
+}
+
 /* read paths from stdin, report paths that are not mapped to specified
  * directory.
  * returns 0 if all OK, 1 if one or more paths were not mapped.
@@ -451,6 +461,8 @@ int main(int argc, char *argv[])
 	if (!strcmp(argv[optind], "path")) {
 		command_show_path(binary_name, function_name, 
 			argv + optind + 1);
+	} else if (!strcmp(argv[optind], "realcwd")) {
+		command_show_realcwd(binary_name, function_name);
 	} else if (!strcmp(argv[optind], "exec")) {
 		command_show_exec(binary_name, function_name,
 			progname, argc - (optind+1), argv + optind + 1,

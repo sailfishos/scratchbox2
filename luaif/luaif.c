@@ -159,12 +159,16 @@ static	struct lua_instance *my_lua_instance = NULL;
 
 static void load_and_execute_lua_file(struct lua_instance *luaif, const char *filename)
 {
+	const char *errmsg;
+
 	switch(luaL_loadfile(luaif->lua, filename)) {
 	case LUA_ERRFILE:
 		fprintf(stderr, "Error loading %s\n", filename);
 		exit(1);
 	case LUA_ERRSYNTAX:
-		fprintf(stderr, "Syntax error in %s\n", filename);
+		errmsg = lua_tostring(luaif->lua, -1);
+		fprintf(stderr, "Syntax error in %s (%s)\n", filename, 
+			(errmsg?errmsg:""));
 		exit(1);
 	case LUA_ERRMEM:
 		fprintf(stderr, "Memory allocation error while "
@@ -335,6 +339,7 @@ void sb2__load_and_execute_lua_file__(const char *filename)
 	load_and_execute_lua_file(luaif, filename);
 }
 
+#if 0 /* DISABLED 2008-10-23/LTA: sb_decolonize_path() is not currently available*/
 /* "sb.decolonize_path", to be called from lua code */
 static int lua_sb_decolonize_path(lua_State *l)
 {
@@ -356,6 +361,7 @@ static int lua_sb_decolonize_path(lua_State *l)
 	free(path);
 	return 1;
 }
+#endif
 
 /* "sb.readlink", to be called from lua code */
 static int lua_sb_readlink(lua_State *l)
@@ -548,7 +554,9 @@ static const luaL_reg reg[] =
 	{"getdirlisting",		lua_sb_getdirlisting},
 #endif
 	{"readlink",			lua_sb_readlink},
+#if 0
 	{"decolonize_path",		lua_sb_decolonize_path},
+#endif
 	{"log",				lua_sb_log},
 	{"setenv",			lua_sb_setenv},
 	{"path_exists",			lua_sb_path_exists},

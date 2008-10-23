@@ -662,6 +662,14 @@ export DEB_HOST_GNU_SYSTEM
 export LD_LIBRARY_PATH
 
 # ------------
+# Now everything is ready, programs can be executed in SB2'ed environment.
+# Create reverse mapping rules before starting the actual command (or shell)
+sb2-monitor -L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
+	execluafile $SBOX_SESSION_DIR/lua_scripts/create_reverse_rules.lua \
+	>$SBOX_SESSION_DIR/rev_rules.lua
+
+# ------------
+
 
 if [ $# -gt 0 -o "$STDIN" = true ] ; then
 	binary="$1"

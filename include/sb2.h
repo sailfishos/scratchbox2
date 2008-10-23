@@ -41,7 +41,10 @@ struct lua_instance {
 #define SB2_LUA_C_INTERFACE_VERSION "35,lta-2008-10-01"
 
 struct lua_instance *get_lua(void);
+
+#if 0
 char *sb_decolonize_path(const char *path);
+#endif
 
 int sb_next_execve(const char *filename, char *const argv [],
 			char *const envp[]);

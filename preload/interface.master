@@ -27,6 +27,8 @@ EXPORT: void _fini(void)
 EXPORT: char *sb2show__map_path2__(const char *binary_name, \
 	const char *mapping_mode, const char *fn_name, const char *pathname, \
 	int *readonly)
+EXPORT: char * sb2show__get_real_cwd__(const char *binary_name, \
+	const char *fn_name)
 EXPORT: int sb2show__execve_mods__( \
 	char *file, \
 	char *const *orig_argv, char *const *orig_envp, \
@@ -56,6 +58,9 @@ GATE: int execvp (const char *file, char *const argv [])
 GATE: char * getcwd (char *buf, size_t size) : returns_string create_nomap_nolog_version
 GATE: char * get_current_dir_name (void) : returns_string
 GATE: char * getwd (char *buf) : returns_string
+
+GATE: char *realpath(const char *name, char *resolved) : \
+	map(name) returns_string
 
 GATE: int uname(struct utsname *buf)
 
@@ -317,7 +322,6 @@ WRAP: READLINK_TYPE readlink(const char *path, char *buf, size_t bufsize) : \
 WRAP: READLINK_TYPE readlinkat(int dirfd, const char *pathname, char *buf, size_t bufsize) : \
 	dont_resolve_final_symlink map_at(dirfd,pathname)
 
-WRAP: char *realpath(const char *name, char *resolved) : map(name) returns_string
 WRAP: int remove(const char *pathname) : \
 	map(pathname) fail_if_readonly(pathname,-1,EROFS)
 #ifdef HAVE_REMOVEXATTR

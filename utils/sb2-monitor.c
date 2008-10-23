@@ -58,8 +58,7 @@ static void usage_exit(const char *errmsg, int exitstatus)
 		"\n%s: Usage:\n"
 		"\t%s [options_for_%s] -- command [parameters]\n"
 		"\nOptions:\n"
-		"\t-x program\tExecute 'program' after 'command' terminates "
-			"(mandatory)\n"
+		"\t-x program\tExecute 'program' after 'command' terminates\n"
 		"\t-d\tEnable debug messages\n"
 		"\nExample:\n"
 		"\t%s -x /bin/echo -- signaltester -n 5\n",
@@ -247,9 +246,6 @@ int main(int argc, char *argv[])
 	if (optind >= argc) 
 		usage_exit("Wrong number of parameters", 1);
 
-	if (!command_to_exec_at_end) 
-		usage_exit("-x option is mantadory", 1);
-
 	original_process_group = getpgrp();
 
 	DEBUG_MSG("PGID=%d\n", (int)getpgrp());
@@ -414,12 +410,15 @@ int main(int argc, char *argv[])
 	}
 	DEBUG_MSG("%s %s\n", exit_reason, exit_status);
 
-	/* time to exec the external script */
-	execlp(command_to_exec_at_end, command_to_exec_at_end,
-		exit_reason, exit_status, NULL);
+	if (command_to_exec_at_end) {
+		/* time to exec the external script */
+		execlp(command_to_exec_at_end, command_to_exec_at_end,
+			exit_reason, exit_status, NULL);
 
-	/* OOPS, exec failed */
-	DEBUG_MSG("Failed to execute %s\n", command_to_exec_at_end);
-	return(1);
+		/* OOPS, exec failed */
+		DEBUG_MSG("Failed to execute %s\n", command_to_exec_at_end);
+		return(1);
+	}
+	return(0);
 }
 

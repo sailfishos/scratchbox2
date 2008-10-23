@@ -30,6 +30,15 @@ simple_chain = {
 		 replace_by = sbox_dir.."/share/scratchbox2/scripts",
 		 readonly = true},
 
+		{prefix = sbox_user_home_dir .. "/.scratchbox2",
+		 use_orig_path = true},
+
+		{prefix = sbox_dir .. "/share/scratchbox2",
+		 use_orig_path = true},
+
+		{path = "/usr/bin/sb2-show",
+		 use_orig_path = true, readonly = true},
+
 		-- -----------------------------------------------
 		-- 99. Other rules.
 		{prefix = "/lib", map_to = target_root},

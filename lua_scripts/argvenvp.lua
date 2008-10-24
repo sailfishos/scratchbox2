@@ -104,6 +104,81 @@ function sbox_execve_preprocess(filename, argv, envp)
 end
 
 -- ------------------------------------
+
+function locate_ld_library_path(envp)
+	local k
+	for k = 1, table.maxn(envp) do
+		if (string.match(envp[k], "^LD_LIBRARY_PATH=")) then
+			return k
+		end
+	end
+	return -1
+end
+
+-- Return path to be used as LD_LIBRARY_PATH for native applications
+--
+function get_native_app_ld_library_path(exec_policy, envp)
+
+	-- attribute "native_app_ld_library_path" overrides everything else:
+	if (exec_policy.native_app_ld_library_path ~= nil) then
+		return exec_policy.native_app_ld_library_path
+	end
+
+	-- attributes "native_app_ld_library_path_prefix" and
+	-- "native_app_ld_library_path_suffix" extend the old value:
+	if ((exec_policy.native_app_ld_library_path_prefix ~= nil) or
+	    (exec_policy.native_app_ld_library_path_suffix ~= nil)) then
+		local ld_library_path_index = locate_ld_library_path(envp)
+		local libpath = nil
+		if ld_library_path_index > 0 then
+			libpath = string.gsub(envp[ld_library_path_index],
+				"^LD_LIBRARY_PATH=", "", 1)
+		end
+		if (exec_policy.native_app_ld_library_path_prefix ~= nil) then
+			if libpath ~= nil then
+				libpath = exec_policy.native_app_ld_library_path_prefix ..
+					":" .. libpath
+			else
+				libpath = exec_policy.native_app_ld_library_path_prefix
+			end
+		end
+		if (exec_policy.native_app_ld_library_path_suffix ~= nil) then
+			if libpath ~= nil then
+				libpath = libpath .. ":" ..
+					 exec_policy.native_app_ld_library_path_suffix
+			else
+				libpath = exec_policy.native_app_ld_library_path_suffix
+			end
+		end
+		return libpath
+	end
+
+	return nil
+end
+
+-- Set LD_LIBRARY_PATH: modifies "envp"
+--
+function setenv_native_app_ld_library_path(exec_policy, envp)
+
+	local ld_library_path_index = locate_ld_library_path(envp)
+	local new_path = get_native_app_ld_library_path(exec_policy, envp)
+
+	-- Set the value:
+	if (new_path ~= nil) then
+		if (ld_library_path_index > 0) then
+			envp[ld_library_path_index] =
+				"LD_LIBRARY_PATH=" .. new_path
+			sb.log("debug", "Replaced LD_LIBRARY_PATH")
+		else
+			table.insert(envp, "LD_LIBRARY_PATH=" .. new_path)
+			sb.log("debug", "Added LD_LIBRARY_PATH")
+		end
+	else
+		sb.log("debug", "No value for LD_LIBRARY_PATH")
+	end
+end
+
+-- ------------------------------------
 -- Exec postprocessing.
 -- function sb_execve_postprocess is called to decide HOW the executable
 -- should be started (see description of the algorithm in sb_exec.c)
@@ -143,9 +218,11 @@ function sb_execve_postprocess_native_executable(rule, exec_policy,
 		new_mapped_file = exec_policy.native_app_ld_so
 		table.insert(new_argv, exec_policy.native_app_ld_so)
 
-		if (exec_policy.native_app_ld_library_path ~= nil) then
+		local ld_lib_path = get_native_app_ld_library_path(
+			exec_policy, new_envp)
+		if (ld_lib_path ~= nil) then
 			table.insert(new_argv, "--library-path")
-			table.insert(new_argv, exec_policy.native_app_ld_library_path)
+			table.insert(new_argv, ld_lib_path)
 		end
 
 		-- NOTE/WARNING: The default ld.so (ld-linux.so) will loose
@@ -170,23 +247,11 @@ function sb_execve_postprocess_native_executable(rule, exec_policy,
 		first_argv_element_to_copy = 2
 
 		updated_args = 1
-	elseif (exec_policy.native_app_ld_library_path ~= nil) then
+	elseif ((exec_policy.native_app_ld_library_path ~= nil) or
+	        (exec_policy.native_app_ld_library_path_prefix ~= nil) or
+	        (exec_policy.native_app_ld_library_path_suffix ~= nil)) then
 		-- Start the binary with a nonstandard LD_LIBRARY_PATH
-		local lib_path_found = 0
-		for j = 1, table.maxn(new_envp) do
-			if (string.match(new_envp[j], "^LD_LIBRARY_PATH=")) then
-				new_envp[j] = exec_policy.native_app_ld_library_path
-				sb.log("debug", string.format(
-					"Replaced LD_LIBRARY_PATH=%s", 
-					new_envp[j]))
-				local lib_path_found = 1
-			end
-		end
-		if (lib_path_found == 0) then
-			table.insert(new_envp, 
-				"LD_LIBRARY_PATH="..exec_policy.native_app_ld_library_path)
-			sb.log("debug", "Added LD_LIBRARY_PATH")
-		end
+		setenv_native_app_ld_library_path(exec_policy, new_envp)
 		updated_args = 1
 	end
 

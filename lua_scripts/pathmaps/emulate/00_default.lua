@@ -83,6 +83,9 @@ default_exec_policy = {
 emulate_mode_target_ld_so = nil		-- default = not needed
 emulate_mode_target_ld_library_path = nil	-- default = not needed
 
+-- used if libsb2.so is not available in target_root:
+emulate_mode_target_ld_library_path_suffix = nil
+
 if (conf_target_sb2_installed) then
 	if (conf_target_ld_so ~= nil) then
 		-- use dynamic libraries from target, 
@@ -95,6 +98,8 @@ if (conf_target_sb2_installed) then
 		-- to emulate_mode_target_ld_library_path just before exec.
 		-- This has not been done yet.
 	end
+else
+	emulate_mode_target_ld_library_path_suffix = conf_target_ld_so_library_path
 end
 
 local exec_policy_target = {
@@ -102,6 +107,8 @@ local exec_policy_target = {
 	native_app_ld_so = emulate_mode_target_ld_so,
 	native_app_ld_so_supports_argv0 = conf_target_ld_so_supports_argv0,
 	native_app_ld_library_path = emulate_mode_target_ld_library_path,
+
+	native_app_ld_library_path_suffix = emulate_mode_target_ld_library_path_suffix,
 
 	native_app_locale_path = conf_target_locale_path,
 	native_app_message_catalog_prefix = conf_target_message_catalog_prefix,
@@ -112,7 +119,12 @@ all_exec_policies_chain = {
 	next_chain = nil,
 	binary = nil,
 	rules = {
-		{ prefix = target_root, exec_policy = exec_policy_target },
+                -- the home directory is expected to contain target binaries:
+                {prefix = sbox_user_home_dir, exec_policy = exec_policy_target},
+
+		-- Target binaries:
+		{prefix = target_root, exec_policy = exec_policy_target},
+
 
 		-- DEFAULT RULE (must exist):
 		{prefix = "/", exec_policy = default_exec_policy}

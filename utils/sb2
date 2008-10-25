@@ -29,10 +29,14 @@ Options:
     -s DIRECTORY load mapping scripts from alternative location
     -Q BUGLIST   emulate bugs of the old scratchbox 1 (BUGLIST consists of
                  letters: 'x' enables exec permission checking bug emulation)
-    -p           Preserve session directories (including the directory
-                 which is used for /tmp by most mapping modes)
     -R           use simulated root permissions (currently activates
                  "fakeroot" for this functionality)
+    -p           Preserve session directories (including the directory
+                 which is used for /tmp by most mapping modes)
+    -S file      Write session information to "file" (see option -J)
+    -J file      Don't create a new session; join an existing one (see -S) 
+    -D file      delete an old session (see -S). Warning: this does not
+                 check if the session is still in use!
 
 Examples:
     sb2 ./configure
@@ -143,8 +147,6 @@ function sboxify_environment()
 		exit_error "Incorrect target config in ~/.scratchbox2/$SBOX_TARGET/sb2.config"
 	fi
 
-	write_rules_to_session_dir $SBOX_RULEFILES
-
 	SBOX_TARGET_TOOLCHAIN_DIR=$(dirname "$SBOX_CROSS_GCC_DIR")
 
 	if [ -z "$SBOX_MODE_PATH" ]
@@ -229,6 +231,7 @@ sbox_tools_root="$SBOX_TOOLS_ROOT"
 
 sbox_cpu="$SBOX_CPU"
 sbox_cputransparency_method="$SBOX_CPUTRANSPARENCY_METHOD"
+sbox_sbrsh_config="$SBRSH_CONFIG"
 
 sbox_cross_gcc_prefix_list="$SBOX_CROSS_GCC_PREFIX_LIST"
 sbox_cross_gcc_dir="$SBOX_CROSS_GCC_DIR"
@@ -248,6 +251,7 @@ sbox_host_gcc_subst_prefix="$SBOX_HOST_GCC_SUBST_PREFIX"
 sbox_block_host_compiler_args="$SBOX_BLOCK_HOST_COMPILER_ARGS"
 
 sbox_uname_machine="$SBOX_UNAME_MACHINE"
+sbox_libsb2="$SBOX_LIBSB2"
 END
 }
 
@@ -430,6 +434,24 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 	fi
 }
 
+function write_locale_paths_to_exec_config()
+{
+	local rootdir
+	local locale_path_varname
+	local message_catalog_prefix_varname
+	locale locale_path
+
+	rootdir=$1
+	locale_path_varname=$2
+	message_catalog_prefix_varname=$3
+	locale_path=$HOME/.scratchbox2/$SBOX_TARGET/locales
+
+	echo "$locale_path_varname=\"$locale_path\"" \
+	    >> $SBOX_SESSION_DIR/exec_config.lua
+	echo "$message_catalog_prefix_varname=\"$SBOX_TARGET_ROOT\"" \
+	    >> $SBOX_SESSION_DIR/exec_config.lua
+}
+
 # Write configuration file $SBOX_SESSION_DIR/exec_config.lua
 function create_exec_config_file()
 {
@@ -485,6 +507,11 @@ END
 			$SBOX_TARGET_ROOT \
 			conf_target_sb2_installed conf_target_sbox_dir \
 			conf_target_ld_so conf_target_ld_so_supports_argv0
+
+		write_locale_paths_to_exec_config \
+			$SBOX_TARGET_ROOT \
+			conf_target_locale_path \
+			conf_target_message_catalog_prefix
 	else
 		# SBOX_TOOLS_ROOT was empty, tools will be used from
 		# host environment.
@@ -494,6 +521,8 @@ conf_target_sb2_installed = false
 conf_target_sbox_dir = ""
 conf_target_ld_so = nil
 conf_target_ld_so_supports_argv0 = false
+conf_target_locale_path = nil
+conf_target_message_catalog_prefix = nil
 END
 
 		case "$SBOX_CPUTRANSPARENCY_METHOD" in	
@@ -508,6 +537,37 @@ conf_cputransparency_qemu_has_env_control_flags=$conf_cputransparency_qemu_has_e
 END
 }
 
+function get_SBOX_SESSION_DIR_from_file()
+{
+	file=$1
+
+	SBOX_SESSION_DIR=""
+	if [ ! -r "$file" ]
+	then
+		echo "Failed to read '$file'"
+		return
+	fi
+
+	if grep -q "# SB2 SessionInfo:" "$file" 2>/dev/null
+	then
+		# $file seems to be valid
+		SBOX_SESSION_DIR=`sed -n -e 's/^SBOX_SESSION_DIR=//p' < $file`
+	else
+		echo "'$file' is not a valid SB2 session information file"
+		return
+	fi
+
+	if [ ! -d "$SBOX_SESSION_DIR" -o \
+	     ! -f $SBOX_SESSION_DIR/.joinable-session ]
+	then
+		echo "Session '$SBOX_SESSION_DIR' does not exist"
+		SBOX_SESSION_DIR=""
+		return
+	fi
+	# else the session seems to be valid.
+}
+
+
 my_path=$_
 if [ $(basename $my_path) != $(basename $0) ]; then
 	my_path=$0
@@ -520,7 +580,7 @@ SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
 SBOX_WORKDIR=$(readlink -f $PWD)
 SBOX_FAKEROOT_PREFIX=""
 
-while getopts vdht:em:s:L:Q:pM:ZR foo
+while getopts vdht:em:s:L:Q:pM:ZRS:J:D: foo
 do
 	case $foo in
 	(v) version ;;
@@ -538,6 +598,9 @@ do
 	(p) SBOX_SESSION_NO_CLEANUP="y";;
 	(Z) SBOX_OPT_Z_NO_LD_SO_EXEC="y";;
 	(R) SBOX_FAKEROOT_PREFIX="fakeroot";;
+	(S) SBOX_WRITE_SESSION_INFO_TO_FILE=$OPTARG ;;
+	(J) SBOX_JOIN_SESSION_FILE=$OPTARG ;;
+	(D) SBOX_DELETE_SESSION_FILE=$OPTARG ;;
 	(*) usage ;;
 	esac
 done
@@ -567,27 +630,77 @@ if [ "$1" = "-" ] ; then
 	STDIN=true
 fi
 
-# Create session directories
-date_and_time_now=`date +%Y%m%d-%H%M%S`
-SBOX_SESSION_DIR=`mktemp -d /tmp/sb2-$USER-$date_and_time_now.XXXXXX`
+if [ -n "$SBOX_DELETE_SESSION_FILE" ]
+then
+	# Delete a session
+	get_SBOX_SESSION_DIR_from_file "$SBOX_DELETE_SESSION_FILE"
+	if [ ! -z "$SBOX_SESSION_DIR" ]
+	then
+		# now we "know" that $SBOX_SESSION_DIR is a directory,
+		# but double-checking doesn't hurt before rm -rf..
+		if [ -d "$SBOX_SESSION_DIR" ]
+		then
+			rm -rf $SBOX_SESSION_DIR
+		fi
+	fi
+	rm "$SBOX_DELETE_SESSION_FILE"
+	exit 0
+fi
+
+if [ -n "$SBOX_JOIN_SESSION_FILE" ]
+then
+	# Join an existing session, don't create it..
+	get_SBOX_SESSION_DIR_from_file "$SBOX_JOIN_SESSION_FILE"
+	if [ -z "$SBOX_SESSION_DIR" ]
+	then
+		# failed to get SBOX_SESSION_DIR,
+		# error message has been printed.
+		exit 1
+	fi
+else
+	# Create a new session
+	if [ -n "$SBOX_WRITE_SESSION_INFO_TO_FILE" -a \
+	     -f "$SBOX_WRITE_SESSION_INFO_TO_FILE" ]
+	then
+		echo "File '$SBOX_WRITE_SESSION_INFO_TO_FILE' already exists."
+		exit 1
+	fi
+
+	# Create session directories
+	date_and_time_now=`date +%Y%m%d-%H%M%S`
+	SBOX_SESSION_DIR=`mktemp -d /tmp/sb2-$USER-$date_and_time_now.XXXXXX`
+
+	mkdir -p $SBOX_SESSION_DIR
+	mkdir -p $SBOX_SESSION_DIR/tmp
+
+	if [ -n "$SBOX_WRITE_SESSION_INFO_TO_FILE" ]
+	then
+		cat >$SBOX_WRITE_SESSION_INFO_TO_FILE <<END
+# SB2 SessionInfo:
+SBOX_SESSION_DIR=$SBOX_SESSION_DIR
+END
+		touch $SBOX_SESSION_DIR/.joinable-session
+	fi
+
+	if [ -n "$SBOX_SESSION_NO_CLEANUP" ]
+	then
+		touch $SBOX_SESSION_DIR/.preserve-session
+	fi
+fi
 
 # SBOX_SESSION_DIR needs to be passed in environment variable, always.
 export SBOX_SESSION_DIR
 
-mkdir -p $SBOX_SESSION_DIR
-mkdir -p $SBOX_SESSION_DIR/tmp
-if [ -n "$SBOX_SESSION_NO_CLEANUP" ]
-then
-	touch $SBOX_SESSION_DIR/.preserve-session
-fi
-
 sboxify_environment
 
-ln -s $SBOX_LUA_SCRIPTS $SBOX_SESSION_DIR/lua_scripts
-
-create_exec_config_file
-
-create_common_sb2_conf_file_for_session
+if [ -z "$SBOX_JOIN_SESSION_FILE" ]
+then
+	# creating a new session..
+	ln -s $SBOX_LUA_SCRIPTS $SBOX_SESSION_DIR/lua_scripts
+	write_rules_to_session_dir $SBOX_RULEFILES
+	create_exec_config_file
+	create_common_sb2_conf_file_for_session
+fi
 
 # set the initial binary name for the mapping engine
 export __SB2_BINARYNAME="bash"
@@ -632,11 +745,17 @@ export DEB_HOST_GNU_CPU
 export DEB_HOST_GNU_TYPE
 export DEB_HOST_GNU_SYSTEM
 
-export SBRSH_CONFIG
-
 export LD_LIBRARY_PATH
 
 # ------------
+# Now everything is ready, programs can be executed in SB2'ed environment.
+# Create reverse mapping rules before starting the actual command (or shell)
+sb2-monitor -L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
+	execluafile $SBOX_SESSION_DIR/lua_scripts/create_reverse_rules.lua \
+	>$SBOX_SESSION_DIR/rev_rules.lua
+
+# ------------
+
 
 if [ $# -gt 0 -o "$STDIN" = true ] ; then
 	binary="$1"

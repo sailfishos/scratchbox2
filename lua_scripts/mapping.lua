@@ -133,6 +133,21 @@ active_mode_exec_policy_chains = {}
 
 load_and_check_rules()
 
+-- load reverse mapping rules, if those have been created
+-- (the file does not exist during the very first round here)
+reverse_chains = nil
+if (sb.path_exists(session_dir .. "/rev_rules.lua")) then
+	sb.log("debug", "Loading reverse rules")
+	do_file(session_dir .. "/rev_rules.lua")
+end
+if (debug_messages_enabled) then
+	if reverse_chains ~= nil then
+		sb.log("debug", "Loaded reverse rules")
+	else
+		sb.log("debug", "No reverse rules")
+	end
+end
+
 function sbox_execute_replace_rule(path, replacement, rule)
 	local ret = nil
 
@@ -283,11 +298,20 @@ function find_rule(chain, func, full_path)
 				or string.match(func, wrk.rules[i].func_name))) then
 				-- "prefix" rules:
 				-- compare prefix (only if a non-zero prefix)
+				local rulename
+				if (debug_messages_enabled) then
+					rulename = wrk.rules[i].name
+					if rulename == nil then
+						rulename = string.format("#%d",i)
+					end
+				end
 				if (wrk.rules[i].prefix and
 				    (wrk.rules[i].prefix ~= "") and
 				    (isprefix(wrk.rules[i].prefix, full_path))) then
 					if (debug_messages_enabled) then
-						sb.log("noise", string.format("selected prefix rule %d (%s)", i, wrk.rules[i].prefix))
+						sb.log("noise", string.format(
+						"selected prefix rule '%s' (%s)",
+						rulename, wrk.rules[i].prefix))
 					end
 					min_path_len = string.len(wrk.rules[i].prefix)
 					return wrk.rules[i], min_path_len
@@ -295,7 +319,9 @@ function find_rule(chain, func, full_path)
 				-- "path" rules: (exact match)
 				if (wrk.rules[i].path == full_path) then
 					if (debug_messages_enabled) then
-						sb.log("noise", string.format("selected path rule %d (%s)", i, wrk.rules[i].path))
+						sb.log("noise", string.format(
+						"selected path rule '%s' (%s)",
+						rulename, wrk.rules[i].path))
 					end
 					min_path_len = string.len(wrk.rules[i].path)
 					return wrk.rules[i], min_path_len
@@ -401,5 +427,64 @@ function sbox_get_mapping_requirements(binary_name, func_name, full_path)
 	end
 
 	return rule, true, min_path_len
+end
+
+--
+-- Tries to find exec_policy for given binary using exec_policy_chains.
+--
+-- Returns: 1, exec_policy when exec_policy was found, otherwise
+-- returns 0, nil.
+--
+-- Called from libsb2.so, too.
+function sb_find_exec_policy(binaryname, mapped_file)
+	local rule = nil
+	local chain = nil
+
+	chain = find_chain(active_mode_exec_policy_chains, binaryname)
+	if chain ~= nil then
+		sb.log("debug", "chain found, find rule for "..mapped_file)
+		-- func_name == nil
+		rule = find_rule(chain, nil, mapped_file)
+	end
+	if rule ~= nil then
+		sb.log("debug", "rule found..")
+		return 1, rule.exec_policy
+	end
+	return 0, nil
+end
+
+-- sbox_reverse_path is called from libsb2.so
+-- returns "orig_path"
+function sbox_reverse_path(binary_name, func_name, full_path)
+	-- loop through the chains, first match is used
+	local min_path_len = 0
+	local rule = nil
+	local chain = nil
+
+	if (reverse_chains ~= nil) then
+		chain = find_chain(reverse_chains, binary_name)
+	end
+	if (chain == nil) then
+		-- reverse mapping is an optional feature,
+		-- so it isn't really an error if the rule
+		-- can't be found.
+		sb.log("info", string.format("Unable to find REVERSE chain for: %s(%s)",
+			func_name, full_path))
+
+		return nil
+	end
+
+	rule, min_path_len = find_rule(chain, func_name, full_path)
+	if (not rule) then
+		-- not even a default rule found
+		sb.log("info", string.format("Unable to find REVERSE rule for: %s(%s)", func_name, full_path))
+		return nil
+	end
+
+	local rule2, exec_policy2, orig_path, ro2
+	rule2, exec_policy2, orig_path, ro2 = sbox_translate_path(rule, 
+		binary_name, func_name, full_path)
+
+	return orig_path
 end
 

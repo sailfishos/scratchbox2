@@ -273,7 +273,28 @@ static void remove_dots_and_dotdots_from_path_entries(
 	}
 }
 
-static char *absolute_path(const char *path)
+static char *sb_reversing_getcwd(const char *fn_name, char *buf, size_t bufsize)
+{
+	char	*rev_path = NULL;
+
+	if (!getcwd_nomap_nolog(buf, bufsize)) {
+		return(NULL);
+	}
+	
+	rev_path = scratchbox_reverse_path(fn_name, buf);
+
+	if (rev_path) {
+		SB_LOG(SB_LOGLEVEL_DEBUG, "REV: '%s' => '%s'", buf, rev_path);
+		snprintf(buf, bufsize, "%s", rev_path);
+	} else {
+		SB_LOG(SB_LOGLEVEL_DEBUG, "REV failed.");
+	}
+	free(rev_path);
+
+	return(buf);
+}
+
+static char *absolute_path(const char *fn_name, const char *path)
 {
 	char *cpath = NULL;
 
@@ -286,7 +307,7 @@ static char *absolute_path(const char *path)
 		char cwd[PATH_MAX + 1];
 
 		memset(cwd, '\0', sizeof(cwd));
-		if (!getcwd_nomap_nolog(cwd, sizeof(cwd))) {
+		if (!sb_reversing_getcwd(fn_name, cwd, sizeof(cwd))) {
 			/* getcwd() returns NULL if the path is really long.
 			 * In this case this really won't be able to do all 
 			 * path mapping steps, but sb_decolonize_path()
@@ -307,7 +328,7 @@ static char *absolute_path(const char *path)
 /* returns an allocated buffer containing absolute,
  * decolonized version of "path"
 */
-char *sb_decolonize_path(const char *path)
+static char *sb_decolonize_path(const char *fn_name, const char *path)
 {
 	char *cpath;
 	struct path_entry_list list;
@@ -322,7 +343,7 @@ char *sb_decolonize_path(const char *path)
 
 	list.pl_first = NULL;
 
-	cpath = absolute_path(path);
+	cpath = absolute_path(fn_name, path);
 	if (!cpath) {
 		SB_LOG(SB_LOGLEVEL_NOTICE,
 			"sb_decolonize_path forced to use relative path '%s'",
@@ -342,7 +363,7 @@ char *sb_decolonize_path(const char *path)
 /* dirname() is not thread safe (may return pointer to static buffer),
  * so we'll have our own version, which always returns absolute dirnames:
 */
-static char *sb_abs_dirname(const char *path)
+static char *sb_abs_dirname(const char *fn_name, const char *path)
 {
 	char *cpath;
 	struct path_entry_list list;
@@ -353,7 +374,7 @@ static char *sb_abs_dirname(const char *path)
 
 	list.pl_first = NULL;
 
-	cpath = absolute_path(path);
+	cpath = absolute_path(fn_name, path);
 	if (!cpath) return(NULL);
 
 	split_path_to_path_entries(cpath, &list);
@@ -424,7 +445,7 @@ static char *call_lua_function_sbox_translate_path(
 		*/
 		char *cleaned_path;
 
-		cleaned_path = sb_decolonize_path(traslate_result);
+		cleaned_path = sb_decolonize_path(func_name, traslate_result);
 		if (*cleaned_path != '/') {
 			/* oops, got a relative path. CWD is too long. */
 			SB_LOG(SB_LOGLEVEL_DEBUG,
@@ -511,6 +532,40 @@ static int call_lua_function_sbox_get_mapping_requirements(
 		"call_lua_function_sbox_get_mapping_requirements: at exit, gettop=%d",
 		lua_gettop(luaif->lua));
 	return(rule_found);
+}
+
+static char *call_lua_function_sbox_reverse_path(
+	struct lua_instance *luaif,
+	const char *binary_name,
+	const char *func_name,
+	const char *full_path)
+{
+	char *orig_path = NULL;
+
+	SB_LOG(SB_LOGLEVEL_NOISE, "calling sbox_reverse_path for %s(%s)",
+		func_name, full_path);
+
+	lua_getfield(luaif->lua, LUA_GLOBALSINDEX, "sbox_reverse_path");
+	lua_pushstring(luaif->lua, binary_name);
+	lua_pushstring(luaif->lua, func_name);
+	lua_pushstring(luaif->lua, full_path);
+	 /* 3 arguments, returns orig_path */
+	lua_call(luaif->lua, 3, 1);
+
+	orig_path = (char *)lua_tostring(luaif->lua, -1);
+	if (orig_path) {
+		orig_path = strdup(orig_path);
+	}
+	lua_pop(luaif->lua, 1); /* remove return value */
+
+	if (orig_path) {
+		SB_LOG(SB_LOGLEVEL_DEBUG, "orig_path='%s'", orig_path);
+	} else {
+		SB_LOG(SB_LOGLEVEL_INFO,
+			"No result from sbox_reverse_path for: %s '%s'",
+			func_name, full_path);
+	}
+	return(orig_path);
 }
 
 /* ========== Path resolution: ========== */
@@ -706,8 +761,8 @@ static char *sb_path_resolution(
 				char *dirnam;
 				int last_in_dirnam_is_slash;
 
-				dirnam = sb_abs_dirname(work->pe_full_path);
-				if (!dirname) {
+				dirnam = sb_abs_dirname(func_name, work->pe_full_path);
+				if (!dirnam) {
 					/* this should not happen.
 					 * work->pe_full_path is supposed to
 					 * be absolute path.
@@ -874,7 +929,7 @@ static char *scratchbox_path_internal(
 		char *decolon_path = NULL;
 		char *full_path_for_rule_selection = NULL;
 
-		full_path_for_rule_selection = sb_decolonize_path(path);
+		full_path_for_rule_selection = sb_decolonize_path(func_name, path);
 
 		if (*full_path_for_rule_selection != '/') {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
@@ -946,6 +1001,7 @@ static char *scratchbox_path_internal(
 	    (*mapping_result == '/')) {
 		char cwd[PATH_MAX + 1];
 
+		/* here we want the real CWD, not a reversed one: */
 		if (getcwd_nomap_nolog(cwd, sizeof(cwd))) {
 			int	cwd_len = strlen(cwd);
 			int	result_len = strlen(mapping_result);
@@ -1030,5 +1086,24 @@ char *scratchbox_path_for_exec(
 
 	return (scratchbox_path_internal(binary_name, func_name,
 		path, ro_flagp, dont_resolve_final_symlink, 1));
+}
+
+char *scratchbox_reverse_path(
+	const char *func_name,
+	const char *full_path)
+{
+	char binary_name[PATH_MAX+1];
+	char *bin_name;
+	struct lua_instance *luaif;
+
+	memset(binary_name, '\0', PATH_MAX+1);
+	if (!(bin_name = getenv("__SB2_BINARYNAME"))) {
+		bin_name = "UNKNOWN";
+	}
+	strcpy(binary_name, bin_name);
+
+	luaif = get_lua();
+	return (call_lua_function_sbox_reverse_path(
+			luaif, binary_name, func_name, full_path));
 }
 

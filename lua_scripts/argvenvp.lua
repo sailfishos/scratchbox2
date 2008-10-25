@@ -189,6 +189,23 @@ function sb_execve_postprocess_native_executable(rule, exec_policy,
 		end
 		updated_args = 1
 	end
+
+	--
+	-- When exec_policy contains field 'native_app_locale_path' we
+	-- need to set environment variables $LOCPATH (and $NLSPATH) to
+	-- point there.  Localization functions (e.g isalpha(), etc.)
+	-- gets their locale specific information from $LOCPATH when
+	-- it is set.
+	--
+	if exec_policy.native_app_locale_path ~= nil then
+		sb.log("debug", string.format("setting LOCPATH=%s",
+		    exec_policy.native_app_locale_path))
+		table.insert(new_envp, "LOCPATH=" ..
+		    exec_policy.native_app_locale_path)
+		table.insert(new_envp, "NLSPATH=" ..
+		    exec_policy.native_app_locale_path)
+		updated_args = 1
+	end
 	
 	if (updated_args == 1) then
 		-- Add components from original argv[]
@@ -207,9 +224,150 @@ end
 if string.match(sbox_cputransparency_method, "qemu") then
 	cputransparency_method_is_qemu = true
 end
+if string.match(sbox_cputransparency_method, "sbrsh") then
+	cputransparency_method_is_sbrsh = true
+end
+
+function split_to_tokens(text,delim)
+	local results = {}
+	local c
+	for c in string.gmatch(text, delim) do
+		table.insert(results, c)
+	end
+	return results
+end
+
+-- Remove selected elements from a table of strings.
+-- Returns a new table containing the selected elements, or nil if none 
+-- was found. Original table may be modified!
+function pick_and_remove_elems_from_string_table(tbl,pattern)
+	local res = nil
+
+	if tbl ~= nil then
+		local i = #tbl
+		while (i > 0) do
+			if string.match(tbl[i], pattern) then
+				local elem = table.remove(tbl, i)
+				if res == nil then
+					res = {}
+				end
+				table.insert(res, elem)
+			end
+			i = i - 1
+		end
+	end
+	return(res)
+end
+
+function sb_execve_postprocess_sbrsh(rule, exec_policy,
+	exec_type, mapped_file, filename, argv, envp)
+
+	local new_argv = split_to_tokens(sbox_cputransparency_method,"[^%s]+")
+
+	if #new_argv < 1 then
+		sb.log("error", "Invalid sbox_cputransparency_method set");
+		-- deny
+		return -1, mapped_file, filename, #argv, argv, #envp, envp
+	end
+	if (sbox_target_root == nil) or (sbox_target_root == "") then
+		sb.log("error", 
+			"sbox_target_root not set, "..
+			"unable to execute the target binary");
+		return -1, mapped_file, filename, #argv, argv, #envp, envp
+	end
+
+	sb.log("info", string.format("Exec:sbrsh (%s,%s,%s)",
+		new_argv[1], sbox_target_root, mapped_file));
+
+	local target_root = sbox_target_root
+	if not string.match(target_root, "/$") then
+		-- Add a trailing /
+		target_root = target_root.."/"
+	end
+
+	local file_in_device = mapped_file;
+
+	-- Check the file to execute; fail if the file can
+	-- not be located on the device
+	if isprefix(target_root, mapped_file) then
+		local trlen = string.len(target_root)
+		file_in_device = string.sub(file_in_device, trlen)
+	elseif isprefix(sbox_user_home_dir, mapped_file) then
+		-- no change
+	else
+		sb.log("error", string.format(
+			"Binary must be under target (%s) or"..
+			" home when using sbrsh", target_root))
+		return -1, mapped_file, filename, #argv, argv, #envp, envp
+	end
+
+	-- Check directory
+	local dir_in_device = sb.getcwd()
+
+	if isprefix(target_root, dir_in_device) then
+		local trlen = string.len(target_root)
+		dir_in_device = string.sub(dir_in_device, trlen)
+	elseif isprefix(sbox_user_home_dir, dir_in_device) then
+		-- no change
+	else
+		sb.log("warning", string.format(
+			"Executing binary with bogus working"..
+			" directory (/tmp) because sbrsh can only"..
+			" see %s and %s\n",
+			target_root, sbox_user_home_dir))
+		dir_in_device = "/tmp"
+	end
+
+	local new_envp = envp
+	local new_filename = new_argv[1] -- first component of method
+	
+	if (sbox_sbrsh_config ~= nil) and (sbox_sbrsh_config ~= "") then
+		table.insert(new_argv, "--config")
+		table.insert(new_argv, sbox_sbrsh_config)
+	end
+	table.insert(new_argv, "--directory")
+	table.insert(new_argv, dir_in_device)
+	table.insert(new_argv, file_in_device)
+
+	-- Append arguments for target process (skip argv[0],
+	-- there isn't currently any way to give that over sbrsh)
+	for i = 2, #argv do
+		table.insert(new_argv, argv[i])
+	end
+
+	-- remove libsb2 from LD_PRELOAD
+	local ld_preload_tbl = pick_and_remove_elems_from_string_table(
+		new_envp, "^LD_PRELOAD=")
+	if ld_preload_tbl == nil then
+		sb.log("debug", "LD_PRELOAD not found")
+	else
+		sb.log("debug", string.format("LD_PRELOAD was %s",
+			ld_preload_tbl[1]))
+		local ld_preload_path = string.gsub(ld_preload_tbl[1],
+			"^LD_PRELOAD=", "", 1)
+		local ld_preload_components = split_to_tokens(ld_preload_path,
+			"[^:]+")
+		-- pick & throw away libsb2.so
+		pick_and_remove_elems_from_string_table(ld_preload_components,
+			sbox_libsb2)
+		if #ld_preload_components > 0 then
+			local new_ld_preload = table.concat(
+				ld_preload_components, ":")
+			table.insert(new_envp, "LD_PRELOAD="..new_ld_preload)
+			sb.log("debug", "set LD_PRELOAD to "..new_ld_preload)
+		else
+			sb.log("debug", "nothing left, run without LD_PRELOAD")
+		end
+	end
+
+	-- environment&args were changed
+	return 0, new_filename, filename, #new_argv, new_argv,
+		#new_envp, new_envp
+end
 
 function sb_execve_postprocess_cpu_transparency_executable(rule, exec_policy,
     exec_type, mapped_file, filename, argv, envp)
+
 	sb.log("debug", "postprocessing cpu_transparency for " .. filename)
 
 	if cputransparency_method_is_qemu then
@@ -260,7 +418,9 @@ function sb_execve_postprocess_cpu_transparency_executable(rule, exec_policy,
 		-- environment&args were changed
 		return 0, new_filename, filename, #new_argv, new_argv,
 			#new_envp, new_envp
-	-- FIXME: here we should have "elseif cputransparency_method_is_sbrsh"..
+	elseif cputransparency_method_is_sbrsh then
+		return sb_execve_postprocess_sbrsh(rule, exec_policy,
+    			exec_type, mapped_file, filename, argv, envp)
 	end
 
 	-- no changes
@@ -294,21 +454,11 @@ function sb_execve_postprocess(rule, exec_policy, exec_type,
 	-- provided by the mapping rule), look up the policy from
 	-- exec_policy_chains array.
 	if (exec_policy == nil) then
-		local rule = nil
-		local chain = nil
+		local res
 
 		sb.log("debug", "trying exec_policy_chains..")
-		chain = find_chain(active_mode_exec_policy_chains, binaryname)
-		if (chain ~= nil) then
-			sb.log("debug", "chain found, find rule for "..mapped_file)
-			rule = find_rule(chain, func_name, mapped_file)
-		end
-		if (rule ~= nil) then
-			sb.log("debug", "rule found..")
-			exec_policy = rule.exec_policy
-		end
-		
-		if (exec_policy == nil) then
+		res, exec_policy = sb_find_exec_policy(binaryname, mapped_file)
+		if res == 0 then
 			-- there is no default policy for this mode
 			sb.log("notice",
 				"sb_execve_postprocess: No exec_policy for "..filename)

@@ -459,11 +459,13 @@ char * get_current_dir_name_gate(
 		return NULL;
 	}
 	if (*cwd != '\0') {
-		sbox_path = scratchbox_path(realfnname, cwd, NULL/*RO-flag*/,
-			0/*dont_resolve_final_symlink*/);
+		sbox_path = scratchbox_reverse_path(realfnname, cwd);
 	}
-	free(cwd);
-	return sbox_path;
+	if (sbox_path) {
+		free(cwd);
+		return sbox_path;
+	}
+	return(cwd); /* failed to reverse it */
 }
 
 
@@ -481,19 +483,31 @@ char *getcwd_gate (
 		return NULL;
 	}
 	if (*cwd != '\0') {
-		sbox_path = scratchbox_path(realfnname, cwd, NULL/*RO-flag*/,
-			0/*dont_resolve_final_symlink*/);
+		sbox_path = scratchbox_reverse_path(realfnname, cwd);
 	}
 	if (sbox_path) {
+SB_LOG(SB_LOGLEVEL_DEBUG, "GETCWD: '%s'", sbox_path);
 		if(buf) {
+			if (strlen(sbox_path) >= size) {
+				/* path does not fit to the buffer */
+				free(sbox_path);
+				errno = ERANGE;
+				return(NULL);
+			}
 			strncpy(buf, sbox_path, size);
 			free(sbox_path);
 		} else {
-			/* buf==NULL: real getcwd() used malloc() to allocate cwd */
+			/* buf==NULL: real getcwd() used malloc() to 
+			 * allocate cwd (some implementations) [or the
+			 * behavior may be unspecified (posix definition)]
+			 * Assume memory was allocated, because the real
+			 * getcwd() already returned a pointer to us...
+			*/
 			free(cwd);
 			cwd = sbox_path;
 		}
 	}
+SB_LOG(SB_LOGLEVEL_DEBUG, "GETCWD: returns '%s'", cwd);
 	return cwd;
 }
 
@@ -510,11 +524,14 @@ char * getwd_gate(
 		return NULL;
 	}
 	if (*cwd != '\0') {
-		sbox_path = scratchbox_path(realfnname, cwd, NULL/*RO-flag*/,
-			0/*dont_resolve_final_symlink*/);
+		sbox_path = scratchbox_reverse_path(realfnname, cwd);
 	}
 	if (sbox_path) {
 		if(buf) {
+			if (strlen(sbox_path) >= PATH_MAX) {
+				free(sbox_path);
+				return(NULL);
+			}
 			strcpy(buf, sbox_path);
 			free(sbox_path);
 		} else {
@@ -525,6 +542,38 @@ char * getwd_gate(
 	}
 	return cwd;
 }
+
+char *realpath_gate(
+	char *(*real_realpath_ptr)(const char *name, char *resolved),
+        const char *realfnname,
+	const char *name,	/* name, already mapped */
+	char *resolved)
+{
+	SBOX_MAP_PROLOGUE();
+	char *rp;
+	
+	if ((rp = (*real_realpath_ptr)(name,resolved)) == NULL) {
+		return NULL;
+	}
+	if (*rp != '\0') {
+		sbox_path = scratchbox_reverse_path(realfnname, rp);
+		if (sbox_path) {
+			if (resolved) {
+				strncpy(resolved, sbox_path, PATH_MAX);
+				rp = resolved;
+				free(sbox_path);
+			} else {
+				/* resolved was null - assume that glibc 
+				 * allocated memory */
+				free(rp);
+				rp = sbox_path;
+			}
+		} /* else not reversed, just return rp */
+	}
+SB_LOG(SB_LOGLEVEL_DEBUG, "REALPATH: returns '%s'", rp);
+	return(rp);
+}
+
 
 /* "SB2_WRAP_GLOB" needs to be defined on systems where the C library
  * is not based on glibc (or not compatible with glob() from glibc 2.7)
@@ -815,6 +864,16 @@ char *sb2show__map_path2__(const char *binary_name, const char *mapping_mode,
 	}
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s '%s'", __func__, pathname);
 	return(mapped__pathname);
+}
+
+char *sb2show__get_real_cwd__(const char *binary_name, const char *fn_name)
+{
+	char path[PATH_MAX];
+
+	if (getcwd_nomap_nolog(path, sizeof(path))) {
+		return(strdup(path));
+	}
+	return(NULL);
 }
 
 /* ---- support functions for the generated interface: */

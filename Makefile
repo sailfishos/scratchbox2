@@ -18,7 +18,7 @@ endif
 CC = gcc
 CXX = g++
 LD = ld
-PACKAGE_VERSION = "1.99.0.26"
+PACKAGE_VERSION = "1.99.0.27"
 PACKAGE = "SB2"
 LIBSB2_SONAME = "libsb2.so.1"
 LLBUILD ?= $(SRCDIR)/llbuild
@@ -108,11 +108,13 @@ install-noarch: regular
 	install -c -m 755 $(SRCDIR)/utils/sb2-start-qemuserver $(prefix)/bin/sb2-start-qemuserver
 	install -c -m 755 $(SRCDIR)/utils/sb2-check-pkg-mappings $(prefix)/share/scratchbox2/scripts/sb2-check-pkg-mappings
 	install -c -m 755 $(SRCDIR)/utils/sb2-exitreport $(prefix)/share/scratchbox2/scripts/sb2-exitreport
+	install -c -m 755 $(SRCDIR)/utils/sb2-generate-locales $(prefix)/share/scratchbox2/scripts/sb2-generate-locales
 	install -c -m 755 $(SRCDIR)/utils/sb2-logz $(prefix)/bin/sb2-logz
 	install -c -m 644 $(SRCDIR)/lua_scripts/main.lua $(prefix)/share/scratchbox2/lua_scripts/main.lua
 	install -c -m 644 $(SRCDIR)/lua_scripts/mapping.lua $(prefix)/share/scratchbox2/lua_scripts/mapping.lua
 	install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp.lua $(prefix)/share/scratchbox2/lua_scripts/argvenvp.lua
 	install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp_gcc.lua $(prefix)/share/scratchbox2/lua_scripts/argvenvp_gcc.lua
+	install -c -m 644 $(SRCDIR)/lua_scripts/create_reverse_rules.lua $(prefix)/share/scratchbox2/lua_scripts/create_reverse_rules.lua
 
 	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/emulate/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/emulate/
 	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/simple/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/simple/

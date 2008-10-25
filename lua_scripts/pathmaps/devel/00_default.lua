@@ -337,28 +337,29 @@ simple_chain = {
 		-- 98. Scratchbox 1 emulation rules
 		-- (some packages have hard-coded paths to the SB1 enviroment;
 		-- replace those by the correct locations in our environment)
+		-- (these are marked "virtual"; these won't be reversed)
 
 		-- "libtool" for arm
 		{prefix = "/scratchbox/compilers/cs2005q3.2-glibc2.5-arm/arch_tools/share/libtool",
 		 replace_by = sb2_share_dir .. "/libtool",
 		 log_level = "warning",
-		 readonly = true},
+		 readonly = true, virtual_path = true},
 
 		-- "libtool" for i386
 		{prefix = "/scratchbox/compilers/cs2005q3.2-glibc-i386/arch_tools/share",
 		 replace_by = tools .. "/usr/share",
 		 log_level = "warning",
-		 readonly = true},
+		 readonly = true, virtual_path = true},
 
 		{prefix = "/scratchbox/tools/bin",
 		 replace_by = tools .. "/usr/bin",
 		 log_level = "warning",
-		 readonly = true},
+		 readonly = true, virtual_path = true},
 
 		{prefix = "/scratchbox/tools/autotools/automake-1.7/share/automake-1.7",
 		 replace_by = tools .. "/usr/share/automake-1.7",
 		 log_level = "warning",
-		 readonly = true},
+		 readonly = true, virtual_path = true},
 
 		-- otherwise, don't map /scratchbox, some people still
 		-- keep their projects there.

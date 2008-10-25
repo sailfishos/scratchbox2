@@ -27,6 +27,8 @@ EXPORT: void _fini(void)
 EXPORT: char *sb2show__map_path2__(const char *binary_name, \
 	const char *mapping_mode, const char *fn_name, const char *pathname, \
 	int *readonly)
+EXPORT: char * sb2show__get_real_cwd__(const char *binary_name, \
+	const char *fn_name)
 EXPORT: int sb2show__execve_mods__( \
 	char *file, \
 	char *const *orig_argv, char *const *orig_envp, \
@@ -56,6 +58,9 @@ GATE: int execvp (const char *file, char *const argv [])
 GATE: char * getcwd (char *buf, size_t size) : returns_string create_nomap_nolog_version
 GATE: char * get_current_dir_name (void) : returns_string
 GATE: char * getwd (char *buf) : returns_string
+
+GATE: char *realpath(const char *name, char *resolved) : \
+	map(name) returns_string
 
 GATE: int uname(struct utsname *buf)
 
@@ -317,7 +322,6 @@ WRAP: READLINK_TYPE readlink(const char *path, char *buf, size_t bufsize) : \
 WRAP: READLINK_TYPE readlinkat(int dirfd, const char *pathname, char *buf, size_t bufsize) : \
 	dont_resolve_final_symlink map_at(dirfd,pathname)
 
-WRAP: char *realpath(const char *name, char *resolved) : map(name) returns_string
 WRAP: int remove(const char *pathname) : \
 	map(pathname) fail_if_readonly(pathname,-1,EROFS)
 #ifdef HAVE_REMOVEXATTR
@@ -475,3 +479,38 @@ WRAP: char *mktemp(char *template) : \
 GATE: int setrlimit(SETRLIMIT_ARG1_TYPE resource, const struct rlimit *rlp)
 GATE: int setrlimit64(SETRLIMIT_ARG1_TYPE resource, const struct rlimit64 *rlp)
 
+--
+-- gettext(3) and related message translation functions.
+--
+-- We need to wrap all functions that accept 'domainname' as
+-- parameter.  Normal way of using gettext(3) is 
+--	bindtextdomain("mydomain", "/path/to/locales");
+--	textdomain("mydomain");
+--	gettext(...);
+--
+-- But we have seen in several applications that bindtextdomain(3)
+-- and textdomain(3) can be skipped and dcgettext(3) and the like
+-- functions are used:
+-- 	dcgettext("mydomain", ...);
+--
+-- We solve this by wrapping all gettext functions that take domainname
+-- and call explicitly bindtextdomain(3). This way message catalog
+-- directories will get mapped to correct place.  These paths are
+-- specified in exec_policy as follows:
+-- 	{
+--		...
+--		native_app_message_catalog_prefix = <prefix>
+--	}
+-- When this variable is set, we map '/path/to/locales' to
+-- '<prefix>/path/to/locales'.
+--
+-- TODO: should we wrap also plain gettext() and ngettext()?
+--
+GATE: char *bindtextdomain(const char *domainname, const char *dirname)
+GATE: char *textdomain(const char *domainname)
+GATE: char *dgettext(const char *domainname, const char *msgid)
+GATE: char *dcgettext(const char *domainname, const char *msgid, int category)
+GATE: char *dngettext(const char *domainname, const char *msgid, \
+    const char *msgid_plural, unsigned long int n)
+GATE: char *dcngettext(const char *domainname, const char *msgid, \
+    const char *msgid_plural, unsigned long int n, int category)

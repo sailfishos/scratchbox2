@@ -43,8 +43,6 @@ export DEB_HOST_GNU_CPU
 export DEB_HOST_GNU_TYPE
 export DEB_HOST_GNU_SYSTEM
 
-export SBRSH_CONFIG
-
 export LD_LIBRARY_PATH
 # ------------
 

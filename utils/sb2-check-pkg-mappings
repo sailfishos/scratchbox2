@@ -16,11 +16,18 @@ sb2-check-pkg-mappings - check usability of target's .deb packages
 Usage:
 	sb2-check-pkg-mappings pkg1 [pkg2..]
 	sb2-check-pkg-mappings -a
+	sb2-check-pkg-mappings -u
+	sb2-check-pkg-mappings -f
 
 Options:
     -a		check all packages and write results to a temporary
 		database, to be used by sb2's dpkg-checkbuilddeps
+    -u          Update: check if the temporary DB is up to date,
+                activate option -a if needed
     -v          verbose mode: Report all paths with mapping status
+    -f          use force: update timestamp of the temporary DB
+                if it exists, but don't check the contents. This may
+                be dangerous and may break your configuration!
 
 When started with list of package names, checks named packages and prints
 results, but does not create or modify the temporary database.
@@ -49,19 +56,84 @@ fi
 . $SBOX_SESSION_DIR/sb2-session.conf
 
 check_all_pkgs="no"
+check_if_out_of_date="no"
+update_timestamp_by_force="no"
 status_file=""
 VERBOSE_OPTION=""
 
-while getopts ahv foo
+while getopts auhvf foo
 do
 	case $foo in
 	(a) check_all_pkgs="yes" ;;
+	(u) check_if_out_of_date="yes" ;;
+	(f) update_timestamp_by_force="yes" ;;
 	(h) usage ;;
 	(v) VERBOSE_OPTION="-v" ;;
 	(*) usage ;;
 	esac
 done
 shift $(($OPTIND - 1))
+
+SB2_TEMP_DPKG_ADMIN_DIR=$HOME/.scratchbox2/$sbox_target.tmp-pkg-db.$sbox_mapmode
+# Target's real package db:
+TARGET_DPKG_ADMINDIR_ALL_PKGS=$sbox_target_root/var/lib/dpkg
+
+if [ $check_all_pkgs = "yes" -o "$check_if_out_of_date" = "yes" ]
+then
+	if [ ! -d $SB2_TEMP_DPKG_ADMIN_DIR ]
+	then
+		mkdir $SB2_TEMP_DPKG_ADMIN_DIR
+	fi
+fi
+
+if [ "$update_timestamp_by_force" = "yes" ]
+then
+	if [ ! -f $SB2_TEMP_DPKG_ADMIN_DIR/status ]
+	then
+		echo "FAILED: $SB2_TEMP_DPKG_ADMIN_DIR/status does not exist."
+		exit 1
+	fi
+	touch $SB2_TEMP_DPKG_ADMIN_DIR/status
+	echo "$SB2_TEMP_DPKG_ADMIN_DIR/status pretends to be up-to-date now."
+	exit 0
+fi
+
+if [ "$check_if_out_of_date" = "yes" ]
+then
+	# Check that the list of usable packages exists and is up-to-date.
+	# That list is really a temporary package database, which contains only
+	# packages that are usable thru this mapping mode.
+
+	if [ ! -f $SB2_TEMP_DPKG_ADMIN_DIR/status ]
+	then
+		echo "$SB2_TEMP_DPKG_ADMIN_DIR/status does not exist."
+		echo "going to create it now. This is going to take a while.."
+		echo
+		check_all_pkgs="yes"
+	elif [ $SB2_TEMP_DPKG_ADMIN_DIR/status -ot \
+	       $TARGET_DPKG_ADMINDIR_ALL_PKGS/status ]
+	then
+		echo "Target's primary package database has been updated =>"
+		echo "$SB2_TEMP_DPKG_ADMIN_DIR/status is out of date."
+		echo "going to update it now. This is going to take a while.."
+		echo
+		check_all_pkgs="yes"
+	elif [ $SB2_TEMP_DPKG_ADMIN_DIR/status -ot \
+	       $sbox_dir/share/scratchbox2/lua_scripts/pathmaps/$sbox_mapmode/00_default.lua ]
+	then
+		echo "SB2's mapping rules have been updated =>"
+		echo "$SB2_TEMP_DPKG_ADMIN_DIR/status might be out of date."
+		echo "going to update it now. This is going to take a while.."
+		echo
+		check_all_pkgs="yes"
+	fi
+
+	if [ "$check_all_pkgs" != "yes" ]
+	then
+		echo "$SB2_TEMP_DPKG_ADMIN_DIR/status is up-to-date."
+		exit 0
+	fi
+fi
 
 pkgs2check="$*"
 tstamp=`/bin/date +%Y%m%d-%H%M`

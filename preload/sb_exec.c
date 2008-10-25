@@ -68,10 +68,7 @@
  *    4c. Target binaries (when target architecture != host architecture)
  *        are started in "cpu transparency mode", which typically means
  *        that either "qemu" or "sbrsh" is used to execute them.
- *        This is partially handled by exec postprocessing (like 4b. above),
- *        but "sbrsh" method is still handled here.
- *        [FIXME: This step should also call the exec postprocesing code
- *        for "sbrsh", but that haven't been implemented yet]
+ *        This is also handled by exec postprocessing (like 4b. above).
  *
  * 5. When all decisions and all possible conversions have been made,
  *    prepare_exec() returns argument- and environment vectors to
@@ -254,138 +251,6 @@ char **split_to_tokens(char *str)
 	}
 	tokens[i] = NULL;
 	return tokens;
-}
-
-static char *cputransp_method = NULL;
-
-static enum {
-	CPUTRANSP_UNKNOWN = 0,
-	CPUTRANSP_QEMU,
-	CPUTRANSP_SBRSH,
-} cputransp_type = CPUTRANSP_UNKNOWN;
-
-/* FIXME: To be rewritten in Lua...
- * (this is called only for sbrsh, qemu is already handled in argvenvp.lua) */
-static int prepare_sbrsh_cputransparency(char **mapped_file,
-	char ***argvp, char ***envpp)
-{
-	static char *target_root = NULL;
-	char *sbrsh_bin;
-	char **cputransp_tokens, **sbrsh_args, **p;
-	int token_count, i;
-	char *config, *file, *dir, **my_argv;
-	int len;
-
-	if (!cputransp_method) return -1;
-
-	cputransp_tokens = split_to_tokens(cputransp_method);
-	token_count = elem_count(cputransp_tokens);
-	if (token_count < 1) {
-		free(cputransp_tokens);
-		fprintf(stderr, "Invalid sbox_cputransparency_method set\n");
-		return -1;
-	}
-
-	sbrsh_args = calloc(token_count, sizeof(char *));
-	for (i = 1, p = sbrsh_args; i < token_count; i++, p++) {
-		*p = strdup(cputransp_tokens[i]);
-	}
-
-	*p = NULL;
-	
-	sbrsh_bin = strdup(cputransp_tokens[0]);
-
-	if (!target_root) {
-		target_root = sb2__read_string_variable_from_lua__(
-			"sbox_target_root");
-	}
-	if (!target_root || !*target_root) {
-		fprintf(stderr, "sbox_target_root not set, "
-				"unable to execute the target binary\n");
-		return -1;
-	}
-
-	SB_LOG(SB_LOGLEVEL_INFO, "Exec:sbrsh (%s,%s,%s)",
-		sbrsh_bin, target_root, *mapped_file);
-
-	config = getenv("SBRSH_CONFIG");
-	if (config && strlen(config) == 0)
-		config = NULL;
-
-	len = strlen(target_root);
-	if (len > 0 && target_root[len - 1] == '/')
-		--len;
-
-	file = strdup(*mapped_file);
-	if (file[0] == '/') {
-		if (is_subdir(target_root, file)) {
-			file += len;
-		} else if (is_subdir(getenv("HOME"), file)) {
-			/* no change */
-		} else {
-			fprintf(stderr, "Binary must be under target (%s) or"
-			        " home when using sbrsh\n", target_root);
-			errno = ENOTDIR;
-			free(file);
-			return -1;
-		}
-	}
-
-	dir = get_current_dir_name();
-	if (is_subdir(target_root, dir)) {
-		dir += len;
-	} else if (is_subdir(getenv("HOME"), dir)) {
-		/* no change */
-	} else {
-		fprintf(stderr, "Warning: Executing binary with bogus working"
-		        " directory (/tmp) because sbrsh can only see %s and"
-		        " %s\n", target_root, getenv("HOME"));
-		dir = "/tmp";
-	}
-
-	my_argv = calloc(elem_count(sbrsh_args) + 6 + elem_count(*argvp) + 1,
-			sizeof (char *));
-
-	i = 0;
-	my_argv[i++] = strdup(sbrsh_bin);
-	for (p = (char **)sbrsh_args; *p; p++)
-		my_argv[i++] = strdup(*p);
-
-	if (config) {
-		my_argv[i++] = "--config";
-		my_argv[i++] = config;
-	}
-	my_argv[i++] = "--directory";
-	my_argv[i++] = dir;
-	my_argv[i++] = file;
-
-	for (p = (*argvp)+1; *p; p++)
-		my_argv[i++] = strdup(*p);
-
-	for (p = *envpp; *p; ++p) {
-		char *start, *end;
-
-		if (strncmp("LD_PRELOAD=", *p, strlen("LD_PRELOAD=")) != 0)
-			continue;
-
-		start = strstr(*p, LIBSB2);
-		if (!start)
-			break;
-
-		end = start + strlen(LIBSB2);
-
-		while (start[-1] != '=' && !isspace(start[-1]))
-			start--;
-
-		while (*end != '\0' && isspace(*end))
-			end++;
-
-		memmove(start, end, strlen(end) + 1);
-	}
-
-	*mapped_file = sbrsh_bin;
-	*argvp = my_argv;
-	return(0);
 }
 
 static int elf_hdr_match(Elf_Ehdr *ehdr, uint16_t match, int ei_data)
@@ -600,7 +465,7 @@ static int prepare_hashbang(
 	char ***argvp,
 	char ***envpp)
 {
-	int argc, fd, c, i, j, n, ret;
+	int argc, fd, c, i, j, n;
 	char ch;
 	char *ptr, *mapped_interpreter;
 	char **new_argv;
@@ -753,6 +618,11 @@ static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 			/* this is current process' name, skip it */
 			continue;
 		}
+		if (strncmp(*p, "__SB2_REAL_BINARYNAME=",
+				strlen("__SB2_REAL_BINARYNAME=")) == 0) {
+			/* skip current process' real binary name */
+			continue;
+		}
 		if (strncmp(*p, "SBOX_SESSION_DIR=",
 				sbox_session_dir_varname_len+1) == 0) {
 			/* this is user-provided SBOX_SESSION_DIR, skip it. */
@@ -772,6 +642,9 @@ static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 	 */
 	asprintf(&new_binaryname_var, "__SB2_BINARYNAME=%s", binaryname);
 	my_envp[i++] = new_binaryname_var; /* add the new process' name */
+
+	/* allocate slot for __SB2_REAL_BINARYNAME that is filled later on */
+	my_envp[i++] = strdup("__SB2_REAL_BINARYNAME=");
 
 	/* If our environ has LD_PRELOAD, but the given envp doesn't,
 	 * add the value that was active when this process was started.
@@ -843,17 +716,19 @@ static void compare_and_log_strvec_changes(const char *vecname,
 	}
 }
 
-static int strvec_contains(char *const *strvec, const char *id)
+static int strvec_contains(char *const *strvec, const char *id,
+    size_t *index)
 {
-	char *const *ptr2vec = strvec;
+	int i;
 
-	while (*ptr2vec) {
-		if (!strcmp(*ptr2vec, id)) {
-			return(1);
+	for (i = 0; strvec[i] != NULL; i++) {
+		if (strcmp(strvec[i], id) == 0) {
+			if (index != NULL)
+				*index = i;
+			return (1);
 		}
-		ptr2vec++;
 	}
-	return(0);
+	return (0);
 }
 
 
@@ -872,6 +747,7 @@ static int prepare_exec(const char *exec_fn_name,
 	enum binary_type type;
 	int postprocess_result = 0;
 	int ret = 0; /* 0: ok to exec, ret<0: exec fails */
+	size_t idx;
 
 	(void)exec_fn_name; /* not yet used */
 
@@ -914,7 +790,7 @@ static int prepare_exec(const char *exec_fn_name,
 	/* test if mapping is enabled during the exec()..
 	 * (host-* tools disable it)
 	*/
-	if (strvec_contains(my_envp, "SBOX_DISABLE_MAPPING=1")) {
+	if (strvec_contains(my_envp, "SBOX_DISABLE_MAPPING=1", NULL)) {
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"do_exec(): mapping disabled, my_file = %s", my_file);
 		mapped_file = strdup(my_file);
@@ -937,6 +813,28 @@ static int prepare_exec(const char *exec_fn_name,
 			my_file, mapped_file);
 
 		/* Note: the Lua stack should now have rule and policy objects */
+	}
+
+	/*
+	 * prepare_envp_for_do_exec() left us placeholder in envp array
+	 * that we will fill now with fully mangled binary name.
+	 */
+	if (strvec_contains(my_envp, "__SB2_REAL_BINARYNAME=", &idx)) {
+		char *real_binaryname, *orig_real_binaryname;
+
+		/* release the placeholder */
+		orig_real_binaryname = my_envp[idx];
+		free(orig_real_binaryname);
+
+		/*
+		 * Append fully mangled binary name to exec'd process
+		 * environment with name __SB2_REAL_BINARYNAME.
+		 */
+		(void) asprintf(&real_binaryname, "__SB2_REAL_BINARYNAME=%s",
+		    mapped_file);
+		my_envp[idx] = real_binaryname;
+
+		SB_LOG(SB_LOGLEVEL_DEBUG, "setting %s", real_binaryname);
 	}
 
 	/* inspect the completely mangled filename */
@@ -975,39 +873,13 @@ static int prepare_exec(const char *exec_fn_name,
 			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/target %s",
 					mapped_file);
 
-			if (!cputransp_method) {
-				cputransp_method = sb2__read_string_variable_from_lua__(
-					"sbox_cputransparency_method");
-				if (strstr(cputransp_method, "qemu")) {
-					cputransp_type = CPUTRANSP_QEMU;
-				} else if (strstr(cputransp_method, "sbrsh")) {
-					cputransp_type = CPUTRANSP_SBRSH;
-				} else {
-					cputransp_type = CPUTRANSP_UNKNOWN;
-				}
-			}
+			postprocess_result = sb_execve_postprocess(
+				"cpu_transparency", &mapped_file, &my_file,
+				binaryname, &my_argv, &my_envp);
 
-			if (!cputransp_method) {
-				fprintf(stderr, "sbox_cputransparency_method not set, "
-						"unable to execute the target binary\n");
+			if (postprocess_result < 0) {
 				errno = EINVAL;
 				ret = -1;
-			}
-
-			if (cputransp_type == CPUTRANSP_SBRSH) {
-				/* FIXME: to be converted to use 
-				 * exec postprocesing
-				*/
-				prepare_sbrsh_cputransparency(&mapped_file,
-					&my_argv, &my_envp);
-			} else {
-				postprocess_result = sb_execve_postprocess(
-					"cpu_transparency", &mapped_file, &my_file,
-					binaryname, &my_argv, &my_envp);
-				if (postprocess_result < 0) {
-					errno = EINVAL;
-					ret = -1;
-				}
 			}
 			break;
 

@@ -45,7 +45,7 @@ To configure sb2, do something like this:
 mkdir $HOME/buildroot
 cd $HOME/buildroot
 [fetch a rootfs from somewhere and extract it here]
-sb2-init /path/to/cross-compiler/bin/arm-linux-gcc
+sb2-init -c /abs/path/to/qemu-arm /path/to/cross-compiler/bin/arm-linux-gcc
 .fi
 
 To change default scratchbox2 target:

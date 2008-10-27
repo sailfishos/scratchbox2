@@ -15,8 +15,6 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
-static char *argvenvp_mode;
-
 /* Convert a vector of strings to a lua table, leaves that table to
  * lua's stack.
 */
@@ -79,10 +77,6 @@ int sb_execve_preprocess(char **file, char ***argv, char ***envp)
 	int res, new_argc, new_envc;
 
 	if (!luaif) return(0);
-
-	if (!(argvenvp_mode = getenv("SBOX_ARGVENVP_MODE"))) {
-		argvenvp_mode = "simple";
-	}
 
 	if (!argv || !envp) {
 		SB_LOG(SB_LOGLEVEL_ERROR,

@@ -12,6 +12,8 @@ function basename(path)
 end
 
 function dirname(path)
+	local dir
+
 	if (path == "/") then
 		return "/"
 	end
@@ -51,6 +53,7 @@ end
 --
 function load_and_check_rules()
 
+	-- initialize global variables:
 	rule_file_interface_version = nil
 	export_chains = {}
 	exec_policy_chains = {}

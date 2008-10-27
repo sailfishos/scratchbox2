@@ -59,7 +59,7 @@ function sbox_execve_preprocess(filename, argv, envp)
 	
 	new_envp = envp
 
-	am = argvmods[binaryname]
+	local am = argvmods[binaryname]
 	if (am and not am.remove) then am.remove = {} end
 	if (am and not am.add_head) then am.add_head = {} end
 	if (am and not am.add_tail) then am.add_tail = {} end

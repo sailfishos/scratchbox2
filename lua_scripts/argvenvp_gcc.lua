@@ -38,7 +38,7 @@ gcc_tools = {
 -- The trick with ":" .. is to have a non-prefixed gcc call caught here
 for prefix in string.gmatch(":" .. sbox_cross_gcc_prefix_list, "[^:]*") do
 	for i = 1, table.maxn(gcc_compilers) do
-		tmp = {}
+		local tmp = {}
 		tmp.name = prefix .. gcc_compilers[i]
 		tmp.new_filename = sbox_cross_gcc_dir .. "/" .. sbox_cross_gcc_subst_prefix .. gcc_compilers[i]
 		tmp.add_tail = {}
@@ -66,7 +66,7 @@ for prefix in string.gmatch(":" .. sbox_cross_gcc_prefix_list, "[^:]*") do
 	
 	-- just map the filename for linkers and tools
 	for i = 1, table.maxn(gcc_linkers) do
-		tmp = {}
+		local tmp = {}
 		tmp.name = prefix .. gcc_linkers[i]
 		tmp.new_filename = sbox_cross_gcc_dir .. "/" .. sbox_cross_gcc_subst_prefix .. gcc_linkers[i]
 		tmp.add_tail = {}
@@ -84,7 +84,7 @@ for prefix in string.gmatch(":" .. sbox_cross_gcc_prefix_list, "[^:]*") do
 		argvmods[tmp.name] = tmp
 	end
 	for i = 1, table.maxn(gcc_tools) do
-		tmp = {}
+		local tmp = {}
 		tmp.name = prefix .. gcc_tools[i]
 		tmp.new_filename = sbox_cross_gcc_dir .. "/" .. sbox_cross_gcc_subst_prefix .. gcc_tools[i]
 		argvmods[tmp.name] = tmp
@@ -95,7 +95,7 @@ end
 -- deal with host-gcc functionality, disables mapping
 for prefix in string.gmatch(sbox_host_gcc_prefix_list, "[^:]+") do
 	for i = 1, table.maxn(gcc_compilers) do
-		tmp = {}
+		local tmp = {}
 		tmp.name = prefix .. gcc_compilers[i]
 		tmp.new_filename = sbox_host_gcc_dir .. "/" .. sbox_host_gcc_subst_prefix .. gcc_compilers[i]
 		tmp.add_tail = {}
@@ -116,14 +116,14 @@ for prefix in string.gmatch(sbox_host_gcc_prefix_list, "[^:]+") do
 
 	-- just map the filename for linkers and tools
 	for i = 1, table.maxn(gcc_linkers) do
-		tmp = {}
+		local tmp = {}
 		tmp.name = prefix .. gcc_linkers[i]
 		tmp.new_filename = sbox_host_gcc_dir .. "/" .. sbox_host_gcc_subst_prefix .. gcc_linkers[i]
 		tmp.disable_mapping = 1
 		argvmods[tmp.name] = tmp
 	end
 	for i = 1, table.maxn(gcc_tools) do
-		tmp = {}
+		local tmp = {}
 		tmp.name = prefix .. gcc_tools[i]
 		tmp.new_filename = sbox_host_gcc_dir .. "/" .. sbox_host_gcc_subst_prefix .. gcc_tools[i]
 		tmp.disable_mapping = 1

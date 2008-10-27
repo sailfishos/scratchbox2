@@ -33,6 +33,13 @@ case "$sb2rc_mode" in
 		# configuration tools to /usr/bin, etc
 		# N.B2: /usr/share/zoneinfo/localtime is typically a symlink 
 		# to /etc/localtime and needs to be ignored
+		#
+		# Following files come with package libglib2.0-dev
+		# and we want to ignore those and use the ones
+		# found from rootstrap:
+		#    /usr/share/aclocal/glib-2.0.m4
+		#    /usr/share/aclocal/glib-gettext.m4
+		#
 		SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST=" \
 			/usr/bin /usr/sbin /sbin \
 			/etc \
@@ -49,6 +56,8 @@ case "$sb2rc_mode" in
 			/usr/share/base-passwd \
 			/usr/share/lintian/overrides/dpkg-dev \
 			/usr/share/zoneinfo/localtime \
+			/usr/share/aclocal/glib-2.0.m4 \
+			/usr/share/aclocal/glib-gettext.m4 \
 			/usr/lib/dpkg "
 		;;
 

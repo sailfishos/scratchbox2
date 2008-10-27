@@ -547,6 +547,13 @@ static int lua_sb_getcwd(lua_State *l)
 	return 1;
 }
 
+/* "sb.get_binary_name", to be called from lua code */
+static int lua_sb_get_binary_name(lua_State *l)
+{
+	lua_pushstring(l, sbox_binary_name);
+	return 1;
+}
+
 /* mappings from c to lua */
 static const luaL_reg reg[] =
 {
@@ -562,6 +569,7 @@ static const luaL_reg reg[] =
 	{"path_exists",			lua_sb_path_exists},
 	{"debug_messages_enabled",	lua_sb_debug_messages_enabled},
 	{"getcwd",			lua_sb_getcwd},
+	{"get_binary_name",		lua_sb_get_binary_name},
 	{NULL,				NULL}
 };
 

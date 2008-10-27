@@ -3,7 +3,7 @@
 sb2 \- crosscompiling environment
 .SH SYNOPSIS
 .B sb2
-[ \-R ] [ \-v ] [ \-d ] [ \-h ] [ \-t TARGET ] [ \-e ] [ \-m MODE ] [ -s DIRECTORY] [command] [arguments] [...]
+[ \-r ] [ \-R ] [ \-v ] [ \-d ] [ \-h ] [ \-t TARGET ] [ \-e ] [ \-m MODE ] [ -s DIRECTORY] [command] [arguments] [...]
 .SH DESCRIPTION
 .B sb2
 Runs command in scratchbox2. If no command is given, a bash shell
@@ -43,6 +43,10 @@ Join a persistent session.
 \-D file
 Delete a persistent session. Warning: this does not
 check if the session is still in use!
+.TP
+\-r
+Don't create reverse mapping rules: functions like getcwd() and realpath()
+will always return the real path.
 
 .SH ENVIRONMENT
 There are quite many environment variables being used. Since sb2 is still

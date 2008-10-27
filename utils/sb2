@@ -29,6 +29,7 @@ Options:
     -s DIRECTORY load mapping scripts from alternative location
     -Q BUGLIST   emulate bugs of the old scratchbox 1 (BUGLIST consists of
                  letters: 'x' enables exec permission checking bug emulation)
+    -r           do not create reverse mapping rules
     -R           use simulated root permissions (currently activates
                  "fakeroot" for this functionality)
     -p           Preserve session directories (including the directory
@@ -579,8 +580,9 @@ fi
 SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
 SBOX_WORKDIR=$(readlink -f $PWD)
 SBOX_FAKEROOT_PREFIX=""
+SBOX_CREATE_REVERSE_RULES="y"
 
-while getopts vdht:em:s:L:Q:pM:ZRS:J:D: foo
+while getopts vdht:em:s:L:Q:pM:ZrRS:J:D: foo
 do
 	case $foo in
 	(v) version ;;
@@ -597,6 +599,7 @@ do
 	(s) SBOX_LUA_SCRIPTS=$OPTARG;;
 	(p) SBOX_SESSION_NO_CLEANUP="y";;
 	(Z) SBOX_OPT_Z_NO_LD_SO_EXEC="y";;
+	(r) SBOX_CREATE_REVERSE_RULES="n";;
 	(R) SBOX_FAKEROOT_PREFIX="fakeroot";;
 	(S) SBOX_WRITE_SESSION_INFO_TO_FILE=$OPTARG ;;
 	(J) SBOX_JOIN_SESSION_FILE=$OPTARG ;;
@@ -750,9 +753,15 @@ export LD_LIBRARY_PATH
 # ------------
 # Now everything is ready, programs can be executed in SB2'ed environment.
 # Create reverse mapping rules before starting the actual command (or shell)
-sb2-monitor -L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
-	execluafile $SBOX_SESSION_DIR/lua_scripts/create_reverse_rules.lua \
-	>$SBOX_SESSION_DIR/rev_rules.lua
+if [ "$SBOX_CREATE_REVERSE_RULES" == "y" ]
+then
+	sb2-monitor -L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
+		execluafile $SBOX_SESSION_DIR/lua_scripts/create_reverse_rules.lua \
+		>$SBOX_SESSION_DIR/rev_rules.lua
+else
+	echo "-- Reverse rules disabled by command line option -r" \
+		>$SBOX_SESSION_DIR/rev_rules.lua
+fi
 
 # ------------
 

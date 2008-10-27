@@ -30,6 +30,8 @@ Options:
     -Q BUGLIST   emulate bugs of the old scratchbox 1 (BUGLIST consists of
                  letters: 'x' enables exec permission checking bug emulation)
     -r           do not create reverse mapping rules
+    -O options   set options for the selected mapping mode ("options" is
+                 a mode-specific string)
     -R           use simulated root permissions (currently activates
                  "fakeroot" for this functionality)
     -p           Preserve session directories (including the directory
@@ -227,6 +229,7 @@ sbox_user_home_dir="$sbox_user_home_dir"
 sbox_target_toolchain_dir="$SBOX_TARGET_TOOLCHAIN_DIR"
 
 sbox_mapmode="$SBOX_MAPMODE"
+sbox_mode_specific_options="$SBOX_MODE_SPECIFIC_OPTIONS"
 sbox_target_root="$SBOX_TARGET_ROOT"
 sbox_tools_root="$SBOX_TOOLS_ROOT"
 
@@ -581,8 +584,9 @@ SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
 SBOX_WORKDIR=$(readlink -f $PWD)
 SBOX_FAKEROOT_PREFIX=""
 SBOX_CREATE_REVERSE_RULES="y"
+SBOX_MODE_SPECIFIC_OPTIONS=""
 
-while getopts vdht:em:s:L:Q:pM:ZrRS:J:D: foo
+while getopts vdht:em:s:L:Q:pM:ZrRS:J:D:O: foo
 do
 	case $foo in
 	(v) version ;;
@@ -604,6 +608,7 @@ do
 	(S) SBOX_WRITE_SESSION_INFO_TO_FILE=$OPTARG ;;
 	(J) SBOX_JOIN_SESSION_FILE=$OPTARG ;;
 	(D) SBOX_DELETE_SESSION_FILE=$OPTARG ;;
+	(O) SBOX_MODE_SPECIFIC_OPTIONS=$OPTARG ;;
 	(*) usage ;;
 	esac
 done

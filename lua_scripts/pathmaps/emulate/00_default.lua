@@ -17,6 +17,14 @@ else
 	unmapped_workdir = sbox_workdir
 end
 
+-- use "==" to test options as long as there is only one possible option,
+-- string.match() is slow..
+if sbox_mode_specific_options == "use-global-tmp" then
+	tmp_dir_dest = "/tmp"
+else
+	tmp_dir_dest = session_dir .. "/tmp"
+end
+
 -- disable the gcc toolchain tricks. gcc & friends will be available, if
 -- those have been installed to target_root (but then they will probably run
 -- under cpu transparency = very slowly..)
@@ -40,7 +48,7 @@ mapall_chain = {
 		
 		-- 
 		{prefix = session_dir, use_orig_path = true},
-		{prefix = "/tmp", map_to = session_dir},
+		{prefix = "/tmp", replace_by = tmp_dir_dest},
 
 		-- 
 		{prefix = "/dev", use_orig_path = true},

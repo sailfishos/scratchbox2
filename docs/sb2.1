@@ -3,7 +3,7 @@
 sb2 \- crosscompiling environment
 .SH SYNOPSIS
 .B sb2
-[ \-r ] [ \-R ] [ \-v ] [ \-d ] [ \-h ] [ \-t TARGET ] [ \-e ] [ \-m MODE ] [ -s DIRECTORY] [command] [arguments] [...]
+[options] [command] [arguments] [...]
 .SH DESCRIPTION
 .B sb2
 Runs command in scratchbox2. If no command is given, a bash shell
@@ -47,6 +47,9 @@ check if the session is still in use!
 \-r
 Don't create reverse mapping rules: functions like getcwd() and realpath()
 will always return the real path.
+.TP
+\-O options
+Set options for the selected mapping mode ("options" is a mode-specific string)
 
 .SH ENVIRONMENT
 There are quite many environment variables being used. Since sb2 is still

@@ -126,10 +126,12 @@ void sblog_init(void)
 	if (sb_loglevel__ == SB_LOGLEVEL_uninitialized) {
 		const char	*level_str;
 		const char	*format_str;
-		const char	*bin;
 
-		bin = getenv("__SB2_BINARYNAME");
-		if (bin) sb_log_state.sbl_binary_name = bin;
+		if (!sb2_global_vars_initialized__)
+			sb2_initialize_global_variables();
+
+		if (sbox_binary_name)
+			sb_log_state.sbl_binary_name = sbox_binary_name;
 
 		sb_log_state.sbl_logfile = getenv("SBOX_MAPPING_LOGFILE");
 		level_str = getenv("SBOX_MAPPING_LOGLEVEL");

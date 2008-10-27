@@ -1148,10 +1148,14 @@ int setrlimit64_gate(
 char *sbox_session_dir = NULL;
 char *sbox_orig_ld_preload = NULL;
 char *sbox_orig_ld_library_path = NULL;
+char *sbox_binary_name = NULL;
+char *sbox_real_binary_name = NULL;
 
 int sb2_global_vars_initialized__ = 0;
 
-/* NOTE: This function can be called before the environment
+/* sb2_initialize_global_variables()
+ *
+ * NOTE: This function can be called before the environment
  * is available. This happens at least on Linux when the
  * pthreads library is initializing; it calls uname(), which
  * will be handled by our uname() wrapper (it has been prepared
@@ -1178,6 +1182,14 @@ void sb2_initialize_global_variables(void)
 		if (!sbox_orig_ld_library_path) {
 			cp = getenv("LD_LIBRARY_PATH");
 			if (cp) sbox_orig_ld_library_path = strdup(cp);
+		}
+		if (!sbox_binary_name) {
+			cp = getenv("__SB2_BINARYNAME");
+			if (cp) sbox_binary_name = strdup(cp);
+		}
+		if (!sbox_real_binary_name) {
+			cp = getenv("__SB2_REAL_BINARYNAME");
+			if (cp) sbox_real_binary_name = strdup(cp);
 		}
 
 		if (sbox_session_dir) {

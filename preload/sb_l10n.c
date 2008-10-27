@@ -37,14 +37,11 @@ static void check_textdomain(const char *);
  */
 static const char *get_message_catalog_prefix(void)
 {
-	const char *binaryname;
-	const char *real_binaryname;
-
 	if (message_catalog_prefix_retrieved)
 		return (message_catalog_prefix);
 
-	binaryname = getenv("__SB2_BINARYNAME");
-	real_binaryname = getenv("__SB2_REAL_BINARYNAME");
+	if (!sb2_global_vars_initialized__)
+		sb2_initialize_global_variables();
 
 	/*
 	 * There might be situations when sb2 starts where
@@ -52,7 +49,7 @@ static const char *get_message_catalog_prefix(void)
 	 * on very first exec so we cannot apply any exec
 	 * policy.
 	 */
-	if (real_binaryname == NULL)
+	if (sbox_real_binary_name == NULL)
 		return (message_catalog_prefix);
 
 	/*
@@ -63,7 +60,7 @@ static const char *get_message_catalog_prefix(void)
 	 */
 	message_catalog_prefix =
 	    sb_query_exec_policy("native_app_message_catalog_prefix",
-	    binaryname, real_binaryname);
+	    sbox_binary_name, sbox_real_binary_name);
 
 	if (message_catalog_prefix != NULL) {
 		SB_LOG(SB_LOGLEVEL_DEBUG,

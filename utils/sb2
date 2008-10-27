@@ -256,6 +256,8 @@ sbox_block_host_compiler_args="$SBOX_BLOCK_HOST_COMPILER_ARGS"
 
 sbox_uname_machine="$SBOX_UNAME_MACHINE"
 sbox_libsb2="$SBOX_LIBSB2"
+
+sbox_emulate_sb1_bugs="$SBOX_EMULATE_SB1_BUGS"
 END
 }
 
@@ -594,7 +596,7 @@ do
 	    export SBOX_MAPPING_LOGLEVEL=debug ;;
 	(L) export SBOX_MAPPING_DEBUG=1
 	    export SBOX_MAPPING_LOGLEVEL=$OPTARG ;;
-	(Q) export SBOX_EMULATE_SB1_BUGS=$OPTARG ;;
+	(Q) SBOX_EMULATE_SB1_BUGS=$OPTARG ;;
 	(h) usage ;;
 	(t) SBOX_TARGET=$OPTARG ;;
 	(e) SBOX_MAPMODE=emulate ;;

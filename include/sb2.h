@@ -92,6 +92,8 @@ extern void sb2_initialize_global_variables(void);
 extern char *sbox_session_dir;
 extern char *sbox_orig_ld_preload;
 extern char *sbox_orig_ld_library_path;
+extern char *sbox_binary_name;
+extern char *sbox_real_binary_name;
 
 extern int pthread_library_is_available; /* flag */
 extern pthread_t (*pthread_self_fnptr)(void);

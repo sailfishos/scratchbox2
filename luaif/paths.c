@@ -1054,15 +1054,8 @@ char *scratchbox_path(
 	int *ro_flagp,
 	int dont_resolve_final_symlink)
 {
-	char binary_name[PATH_MAX+1];
-	char *bin_name;
-
-	if (!(bin_name = getenv("__SB2_BINARYNAME"))) {
-		bin_name = "UNKNOWN";
-	}
-	snprintf(binary_name, sizeof(binary_name), "%s", bin_name);
-
-	return (scratchbox_path_internal(binary_name, func_name,
+	return (scratchbox_path_internal(
+		(sbox_binary_name ? sbox_binary_name : "UNKNOWN"), func_name,
 		path, ro_flagp, dont_resolve_final_symlink, 0));
 }
 
@@ -1075,16 +1068,8 @@ char *scratchbox_path_for_exec(
 	int *ro_flagp,
 	int dont_resolve_final_symlink)
 {
-	char binary_name[PATH_MAX+1];
-	char *bin_name;
-
-	memset(binary_name, '\0', PATH_MAX+1);
-	if (!(bin_name = getenv("__SB2_BINARYNAME"))) {
-		bin_name = "UNKNOWN";
-	}
-	strcpy(binary_name, bin_name);
-
-	return (scratchbox_path_internal(binary_name, func_name,
+	return (scratchbox_path_internal(
+		(sbox_binary_name ? sbox_binary_name : "UNKNOWN"), func_name,
 		path, ro_flagp, dont_resolve_final_symlink, 1));
 }
 
@@ -1092,18 +1077,10 @@ char *scratchbox_reverse_path(
 	const char *func_name,
 	const char *full_path)
 {
-	char binary_name[PATH_MAX+1];
-	char *bin_name;
-	struct lua_instance *luaif;
+	struct lua_instance *luaif = get_lua();
 
-	memset(binary_name, '\0', PATH_MAX+1);
-	if (!(bin_name = getenv("__SB2_BINARYNAME"))) {
-		bin_name = "UNKNOWN";
-	}
-	strcpy(binary_name, bin_name);
-
-	luaif = get_lua();
-	return (call_lua_function_sbox_reverse_path(
-			luaif, binary_name, func_name, full_path));
+	return (call_lua_function_sbox_reverse_path(luaif,
+		(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
+		func_name, full_path));
 }
 

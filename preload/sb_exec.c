@@ -294,7 +294,9 @@ static enum binary_type inspect_binary(const char *filename)
 	retval = BIN_NONE; /* assume it doesn't exist, until proven otherwise */
 	if (access_nomap_nolog(filename, X_OK) < 0) {
 		int saved_errno = errno;
-		char *sb1_bug_emulation_mode = getenv("SBOX_EMULATE_SB1_BUGS");
+		char *sb1_bug_emulation_mode =
+			sb2__read_string_variable_from_lua__(
+				"sbox_emulate_sb1_bugs");
 
 		if (access_nomap_nolog(filename, F_OK) < 0) {
 			/* file is missing completely, or can't be accessed

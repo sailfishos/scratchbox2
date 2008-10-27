@@ -158,6 +158,7 @@ simple_chain = {
 		-- there are exceptions: Some tools have private subdirectories
 		-- there.
 
+		{prefix = "/usr/lib/gcc", map_to = tools, readonly = true},
 		{prefix = "/usr/lib/perl", map_to = tools, readonly = true},
 		{prefix = "/usr/lib/dpkg", map_to = tools, readonly = true},
 		{prefix = "/usr/lib/apt", map_to = tools, readonly = true},

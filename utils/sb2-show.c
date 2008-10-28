@@ -7,6 +7,7 @@
 */
 
 #include <unistd.h>
+#include <string.h>
 #include <config.h>
 #include <config_hardcoded.h>
 #include <sys/types.h>
@@ -237,7 +238,7 @@ static void command_show_exec(
 
 	if (sb2show__execve_mods__(argv[0], argv, orig_env,
 		&new_file, &new_argv, &new_envp) < 0) {
-		printf("Exec denied.\n");
+		printf("Exec denied (%s)\n", strerror(errno));
 	} else {
 		printf("File\t%s\n", new_file);
 

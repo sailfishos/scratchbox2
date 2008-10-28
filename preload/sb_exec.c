@@ -371,6 +371,14 @@ static enum binary_type inspect_binary(const char *filename)
 		goto _out_close;
 	}
 
+	if (status.st_size < 4) {
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"File size is too small, can't exec (%s)", filename);
+		errno = ENOEXEC;
+		retval = BIN_NONE;
+		goto _out_close;
+	}
+
 	region = mmap(0, status.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (!region) {
 		goto _out_close;

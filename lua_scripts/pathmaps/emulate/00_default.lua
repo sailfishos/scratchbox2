@@ -46,6 +46,10 @@ mapall_chain = {
                 { path = "/etc/osso-af-init/dbus-systembus.sh",
                     map_to = sb1_compat_dir },
 		
+		-- ldoconfig is static binary, and needs to be wrapped
+		{path = "/sbin/ldconfig", replace_by = sbox_dir ..
+				"/share/scratchbox2/wrappers/ldconfig"},
+
 		-- 
 		{prefix = session_dir, use_orig_path = true},
 		{prefix = "/tmp", replace_by = tmp_dir_dest},

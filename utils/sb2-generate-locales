@@ -68,12 +68,13 @@ generate_localization_files()
 
 	#
 	# Find out supported variations for a locale and generate
-	# the files.
+	# the files.  We generate only UTF-8 versions of locales.
 	#
 	for l in $archived_locales; do
 		echo -n "generating locale $l ..."
 		/target_root/usr/bin/localedef \
 		    --no-archive \
+		    -f UTF-8 \
 		    -c \
 		    -i $l \
 		    $gendir/$l > /dev/null 2>&1

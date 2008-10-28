@@ -131,7 +131,7 @@ function sboxify_environment()
 		. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$SBOX_MAPMODE starting
 	fi
 
-	if [ "$SBOX_CONFIG_VERSION" != "8" ]; then
+	if [ "$SBOX_CONFIG_VERSION" != "9" ]; then
 		echo "Please run sb2-init for your target:"
 		echo "name: $SBOX_TARGET"
 		echo "dir:  $SBOX_TARGET_ROOT"
@@ -239,6 +239,8 @@ sbox_sbrsh_config="$SBRSH_CONFIG"
 
 sbox_cross_gcc_prefix_list="$SBOX_CROSS_GCC_PREFIX_LIST"
 sbox_cross_gcc_dir="$SBOX_CROSS_GCC_DIR"
+sbox_cross_gcc_version="$SBOX_CROSS_GCC_VERSION"
+sbox_cross_gcc_shortversion="$SBOX_CROSS_GCC_SHORTVERSION"
 sbox_extra_cross_compiler_args="$SBOX_EXTRA_CROSS_COMPILER_ARGS"
 sbox_cross_gcc_subst_prefix="$SBOX_CROSS_GCC_SUBST_PREFIX"
 sbox_cross_gcc_specs_file="$SBOX_CROSS_GCC_SPECS_FILE"

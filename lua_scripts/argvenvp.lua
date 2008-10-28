@@ -25,7 +25,7 @@ end
 -- 	new_filename = "exec-this-binary-instead",
 -- 	disable_mapping = 1 -- set this to disable mappings
 -- }
--- argvmods[rule.name] = rule
+-- argvmods["/path/prefix/to/tool/"..rule.name] = rule
 --
 -- Environment modifications are not supported yet, except for disabling
 -- mappings.
@@ -39,7 +39,7 @@ dpkg_architecture = {
 	name = "dpkg-architecture",
 	remove = {"-f"}
 }
-argvmods[dpkg_architecture.name] = dpkg_architecture
+argvmods["/usr/bin/"..dpkg_architecture.name] = dpkg_architecture
 
 -- ------------------------------------
 -- Exec preprocessing.
@@ -52,19 +52,26 @@ argvmods[dpkg_architecture.name] = dpkg_architecture
 function sbox_execve_preprocess(filename, argv, envp)
 	local new_argv = {}
 	local new_envp = {}
-	local binaryname = string.match(filename, "[^/]+$")
 	local new_filename = filename
 
-	-- print(string.format("sbox_execve_preprocess(): %s\n", filename))
+	if (debug_messages_enabled) then
+		sb.log("debug", string.format(
+			"sbox_execve_preprocess(): %s\n", filename))
+	end
 	
 	new_envp = envp
 
-	local am = argvmods[binaryname]
+	local am = argvmods[filename]
 	if (am and not am.remove) then am.remove = {} end
 	if (am and not am.add_head) then am.add_head = {} end
 	if (am and not am.add_tail) then am.add_tail = {} end
 
 	if (am ~= nil) then
+		if (debug_messages_enabled) then
+			sb.log("debug", string.format(
+				"argvmods[%s] found\n", filename))
+		end
+
 		-- head additions
 		for i = 1, table.maxn(am.add_head) do
 			table.insert(new_argv, am.add_head[i])

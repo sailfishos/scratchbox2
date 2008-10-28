@@ -13,6 +13,10 @@
 # then check if missing packages are tools that could be used
 # from the host (or sbox_tools_root, if that has been set)
 #
+# There might also be dependencies that SB2 itself solves;
+# for example, gcc-* dependencies might be resolved by the
+# cross compiler.
+#
 # FIXME: This implementation is still incomplete, as this does not
 # check package versions while checking host/tools_root tools.
 # Also, it would be a good idea to do a "visibility check" for host packages,
@@ -129,6 +133,67 @@ function check_host_pkg()
 	check_result_msg="'$pkgname' is missing (can be installed to the host)"
 	return 1
 }
+
+function check_gcc_dependency()
+{
+	required_gcc=$1
+
+	if [ -n "$sbox_cross_gcc_dir" ]
+	then
+		# a cross compiler has been configured
+		if [ "$required_gcc" = "gcc" ]
+		then
+			# requires GCC, but does not depend on gcc version
+			echo "SB2 provides gcc"
+			return 0
+		fi
+		#
+		# Find out if gcc version is suitable
+		gcc_vrs=`gcc -dumpversion`
+		case "gcc-$gcc_vrs" in
+		$required_gcc*)	# required_gcc is prefix of gcc_vrs => OK
+			echo "SB2 provides $required_gcc ($gcc_vrs)"
+			return 0
+		esac
+	fi # else a cross-compiler is not available, gcc comes from tools
+
+	# Failed, SB2 environment does not provide a suitable gcc.
+	return 1
+}
+
+function check_sb2_builddeps()
+{
+	orig_missing="$1"
+	new_missing=""
+	ret=0
+
+	# Currently, SB2 can fulfill "gcc" and "gcc-<version>"
+	for m in $orig_missing
+	do
+		case $m in
+		gcc*)	check_gcc_dependency $m
+			if [ $? != 0 ]; then
+				# gcc check failed
+				new_missing="$new_missing $m"
+			fi
+			;;
+		*)	# keep it in the list of missing pkgs
+			new_missing="$new_missing $m"
+			;;
+		esac
+	done
+
+	missing_deps="$new_missing"
+
+	if [ -z "$new_missing" ]; then
+		# all resolved.
+		true
+	else
+		# still missing something
+		false
+	fi
+}
+
 
 function check_host_builddeps()
 {
@@ -257,6 +322,14 @@ fi
 
 echo "Build dependencies missing from the target environment:"
 echo "     $missing_deps"
+
+# Something is missing. Check if SB2 can fulfill the requirements:
+check_sb2_builddeps "$missing_deps"
+if [ $? == 0 ]; then
+	# OK now, nothing needed from the host side
+	echo "SB2 tools check => all dependencies OK"
+	exit 0
+fi
 
 # Something is missing. To be able to get the missing packages from the
 # host environment, at least the list of allowed packages is needed:

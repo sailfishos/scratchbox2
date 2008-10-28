@@ -1,0 +1,32 @@
+#!/bin/sh
+#
+# This scripts checks whether
+# /usr/share/scratchbox2/lua_scripts/pathmaps/maemo is
+# empty directory and if it is, it replaces it with
+# symlink pointing to 'devel'.  This is done because
+# during upgrade, dpkg doesn't handle changing directory
+# to symlink correctly.
+#
+
+pathmaps=/usr/share/scratchbox2/lua_scripts/pathmaps
+
+if [ -L $pathmaps/maemo ]; then
+	#
+	# If symlink is already in place we don't
+	# do anything.
+	#
+	exit 0
+fi
+
+#
+# If rmdir succeeds we know that the directory was empty
+# and we can put our symlink in place.  Otherwise user has
+# probably done some changes into mappings so we just issue
+# a warning.
+#
+if /bin/rmdir $pathmaps/maemo > /dev/null 2>&1; then
+	ln -ns devel $pathmaps/maemo
+else
+	echo "Can't symlink maemo -> devel, directory is not empty"
+	exit 0
+fi

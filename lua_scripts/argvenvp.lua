@@ -19,13 +19,14 @@ end
 --
 -- rule = {
 -- 	name = "binary-name",
+--	path_prefixes = {"/list/of", "/possible/path/prefixes"},
 -- 	add_head = {"list", "of", "args", "to", "prepend"},
 -- 	add_tail = {"these", "are", "appended"},
 -- 	remove = {"args", "to", "remove"},
 -- 	new_filename = "exec-this-binary-instead",
 -- 	disable_mapping = 1 -- set this to disable mappings
 -- }
--- argvmods["/path/prefix/to/tool/"..rule.name] = rule
+-- argvmods[rule.name] = rule
 --
 -- Environment modifications are not supported yet, except for disabling
 -- mappings.
@@ -37,9 +38,10 @@ end
 
 dpkg_architecture = {
 	name = "dpkg-architecture",
+	path_prefixes = {"/usr/bin/"},
 	remove = {"-f"}
 }
-argvmods["/usr/bin/"..dpkg_architecture.name] = dpkg_architecture
+argvmods[dpkg_architecture.name] = dpkg_architecture
 
 -- ------------------------------------
 -- Exec preprocessing.
@@ -52,6 +54,7 @@ argvmods["/usr/bin/"..dpkg_architecture.name] = dpkg_architecture
 function sbox_execve_preprocess(filename, argv, envp)
 	local new_argv = {}
 	local new_envp = {}
+	local binaryname = string.match(filename, "[^/]+$")
 	local new_filename = filename
 
 	if (debug_messages_enabled) then
@@ -61,12 +64,25 @@ function sbox_execve_preprocess(filename, argv, envp)
 	
 	new_envp = envp
 
-	local am = argvmods[filename]
-	if (am and not am.remove) then am.remove = {} end
-	if (am and not am.add_head) then am.add_head = {} end
-	if (am and not am.add_tail) then am.add_tail = {} end
+	local am = argvmods[binaryname]
+	if (am ~= nil) then
+		local prefix_match_found = false
+		for i = 1, table.maxn(am.path_prefixes) do
+			if isprefix(am.path_prefixes[i], filename) then
+				prefix_match_found = true
+				break
+			end
+		end
+		if (not prefix_match_found) then
+			am = nil
+		end
+	end
 
 	if (am ~= nil) then
+		if (not am.remove) then am.remove = {} end
+		if (not am.add_head) then am.add_head = {} end
+		if (not am.add_tail) then am.add_tail = {} end
+
 		if (debug_messages_enabled) then
 			sb.log("debug", string.format(
 				"argvmods[%s] found\n", filename))

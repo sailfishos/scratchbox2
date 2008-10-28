@@ -43,11 +43,17 @@ gcc_tools = {
 	"strip"
 }
 
-function register_gcc_component_path(tmp)
-	-- currently all gcc tools (that we are going to process) live in /usr/bin
-	local full_path = "/usr/bin/" .. tmp.name
+-- currently all gcc tools that we are going to replace live in /usr/bin,
+-- but these tools may call other tools from the same set (e.g. "gcc" calls
+-- "ld", etc)
+gcc_tools_path_prefixes = {
+	"/usr/bin/",
+	sbox_cross_gcc_dir
+}
 
-	argvmods[full_path] = tmp
+function register_gcc_component_path(tmp)
+	tmp.path_prefixes = gcc_tools_path_prefixes
+	argvmods[tmp.name] = tmp
 end
 
 function gcc_compiler_arg_mods(tmp)

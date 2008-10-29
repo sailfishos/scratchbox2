@@ -43,12 +43,18 @@ gcc_tools = {
 	"strip"
 }
 
--- currently all gcc tools that we are going to replace live in /usr/bin,
--- but these tools may call other tools from the same set (e.g. "gcc" calls
--- "ld", etc)
+-- Path prefixes:
+-- 1. currently all cross-gcc tools that we are going to replace
+--    live in /usr/bin, but these tools may call other tools from
+--    the same set (e.g. "gcc" calls "ld", etc). That is why
+--    sbox_cross_gcc_dir is needed, too.
+-- 2. note that sbox_cross_gcc_dir is not empty, this file
+--    won't be loaded at all if it is (see argvenvp.lua),
+-- 3. Wrappers for host-* tools live in /sb2/wrappers.
 gcc_tools_path_prefixes = {
 	"/usr/bin/",
-	sbox_cross_gcc_dir
+	sbox_cross_gcc_dir,
+	"/sb2/"
 }
 
 function register_gcc_component_path(tmp)

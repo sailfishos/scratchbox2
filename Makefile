@@ -141,9 +141,10 @@ install-noarch: regular
 	install -c -m 755 $(SRCDIR)/wrappers/texi2html $(prefix)/share/scratchbox2/wrappers/texi2html
 	install -c -m 755 $(SRCDIR)/wrappers/dpkg-checkbuilddeps $(prefix)/share/scratchbox2/wrappers/dpkg-checkbuilddeps
 	install -c -m 755 $(SRCDIR)/wrappers/debconf2po-update $(prefix)/share/scratchbox2/wrappers/debconf2po-update
+	install -c -m 755 $(SRCDIR)/wrappers/host-gcc-tools-wrapper $(prefix)/share/scratchbox2/wrappers/host-gcc-tools-wrapper
 	(cd $(prefix)/share/scratchbox2/wrappers; \
 	 for f in $(host_prefixed_gcc_bins); do \
-		ln -sf /bin/true $$f; \
+		ln -sf host-gcc-tools-wrapper $$f; \
 	done)
 
 ifeq ($(X86_64),y)

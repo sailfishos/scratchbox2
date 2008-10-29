@@ -287,8 +287,13 @@ int main(int argc, char *argv[])
 				if (!p_libsb2) {
 					/* LD_PRELOAD is defined, but libsb2
 					 * was not included. Add it now. */
-					asprintf(&new_ld_preload, "%s:%s",
-						old_ld_preload, sbox_libsb2);
+					if (asprintf(&new_ld_preload, "%s:%s",
+						old_ld_preload, sbox_libsb2) < 0) {
+						fprintf(stderr,
+							 "%s: asprintf failed\n",
+							 progname);
+						exit(1);
+					}
 				} /* else libsb2 seems to be already included */
 			} else {
 				/* LD_PRELOAD was not set. */
@@ -308,7 +313,7 @@ int main(int argc, char *argv[])
 
 		execvp(argv[optind], argv+optind);
 		DEBUG_MSG("child: exec failed\n");
-		exit(-1);
+		exit(1);
 	}
 
 	/* parent - the signal relay process */

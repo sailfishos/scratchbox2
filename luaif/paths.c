@@ -317,8 +317,7 @@ static char *absolute_path(const char *fn_name, const char *path)
 				"absolute_path failed to get current dir");
 			return(NULL);
 		}
-		asprintf(&cpath, "%s/%s", cwd, path);
-		if (!cpath)
+		if ((asprintf(&cpath, "%s/%s", cwd, path) < 0) || !cpath)
 			abort();
 		SB_LOG(SB_LOGLEVEL_NOISE, "absolute_path done, '%s'", cpath);
 	}
@@ -738,12 +737,16 @@ static char *sb_path_resolution(
 					prefix_mapping_result, link_dest);
 
 				if (*rest_of_path) {
-					asprintf(&new_path, "%s%s%s",
+					if (asprintf(&new_path, "%s%s%s",
 						link_dest, 
 						((last_char_in_str(link_dest) != '/')
 						    && (*rest_of_path != '/') ?
 							"/" : ""),
-						rest_of_path);
+						rest_of_path) < 0) {
+
+						SB_LOG(SB_LOGLEVEL_ERROR,
+							"asprintf failed");
+					}
 				} else {
 					new_path = strdup(link_dest);
 				}
@@ -788,7 +791,7 @@ static char *sb_path_resolution(
 					int last_in_dest_is_slash =
 					    (last_char_in_str(link_dest)=='/');
 
-					asprintf(&new_path, "%s%s%s%s%s",
+					if (asprintf(&new_path, "%s%s%s%s%s",
 						dirnam,
 						(last_in_dirnam_is_slash ?
 							"" : "/"),
@@ -796,13 +799,21 @@ static char *sb_path_resolution(
 						(!last_in_dest_is_slash &&
 						 (*rest_of_path != '/') ?
 							"/" : ""),
-						rest_of_path);
+						rest_of_path) < 0) {
+
+						SB_LOG(SB_LOGLEVEL_ERROR,
+							"asprintf failed");
+					}
 				} else {
-					asprintf(&new_path, "%s%s%s",
+					if (asprintf(&new_path, "%s%s%s",
 						dirnam,
 						(last_in_dirnam_is_slash ?
 							"" : "/"),
-						link_dest);
+						link_dest) < 0) {
+
+						SB_LOG(SB_LOGLEVEL_ERROR,
+							"asprintf failed");
+					}
 				}
 				free(dirnam);
 			}
@@ -830,7 +841,12 @@ static char *sb_path_resolution(
 		if (work) {
 			char	*next_dir = NULL;
 
-			asprintf(&next_dir, "%s/%s", prefix_mapping_result, work->pe_last_component_name);
+			if (asprintf(&next_dir, "%s/%s",
+				prefix_mapping_result,
+				work->pe_last_component_name) < 0) {
+				SB_LOG(SB_LOGLEVEL_ERROR,
+					"asprintf failed");
+			}
 			if (prefix_mapping_result) {
 				free(prefix_mapping_result);
 			}

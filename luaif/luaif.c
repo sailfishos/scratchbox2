@@ -220,7 +220,12 @@ static struct lua_instance *alloc_lua(void)
 	}
 	sbox_session_dir = strdup(sbox_session_dir);
 
-	asprintf(&main_lua_script, "%s/lua_scripts/main.lua", sbox_session_dir);
+	if (asprintf(&main_lua_script, "%s/lua_scripts/main.lua",
+	     sbox_session_dir) < 0) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"alloc_lua: asprintf failed to allocate memory");
+		return(NULL);
+	}
 		
 	SB_LOG(SB_LOGLEVEL_DEBUG, "Loading '%s'", main_lua_script);
 

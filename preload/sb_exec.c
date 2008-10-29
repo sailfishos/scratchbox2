@@ -185,6 +185,7 @@ enum binary_type {
 	BIN_HASHBANG,
 };
 
+#if 0
 static int is_subdir(const char *root, const char *subdir)
 {
 	size_t rootlen;
@@ -195,6 +196,7 @@ static int is_subdir(const char *root, const char *subdir)
 	rootlen = strlen(root);
 	return subdir[rootlen] == '/' || subdir[rootlen] == '\0';
 }
+#endif
 
 static int elem_count(char *const *elems)
 {
@@ -643,14 +645,21 @@ static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 	}
 
 	/* add our session directory */
-	asprintf(&(my_envp[i]), "SBOX_SESSION_DIR=%s", sbox_session_dir);
-	i++;
+	if (asprintf(&(my_envp[i]), "SBOX_SESSION_DIR=%s", sbox_session_dir) < 0) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"asprintf failed to create SBOX_SESSION_DIR");
+	} else {
+		i++;
+	}
 
 	/* __SB2_BINARYNAME is used to communicate the binary name
 	 * to the new process so that it's available even before
 	 * its main function is called
 	 */
-	asprintf(&new_binaryname_var, "__SB2_BINARYNAME=%s", binaryname);
+	if (asprintf(&new_binaryname_var, "__SB2_BINARYNAME=%s", binaryname) < 0) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"asprintf failed to create __SB2_BINARYNAME");
+	}
 	my_envp[i++] = new_binaryname_var; /* add the new process' name */
 
 	/* allocate slot for __SB2_REAL_BINARYNAME that is filled later on */
@@ -662,8 +671,11 @@ static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 	if (!has_ld_preload && sbox_orig_ld_preload) {
 		char *new_ld_preload_var;
 
-		asprintf(&new_ld_preload_var, "LD_PRELOAD=%s",
-			sbox_orig_ld_preload);
+		if (asprintf(&new_ld_preload_var, "LD_PRELOAD=%s",
+			sbox_orig_ld_preload) < 0) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"asprintf failed to create LD_PRELOAD");
+		}
 		if (!new_ld_preload_var)
 			exit(1);
 		my_envp[i++] = new_ld_preload_var;
@@ -674,8 +686,11 @@ static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 	if (!has_ld_library_path && sbox_orig_ld_library_path) {
 		char *new_ld_library_path;
 
-		asprintf(&new_ld_library_path, "LD_LIBRARY_PATH=%s",
-			sbox_orig_ld_library_path);
+		if (asprintf(&new_ld_library_path, "LD_LIBRARY_PATH=%s",
+			sbox_orig_ld_library_path) < 0) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"asprintf failed to create LD_LIBRARY_PATH");
+		}
 		if (!new_ld_library_path)
 			exit(1);
 		my_envp[i++] = new_ld_library_path;
@@ -840,9 +855,13 @@ static int prepare_exec(const char *exec_fn_name,
 		 * Append fully mangled binary name to exec'd process
 		 * environment with name __SB2_REAL_BINARYNAME.
 		 */
-		(void) asprintf(&real_binaryname, "__SB2_REAL_BINARYNAME=%s",
-		    mapped_file);
-		my_envp[idx] = real_binaryname;
+		if (asprintf(&real_binaryname, "__SB2_REAL_BINARYNAME=%s",
+		    mapped_file) < 0) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"asprintf failed to create __SB2_REAL_BINARYNAME");
+		} else {
+			my_envp[idx] = real_binaryname;
+		}
 
 		SB_LOG(SB_LOGLEVEL_DEBUG, "setting %s", real_binaryname);
 	}

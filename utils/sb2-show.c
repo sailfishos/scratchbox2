@@ -230,7 +230,11 @@ static void command_show_exec(
 	/* fix __SB2_BINARYNAME in the environment that is going to be
 	 * given to sb2show__execve_mods__() (otherwise it would be "sb2-show"
 	*/
-	asprintf(&ba[0], "__SB2_BINARYNAME=%s", binary_name);
+	if (asprintf(&ba[0], "__SB2_BINARYNAME=%s", binary_name) < 0) {
+		printf("Fatal: asprintf failed");
+		exit(1);
+	}
+
 	ba[1] = NULL;
 	orig_env0 = join_env_vecs(environ, ba);
 	/* add user-specified environment varaibles */

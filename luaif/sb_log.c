@@ -113,7 +113,7 @@ static void write_to_logfile(const char *msg, int msglen)
 					O_APPEND | O_RDWR | O_CREAT,
 					S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP
 					| S_IROTH | S_IWOTH)) > 0) {
-			write(logfd, msg, msglen);
+			(void)write(logfd, msg, msglen);
 			close(logfd);
 		}
 	}
@@ -208,7 +208,11 @@ void sblog_vprintf_line_to_logfile(
 	}
 
 	/* next, print the log message to a buffer: */
-	vasprintf(&logmsg, format, ap);
+	if (vasprintf(&logmsg, format, ap) < 0) {
+		/* OOPS. should log an error message, but this is the
+		 * logger... can't do it */
+		logmsg = NULL;
+	}
 
 	/* post-format the log message.
 	 *
@@ -237,7 +241,9 @@ void sblog_vprintf_line_to_logfile(
 	 * if present, should always be the last field (so that same
 	 * post-processing tools can be used in both cases)  */
 	if (sb_log_state.sbl_print_file_and_line) {
-		asprintf(&optional_src_location, "\t[%s:%d]", file, line);
+		if (asprintf(&optional_src_location, "\t[%s:%d]", file, line) < 0) {
+			optional_src_location = NULL;
+		}
 	} else {
 		optional_src_location = strdup("");
 	}
@@ -254,13 +260,17 @@ void sblog_vprintf_line_to_logfile(
 		 * it easier to compare logfiles.
 		*/
 		if(levelname) {
-			asprintf(&finalmsg, "(%s)\t%s\t%s%s\n",
+			if (asprintf(&finalmsg, "(%s)\t%s\t%s%s\n",
 				levelname, sb_log_state.sbl_binary_name, 
-				logmsg, optional_src_location);
+				logmsg, optional_src_location) < 0) {
+				finalmsg = NULL;
+			}
 		} else {
-			asprintf(&finalmsg, "(%d)\t%s\t%s%s\n",
+			if (asprintf(&finalmsg, "(%d)\t%s\t%s%s\n",
 				level, sb_log_state.sbl_binary_name, 
-				logmsg, optional_src_location);
+				logmsg, optional_src_location) < 0) {
+				finalmsg = NULL;
+			}
 		}
 	} else {
 		char	process_and_thread_id[80];
@@ -277,13 +287,19 @@ void sblog_vprintf_line_to_logfile(
 
 		/* full format */
 		if(levelname) {
-			asprintf(&finalmsg, "%s (%s)\t%s%s\t%s%s\n",
+			if (asprintf(&finalmsg, "%s (%s)\t%s%s\t%s%s\n",
 				tstamp, levelname, sb_log_state.sbl_binary_name, 
-				process_and_thread_id, logmsg, optional_src_location);
+				process_and_thread_id, logmsg,
+				optional_src_location) < 0) {
+				finalmsg = NULL;
+			}
 		} else {
-			asprintf(&finalmsg, "%s (%d)\t%s%s\t%s%s\n",
+			if (asprintf(&finalmsg, "%s (%d)\t%s%s\t%s%s\n",
 				tstamp, level, sb_log_state.sbl_binary_name, 
-				process_and_thread_id, logmsg, optional_src_location);
+				process_and_thread_id, logmsg,
+				optional_src_location) < 0) {
+				finalmsg = NULL;
+			}
 		}
 	}
 

@@ -74,10 +74,18 @@ mapall_chain = {
 
 		{prefix = "/etc/resolv.conf", use_orig_path = true},
 
+		-- -----------------------------------------------
+		-- "user" is a special username, and should not be mapped:
+		{prefix = "/home/user", map_to = target_root},
+		-- Other home directories = not mapped, R/W access
+		{prefix = "/home", use_orig_path = true},
+		-- -----------------------------------------------
+
 		-- The default is to map everything to target_root,
-		-- execpt that we don't map the directory tree where
+		-- except that we don't map the directory tree where
 		-- sb2 was started.
 		{prefix = unmapped_workdir, use_orig_path = true},
+
 		{path = "/", use_orig_path = true},
 		{prefix = "/", map_to = target_root}
 	}

@@ -371,10 +371,21 @@ simple_chain = {
 		-- the root directory must not be mapped:
 		{path = "/", use_orig_path = true},
 
-		-- ..but everything else defaults to tools_root,
-		-- except that tools_root should not be mapped twice.
+		-- tools_root should not be mapped twice.
 		{prefix = tools, use_orig_path = true},
-		{prefix = "/", map_to = tools, readonly = true}
+
+		-- "standard" directories are mapped to tools_root,
+		-- but everything else defaults to the host system
+		-- (so that things like /mnt, /media and /opt are
+		-- used from the host)
+		{prefix = "/bin", map_to = tools, readonly = true},
+		{prefix = "/etc", map_to = tools, readonly = true},
+		{prefix = "/lib", map_to = tools, readonly = true},
+		{prefix = "/sbin", map_to = tools, readonly = true},
+		{prefix = "/usr", map_to = tools, readonly = true},
+		{prefix = "/var", map_to = tools, readonly = true},
+
+		{prefix = "/", use_orig_path = true}
 	}
 }
 

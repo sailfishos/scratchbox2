@@ -96,22 +96,28 @@ GATE: void _Exit(int status)
 
 WRAP: int __open(const char *pathname, int flags, ...) : \
 	map(pathname) optional_arg_is_create_mode(flags&O_CREAT) \
+	postprocess(pathname) \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
 WRAP: int __open64(const char *pathname, int flags, ...) : \
 	map(pathname) optional_arg_is_create_mode(flags&O_CREAT) \
+	postprocess(pathname) \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
 WRAP: int open(const char *pathname, int flags, ...) : \
 	map(pathname) optional_arg_is_create_mode(flags&O_CREAT) \
+	postprocess(pathname) \
 	create_nomap_nolog_version \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
 WRAP: int open64(const char *pathname, int flags, ...) : \
 	map(pathname) optional_arg_is_create_mode(flags&O_CREAT) \
+	postprocess(pathname) \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
 WRAP: int openat(int dirfd, const char *pathname, int flags, ...) : \
 	map_at(dirfd,pathname) optional_arg_is_create_mode(flags&O_CREAT) \
+	postprocess(pathname) \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
 WRAP: int openat64(int dirfd, const char *pathname, int flags, ...) : \
 	map_at(dirfd,pathname) optional_arg_is_create_mode(flags&O_CREAT) \
+	postprocess(pathname) \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
 
 --

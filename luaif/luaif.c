@@ -62,6 +62,9 @@ static int (*pthread_setspecific_fnptr)(pthread_key_t key,
 	const void *value) = NULL;
 static int (*pthread_once_fnptr)(pthread_once_t *, void (*)(void)) = NULL;
 pthread_t (*pthread_self_fnptr)(void) = NULL;
+int (*pthread_mutex_lock_fnptr)(pthread_mutex_t *mutex) = NULL;
+int (*pthread_mutex_unlock_fnptr)(pthread_mutex_t *mutex) = NULL;
+
 
 static void check_pthread_library()
 {
@@ -75,6 +78,11 @@ static void check_pthread_library()
 			"pthread_setspecific");
 		pthread_once_fnptr = dlsym(RTLD_DEFAULT,
 			"pthread_once");
+
+		pthread_mutex_lock_fnptr = dlsym(RTLD_DEFAULT,
+			"pthread_mutex_lock");
+		pthread_mutex_unlock_fnptr = dlsym(RTLD_DEFAULT,
+			"pthread_mutex_unlock");
 
 		/* Linux/glibc: pthread_self seems to exist in both
 		 * glibc and libpthread. */

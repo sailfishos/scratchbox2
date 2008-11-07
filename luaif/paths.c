@@ -983,7 +983,7 @@ static char *scratchbox_path_internal(
 				/* can't map, but still need to leave "rule"
 				 * (string) and "policy" (nil) to the stack */
 				lua_pushstring(luaif->lua, 
-					"mapping failed (decolon path failed");
+					"mapping failed (decolon path failed)");
 				lua_pushnil(luaif->lua);
 			}
 		} else {
@@ -1073,6 +1073,56 @@ char *scratchbox_path(
 	return (scratchbox_path_internal(
 		(sbox_binary_name ? sbox_binary_name : "UNKNOWN"), func_name,
 		path, ro_flagp, dont_resolve_final_symlink, 0));
+}
+
+char *scratchbox_path_at(
+	const char *func_name,
+	int dirfd,
+	const char *path,
+	int *ro_flagp,
+	int dont_resolve_final_symlink)
+{
+	const char *dirfd_path;
+
+	if ((*path == '/') || (dirfd == AT_FDCWD)) {
+		/* same as scratchbox_path() */
+		return (scratchbox_path_internal(
+			(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
+			func_name,
+			path, ro_flagp, dont_resolve_final_symlink, 0));
+	}
+
+	/* relative to something else than CWD */
+	dirfd_path = fdpathdb_find_path(dirfd);
+
+	if (dirfd_path) {
+		/* pathname found */
+		char *ret;
+		char *at_full_path = NULL;
+
+		if (asprintf(&at_full_path, "%s/%s", dirfd_path, path) < 0) {
+			/* asprintf failed */
+			abort();
+		}
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"Synthetic path for %s(%d,%s) => '%s'",
+			func_name, dirfd, path, at_full_path);
+
+		ret = scratchbox_path_internal(
+			(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
+			func_name,
+			at_full_path, ro_flagp, dont_resolve_final_symlink, 0);
+		free(at_full_path);
+		return(ret);
+	}
+
+	/* name not found. Can't do much here, log a warning and return
+	 * the original relative path. That will work if we are lucky, but
+	 * not always..  */
+	SB_LOG(SB_LOGLEVEL_WARNING, "Path not found for FD %d, for %s(%s)",
+		dirfd, func_name, path);
+
+	return (strdup(path));
 }
 
 /* this maps the path and then leaves "rule" and "exec_policy" to the stack, 

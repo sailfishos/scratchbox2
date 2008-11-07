@@ -116,12 +116,8 @@
 #define SBOX_MAP_PATH_AT(dirfd, path, sbox_path, readonly_flag_addr, no_symlink_resolve) \
 { \
 	if ((path) != NULL) { \
-		if (path[0] == '/') { \
-			/* absolute path */ \
-			sbox_path = scratchbox_path(__FUNCTION__, path, readonly_flag_addr, no_symlink_resolve); \
-		} else { \
-			sbox_path = strdup(path); \
-		}\
+		sbox_path = scratchbox_path_at(__FUNCTION__, dirfd, path, \
+			readonly_flag_addr, no_symlink_resolve); \
 	} \
 }
 

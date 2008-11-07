@@ -959,26 +959,30 @@ static void postprocess_tempname_template(const char *realfnname,
 }
 
 void mkstemp_postprocess_template(const char *realfnname,
-	char *mapped__template, char *template)
+	int ret, char *mapped__template, char *template)
 {
+	(void)ret;
 	postprocess_tempname_template(realfnname, mapped__template, template);
 }
 
 void mkstemp64_postprocess_template(const char *realfnname,
-	char *mapped__template, char *template)
+	int ret, char *mapped__template, char *template)
 {
+	(void)ret;
 	postprocess_tempname_template(realfnname, mapped__template, template);
 }
 
 void mkdtemp_postprocess_template(const char *realfnname,
-	char *mapped__template, char *template)
+	char *ret, char *mapped__template, char *template)
 {
+	(void)ret;
 	postprocess_tempname_template(realfnname, mapped__template, template);
 }
 
 void mktemp_postprocess_template(const char *realfnname,
-	char *mapped__template, char *template)
+	char *ret, char *mapped__template, char *template)
 {
+	(void)ret;
 	postprocess_tempname_template(realfnname, mapped__template, template);
 }
 

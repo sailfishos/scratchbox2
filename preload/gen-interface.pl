@@ -467,6 +467,7 @@ sub process_wrap_or_gate_modifiers {
 		# processing modifiers may change the parameter list
 		# (but always we'll start with a copy of the original names)
 		'parameter_names' => [@{$fn->{'parameter_names'}}],
+		'parameter_types' => [@{$fn->{'parameter_types'}}],
 
 		'make_nomap_function' => 0,		# flag
 		'make_nomap_nolog_function' => 0,	# flag
@@ -477,6 +478,7 @@ sub process_wrap_or_gate_modifiers {
 	};
 
 	my $r_param_names = $mods->{'parameter_names'};
+	my $r_param_types = $mods->{'parameter_types'};
 
 	my $varargs_handled = 0;
 
@@ -566,6 +568,7 @@ sub process_wrap_or_gate_modifiers {
 		} elsif(($modifiers[$i] eq 'optional_arg_is_create_mode') &&
 			($fn->{'has_varargs'})) {
 			$r_param_names->[$varargs_index] = "mode";
+			$r_param_types->[$varargs_index] = "int";
 			$mods->{'local_vars_for_varargs_handler'} .=
 				"\tint mode = 0;\n";
 			$mods->{'va_list_handler_code'} =
@@ -578,6 +581,7 @@ sub process_wrap_or_gate_modifiers {
 			($fn->{'has_varargs'})) {
 			my $va_list_condition = $1;
 			$r_param_names->[$varargs_index] = "mode";
+			$r_param_types->[$varargs_index] = "int";
 			$mods->{'local_vars_for_varargs_handler'} .=
 				"\tint mode = 0;\n";
 			$mods->{'va_list_handler_code'} =
@@ -590,6 +594,7 @@ sub process_wrap_or_gate_modifiers {
 			($command eq 'GATE')) {
 
 			$r_param_names->[$varargs_index] = "ap";
+			$r_param_types->[$varargs_index] = "va_list";
 			$mods->{'local_vars_for_varargs_handler'} .=
 				"\tva_list ap;\n";
 			$mods->{'va_list_handler_code'} = "\tva_start(ap,".
@@ -624,6 +629,15 @@ sub create_postprocessors {
 	my $postprocessor_prototypes = "";
 	my $fn_name = $fn->{'fn_name'};
 
+	my $return_value_param_in_call = "";
+	my $return_value_param_in_prototype = "";
+
+	my $fn_return_type = $fn->{'fn_return_type'};
+	if($fn_return_type ne "void") {
+		$return_value_param_in_call = "ret, ";
+		$return_value_param_in_prototype = $fn_return_type." ret, ";
+	}
+
 	if ($num_params_to_postprocess > 0) {
 		$postprocessor_calls = "";
 
@@ -635,11 +649,18 @@ sub create_postprocessors {
 			my $type_of_param = find_type_of_parameter($fn,$ppvar);
 
 			$postprocessor_calls .= "$pp_fn(__func__, ".
-				"$mapped_param, $ppvar); ";
+				$return_value_param_in_call.
+				"$mapped_param, ".
+				# add orig (unmapped) parameters
+				join(", ", @{$mods->{'parameter_names'}}).
+				"); ";
 			$postprocessor_prototypes .= "extern void ".
 				"$pp_fn(const char *realfnname, ".
+				$return_value_param_in_prototype.
 				"$type_of_param $mapped_param, ".
-				"$type_of_param $ppvar);\n";
+				# orig (unmapped) parameters
+				join(", ", @{$mods->{'parameter_types'}}).
+				");\n";
 		}
 	}
 	return($postprocessor_calls, $postprocessor_prototypes);

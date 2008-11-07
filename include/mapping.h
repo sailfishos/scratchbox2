@@ -15,6 +15,8 @@
 
 extern char *scratchbox_path(const char *func_name, const char *path,
 	int *ro_flagp, int dont_resolve_final_symlink);
+extern char *scratchbox_path_at(const char *func_name, int dirfd,
+	const char *path, int *ro_flagp, int dont_resolve_final_symlink);
 extern char *scratchbox_path3(const char *binary_name, const char *func_name,
 	const char *path, int *ro_flagp, int dont_resolve_final_symlink);
 char *scratchbox_path_for_exec(const char *func_name, const char *path,
@@ -31,5 +33,7 @@ extern char *sb_query_exec_policy(const char *field_name,
 
 extern char *scratchbox_reverse_path(
 	const char *func_name, const char *full_path);
+
+extern const char *fdpathdb_find_path(int fd);
 
 #endif

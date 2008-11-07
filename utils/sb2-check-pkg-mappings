@@ -74,27 +74,26 @@ do
 done
 shift $(($OPTIND - 1))
 
-SB2_TEMP_DPKG_ADMIN_DIR=$HOME/.scratchbox2/$sbox_target.tmp-pkg-db.$sbox_mapmode
 # Target's real package db:
 TARGET_DPKG_ADMINDIR_ALL_PKGS=$sbox_target_root/var/lib/dpkg
 
 if [ $check_all_pkgs = "yes" -o "$check_if_out_of_date" = "yes" ]
 then
-	if [ ! -d $SB2_TEMP_DPKG_ADMIN_DIR ]
+	if [ ! -d $sbox_temp_dpkg_admin_dir ]
 	then
-		mkdir $SB2_TEMP_DPKG_ADMIN_DIR
+		mkdir $sbox_temp_dpkg_admin_dir
 	fi
 fi
 
 if [ "$update_timestamp_by_force" = "yes" ]
 then
-	if [ ! -f $SB2_TEMP_DPKG_ADMIN_DIR/status ]
+	if [ ! -f $sbox_temp_dpkg_admin_dir/status ]
 	then
-		echo "FAILED: $SB2_TEMP_DPKG_ADMIN_DIR/status does not exist."
+		echo "FAILED: $sbox_temp_dpkg_admin_dir/status does not exist."
 		exit 1
 	fi
-	touch $SB2_TEMP_DPKG_ADMIN_DIR/status
-	echo "$SB2_TEMP_DPKG_ADMIN_DIR/status pretends to be up-to-date now."
+	touch $sbox_temp_dpkg_admin_dir/status
+	echo "$sbox_temp_dpkg_admin_dir/status pretends to be up-to-date now."
 	exit 0
 fi
 
@@ -104,25 +103,25 @@ then
 	# That list is really a temporary package database, which contains only
 	# packages that are usable thru this mapping mode.
 
-	if [ ! -f $SB2_TEMP_DPKG_ADMIN_DIR/status ]
+	if [ ! -f $sbox_temp_dpkg_admin_dir/status ]
 	then
-		echo "$SB2_TEMP_DPKG_ADMIN_DIR/status does not exist."
+		echo "$sbox_temp_dpkg_admin_dir/status does not exist."
 		echo "going to create it now. This is going to take a while.."
 		echo
 		check_all_pkgs="yes"
-	elif [ $SB2_TEMP_DPKG_ADMIN_DIR/status -ot \
+	elif [ $sbox_temp_dpkg_admin_dir/status -ot \
 	       $TARGET_DPKG_ADMINDIR_ALL_PKGS/status ]
 	then
 		echo "Target's primary package database has been updated =>"
-		echo "$SB2_TEMP_DPKG_ADMIN_DIR/status is out of date."
+		echo "$sbox_temp_dpkg_admin_dir/status is out of date."
 		echo "going to update it now. This is going to take a while.."
 		echo
 		check_all_pkgs="yes"
-	elif [ $SB2_TEMP_DPKG_ADMIN_DIR/status -ot \
+	elif [ $sbox_temp_dpkg_admin_dir/status -ot \
 	       $sbox_dir/share/scratchbox2/lua_scripts/pathmaps/$sbox_mapmode/00_default.lua ]
 	then
 		echo "SB2's mapping rules have been updated =>"
-		echo "$SB2_TEMP_DPKG_ADMIN_DIR/status might be out of date."
+		echo "$sbox_temp_dpkg_admin_dir/status might be out of date."
 		echo "going to update it now. This is going to take a while.."
 		echo
 		check_all_pkgs="yes"
@@ -130,7 +129,7 @@ then
 
 	if [ "$check_all_pkgs" != "yes" ]
 	then
-		echo "$SB2_TEMP_DPKG_ADMIN_DIR/status is up-to-date."
+		echo "$sbox_temp_dpkg_admin_dir/status is up-to-date."
 		exit 0
 	fi
 fi
@@ -217,11 +216,10 @@ echo "Checked $pkgnum packages: Ok=$num_ok, unusable=$num_failed"
 
 if [ $check_all_pkgs = "yes" ]
 then
-	SB2_TEMP_DPKG_ADMIN_DIR=$HOME/.scratchbox2/$sbox_target.tmp-pkg-db.$sbox_mapmode
-	if [ ! -d $SB2_TEMP_DPKG_ADMIN_DIR ]
+	if [ ! -d $sbox_temp_dpkg_admin_dir ]
 	then
-		mkdir $SB2_TEMP_DPKG_ADMIN_DIR
+		mkdir $sbox_temp_dpkg_admin_dir
 	fi
-	mv $status_file $SB2_TEMP_DPKG_ADMIN_DIR/status
-	echo "Results have been written to $SB2_TEMP_DPKG_ADMIN_DIR/status"
+	mv $status_file $sbox_temp_dpkg_admin_dir/status
+	echo "Results have been written to $sbox_temp_dpkg_admin_dir/status"
 fi

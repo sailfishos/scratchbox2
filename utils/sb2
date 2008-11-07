@@ -40,6 +40,9 @@ Options:
     -J file      Don't create a new session; join an existing one (see -S) 
     -D file      delete an old session (see -S). Warning: this does not
                  check if the session is still in use!
+    -c           When creating a session, also create a private copy
+                 of target_root (rootstrap). Note that this can be
+                 really slow, depending on the size of the orig.target_root
 
 Examples:
     sb2 ./configure
@@ -124,6 +127,27 @@ function sboxify_environment()
 	SBOX_LIBSB2="libsb2.so.1"
 	
 	. ~/.scratchbox2/$SBOX_TARGET/sb2.config
+
+	if [ -d $SBOX_SESSION_DIR/target_root ]
+	then
+		# A copy of target_root already exists, use that
+		# (this may happen when we are joining an old
+		# session, see options -J and -c)
+		SBOX_TARGET_ROOT=$SBOX_SESSION_DIR/target_root
+		SB2_TEMP_DPKG_ADMIN_DIR=$SBOX_SESSION_DIR/tmp-pkg-db
+	elif [ "$SBOX_CLONE_TARGET_ROOT" == "y" ]
+	then
+		# SBOX_TARGET_ROOT has been set, make a clone of it
+		echo "Copying target root from $SBOX_TARGET_ROOT..."
+		# cp -Rp does not preserve hard links, but cpio does
+		(cd $SBOX_TARGET_ROOT; find . -depth -print |
+			cpio -pamd $SBOX_SESSION_DIR/target_root)
+		SBOX_TARGET_ROOT=$SBOX_SESSION_DIR/target_root
+		SB2_TEMP_DPKG_ADMIN_DIR=$SBOX_SESSION_DIR/tmp-pkg-db
+		mkdir -p $SB2_TEMP_DPKG_ADMIN_DIR
+	else
+		SB2_TEMP_DPKG_ADMIN_DIR=$HOME/.scratchbox2/$SBOX_TARGET.tmp-pkg-db.$SBOX_MAPMODE
+	fi
 
 	# SBOX_MAPMODE has been set, read mode-specific settings
 	if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$SBOX_MAPMODE ]
@@ -232,6 +256,7 @@ sbox_mapmode="$SBOX_MAPMODE"
 sbox_mode_specific_options="$SBOX_MODE_SPECIFIC_OPTIONS"
 sbox_target_root="$SBOX_TARGET_ROOT"
 sbox_tools_root="$SBOX_TOOLS_ROOT"
+sbox_temp_dpkg_admin_dir="$SB2_TEMP_DPKG_ADMIN_DIR"
 
 sbox_cpu="$SBOX_CPU"
 sbox_cputransparency_method="$SBOX_CPUTRANSPARENCY_METHOD"
@@ -589,8 +614,9 @@ SBOX_WORKDIR=$(readlink -f $PWD)
 SBOX_FAKEROOT_PREFIX=""
 SBOX_CREATE_REVERSE_RULES="y"
 SBOX_MODE_SPECIFIC_OPTIONS=""
+SBOX_CLONE_TARGET_ROOT="n"
 
-while getopts vdht:em:s:L:Q:pM:ZrRS:J:D:O: foo
+while getopts vdht:em:s:L:Q:pM:ZrRS:J:D:O:c foo
 do
 	case $foo in
 	(v) version ;;
@@ -613,6 +639,7 @@ do
 	(J) SBOX_JOIN_SESSION_FILE=$OPTARG ;;
 	(D) SBOX_DELETE_SESSION_FILE=$OPTARG ;;
 	(O) SBOX_MODE_SPECIFIC_OPTIONS=$OPTARG ;;
+	(c) SBOX_CLONE_TARGET_ROOT="y" ;;
 	(*) usage ;;
 	esac
 done
@@ -669,6 +696,7 @@ then
 		# error message has been printed.
 		exit 1
 	fi
+	SBOX_CLONE_TARGET_ROOT="n"
 else
 	# Create a new session
 	if [ -n "$SBOX_WRITE_SESSION_INFO_TO_FILE" -a \

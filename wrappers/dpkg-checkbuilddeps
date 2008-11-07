@@ -48,8 +48,7 @@ HOST_DPKG_ADMINDIR=$sbox_tools_root/var/lib/dpkg
 
 # A generated, temporary package db which only contains packages that
 # are usable thru the current mapping mode:
-SB2_TEMP_DPKG_ADMIN_DIR=$HOME/.scratchbox2/$sbox_target.tmp-pkg-db.$sbox_mapmode
-TARGET_DPKG_ADMINDIR_USABLE_PKGS=$SB2_TEMP_DPKG_ADMIN_DIR
+TARGET_DPKG_ADMINDIR_USABLE_PKGS=$sbox_temp_dpkg_admin_dir
 
 cfgfile_host_accepted_pkgs=$sbox_dir/share/scratchbox2/modeconf/host-accepted-packages.$sbox_mapmode
 cfgfile_host_ignored_pkgs=$sbox_dir/share/scratchbox2/modeconf/host-ignored-packages.$sbox_mapmode

@@ -307,13 +307,37 @@ struct lua_instance *get_lua(void)
 	return(ptr);
 }
 
+/*
+ * Inside scratchbox2 under emulation mode binaries are
+ * started with help of dynamic linker taken from target_root
+ * or under /usr/lib/libsb2 (if it exists).  This approach
+ * does not work well with gdb as it cannot set any breakpoints
+ * etc. into process' address space because target binary is not
+ * yet mapped by dynamic linker.  In fact gdb only sees memory
+ * occupied by the dynamic linker.
+ *
+ * To solve this problem we provide marker function that
+ * is called when sblog (see sblog_init()) is initialized
+ * (eg. before main()* gets called).  When pending breakpoint
+ * is set to this function we are able to stop process and give
+ * user possibility to set necessary breakpoints etc. after this
+ * first temporary breakpoint is hit.
+ *
+ * See also wrapper script for gdb (under wrappers directory).
+ */
+void sb2_debug_breakpoint_marker(void)
+{
+}
+
 /* Preload library constructor. Unfortunately this can
  * be called after other parts of this library have been called
  * if the program uses multiple threads (unbelievable, but true!),
  * so this isn't really too useful. Lua initialization was
  * moved to get_lua() because of this.
 */
+#ifdef __GNUC__
 void sb2_preload_library_constructor(void) __attribute((constructor));
+#endif
 void sb2_preload_library_constructor(void)
 {
 	SB_LOG(SB_LOGLEVEL_DEBUG, "sb2_preload_library_constructor called");

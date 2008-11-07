@@ -48,6 +48,12 @@
 
 #include "exported.h"
 
+/*
+ * We keep implementation of this in separate file
+ * to prevent compiler from inlining it.
+ */
+extern void sb2_debug_breakpoint_marker(void);
+
 /* ===================== Internal state variables =====================
  *
  * N.B. no mutex protecting concurrent writing to these variables.
@@ -176,6 +182,12 @@ void sblog_init(void)
 
 		/* initialized, write a mark to logfile. */
 		SB_LOG(SB_LOGLEVEL_INFO, "---------- Starting ----------");
+
+		/*
+		 * Now we can signal debugger that process is ready
+		 * for debugging.
+		 */
+		sb2_debug_breakpoint_marker();
 	}
 }
 

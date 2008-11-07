@@ -46,9 +46,18 @@ mapall_chain = {
                 { path = "/etc/osso-af-init/dbus-systembus.sh",
                     map_to = sb1_compat_dir },
 		
-		-- ldoconfig is static binary, and needs to be wrapped
+		-- ldconfig is static binary, and needs to be wrapped
 		{path = "/sbin/ldconfig", replace_by = sbox_dir ..
 				"/share/scratchbox2/wrappers/ldconfig"},
+
+		--
+		-- Gdb needs some special parameters before it
+		-- can be run so we wrap it.
+		--
+		{path = "/usr/bin/gdb", replace_by = sbox_dir ..
+		    "/share/scratchbox2/wrappers/gdb"},
+		-- gdb wants to have access to our dynamic linker also.
+		{path = "/usr/lib/libsb2/ld-2.5.so", use_orig_path = true},
 
 		-- 
 		{prefix = session_dir, use_orig_path = true},

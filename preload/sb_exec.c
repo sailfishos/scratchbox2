@@ -578,6 +578,7 @@ static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 	char	*new_binaryname_var;
 	int	has_sbox_session_dir = 0;
 	const int sbox_session_dir_varname_len = strlen("SBOX_SESSION_DIR");
+	const int sbox_session_varname_prefix_len = strlen("SBOX_SESSION_");
 
 	/* FIXME: This routine checks that we have LD_PRELOAD and
 	 * LD_LIBRARY_PATH, but doesn't check contents of those, so it is
@@ -586,8 +587,8 @@ static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 	 * problem which was caused by completely missing variables has
 	 * been solved now.
 	 * 
-	 * SBOX_SESSION_DIR is now preserved properly (it is practically
-	 * a read-only variable now)
+	 * SBOX_SESSION_* is now preserved properly (these are practically
+	 * read-only variables now)
 	*/
 	
 	/* if we have LD_PRELOAD env var set, make sure the new my_envp
@@ -595,13 +596,17 @@ static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 	 */
 
 	/* count the environment variables and arguments, also check
-	 * for LD_PRELOAD, LD_LIBRARY_PATH and SBOX_SESSION_DIR
+	 * for LD_PRELOAD, LD_LIBRARY_PATH and SBOX_SESSION_*
 	 */
 	for (p=(char **)envp, envc=0; *p; p++, envc++) {
-		if (strncmp("LD_PRELOAD=", *p, strlen("LD_PRELOAD=")) == 0)
+		if (strncmp("LD_PRELOAD=", *p, strlen("LD_PRELOAD=")) == 0) {
 			has_ld_preload = 1;
-		if (strncmp("LD_LIBRARY_PATH=", *p, strlen("LD_LIBRARY_PATH=")) == 0)
+			continue;
+		}
+		if (strncmp("LD_LIBRARY_PATH=", *p, strlen("LD_LIBRARY_PATH=")) == 0) {
 			has_ld_library_path = 1;
+			continue;
+		}
 		if (strncmp("SBOX_SESSION_DIR=", *p,
 		     sbox_session_dir_varname_len+1) == 0) {
 			has_sbox_session_dir = 1;
@@ -612,6 +617,7 @@ static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 						" restored to %s",
 						*p, sbox_session_dir);
 			}
+			continue;
 		}
 	}
 	if (!has_sbox_session_dir) {
@@ -620,9 +626,9 @@ static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 				"restored to %s", sbox_session_dir);
 	}
 
-	/* allocate new environment. Add 5 extra elements (all may not be
+	/* allocate new environment. Add 6 extra elements (all may not be
 	 * needed always) */
-	my_envp = (char **)calloc(envc + 5, sizeof(char *));
+	my_envp = (char **)calloc(envc + 6, sizeof(char *));
 
 	for (i = 0, p=(char **)envp; *p; p++) {
 		if (strncmp(*p, "__SB2_BINARYNAME=",
@@ -635,12 +641,11 @@ static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 			/* skip current process' real binary name */
 			continue;
 		}
-		if (strncmp(*p, "SBOX_SESSION_DIR=",
-				sbox_session_dir_varname_len+1) == 0) {
-			/* this is user-provided SBOX_SESSION_DIR, skip it. */
+		if (strncmp(*p, "SBOX_SESSION_",
+				sbox_session_varname_prefix_len) == 0) {
+			/* this is user-provided SBOX_SESSION_*, skip it. */
 			continue;
 		}
-
 		my_envp[i++] = strdup(*p);
 	}
 
@@ -650,6 +655,17 @@ static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 			"asprintf failed to create SBOX_SESSION_DIR");
 	} else {
 		i++;
+	}
+
+	/* add mode, if not using the default mode */
+	if (sbox_session_mode) {
+		if (asprintf(&(my_envp[i]), "SBOX_SESSION_MODE=%s",
+		     sbox_session_mode) < 0) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"asprintf failed to create SBOX_SESSION_MODE");
+		} else {
+			i++;
+		}
 	}
 
 	/* __SB2_BINARYNAME is used to communicate the binary name

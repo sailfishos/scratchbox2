@@ -1150,6 +1150,7 @@ int setrlimit64_gate(
  * environment we'll still know the original values.
 */
 char *sbox_session_dir = NULL;
+char *sbox_session_mode = NULL; /* optional */
 char *sbox_orig_ld_preload = NULL;
 char *sbox_orig_ld_library_path = NULL;
 char *sbox_binary_name = NULL;
@@ -1178,6 +1179,11 @@ void sb2_initialize_global_variables(void)
 		if (!sbox_session_dir) {
 			cp = getenv("SBOX_SESSION_DIR");
 			if (cp) sbox_session_dir = strdup(cp);
+		}
+		if (!sbox_session_mode) {
+			/* optional variable */
+			cp = getenv("SBOX_SESSION_MODE");
+			if (cp) sbox_session_mode = strdup(cp);
 		}
 		if (!sbox_orig_ld_preload) {
 			cp = getenv("LD_PRELOAD");

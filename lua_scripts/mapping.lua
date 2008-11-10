@@ -2,6 +2,16 @@
 -- Copyright (C) 2006, 2007 Lauri Leukkunen
 -- Licensed under MIT license.
 
+local forced_modename = sb.get_forced_mapmode()
+
+-- rule_file_path and rev_rule_file_path are global varibales
+if forced_modename == nil then
+	rule_file_path = session_dir .. "/rules/Default.lua"
+	rev_rule_file_path = session_dir .. "/rev_rules/Default.lua"
+else
+	rule_file_path = session_dir .. "/rules/" .. forced_modename .. ".lua"
+	rev_rule_file_path = session_dir .. "/rev_rules/" .. forced_modename .. ".lua"
+end
 
 function basename(path)
 	if (path == "/") then
@@ -68,7 +78,7 @@ function load_and_check_rules()
 	--   were removed
 	local current_rule_interface_version = "16"
 
-	do_file(session_dir .. "/rules.lua")
+	do_file(rule_file_path)
 
 	-- fail and die if interface version is incorrect
 	if (rule_file_interface_version == nil) or 
@@ -76,7 +86,7 @@ function load_and_check_rules()
 		sb.log("error", string.format(
 			"Fatal: Rule file interface version check failed: "..
 			"No version information in %s",
-			session_dir .. "/rules.lua"))
+			rule_file_path))
 		os.exit(99)
 	end
 	if rule_file_interface_version ~= current_rule_interface_version then
@@ -139,9 +149,9 @@ load_and_check_rules()
 -- load reverse mapping rules, if those have been created
 -- (the file does not exist during the very first round here)
 reverse_chains = nil
-if (sb.path_exists(session_dir .. "/rev_rules.lua")) then
+if (sb.path_exists(rev_rule_file_path)) then
 	sb.log("debug", "Loading reverse rules")
-	do_file(session_dir .. "/rev_rules.lua")
+	do_file(rev_rule_file_path)
 end
 if (debug_messages_enabled) then
 	if reverse_chains ~= nil then

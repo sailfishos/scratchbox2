@@ -251,5 +251,6 @@ function process_chains(chains_table)
 	end
 end
 
+print("-- Reversed rules from "..rule_file_path)
 process_chains(active_mode_mapping_rule_chains)
 

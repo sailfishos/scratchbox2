@@ -90,6 +90,7 @@ extern int sb_loglevel__; /* do not access directly */
 extern int sb2_global_vars_initialized__;
 extern void sb2_initialize_global_variables(void);
 extern char *sbox_session_dir;
+extern char *sbox_session_mode;
 extern char *sbox_orig_ld_preload;
 extern char *sbox_orig_ld_library_path;
 extern char *sbox_binary_name;

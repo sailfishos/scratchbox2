@@ -591,6 +591,14 @@ static int lua_sb_get_binary_name(lua_State *l)
 	return 1;
 }
 
+/* "sb.get_forced_mapmode", to be called from lua code */
+static int lua_sb_get_forced_mapmode(lua_State *l)
+{
+	if (sbox_session_mode) lua_pushstring(l, sbox_session_mode);
+	else lua_pushnil(l);
+	return 1;
+}
+
 /* mappings from c to lua */
 static const luaL_reg reg[] =
 {
@@ -607,6 +615,7 @@ static const luaL_reg reg[] =
 	{"debug_messages_enabled",	lua_sb_debug_messages_enabled},
 	{"getcwd",			lua_sb_getcwd},
 	{"get_binary_name",		lua_sb_get_binary_name},
+	{"get_forced_mapmode",		lua_sb_get_forced_mapmode},
 	{NULL,				NULL}
 };
 

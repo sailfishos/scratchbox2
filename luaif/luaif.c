@@ -599,6 +599,14 @@ static int lua_sb_get_forced_mapmode(lua_State *l)
 	return 1;
 }
 
+/* "sb.get_session_perm", to be called from lua code */
+static int lua_sb_get_session_perm(lua_State *l)
+{
+	if (sbox_session_perm) lua_pushstring(l, sbox_session_perm);
+	else lua_pushnil(l);
+	return 1;
+}
+
 /* mappings from c to lua */
 static const luaL_reg reg[] =
 {
@@ -616,6 +624,7 @@ static const luaL_reg reg[] =
 	{"getcwd",			lua_sb_getcwd},
 	{"get_binary_name",		lua_sb_get_binary_name},
 	{"get_forced_mapmode",		lua_sb_get_forced_mapmode},
+	{"get_session_perm",		lua_sb_get_session_perm},
 	{NULL,				NULL}
 };
 

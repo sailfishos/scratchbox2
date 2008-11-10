@@ -35,10 +35,12 @@ struct lua_instance {
  * * Differences between "28,lta-2008-09-23" and "35,lta-2008-10-01":
  *   - sbox_get_mapping_requirements(): parameter work_dir was removed
  *   - sbox_translate_path(): as above
+ * * Differences between "35,lta-2008-10-01" and "53,lta-2008-11-10"
+ *   - added new functions sb.get_forced_mapmode() and sb.get_session_perm()
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "35,lta-2008-10-01"
+#define SB2_LUA_C_INTERFACE_VERSION "53,lta-2008-11-10"
 
 struct lua_instance *get_lua(void);
 
@@ -91,6 +93,7 @@ extern int sb2_global_vars_initialized__;
 extern void sb2_initialize_global_variables(void);
 extern char *sbox_session_dir;
 extern char *sbox_session_mode;
+extern char *sbox_session_perm;
 extern char *sbox_orig_ld_preload;
 extern char *sbox_orig_ld_library_path;
 extern char *sbox_binary_name;

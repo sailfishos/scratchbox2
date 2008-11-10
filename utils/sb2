@@ -745,7 +745,7 @@ SB2_INTERNAL_MAPMODES=""
 
 SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
 SBOX_WORKDIR=$(readlink -f $PWD)
-SBOX_FAKEROOT_PREFIX=""
+SBOX_SESSION_PERM=""
 SBOX_CREATE_REVERSE_RULES="y"
 SBOX_MODE_SPECIFIC_OPTIONS=""
 SBOX_CLONE_TARGET_ROOT="n"
@@ -767,7 +767,7 @@ do
 	(s) SBOX_LUA_SCRIPTS=$OPTARG;;
 	(Z) SBOX_OPT_Z_NO_LD_SO_EXEC="y";;
 	(r) SBOX_CREATE_REVERSE_RULES="n";;
-	(R) SBOX_FAKEROOT_PREFIX="fakeroot";;
+	(R) SBOX_SESSION_PERM="root";;
 	(S) SBOX_WRITE_SESSION_INFO_TO_FILE=$OPTARG ;;
 	(J) SBOX_JOIN_SESSION_FILE=$OPTARG ;;
 	(D) SBOX_DELETE_SESSION_FILE=$OPTARG ;;
@@ -812,6 +812,14 @@ fi
 # read commands to execute from stdin - not yet implemented
 if [ "$1" = "-" ] ; then
 	STDIN=true
+fi
+
+# if SBOX_SESSION_PERM is set, export it. It may enable special permissions
+# in some mapping modes (e.g. see the "emulate" mode)
+if [ -n "$SBOX_SESSION_PERM" ]
+then
+	export SBOX_SESSION_PERM
+	SBOX_FAKEROOT_PREFIX="fakeroot"
 fi
 
 #----------- End of parameter checks
@@ -903,7 +911,6 @@ then
 fi
 
 # ------------
-
 
 if [ $# -gt 0 -o "$STDIN" = true ] ; then
 	binary="$1"

@@ -25,6 +25,15 @@ else
 	tmp_dir_dest = session_dir .. "/tmp"
 end
 
+-- If the permission token exists and contains "root", target_root
+-- will be available in R/W mode. Otherwise it will be "mounted" R/O.
+local target_root_is_readonly
+if sb.get_session_perm() == "root" then
+	target_root_is_readonly = false
+else
+	target_root_is_readonly = true
+end
+
 -- disable the gcc toolchain tricks. gcc & friends will be available, if
 -- those have been installed to target_root (but then they will probably run
 -- under cpu transparency = very slowly..)
@@ -34,30 +43,40 @@ mapall_chain = {
 	next_chain = nil,
 	binary = nil,
 	rules = {
-		{path = sbox_cputransparency_method, use_orig_path = true, readonly = true},
-		{path = "/usr/bin/sb2-show", use_orig_path = true, readonly = true},
+		{path = sbox_cputransparency_method, use_orig_path = true,
+		 readonly = true},
 
-		{prefix = target_root, use_orig_path = true},
+		{path = "/usr/bin/sb2-show", use_orig_path = true,
+		 readonly = true},
+
+		{prefix = target_root, use_orig_path = true,
+		 readonly = target_root_is_readonly},
 
 		-- Scratchbox 1 compatibility rules:
-		{ prefix = "/targets/", map_to = sb1_compat_dir },
+		{ prefix = "/targets/", map_to = sb1_compat_dir,
+		  readonly = target_root_is_readonly},
 		{ path = "/usr/bin/scratchbox-launcher.sh",
-                    map_to = sb1_compat_dir },
+                  map_to = sb1_compat_dir,
+		  readonly = target_root_is_readonly},
                 { path = "/etc/osso-af-init/dbus-systembus.sh",
-                    map_to = sb1_compat_dir },
+                  map_to = sb1_compat_dir,
+		  readonly = target_root_is_readonly},
 		
 		-- ldconfig is static binary, and needs to be wrapped
 		{path = "/sbin/ldconfig", replace_by = sbox_dir ..
-				"/share/scratchbox2/wrappers/ldconfig"},
+				"/share/scratchbox2/wrappers/ldconfig",
+		 readonly = true},
 
 		--
 		-- Gdb needs some special parameters before it
 		-- can be run so we wrap it.
 		--
 		{path = "/usr/bin/gdb", replace_by = sbox_dir ..
-		    "/share/scratchbox2/wrappers/gdb"},
+		    "/share/scratchbox2/wrappers/gdb",
+		 readonly = true},
 		-- gdb wants to have access to our dynamic linker also.
-		{path = "/usr/lib/libsb2/ld-2.5.so", use_orig_path = true},
+		{path = "/usr/lib/libsb2/ld-2.5.so", use_orig_path = true,
+		 readonly = true},
 
 		-- 
 		{prefix = session_dir, use_orig_path = true},
@@ -72,11 +91,13 @@ mapall_chain = {
 		{prefix = sbox_dir .. "/share/scratchbox2",
 		 use_orig_path = true},
 
-		{prefix = "/etc/resolv.conf", use_orig_path = true},
+		{prefix = "/etc/resolv.conf", use_orig_path = true,
+		 readonly = true},
 
 		-- -----------------------------------------------
 		-- "user" is a special username, and should not be mapped:
-		{prefix = "/home/user", map_to = target_root},
+		{prefix = "/home/user", map_to = target_root,
+		 readonly = target_root_is_readonly},
 		-- Other home directories = not mapped, R/W access
 		{prefix = "/home", use_orig_path = true},
 		-- -----------------------------------------------
@@ -87,7 +108,8 @@ mapall_chain = {
 		{prefix = unmapped_workdir, use_orig_path = true},
 
 		{path = "/", use_orig_path = true},
-		{prefix = "/", map_to = target_root}
+		{prefix = "/", map_to = target_root,
+		 readonly = target_root_is_readonly}
 	}
 }
 

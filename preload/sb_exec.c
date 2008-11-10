@@ -626,9 +626,9 @@ static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 				"restored to %s", sbox_session_dir);
 	}
 
-	/* allocate new environment. Add 6 extra elements (all may not be
+	/* allocate new environment. Add 7 extra elements (all may not be
 	 * needed always) */
-	my_envp = (char **)calloc(envc + 6, sizeof(char *));
+	my_envp = (char **)calloc(envc + 7, sizeof(char *));
 
 	for (i = 0, p=(char **)envp; *p; p++) {
 		if (strncmp(*p, "__SB2_BINARYNAME=",
@@ -663,6 +663,17 @@ static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 		     sbox_session_mode) < 0) {
 			SB_LOG(SB_LOGLEVEL_ERROR,
 				"asprintf failed to create SBOX_SESSION_MODE");
+		} else {
+			i++;
+		}
+	}
+
+	/* add permission token (optional) */
+	if (sbox_session_perm) {
+		if (asprintf(&(my_envp[i]), "SBOX_SESSION_PERM=%s",
+		     sbox_session_perm) < 0) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"asprintf failed to create SBOX_SESSION_PERM");
 		} else {
 			i++;
 		}

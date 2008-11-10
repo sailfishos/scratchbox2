@@ -86,14 +86,14 @@ exec_policy_host_os = {
 -- =========== Actions for conditional rules ===========
 
 test_first_target_then_tools_default_is_target = {
-	{ if_exists_then_map_to = target_root },
+	{ if_exists_then_map_to = target_root, readonly = true },
 	{ if_exists_then_map_to = tools, readonly = true },
-	{ map_to = target_root }
+	{ map_to = target_root, readonly = true }
 }
 
 test_first_tools_default_is_target = {
 	{ if_exists_then_map_to = tools, readonly = true },
-	{ map_to = target_root }
+	{ map_to = target_root, readonly = true }
 }
 
 -- =========== Mapping rule chains ===========
@@ -150,7 +150,7 @@ simple_chain = {
 		-- -----------------------------------------------
 		-- 30. /lib/*
 
-		{prefix = "/lib", map_to = target_root},
+		{prefix = "/lib", map_to = target_root, readonly = true},
 
 		-- -----------------------------------------------
 		-- 40. /usr/lib/*
@@ -169,7 +169,7 @@ simple_chain = {
 		-- /usr/lib/python* from tools_root
 		{prefix = "/usr/lib/python", map_to = tools, readonly = true},
 
-		{prefix = "/usr/lib", map_to = target_root},
+		{prefix = "/usr/lib", map_to = target_root, readonly = true},
 
 		-- -----------------------------------------------
 		-- 45. /usr/share/aclocal*
@@ -222,37 +222,50 @@ simple_chain = {
 		{prefix = "/usr/share/gnome-common",
 		 actions = test_first_target_then_tools_default_is_target},
 
-		{prefix = "/usr/share/glib-2.0", map_to = target_root},
-		{prefix = "/usr/share/dbus-1", map_to = target_root},
+		{prefix = "/usr/share/glib-2.0", map_to = target_root,
+		 readonly = true},
+		{prefix = "/usr/share/dbus-1", map_to = target_root,
+		 readonly = true},
 
 		-- zoneinfo belongs to "libc6" package:
-		{prefix = "/usr/share/zoneinfo", map_to = target_root},
+		{prefix = "/usr/share/zoneinfo", map_to = target_root,
+		 readonly = true},
 
 		-- files from package 'microb-engine-dev':
-		{path = "/usr/share/idl", map_to = target_root},
-		{prefix = "/usr/share/idl/microb-engine", map_to = target_root},
+		{path = "/usr/share/idl", map_to = target_root,
+		 readonly = true},
+		{prefix = "/usr/share/idl/microb-engine", map_to = target_root,
+		 readonly = true},
 
 		-- /usr/share/hildon* (this is a real prefix):
 		-- (was added to map hildon-theme-layout-4)
-		{prefix = "/usr/share/hildon", map_to = target_root},
+		{prefix = "/usr/share/hildon", map_to = target_root,
+		 readonly = true},
 
 		-- for libwww0:
-		{prefix = "/usr/share/w3c-libwww", map_to = target_root},
+		{prefix = "/usr/share/w3c-libwww", map_to = target_root,
+		 readonly = true},
 
 		-- for libwww-dev:
-		{prefix = "/usr/share/libwww", map_to = target_root},
+		{prefix = "/usr/share/libwww", map_to = target_root,
+		 readonly = true},
 
 		-- for libsofia-sip-ua-dev:
-		{prefix = "/usr/share/sofia-sip", map_to = target_root},
+		{prefix = "/usr/share/sofia-sip", map_to = target_root,
+		 readonly = true},
 
-		{prefix = "/usr/share/osso", map_to = target_root},
-		{prefix = "/usr/share/doc", map_to = target_root},
+		{prefix = "/usr/share/osso", map_to = target_root,
+		 readonly = true},
+		{prefix = "/usr/share/doc", map_to = target_root,
+		 readonly = true},
 
 		-- for liblzo-dev:
-		{prefix = "/usr/share/lzo", map_to = target_root},
+		{prefix = "/usr/share/lzo", map_to = target_root,
+		 readonly = true},
 
 		-- for modest-providers-data:
-		{prefix = "/usr/share/modest", map_to = target_root},
+		{prefix = "/usr/share/modest", map_to = target_root,
+		 readonly = true},
 
 		-- default rules:
 		{path = "/usr/share", map_to = tools, readonly = true},
@@ -260,29 +273,36 @@ simple_chain = {
 
 		-- -----------------------------------------------
 		-- 50. /usr/src/*
-		{path = "/usr/src", map_to = target_root},
-		{prefix = "/usr/src/", map_to = target_root},
+		{path = "/usr/src", map_to = target_root, readonly = true},
+		{prefix = "/usr/src/", map_to = target_root, readonly = true},
 
 		-- -----------------------------------------------
 		-- 55. X11 (/usr/X11R6/*)
 
-		{prefix = "/usr/X11R6/lib", map_to = target_root},
-		{prefix = "/usr/X11R6/include", map_to = target_root},
+		{prefix = "/usr/X11R6/lib", map_to = target_root,
+		 readonly = true},
+		{prefix = "/usr/X11R6/include", map_to = target_root,
+		 readonly = true},
 
 		-- -----------------------------------------------
 		-- 60. /usr/include/*
 
-		{prefix = "/usr/include", map_to = target_root},
+		{prefix = "/usr/include", map_to = target_root,
+		 readonly = true},
 
 		-- -----------------------------------------------
 		-- 70. /etc/*
 		--
-		{prefix = "/etc/gconf/2", map_to = target_root},
-		{prefix = "/etc/dbus-1", map_to = target_root},
-		{prefix = "/etc/osso-af-init", map_to = target_root},
-		{prefix = "/etc/gtk-2.0", map_to = target_root},
+		{prefix = "/etc/gconf/2", map_to = target_root,
+		 readonly = true},
+		{prefix = "/etc/dbus-1", map_to = target_root,
+		 readonly = true},
+		{prefix = "/etc/osso-af-init", map_to = target_root,
+		 readonly = true},
+		{prefix = "/etc/gtk-2.0", map_to = target_root,
+		 readonly = true},
 
-		{prefix = "/etc/apt", map_to = target_root},
+		{prefix = "/etc/apt", map_to = target_root, readonly = true},
 
 		-- Files that must not be mapped:
 		{prefix = "/etc/resolv.conf",
@@ -300,19 +320,28 @@ simple_chain = {
 		-- 80. /var/*
 
 		-- files from package "xkbutils":
-		{prefix = "/var/lib/xkb", map_to = target_root},
+		{prefix = "/var/lib/xkb", map_to = target_root,
+		 readonly = true},
 
 		-- apt & dpkg:
-		{prefix = "/var/lib/apt", map_to = target_root},
-		{prefix = "/var/cache/apt", map_to = target_root},
-		{prefix = "/var/lib/dpkg", map_to = target_root},
-		{prefix = "/var/cache/dpkg", map_to = target_root},
-		{prefix = "/var/cache/debconf", map_to = target_root},
+		{prefix = "/var/lib/apt", map_to = target_root,
+		 readonly = true},
+		{prefix = "/var/cache/apt", map_to = target_root,
+		 readonly = true},
+		{prefix = "/var/lib/dpkg", map_to = target_root,
+		 readonly = true},
+		{prefix = "/var/cache/dpkg", map_to = target_root,
+		 readonly = true},
+		{prefix = "/var/cache/debconf", map_to = target_root,
+		 readonly = true},
 
-		{prefix = "/var/lib/dbus", map_to = target_root},
-		{prefix = "/var/run", map_to = target_root},
+		{prefix = "/var/lib/dbus", map_to = target_root,
+		 readonly = true},
+		{prefix = "/var/run", map_to = target_root,
+		 readonly = true},
 
-		{prefix = "/var/log", map_to = target_root},
+		{prefix = "/var/log", map_to = target_root,
+		 readonly = true},
 
 		-- -----------------------------------------------
 		-- 85. /tmp
@@ -328,10 +357,11 @@ simple_chain = {
 
 		-- -----------------------------------------------
 		-- 95. Some virtual paths:
-		{prefix = "/host_usr", map_to = target_root},
+		{prefix = "/host_usr", map_to = target_root, readonly = true},
 
 		-- unmodified view of the rootstrap, can be used as destination
 		-- directory when installing stuff to the rootstrap
+		-- This provides is R/W access to the target_root!
 		{prefix = "/target_root", replace_by = target_root},
 
 		-- -----------------------------------------------
@@ -372,7 +402,7 @@ simple_chain = {
 		{path = "/", use_orig_path = true},
 
 		-- tools_root should not be mapped twice.
-		{prefix = tools, use_orig_path = true},
+		{prefix = tools, use_orig_path = true, readonly = true},
 
 		-- "standard" directories are mapped to tools_root,
 		-- but everything else defaults to the host system
@@ -385,6 +415,7 @@ simple_chain = {
 		{prefix = "/usr", map_to = tools, readonly = true},
 		{prefix = "/var", map_to = tools, readonly = true},
 
+		-- Default = Host, R/W access
 		{prefix = "/", use_orig_path = true}
 	}
 }
@@ -393,9 +424,13 @@ qemu_chain = {
 	next_chain = nil,
 	binary = basename(sbox_cputransparency_method),
 	rules = {
-		{prefix = "/lib", map_to = target_root},
-		{prefix = "/usr/lib", map_to = target_root},
-		{prefix = "/usr/local/lib", map_to = target_root},
+		{prefix = "/lib", map_to = target_root, readonly = true},
+		{prefix = "/usr/lib", map_to = target_root, readonly = true},
+		{prefix = "/usr/local/lib", map_to = target_root,
+		 readonly = true},
+
+		-- Home directories = not mapped, R/W access
+		{prefix = "/home", use_orig_path = true},
 
 		{prefix = session_dir, use_orig_path = true},
 		{prefix = "/tmp", map_to = session_dir},
@@ -418,7 +453,22 @@ qemu_chain = {
 		{prefix = "/target_root", replace_by = target_root},
 
 		{path = "/", use_orig_path = true},
-		{prefix = "/", map_to = tools}
+
+		-- tools_root should not be mapped twice.
+		{prefix = tools, use_orig_path = true, readonly = true},
+
+		-- "standard" directories are mapped to tools_root,
+		-- but everything else defaults to the host system
+		-- (so that things like /mnt, /media and /opt are
+		-- used from the host)
+		{prefix = "/bin", map_to = tools, readonly = true},
+		{prefix = "/etc", map_to = tools, readonly = true},
+		{prefix = "/sbin", map_to = tools, readonly = true},
+		{prefix = "/usr", map_to = tools, readonly = true},
+		{prefix = "/var", map_to = tools, readonly = true},
+
+		-- Default = Host, R/W access
+		{prefix = "/", use_orig_path = true}
 	}
 }
 

@@ -50,10 +50,6 @@ if [ -f $SBOX_SESSION_DIR/.joinable-session ]
 then
 	# The session was created with -S flag, don't clean it, but stay quiet
 	echo >/dev/null
-elif [ -f $SBOX_SESSION_DIR/.preserve-session ]
-then
-	echo
-	echo "Session directories preserved ($SBOX_SESSION_DIR)"
 else
 	# cleanup
 	if [ -n "$SBOX_SESSION_DIR" -a -d "$SBOX_SESSION_DIR" ]

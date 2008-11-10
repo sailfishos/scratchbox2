@@ -34,8 +34,6 @@ Options:
                  a mode-specific string)
     -R           use simulated root permissions (currently activates
                  "fakeroot" for this functionality)
-    -p           Preserve session directories (including the directory
-                 which is used for /tmp by most mapping modes)
     -S file      Write session information to "file" (see option -J)
     -J file      Don't create a new session; join an existing one (see -S) 
     -D file      delete an old session (see -S). Warning: this does not
@@ -660,11 +658,6 @@ SBOX_SESSION_DIR=$SBOX_SESSION_DIR
 END
 		touch $SBOX_SESSION_DIR/.joinable-session
 	fi
-
-	if [ -n "$SBOX_SESSION_NO_CLEANUP" ]
-	then
-		touch $SBOX_SESSION_DIR/.preserve-session
-	fi
 }
 
 function join_existing_session()
@@ -757,7 +750,7 @@ SBOX_CREATE_REVERSE_RULES="y"
 SBOX_MODE_SPECIFIC_OPTIONS=""
 SBOX_CLONE_TARGET_ROOT="n"
 
-while getopts vdht:em:s:L:Q:pM:ZrRS:J:D:O:c foo
+while getopts vdht:em:s:L:Q:M:ZrRS:J:D:O:c foo
 do
 	case $foo in
 	(v) version ;;
@@ -772,7 +765,6 @@ do
 	(m) set_map_mode $OPTARG ;;
 	(M) set_external_map_mode $OPTARG ;;
 	(s) SBOX_LUA_SCRIPTS=$OPTARG;;
-	(p) SBOX_SESSION_NO_CLEANUP="y";;
 	(Z) SBOX_OPT_Z_NO_LD_SO_EXEC="y";;
 	(r) SBOX_CREATE_REVERSE_RULES="n";;
 	(R) SBOX_FAKEROOT_PREFIX="fakeroot";;

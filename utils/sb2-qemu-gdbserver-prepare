@@ -1,0 +1,107 @@
+#!/bin/sh
+#
+# This script prints out full command line that can be used to
+# execute ARM binary under qemu gdbserver.  Usage is limited to
+# armel binaries where cpu transparency is set to qemu-arm and
+# mapping mode is emulate.
+#
+# For example if one wants to debug standalone gui binary (maemopad)
+# run inside emulation mode:
+#     run-standalone.sh `sb2-qemu-gdbserver-prepare` ./maemopad
+# and qemu should start listening gdbserver port.
+#
+# Copyright (C) 2008 Nokia Corporation.
+# Licensed under GPL version 2
+#
+prog="$0"
+progbase=`basename $0`
+
+usage()
+{
+	cat <<EOF
+Usage: $progbase [OPTION] COMMAND
+
+Options:
+   -p PORT  sets gdbserver port to PORT (default 1234)
+   -h       displays this help text
+
+Prints out full command line that can be used to start ARM
+binary under remote qemu gdbserver.
+EOF
+	exit 1
+}
+
+error_not_inside_sb2()
+{
+	echo "SB2: $progbase: This program can only be used from inside"
+	echo "the scratchbox 2'ed environment"
+	exit 1
+}
+
+if [ -z "$SBOX_SESSION_DIR" ]; then
+	error_not_inside_sb2
+fi
+
+. $SBOX_SESSION_DIR/sb2-session.conf
+
+#
+# Checks whether we are in emulation mode and cpu transparency
+# is set to sb2-qemu-arm.  Returns true (0) when environment
+# is correct, false otherwise.
+#
+check_mode_and_cpu_transparency()
+{
+	local transp
+
+	if [ "$sbox_mapmode" != "emulate" ]; then
+		return 1
+	fi
+	transp=$sbox_cputransparency_method
+	if [ -z "$transp" ]; then
+		return 1
+	fi
+	/usr/bin/expr $transp : '.*-qemu-arm$' > /dev/null 2>&1
+	return $?
+}
+
+check_mode_and_cpu_transparency
+if [ $? -ne 0 ]; then
+	echo "SB2: $progbase: This script can be only used inside"
+	echo "emulation mode where cpu transparency is set to sb2-qemu-arm"
+	exit 1
+fi
+
+port=1234
+while getopts hp: p; do
+	case $p in
+	p)
+		port="$OPTARG"
+		;;
+	-)
+		break
+		;;
+	?)
+		usage
+		;;
+	esac
+done
+
+# consume parameters
+shift $((OPTIND - 1))
+
+if [ $# -lt 1 ]; then
+	usage
+fi
+
+# validate that target binary really exists, otherwise sb2-show fails
+target="$1"
+if [ ! -e $target ]; then
+	echo "SB2: $progbase: Target binary $target doesn't exist"
+	exit 1
+fi
+
+#
+# Run sb2-show and prepare output so that it is suitable for
+# remote debugging.
+#
+exec /usr/bin/sb2-show qemu-debug-exec -g $port $@

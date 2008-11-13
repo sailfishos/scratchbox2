@@ -23,46 +23,49 @@ static void usage_exit(const char *progname, const char *errmsg, int exitstatus)
 	if (errmsg) 
 		fprintf(stderr, "%s: Error: %s\n", progname, errmsg);
 
-	fprintf(stderr, 
-		"\n%s: Usage:\n"
-		"\t%s [options] command [parameters]\n"
-		"\nOptions:\n"
-		"\t-b binary_name\tshow using binary_name as name of "
-			"the calling program\n"
-		"\t-f function\tshow using 'function' as callers name\n"
-		"\t-D\tignore directories while verifying path lists\n"
-		"\t-v\tverbose.\n"
-		"\t-t"
-			"\treport elapsed time (real time elapsed while "
-			"executing 'command')\n"
-		"\t-x filename"
-			"\tLoad and execute Lua code from file before "
-			"executing 'command'\n"
-		"\t-X filename"
-			"\tLoad and execute Lua code from file after "
-			"executing 'command'\n"
-		"\nCommands:\n"
-		"\tpath [path1] [path2].."
-			"\tShow mappings of pathnames\n"
-		"\trealcwd"
-			"\tShow real current working directory\n"
-		"\texec file argv0 [argv1] [argv2].."
-			"\tShow execve() modifications\n"
-		"\tlog-error 'message'"
-			"\tAdd an error message to the log\n"
-		"\tlog-warning 'message'"
-			"\tAdd a warning message to the log\n"
-		"\tverify-pathlist-mappings required-prefix [ignorelist]"
-			"\tread list of paths from stdin and\n"
-			"\t\tcheck that all paths will be mapped to required prefix\n"
-		"\tvar variablename"
-			"\tShow value of a string variable\n"
-		"\texecluafile filename"
-			"\tLoad and execute Lua code from file\n"
-			"\t\t(useful for debugging and/or benchmarking sb2 itself)\n"
-		"\n'%s' must be executed inside sb2 sandbox"
-			" (see the 'sb2' command)\n",
-		progname, progname, progname);
+	fprintf(stderr, "\n%s: Usage:\n", progname);
+	fprintf(stderr, "\t%s [options] command [parameters]\n", progname);
+
+	fprintf(stderr, "\nOptions:\n");
+	fprintf(stderr,
+	    "\t-b binary_name show using binary_name as name of\n"
+	    "\t               the calling program\n"
+	    "\t-f function    show using 'function' as callers name\n"
+	    "\t-D             ignore directories while verifying path lists\n"
+	    "\t-v             be more verbose\n"
+	    "\t-t             report elapsed time (real time elapsed while\n"
+	    "\t               executing 'command')\n"
+	    "\t-x filename    load and execute Lua code from file before\n"
+	    "\t               executing 'command'\n"
+	    "\t-X filename    load and execute Lua code from file after\n"
+	    "\t               executing 'command'\n"
+	    "\t-g port        use port as qemu gdbserver listening port\n"
+	    "\t               (default port is 1234)\n");
+
+	fprintf(stderr, "Commands:\n");
+	fprintf(stderr,
+	    "\tpath [path1] [path2].. show mappings of pathnames\n"
+	    "\trealcwd                show real current working directory\n"
+	    "\texec file argv0 [argv1] [argv2]..\n"
+	    "\t                       show execve() modifications\n"
+	    "\tqemu-debug-exec file argv0 [argv1] [argv2]..\n"
+	    "\t                       show command line that can be used to\n"
+	    "\t                       start target binary under qemu\n"
+	    "\t                       gdbserver\n"
+	    "\tlog-error 'message'    add an error message to the log\n"
+	    "\tlog-warning 'message'  add a warning message to the log\n"
+	    "\tverify-pathlist-mappings required-prefix [ignorelist]\n"
+	    "\t                       read list of paths from stdin and\n"
+	    "\t                       check that all paths will be mapped to\n"
+	    "\t                       required prefix\n"
+	    "\tvar variablename       show value of a string variable\n"
+	    "\texecluafile filename   load and execute Lua code from file\n"
+	    "\t                       (useful for debugging and/or\n"
+	    "\t                       benchmarking sb2 itself)\n");
+
+	fprintf(stderr, "\n"
+	    "'%s' must be executed inside sb2 sandbox (see the 'sb2'"
+	    "command)\n", progname);
 
 	exit(exitstatus);
 }
@@ -205,13 +208,70 @@ static void sort_strvec(char **elems)
 	qsort(elems, elem_count(elems), sizeof(char *), compar_strvec_elems);
 }
 
+typedef void (*print_exec_fn_t)(void *, const char *, const char *,
+    int, char *[], char *[], char *[], int);
+
+/*ARGSUSED*/
+static void print_exec(void *priv,
+    const char *file, const char *mapped_path,
+    int readonly_flag, char *new_argv[], char *orig_env[],
+    char *new_env[], int verbose)
+{
+	int i;
+
+	(void)priv;
+
+	printf("File\t%s\n", file);
+	printf("Mapped\t%s%s\n", mapped_path,
+	    (readonly_flag ? " (readonly)" : ""));
+
+	for (i = 0; new_argv[i]; i++) {
+		printf("argv[%d]\t%s\n", i, new_argv[i]);
+	}
+
+	/* compare orig. and new envs. a very simple diff. */
+	sort_strvec(orig_env);
+	sort_strvec(new_env);
+
+	printf("Environment:\n");
+	if (diff_strvecs(orig_env, new_env, verbose) == 0) {
+		printf(" (no changes)\n");
+	}
+}
+
+/*ARGSUSED*/
+static void print_qemu_debug_exec(void *priv,
+    const char *file, const char *mapped_path,
+    int readonly_flag, char *new_argv[], char *orig_env[],
+    char *new_env[], int verbose)
+{
+	const char *debug_port = (const char *)priv;
+	int i;
+
+	(void)file;
+	(void)readonly_flag;
+	(void)orig_env;
+	(void)new_env;
+	(void)verbose;
+
+	printf("%s ", mapped_path);
+	printf("-g %s", debug_port);
+	/* drop argv[0] */
+	for (i = 1; new_argv[i]; i++) {
+		printf(" %s", new_argv[i]);
+	}
+	printf("\n");
+}
+
 static void command_show_exec(
 	const char *binary_name,
 	const char *fn_name,
 	const char *progname, 
 	int argc, char **argv,
 	char **additional_env,
-	int verbose)
+	int verbose,
+	print_exec_fn_t print_exec_fn,
+	void *priv)
 {
 	char	*new_file;
 	char	**new_argv;
@@ -220,7 +280,6 @@ static void command_show_exec(
 	char	**orig_env;
 	char	*mapped_path = NULL;
 	int	readonly_flag;
-	int	i;
 	char	*ba[2];
 	
 	if (argc < 1) {
@@ -244,27 +303,15 @@ static void command_show_exec(
 		&new_file, &new_argv, &new_envp) < 0) {
 		printf("Exec denied (%s)\n", strerror(errno));
 	} else {
-		printf("File\t%s\n", new_file);
-
-		/* do_exec() will map the path just after argvenvp modifications
-		 * have been done, do that here also
+		/* do_exec() will map the path just after argvenvp
+		 * modifications have been done, do that here also
 		*/
-		mapped_path = sb2show__map_path2__(binary_name, "", fn_name,
-			 new_file, &readonly_flag);
-		printf("Mapped\t%s%s\n", mapped_path, (readonly_flag ? " (readonly)" : ""));
+		mapped_path = sb2show__map_path2__(binary_name,
+		    "", fn_name, new_file, &readonly_flag);
 
-		for (i = 0; new_argv[i]; i++) {
-			printf("argv[%d]\t%s\n", i, new_argv[i]);
-		}
-
-		/* compare orig. and new envs. a very simple diff. */
-		sort_strvec(orig_env);
-		sort_strvec(new_envp);
-
-		printf("Environment:\n");
-		if (diff_strvecs(orig_env, new_envp, verbose) == 0) {
-			printf(" (no changes)\n");
-		}
+		/* call the actual print function */
+		(*print_exec_fn)(priv, new_file, mapped_path,
+		    readonly_flag, new_argv, orig_env, new_envp, verbose);
 	}
 }
 
@@ -394,6 +441,7 @@ int main(int argc, char *argv[])
 	char	*pre_cmd_file = NULL;
 	char	*post_cmd_file = NULL;
 	char	**additional_env = NULL;
+	char	*debug_port = "1234";
 	
 #if 0 || defined(enable_this_after_sb2_preload_library_startup_has_been_fixed)
 	/* FIXME: this should be able to check if we are inside the sb2
@@ -410,7 +458,7 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-	while ((opt = getopt(argc, argv, "hm:f:b:Dvtx:X:E:")) != -1) {
+	while ((opt = getopt(argc, argv, "hm:f:b:Dvtg:x:X:E:")) != -1) {
 		switch (opt) {
 		case 'h': usage_exit(progname, NULL, 0); break;
 		case 'm':
@@ -423,6 +471,7 @@ int main(int argc, char *argv[])
 		case 'D': ignore_directories = 1; break;
 		case 'v': verbose = 1; break;
 		case 't': report_time = 1; break;
+		case 'g': debug_port = optarg; break;
 		case 'x': pre_cmd_file = optarg; break;
 		case 'X': post_cmd_file = optarg; break;
 		case 'E':
@@ -471,7 +520,13 @@ int main(int argc, char *argv[])
 	} else if (!strcmp(argv[optind], "exec")) {
 		command_show_exec(binary_name, function_name,
 			progname, argc - (optind+1), argv + optind + 1,
-			additional_env, verbose);
+			additional_env, verbose,
+			print_exec, NULL);
+	} else if (!strcmp(argv[optind], "qemu-debug-exec")) {
+		command_show_exec(binary_name, function_name,
+			progname, argc - (optind+1), argv + optind + 1,
+			additional_env, verbose,
+			print_qemu_debug_exec, debug_port);
 	} else if (!strcmp(argv[optind], "log-error")) {
 		command_log(argv + optind + 1, SB_LOGLEVEL_ERROR);
 	} else if (!strcmp(argv[optind], "log-warning")) {

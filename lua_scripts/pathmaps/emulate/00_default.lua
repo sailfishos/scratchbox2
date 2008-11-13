@@ -52,6 +52,13 @@ mapall_chain = {
 		{prefix = target_root, use_orig_path = true,
 		 readonly = target_root_is_readonly},
 
+		-- ldconfig is static binary, and needs to be wrapped
+		-- Gdb needs some special parameters before it
+		-- can be run so we wrap it.
+		{prefix = "/sb2/wrappers",
+		 replace_by = session_dir .. "/wrappers." .. sbox_mapmode,
+		 readonly = true},
+
 		-- Scratchbox 1 compatibility rules:
 		{ prefix = "/targets/", map_to = sb1_compat_dir,
 		  readonly = target_root_is_readonly},
@@ -62,18 +69,6 @@ mapall_chain = {
                   map_to = sb1_compat_dir,
 		  readonly = target_root_is_readonly},
 		
-		-- ldconfig is static binary, and needs to be wrapped
-		{path = "/sbin/ldconfig", replace_by = sbox_dir ..
-				"/share/scratchbox2/wrappers/ldconfig",
-		 readonly = true},
-
-		--
-		-- Gdb needs some special parameters before it
-		-- can be run so we wrap it.
-		--
-		{path = "/usr/bin/gdb", replace_by = sbox_dir ..
-		    "/share/scratchbox2/wrappers/gdb",
-		 readonly = true},
 		-- gdb wants to have access to our dynamic linker also.
 		{path = "/usr/lib/libsb2/ld-2.5.so", use_orig_path = true,
 		 readonly = true},

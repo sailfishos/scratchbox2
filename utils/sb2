@@ -681,11 +681,46 @@ function join_existing_session()
 	SBOX_CLONE_TARGET_ROOT="n"
 }
 
+# create destination for /sb2/wrappers for this session
+function link_wrappers_for_mapmode()
+{
+	w_mode=$1
+
+	if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$w_mode ]
+	then
+		# Get list of wrappers:
+		SBOX_WRAPPERS=""
+		. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$w_mode wrapper_list
+		if [ "$SBOX_WRAPPERS" != '' ]
+		then
+			mkdir $SBOX_SESSION_DIR/wrappers.$w_mode
+
+			if [ "$SBOX_WRAPPERS" == 'ALL' ]
+			then
+				ln -s $SBOX_DIR/share/scratchbox2/wrappers/* \
+					$SBOX_SESSION_DIR/wrappers.$w_mode
+			else
+				for ammw in $SBOX_WRAPPERS
+				do
+					if [ -f $SBOX_DIR/share/scratchbox2/wrappers/$ammw ]
+					then
+						ln -s $SBOX_DIR/share/scratchbox2/wrappers/$ammw \
+							$SBOX_SESSION_DIR/wrappers.$w_mode
+					else
+						exit_error "There is no wrapper for $ammw"
+					fi
+				done
+			fi
+		fi
+	fi
+}
+
 function write_configfiles_and_rules_for_new_session()
 {
 	# creating a new session..
 	ln -s $SBOX_LUA_SCRIPTS $SBOX_SESSION_DIR/lua_scripts
 
+	# Create rulefiles and set up wrappers
 	if [ -n "$SB2_INTERNAL_MAPMODES" ]
 	then
 		for amm in $SB2_INTERNAL_MAPMODES
@@ -693,6 +728,8 @@ function write_configfiles_and_rules_for_new_session()
 			ifiles=`ls $SBOX_SESSION_DIR/lua_scripts/pathmaps/$amm/*.lua`
 			write_rules_to_session_dir \
 				$SBOX_SESSION_DIR/rules/$amm.lua $amm $ifiles
+
+			link_wrappers_for_mapmode $amm
 		done
 	fi
 
@@ -703,6 +740,10 @@ function write_configfiles_and_rules_for_new_session()
 			amm=`basename $ammf .lua`
 			write_rules_to_session_dir \
 				$SBOX_SESSION_DIR/rules/$amm.lua $amm $ammf
+
+			# FIXME: Currently it is not possible to specify
+			# wrappers with option -M (maybe another option
+			# should be added to fix that?)
 		done
 	fi
 

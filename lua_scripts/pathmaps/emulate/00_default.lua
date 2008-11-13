@@ -78,6 +78,9 @@ mapall_chain = {
 		{path = "/usr/lib/libsb2/ld-2.5.so", use_orig_path = true,
 		 readonly = true},
 
+		--
+		{prefix = "/var/run", map_to = session_dir},
+
 		-- 
 		{prefix = session_dir, use_orig_path = true},
 		{prefix = "/tmp", replace_by = tmp_dir_dest},

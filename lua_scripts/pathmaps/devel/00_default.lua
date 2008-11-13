@@ -319,6 +319,8 @@ simple_chain = {
 		-- -----------------------------------------------
 		-- 80. /var/*
 
+		{prefix = "/var/run", map_to = session_dir},
+
 		-- files from package "xkbutils":
 		{prefix = "/var/lib/xkb", map_to = target_root,
 		 readonly = true},

@@ -714,6 +714,14 @@ function write_configfiles_and_rules_for_new_session()
 
 	create_exec_config_file
 	create_common_sb2_conf_file_for_session
+
+	# Copy intial contents of /var/run from the rootstrap:
+	mkdir $SBOX_SESSION_DIR/var
+	if [ -d $SBOX_TARGET_ROOT/var ]
+	then
+		(cd $SBOX_TARGET_ROOT/var; find run -depth -print |
+			cpio -pamd $SBOX_SESSION_DIR/var 2>/dev/null)
+	fi
 }
 
 function delete_old_sb2_session()

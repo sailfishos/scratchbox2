@@ -883,15 +883,37 @@ sub command_wrap_or_gate {
 	$nomap_fn_c_code .=		$mods->{'va_list_handler_code'};
 	$nomap_nolog_fn_c_code .=	$mods->{'va_list_handler_code'};
 
+	my $loglevel_no_real_fn;
+	my $no_real_fn_abort_code;
+	if($command eq 'WRAP') {
+		# Wrappers log an error and abort if the real function
+		# does not exist.
+		$loglevel_no_real_fn = "SB_LOGLEVEL_ERROR";
+		$no_real_fn_abort_code = "abort();";
+	} else { # GATE
+		# Gates log a warning (but don't abort) if the real function
+		# does not exist - the gate function should handle the rest.
+		$loglevel_no_real_fn = "SB_LOGLEVEL_WARNING";
+		$no_real_fn_abort_code = "/* no abort() */";
+	}
+
 	my $check_fn_pointer_log_enabled .=
 		"\tif($real_fn_pointer_name == NULL) {\n".
 		"\t\t$real_fn_pointer_name = sbox_find_next_symbol(1, ".
 			"\"$fn_name\");\n".
+		"\t\tif ($real_fn_pointer_name == NULL) {\n".
+		"\t\t\tSB_LOG($loglevel_no_real_fn, \"Real '%s'".
+			" not found\", \"$fn_name\");\n".
+		"\t\t\t$no_real_fn_abort_code\n".
+		"\t\t}\n".
 		"\t}\n";
 	my $check_fn_pointer_log_disabled .=
 		"\tif($real_fn_pointer_name == NULL) {\n".
 		"\t\t$real_fn_pointer_name = sbox_find_next_symbol(0, ".
 			"\"$fn_name\");\n".
+		"\t\tif ($real_fn_pointer_name == NULL) {\n".
+		"\t\t\t$no_real_fn_abort_code\n".
+		"\t\t}\n".
 		"\t}\n";
 	$wrapper_fn_c_code .=		$check_fn_pointer_log_enabled;
 	$nomap_fn_c_code .=		$check_fn_pointer_log_enabled;

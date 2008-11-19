@@ -86,6 +86,7 @@ install-noarch: regular
 	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts
 	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps
 	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/emulate
+	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/tools
 	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/simple
 	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/devel
 	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/install
@@ -118,6 +119,7 @@ install-noarch: regular
 	install -c -m 644 $(SRCDIR)/lua_scripts/create_reverse_rules.lua $(prefix)/share/scratchbox2/lua_scripts/create_reverse_rules.lua
 
 	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/emulate/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/emulate/
+	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/tools/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/tools/
 	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/simple/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/simple/
 	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/devel/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/devel/
 	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/install/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/install/

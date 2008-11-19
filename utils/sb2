@@ -918,12 +918,6 @@ then
 	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ld_library_path_extras
 fi
 
-# ------------ cleanup:
-# Unset variables which used to be passed in environment,
-# but have been moved to sb2-session.conf.
-unset SBOX_MAPMODE
-unset SBOX_TARGET_ROOT
-unset SBOX_TOOLS_ROOT
 # ------------
 # Export variables that need to be available in environment;
 # don't export anything unnecessary!
@@ -959,17 +953,29 @@ then
 	fi
 fi
 
+#  Initialize logs..
+if [ $# -gt 0 -o "$STDIN" = true ] ; then
+	initialize_sb_logging $(echo $1 | sed -e 's/\//_/g' -e 's/^\.//') "$args"
+else
+	initialize_sb_logging sb2
+fi
+
+# ------------ cleanup:
+# Unset variables which used to be passed in environment,
+# but have been moved to sb2-session.conf.
+unset SBOX_MAPMODE
+unset SBOX_TARGET_ROOT
+unset SBOX_TOOLS_ROOT
+
 # ------------
 
 if [ $# -gt 0 -o "$STDIN" = true ] ; then
 	binary="$1"
 	shift 1
 	args="$@"
-	initialize_sb_logging $(echo $binary | sed 's/\//_/g') "$args"
 	exec $SBOX_FAKEROOT_PREFIX sb2-monitor -L $SBOX_LIBSB2 -x $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
 		-- $SHELL -c "$binary $args"
 else
-	initialize_sb_logging sb2
 	exec $SBOX_FAKEROOT_PREFIX sb2-monitor -L $SBOX_LIBSB2 -x $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
 		-- $SHELL --noprofile --norc
 fi

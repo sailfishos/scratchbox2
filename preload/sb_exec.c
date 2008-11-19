@@ -577,6 +577,7 @@ static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 	int	i;
 	char	*new_binaryname_var;
 	int	has_sbox_session_dir = 0;
+	int	has_sbox_session_mode = 0;
 	const int sbox_session_dir_varname_len = strlen("SBOX_SESSION_DIR");
 	const int sbox_session_varname_prefix_len = strlen("SBOX_SESSION_");
 
@@ -641,7 +642,36 @@ static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 			/* skip current process' real binary name */
 			continue;
 		}
-		if (strncmp(*p, "SBOX_SESSION_",
+		if (strncmp(*p, "SBOX_SESSION_MODE=",
+				sbox_session_varname_prefix_len+5) == 0) {
+			/* user-provided SBOX_SESSION_MODE */
+			char *requested_mode = *p +
+				sbox_session_varname_prefix_len+5;
+			char *rulefile = NULL;
+
+			if (sbox_session_mode &&
+			    (strcmp(requested_mode, sbox_session_mode) == 0)) {
+				/* same as current mode - skip it */
+				continue;
+			}
+
+			if (asprintf(&rulefile, "%s/rules/%s.lua",
+				sbox_session_dir, requested_mode) < 0) {
+
+				SB_LOG(SB_LOGLEVEL_ERROR,
+					"asprintf failed to create path to rulefile");
+				continue;
+			}
+
+			if (access_nomap_nolog(rulefile, R_OK) == 0) {
+				SB_LOG(SB_LOGLEVEL_DEBUG,
+					"Accepted requested mode change to '%s'",
+					requested_mode);
+				has_sbox_session_mode = 1;
+			}
+			free(rulefile);
+			if (has_sbox_session_mode == 0) continue;
+		} else if (strncmp(*p, "SBOX_SESSION_",
 				sbox_session_varname_prefix_len) == 0) {
 			/* this is user-provided SBOX_SESSION_*, skip it. */
 			continue;
@@ -658,7 +688,7 @@ static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 	}
 
 	/* add mode, if not using the default mode */
-	if (sbox_session_mode) {
+	if (sbox_session_mode && (has_sbox_session_mode==0)) {
 		if (asprintf(&(my_envp[i]), "SBOX_SESSION_MODE=%s",
 		     sbox_session_mode) < 0) {
 			SB_LOG(SB_LOGLEVEL_ERROR,

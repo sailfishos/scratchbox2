@@ -1,6 +1,11 @@
-# List of packages to ignore during build dependency checks (maemo mode)
+# List of packages to ignore during build dependency checks (devel mode)
 #
 x-dev
+#
+# "gcc" has a dependency to "gnat-3.4", which has been marked "[ !arm ]" but
+# that condition does not seem to work with the Debian Etch based tools
+# (etch is old, and arm was not support as target arch.in it)
+gnat-3.4
 #
 # virtual packages provided by some other packages:
 libnet-perl

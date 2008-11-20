@@ -1,6 +1,6 @@
 #
 # This file lists all packages which can be used from the host (or
-# tools_root) environment in the "maemo" mode.
+# tools_root) environment in the "devel" mode.
 #
 # NOTE: Each name must be on a single line, and no whitescape is allowed!
 #-----------

@@ -86,8 +86,7 @@ mapall_chain = {
 		{prefix = "/dev", use_orig_path = true},
 		{prefix = "/proc", use_orig_path = true},
 		{prefix = "/sys", use_orig_path = true},
-		{prefix = sbox_user_home_dir .. "/.scratchbox2",
-		 use_orig_path = true},
+
 		{prefix = sbox_dir .. "/share/scratchbox2",
 		 use_orig_path = true},
 
@@ -95,9 +94,15 @@ mapall_chain = {
 		 readonly = true},
 
 		-- -----------------------------------------------
-		-- "user" is a special username, and should not be mapped:
+		{prefix = sbox_user_home_dir, use_orig_path = true},
+
+		-- "user" is a special username, and should be mapped
+		-- to target_root
+		-- (but note that if the real user name is "user",
+		-- our previous rule handled that and this rule won't be used)
 		{prefix = "/home/user", map_to = target_root,
 		 readonly = target_root_is_readonly},
+
 		-- Other home directories = not mapped, R/W access
 		{prefix = "/home", use_orig_path = true},
 		-- -----------------------------------------------

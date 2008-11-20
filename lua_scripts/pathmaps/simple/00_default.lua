@@ -30,8 +30,7 @@ simple_chain = {
 		 replace_by = sbox_dir.."/share/scratchbox2/scripts",
 		 readonly = true},
 
-		{prefix = sbox_user_home_dir .. "/.scratchbox2",
-		 use_orig_path = true},
+		{prefix = sbox_user_home_dir, use_orig_path = true},
 
 		{prefix = sbox_dir .. "/share/scratchbox2",
 		 use_orig_path = true},

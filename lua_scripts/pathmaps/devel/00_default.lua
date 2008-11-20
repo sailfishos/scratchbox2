@@ -129,11 +129,15 @@ simple_chain = {
 		{prefix = "/opt/maemo",
 		 use_orig_path = true, readonly = true},
 
-		-- "user" is a special username on the Maemo platform:
-		{prefix = "/home/user", map_to = target_root},
-
 		-- -----------------------------------------------
-		-- 5. Home directories
+		-- 10. Home directories
+
+		{prefix = sbox_user_home_dir, use_orig_path = true},
+
+		-- "user" is a special username at least on the Maemo platform:
+		-- (but note that if the real user name is "user",
+		-- our previous rule handled that and this rule won't be used)
+		{prefix = "/home/user", map_to = target_root},
 
 		-- Home directories = not mapped, R/W access
 		{prefix = "/home", use_orig_path = true},

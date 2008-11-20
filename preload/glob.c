@@ -27,6 +27,16 @@
 # include <config.h>
 #endif
 
+/* Bugfix: Include <dirent.h> here. This fixes the way how <sys/stat.h>
+ * is expanded for SB2; originally, some important inline functions were
+ * not introduced by Linux's <sys/stat.h>, but once <dirent.h> is included,
+ * <sys/stat.h> works as expected. (compare this with the way how "glob64.h"
+ * works; it includes this file after some #includes and #defines.
+ * There were no problems with glob64(), but glob() failed occasionally
+ * before this fix).  2008-11-19/LTA
+*/
+#include <dirent.h>
+
 #include <glob.h>
 
 #include <errno.h>

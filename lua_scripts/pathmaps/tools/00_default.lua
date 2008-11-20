@@ -22,6 +22,14 @@ end
 -- those have been installed to tools_root
 enable_cross_gcc_toolchain = false
 
+-- This mode can also be used to redirect /var/lib/dpkg/status to another
+-- location (our dpkg-checkbuilddeps wrapper needs that)
+local var_lib_dpkg_status_location = os.getenv("SBOX_TOOLS_MODE_VAR_LIB_DPKG_STATUS_LOCATION")
+if var_lib_dpkg_status_location == nil or var_lib_dpkg_status_location == "" then
+	-- Use the default location
+	var_lib_dpkg_status_location = tools_root .. "/var/lib/dpkg/status"
+end
+
 mapall_chain = {
 	next_chain = nil,
 	binary = nil,
@@ -56,12 +64,17 @@ mapall_chain = {
 
 		{prefix = "/etc/resolv.conf", use_orig_path = true,
 		 readonly = true},
+		{path = "/etc/passwd",
+		 use_orig_path = true, readonly = true},
 
 		-- -----------------------------------------------
 		-- home directories = not mapped, R/W access
 		{prefix = "/home", use_orig_path = true},
 
 		-- -----------------------------------------------
+
+		{path = "/var/lib/dpkg/status", replace_by = var_lib_dpkg_status_location,
+		 readonly = tools_root_is_readonly},
 
 		-- The default is to map everything to tools_root
 

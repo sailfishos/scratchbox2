@@ -17,6 +17,11 @@
 # for example, gcc-* dependencies might be resolved by the
 # cross compiler.
 #
+# Requirements:
+# - Package db maps to *target* package db
+# - can switch temporarily to tools mode, and then the
+#   db maps to *tools* package db
+#
 # FIXME: This implementation is still incomplete, as this does not
 # check package versions while checking host/tools_root tools.
 # Also, it would be a good idea to do a "visibility check" for host packages,
@@ -40,12 +45,6 @@ fi
 
 . $SBOX_SESSION_DIR/sb2-session.conf
 
-# Target's real package db:
-TARGET_DPKG_ADMINDIR_ALL_PKGS=$sbox_target_root/var/lib/dpkg
-
-# Host (or built env.) package db:
-HOST_DPKG_ADMINDIR=$sbox_tools_root/var/lib/dpkg
-
 # A generated, temporary package db which only contains packages that
 # are usable thru the current mapping mode:
 TARGET_DPKG_ADMINDIR_USABLE_PKGS=$sbox_temp_dpkg_admin_dir
@@ -58,7 +57,6 @@ cfgfile_host_ignored_pkgs=$sbox_dir/share/scratchbox2/modeconf/host-ignored-pack
 # - $installed_to_host is either "yes" or "no"
 # - $check_result_msg and $check_result_msg2 return a more detailed
 #   explanation of the result (strings).
-# This must be called with SBOX_DISABLE_MAPPING=1!!
 function check_host_pkg()
 {
 	pkgname=$1
@@ -91,8 +89,7 @@ function check_host_pkg()
 		pkg_stat_tmp=`mktemp -p $SBOX_SESSION_DIR/tmp pkg-stat.XXXXXXXXXX`
 		# next check again if the package exists on the target,
 		# just to be able to give a better error message.
-		if dpkg-query -s --admindir=$TARGET_DPKG_ADMINDIR_ALL_PKGS \
-			"$pkgname" >$pkg_stat_tmp 2>&1
+		if dpkg-query -s "$pkgname" >$pkg_stat_tmp 2>&1
 		then
 			if grep -q "ok installed" $pkg_stat_tmp
 			then
@@ -110,7 +107,7 @@ function check_host_pkg()
 
 	# package is not present in the rootstrap, but
 	# it can be accepted from the host environment.
-	if dpkg-query -s --admindir=$HOST_DPKG_ADMINDIR "$pkgname" >/dev/null 2>&1
+	if SBOX_SESSION_MODE=tools dpkg-query -s "$pkgname" >/dev/null 2>&1
 	then
 		installed_to_host="yes"
 		check_result_msg="'$pkgname' found from the host environment"
@@ -198,7 +195,7 @@ function check_host_builddeps()
 {
 	missing="$1"
 	ret=0
-	export SBOX_DISABLE_MAPPING=1
+
 	# do the magic here
 	echo "SB2 Checking host build deps.."
 
@@ -250,8 +247,6 @@ function check_host_builddeps()
 
 	done
 
-	unset SBOX_DISABLE_MAPPING
-
 	if [ $list_ok == 0 ]; then
 		# somethings missing
 		false
@@ -266,13 +261,14 @@ function check_target_builddeps()
 	echo "SB2 Checking target build deps..."
 	missing_dep_file=`mktemp -p $SBOX_SESSION_DIR/tmp missing_deps.XXXXXXXXXX`
 
-	# call dpkg-checkbuilddeps with mapping disabled, because the
+	# dpkg-checkbuilddeps with another package db..
+	# a special rule in the tools mode is needed because the
 	# version which is available in /usr/bin may not know about the
 	# --admindir option. Can't use a pipeline here, we want to the
 	# dpkg-checkbuilddeps' return status.
-	SBOX_DISABLE_MAPPING=1 /usr/bin/dpkg-checkbuilddeps \
-		--admindir=$TARGET_DPKG_ADMINDIR_USABLE_PKGS $args \
-		> $missing_dep_file 2>&1
+	SBOX_TOOLS_MODE_VAR_LIB_DPKG_STATUS_LOCATION=$TARGET_DPKG_ADMINDIR_USABLE_PKGS/status \
+		SBOX_SESSION_MODE=tools /usr/bin/dpkg-checkbuilddeps \
+		$args > $missing_dep_file 2>&1
 	if [ $? == 0 ]
 	then
 		# real dpkg-checkbuilddeps says "all ok"

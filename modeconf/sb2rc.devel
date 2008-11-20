@@ -24,6 +24,10 @@ case "$sb2rc_mode" in
 		;;
 
 	starting)
+		# The dpkg-checkbuilddeps wrapper needs to be able to
+		# switch to the "tools" mode; call add_map_mode to
+		# make "tools" available for this session.
+		add_map_mode tools
 		;;
 
 	wrapper_list)

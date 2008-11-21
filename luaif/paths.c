@@ -1084,7 +1084,11 @@ char *scratchbox_path_at(
 {
 	const char *dirfd_path;
 
-	if ((*path == '/') || (dirfd == AT_FDCWD)) {
+	if ((*path == '/')
+#ifdef AT_FDCWD
+	    || (dirfd == AT_FDCWD)
+#endif
+	   ) {
 		/* same as scratchbox_path() */
 		return (scratchbox_path_internal(
 			(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),

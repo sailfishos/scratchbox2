@@ -516,10 +516,11 @@ END
 			# library locations to the normal LD_LIBRARY_PATH;	
 			# this is risky but the best what we can do now
 			# (these extra locations must be after other locations
-			# in LD_LIBRARY_PATH => $ld_library_path_extras won't
+			# in LD_LIBRARY_PATH => ld_library_path_extras won't
 			# be added to LD_LIBRARY_PATH here, but later)
-			ld_library_path_extras=`echo $ld_library_extras_from_cache |
-				sed -e s:^:$rootdir:g -e "s; ;:$rootdir;g"`
+			echo $ld_library_extras_from_cache |
+				sed -e s:^:$rootdir:g -e "s; ;:$rootdir;g" \
+				>$SBOX_SESSION_DIR/ld_library_path_extras
 		fi
 	else
 		# SBOX_TOOLS_ROOT was empty, tools will be used from
@@ -918,9 +919,9 @@ else
 fi
 
 # Final addition to LD_LIBRARY_PATH, if needed
-if [ -n "$ld_library_path_extras" ]
+if [ -f $SBOX_SESSION_DIR/ld_library_path_extras ]
 then
-	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ld_library_path_extras
+	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`cat $SBOX_SESSION_DIR/ld_library_path_extras`
 fi
 
 # ------------

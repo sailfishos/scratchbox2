@@ -1,0 +1,44 @@
+--- rtld.c.orig	2005-04-06 05:49:51.000000000 +0300
++++ rtld.c	2008-11-19 20:07:42.000000000 +0200
+@@ -765,6 +765,7 @@
+
+   if (*user_entry == (ElfW(Addr)) ENTRY_POINT)
+     {
++      const char *forced_argv0 = NULL;
+       /* Ho ho.  We are not the program interpreter!  We are the program
+	 itself!  This means someone ran ld.so as a command.  Well, that
+	 might be convenient to do sometimes.  We support it by
+@@ -821,6 +822,14 @@
+	    _dl_argc -= 2;
+	    INTUSE(_dl_argv) += 2;
+	  }
++	else if (! strcmp (INTUSE(_dl_argv)[1], "--argv0") && _dl_argc > 2)
++	  {
++	    forced_argv0 = INTUSE(_dl_argv)[2];
++
++	    _dl_skip_args += 2;
++	    _dl_argc -= 2;
++	    INTUSE(_dl_argv) += 2;
++	  }
+	else
+	  break;
+
+@@ -847,7 +856,8 @@
+   --library-path PATH   use given PATH instead of content of the environment\n\
+                         variable LD_LIBRARY_PATH\n\
+   --inhibit-rpath LIST  ignore RUNPATH and RPATH information in object names\n\
+-                        in LIST\n");
++                        in LIST\n\
++  --argv0 STRING        use STRING as argv[0]\n");
+
+       ++_dl_skip_args;
+       --_dl_argc;
+@@ -902,6 +912,8 @@
+	  HP_TIMING_DIFF (load_time, start, stop);
+	}
+
++      if (forced_argv0 != NULL) _dl_argv[0] = forced_argv0;
++
+       /* Now the map for the main executable is available.  */
+       main_map = GL(dl_ns)[LM_ID_BASE]._ns_loaded;
+

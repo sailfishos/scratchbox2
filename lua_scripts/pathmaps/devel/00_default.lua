@@ -123,6 +123,9 @@ simple_chain = {
 		 replace_by = sbox_dir.."/share/scratchbox2/scripts",
 		 readonly = true},
 
+		-- tools_root should not be mapped twice.
+		{prefix = tools, use_orig_path = true, readonly = true},
+
 		-- -----------------------------------------------
 		-- 5. Maemo SDK+
 
@@ -343,8 +346,6 @@ simple_chain = {
 
 		{prefix = "/var/lib/dbus", map_to = target_root,
 		 readonly = true},
-		{prefix = "/var/run", map_to = target_root,
-		 readonly = true},
 
 		{prefix = "/var/log", map_to = target_root,
 		 readonly = true},
@@ -407,16 +408,12 @@ simple_chain = {
 		-- the root directory must not be mapped:
 		{path = "/", use_orig_path = true},
 
-		-- tools_root should not be mapped twice.
-		{prefix = tools, use_orig_path = true, readonly = true},
-
 		-- "standard" directories are mapped to tools_root,
 		-- but everything else defaults to the host system
 		-- (so that things like /mnt, /media and /opt are
 		-- used from the host)
 		{prefix = "/bin", map_to = tools, readonly = true},
 		{prefix = "/etc", map_to = tools, readonly = true},
-		{prefix = "/lib", map_to = tools, readonly = true},
 		{prefix = "/sbin", map_to = tools, readonly = true},
 		{prefix = "/usr", map_to = tools, readonly = true},
 		{prefix = "/var", map_to = tools, readonly = true},
@@ -452,16 +449,14 @@ qemu_chain = {
 		{path = "/etc/shadow",
 		 use_orig_path = true, readonly = true},
 
-		{prefix = tools, use_orig_path = true},
+		-- tools_root should not be mapped twice.
+		{prefix = tools, use_orig_path = true, readonly = true},
 
 		-- unmodified view of the rootstrap, can be used as destination
 		-- directory when installing stuff to the rootstrap
 		{prefix = "/target_root", replace_by = target_root},
 
 		{path = "/", use_orig_path = true},
-
-		-- tools_root should not be mapped twice.
-		{prefix = tools, use_orig_path = true, readonly = true},
 
 		-- "standard" directories are mapped to tools_root,
 		-- but everything else defaults to the host system

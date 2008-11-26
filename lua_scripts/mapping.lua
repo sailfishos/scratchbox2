@@ -41,11 +41,12 @@ function dirname(path)
 	return dir 
 end
 
-
-function isprefix(a, b)
-	if (not a or not b) then return false end
-	return string.sub(b, 1, string.len(a)) == a
-end
+-- isprefix(a, b) is now implemented in C; used to be:
+--    function isprefix(a, b)
+--	if (not a or not b) then return false end
+--	return string.sub(b, 1, string.len(a)) == a
+--    end
+isprefix = sb.isprefix
 
 -- Load mode-specific rules.
 -- A mode file must define three variables:
@@ -167,8 +168,20 @@ function sbox_execute_replace_rule(path, replacement, rule)
 	if (debug_messages_enabled) then
 		sb.log("debug", string.format("replace:%s:%s", path, replacement))
 	end
-	if (rule.prefix) then
-		-- "path" may be shorter than prefix during path resolution
+	if (rule.dir) then
+		if ((rule.dir ~= "") and
+		    (isprefix(rule.dir, path))) then
+			ret = replacement .. string.sub(path, string.len(rule.dir)+1)
+			if (debug_messages_enabled) then
+				sb.log("debug", string.format("replaced (dir) => %s", ret))
+			end
+		else
+			ret = ""
+			if (debug_messages_enabled) then
+				sb.log("debug", string.format("replacement failed (short path?)"))
+			end
+		end
+	elseif (rule.prefix) then
 		if ((rule.prefix ~= "") and
 		    (isprefix(rule.prefix, path))) then
 			ret = replacement .. string.sub(path, string.len(rule.prefix)+1)
@@ -304,44 +317,32 @@ function find_rule(chain, func, full_path)
 		sb.log("noise", string.format("find_rule for (%s)", full_path))
 	end
 	while (wrk) do
-		-- travel the chains
+		-- travel the chains and loop the rules in a chain
 		for i = 1, table.maxn(wrk.rules) do
-			-- loop the rules in a chain
-			if ((not wrk.rules[i].func_name 
-				or string.match(func, wrk.rules[i].func_name))) then
-				-- "prefix" rules:
-				-- compare prefix (only if a non-zero prefix)
-				local rulename
-				if (debug_messages_enabled) then
-					rulename = wrk.rules[i].name
-					if rulename == nil then
-						rulename = string.format("#%d",i)
-					end
-				end
-				if (wrk.rules[i].prefix and
-				    (wrk.rules[i].prefix ~= "") and
-				    (isprefix(wrk.rules[i].prefix, full_path))) then
+			local rule = wrk.rules[i]
+			-- sb.test_path_match() is implemented in C (better
+			-- performance). It returns <0 if full_path doesn't
+			-- match, min.length otherwise
+			min_path_len = sb.test_path_match(full_path,
+				rule.dir, rule.prefix, rule.path)
+			if min_path_len >= 0 then
+				-- Path matches, test if other conditions are
+				-- also OK:
+				if ((not rule.func_name
+					or string.match(func,
+						 rule.func_name))) then
 					if (debug_messages_enabled) then
+						local rulename = rule.name
+						if rulename == nil then
+							rulename = string.format("#%d",i)
+						end
+
 						sb.log("noise", string.format(
-						"selected prefix rule '%s' (%s)",
-						rulename, wrk.rules[i].prefix))
+						  "selected rule '%s'",
+						  rulename))
 					end
-					min_path_len = string.len(wrk.rules[i].prefix)
-					return wrk.rules[i], min_path_len
+					return rule, min_path_len
 				end
-				-- "path" rules: (exact match)
-				if (wrk.rules[i].path == full_path) then
-					if (debug_messages_enabled) then
-						sb.log("noise", string.format(
-						"selected path rule '%s' (%s)",
-						rulename, wrk.rules[i].path))
-					end
-					min_path_len = string.len(wrk.rules[i].path)
-					return wrk.rules[i], min_path_len
-				end
-				-- FIXME: Syntax checking should be added:
-				-- it should be tested that exactly one of
-				-- "prefix" or "path" was present
 			end
 		end
 		wrk = wrk.next_chain

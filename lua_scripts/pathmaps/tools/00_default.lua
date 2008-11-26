@@ -42,7 +42,7 @@ mapall_chain = {
 
 		-- ldconfig is static binary, and needs to be wrapped
 		{prefix = "/sb2/wrappers",
-		 replace_by = session_dir .. "/wrappers." .. sbox_mapmode,
+		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
 		 readonly = true},
 
 		--

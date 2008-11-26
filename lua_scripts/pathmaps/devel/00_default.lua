@@ -116,7 +116,7 @@ simple_chain = {
 		-- 2. Development environment special destinations:
 
 		{prefix = "/sb2/wrappers",
-		 replace_by = session_dir .. "/wrappers." .. sbox_mapmode,
+		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
 		 readonly = true},
 
 		{prefix = "/sb2/scripts",

@@ -8,9 +8,11 @@ local forced_modename = sb.get_forced_mapmode()
 if forced_modename == nil then
 	rule_file_path = session_dir .. "/rules/Default.lua"
 	rev_rule_file_path = session_dir .. "/rev_rules/Default.lua"
+	active_mapmode = sbox_mapmode
 else
 	rule_file_path = session_dir .. "/rules/" .. forced_modename .. ".lua"
 	rev_rule_file_path = session_dir .. "/rev_rules/" .. forced_modename .. ".lua"
+	active_mapmode = forced_modename
 end
 
 function basename(path)

@@ -58,7 +58,7 @@ mapall_chain = {
 		-- Gdb needs some special parameters before it
 		-- can be run so we wrap it.
 		{prefix = "/sb2/wrappers",
-		 replace_by = session_dir .. "/wrappers." .. sbox_mapmode,
+		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
 		 readonly = true},
 
 		-- Scratchbox 1 compatibility rules:

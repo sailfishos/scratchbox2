@@ -135,6 +135,8 @@ function sboxify_environment()
 	SBOX_LIBSB2="libsb2.so.1"
 	
 	. ~/.scratchbox2/$SBOX_TARGET/sb2.config
+	# Remember where SBOX_TARGET_ROOT was in the configuration file
+	SBOX_TARGET_ROOT_in_config_file=$SBOX_TARGET_ROOT
 
 	if [ -d $SBOX_SESSION_DIR/target_root ]
 	then
@@ -247,6 +249,22 @@ function create_common_sb2_conf_file_for_session()
 	if [ -z "$HOME" ]
 	then
 		sbox_user_home_dir="/home/unknown_user"
+	fi
+
+	# SBOX_EXTRA_CROSS_COMPILER_ARGS and SBOX_EXTRA_CROSS_LD_ARGS contain
+	# embedded absolute paths to the orig. rootstrap location.
+	#
+	# FIXME: It is generally a bad idea to store the rootstrap location
+	# in multiple places. sb2-init and format of sb2.config should be
+	# fixed, but that has been delayed (because that would also force
+	# us to increment the config file version number, and that forces
+	# everyone to re-initialize sb2 environment everywhere...)
+	if [ "$SBOX_TARGET_ROOT_in_config_file" != "$SBOX_TARGET_ROOT" ]
+	then
+		SBOX_EXTRA_CROSS_LD_ARGS=`echo "$SBOX_EXTRA_CROSS_LD_ARGS" |
+		  sed -e "s:$SBOX_TARGET_ROOT_in_config_file:$SBOX_TARGET_ROOT:g"`
+		SBOX_EXTRA_CROSS_COMPILER_ARGS=`echo "$SBOX_EXTRA_CROSS_COMPILER_ARGS" |
+		  sed -e "s:$SBOX_TARGET_ROOT_in_config_file:$SBOX_TARGET_ROOT:g"`
 	fi
 
 	cat <<END >>$SBOX_SESSION_DIR/sb2-session.conf
@@ -366,7 +384,7 @@ function check_qemu_features()
 	test_output=`$qemu_path -h | grep '^-0'`
 	if [ -n "$test_output" ]
 	then
-		# -0 is suported
+		# -0 is supported
 		conf_cputransparency_has_argv0_flag="true"
 	else
 		conf_cputransparency_has_argv0_flag="false"
@@ -375,7 +393,7 @@ function check_qemu_features()
 	test_output=`$qemu_path -h | grep '^-E'`
 	if [ -n "$test_output" ]
 	then
-		# -E is suported
+		# -E is supported
 		conf_cputransparency_qemu_has_env_control_flags="true"
 	else
 		conf_cputransparency_qemu_has_env_control_flags="false"

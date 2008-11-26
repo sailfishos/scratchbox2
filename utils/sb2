@@ -357,7 +357,8 @@ function write_ld_library_path_replacement_to_exec_config()
 	echo " \"\"" >>$SBOX_SESSION_DIR/exec_config.lua
 }
 
-# Test if qemu has "-0 argv0" and "-E envvar=value" flags
+# Test if qemu has "-0 argv0" and "-E envvar=value" flags, and/or
+# "-libattr-hack"
 function check_qemu_features()
 {
 	qemu_path=$1
@@ -378,6 +379,14 @@ function check_qemu_features()
 		conf_cputransparency_qemu_has_env_control_flags="true"
 	else
 		conf_cputransparency_qemu_has_env_control_flags="false"
+	fi
+
+	test_output=`$qemu_path -h | grep '^-libattr-hack'`
+	if [ -n "$test_output" ]
+	then
+		conf_cputransparency_qemu_has_libattr_hack_flag="true"
+	else
+		conf_cputransparency_qemu_has_libattr_hack_flag="false"
 	fi
 }
 
@@ -537,6 +546,7 @@ END
 	# 2. Exec settings for rootstrap
 	conf_cputransparency_has_argv0_flag="false"
 	conf_cputransparency_qemu_has_env_control_flags="false"
+	conf_cputransparency_qemu_has_libattr_hack_flag="false"
 
 	if [ "$SBOX_CPUTRANSPARENCY_METHOD" == "" ]; then
 		# CPU transparency method has not been set:
@@ -576,6 +586,7 @@ END
 	cat <<END >>$SBOX_SESSION_DIR/exec_config.lua
 conf_cputransparency_has_argv0_flag=$conf_cputransparency_has_argv0_flag
 conf_cputransparency_qemu_has_env_control_flags=$conf_cputransparency_qemu_has_env_control_flags
+conf_cputransparency_qemu_has_libattr_hack_flag=$conf_cputransparency_qemu_has_libattr_hack_flag
 END
 }
 

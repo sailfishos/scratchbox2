@@ -476,6 +476,16 @@ function sb_execve_postprocess_cpu_transparency_executable(rule, exec_policy,
 			new_argv[6] = argv[1] 
 		end
 
+		if conf_cputransparency_qemu_has_libattr_hack_flag then
+			-- For ARM emulation:
+			-- a nasty bug exists in some older libattr library
+			-- version (e.g. it causes "ls -l" to crash), this
+			-- flag enables a hack in Qemu which makes
+			-- libattr to work correctly even if it uses incorrect
+			-- system call format.
+			table.insert(new_argv, "-libattr-hack")
+		end
+
 		if conf_cputransparency_qemu_has_env_control_flags then
 			for i = 1, #envp do
 				-- drop LD_TRACE_ from target environment

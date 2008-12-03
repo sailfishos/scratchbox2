@@ -53,7 +53,7 @@ static const char *sb2_strchrnul (const char *s, int c_in)
 /* String vector contents to a single string for logging.
  * returns pointer to an allocated buffer, caller should free() it.
 */
-static char *strvec_to_string(char *const *argv)
+char *strvec_to_string(char *const *argv)
 {
 	int	result_max_size = 1;
 	char	*const *vp;
@@ -869,6 +869,9 @@ char *sb2show__map_path2__(const char *binary_name, const char *mapping_mode,
 char *sb2show__get_real_cwd__(const char *binary_name, const char *fn_name)
 {
 	char path[PATH_MAX];
+
+	(void)binary_name;
+	(void)fn_name;
 
 	if (getcwd_nomap_nolog(path, sizeof(path))) {
 		return(strdup(path));

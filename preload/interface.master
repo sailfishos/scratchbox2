@@ -24,6 +24,7 @@ EXPORT: void _fini(void)
 --    -------------------
 
 -- Functions used by the "sb2show" command:
+EXPORT: char *sb2show__binary_type__(const char *filename)
 EXPORT: char *sb2show__map_path2__(const char *binary_name, \
 	const char *mapping_mode, const char *fn_name, const char *pathname, \
 	int *readonly)

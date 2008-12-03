@@ -841,8 +841,13 @@ static int prepare_exec(const char *exec_fn_name,
 		return(0);
 	}
 
-	SB_LOG(SB_LOGLEVEL_DEBUG,
-		"EXEC: Orig.argv0=<%s> file=<%s>", orig_argv[0], orig_file);
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
+		char *buf = strvec_to_string(orig_argv);
+
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"EXEC/Orig.args: %s : %s", orig_file, buf);
+		free(buf);
+	}
 	
 	tmp = strdup(orig_file);
 	binaryname = strdup(basename(tmp));
@@ -1031,5 +1036,37 @@ int sb2show__execve_mods__(
 	if (!*new_envp) *new_envp = duplicate_argv(orig_envp);
 
 	return(ret);
+}
+
+/* "filename" is the real path to a file!
+ * returns an allocated buffer, so that some day we could
+ * return more information about the binary in the same
+ * buffer.
+*/
+char *sb2show__binary_type__(const char *filename)
+{
+	enum binary_type type = inspect_binary(filename);
+	char *result = NULL;
+
+	switch (type) {
+	case BIN_HASHBANG:
+		result = "script"; break;
+	case BIN_HOST_DYNAMIC:
+		result = "host/dynamic"; break;
+	case BIN_HOST_STATIC:
+		result = "host/static"; break;
+	case BIN_TARGET:
+		result = "target"; break;
+	case BIN_INVALID: /* = can't be executed, no X permission */
+		result = "invalid"; break;
+	case BIN_NONE:
+		result = "none"; break;
+	case BIN_UNKNOWN:
+		result = "unknown"; break;
+	default:
+		/* this should not happen! */
+		result = "internal error"; break;
+	}
+	return(strdup(result));
 }
 

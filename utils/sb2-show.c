@@ -54,6 +54,8 @@ static void usage_exit(const char *progname, const char *errmsg, int exitstatus)
 	    "\t                       gdbserver\n"
 	    "\tlog-error 'message'    add an error message to the log\n"
 	    "\tlog-warning 'message'  add a warning message to the log\n"
+	    "\tbinarytype realpath    detect & show type of program at\n"
+	    "\t                       'realpath' (already mapped path)\n"
 	    "\tverify-pathlist-mappings required-prefix [ignorelist]\n"
 	    "\t                       read list of paths from stdin and\n"
 	    "\t                       check that all paths will be mapped to\n"
@@ -331,6 +333,29 @@ static void command_show_path(const char *binary_name,
 	}
 }
 
+static void command_show_binarytype(const char *binary_name,
+        const char *fn_name, int verbose, char **argv)
+{
+	char	*mapped_path = NULL;
+	int	readonly_flag;
+	char	*type;
+
+	while (*argv) {
+		/* sb2show__binary_type__() operates on
+		 * real paths; map the path first.. */
+		mapped_path = sb2show__map_path2__(binary_name, "",
+			fn_name, *argv, &readonly_flag);
+		type = sb2show__binary_type__(mapped_path);
+		if (verbose) {
+			printf("%s: %s\n", mapped_path, type);
+		} else {
+			printf("%s\n", type);
+		}
+		free(type);
+		argv++;
+	}
+}
+
 static void command_show_realcwd(const char *binary_name, const char *fn_name)
 {
 	char	*real_cwd_path = NULL;
@@ -522,6 +547,9 @@ int main(int argc, char *argv[])
 			progname, argc - (optind+1), argv + optind + 1,
 			additional_env, verbose,
 			print_exec, NULL);
+	} else if (!strcmp(argv[optind], "binarytype")) {
+		command_show_binarytype(binary_name, function_name,
+			verbose, argv + optind + 1);
 	} else if (!strcmp(argv[optind], "qemu-debug-exec")) {
 		command_show_exec(binary_name, function_name,
 			progname, argc - (optind+1), argv + optind + 1,

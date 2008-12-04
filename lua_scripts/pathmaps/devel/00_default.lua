@@ -154,6 +154,11 @@ simple_chain = {
 		{prefix = "/usr/bin/host-",
 		 use_orig_path = true, readonly = true},
 
+		-- "localedef" *must* be used from the target, the version
+		-- which exists in tools_root appers to work but doesn't..
+		{path = "/usr/bin/localedef", map_to = target_root,
+		 readonly = true},
+
 		-- -----------------------------------------------
 		-- 30. /lib/*
 

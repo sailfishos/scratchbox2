@@ -1,0 +1,29 @@
+
+"external_patches" for SB2:
+===========================
+
+This directory contains patches to external components that are recommended
+to be used in the SB2'ed environment.
+
+Short description of the files:
+
+glibc-2.3.6-elf-rtld.c.patch, glibc-2.5-elf-rtld.c.patch
+--------------------------------------------------------
+
+	A small patch for the dynamic linker/loader ("ld.so", also known as
+	"ld-linux.so"). The dynamic linker is part of the "glibc" package.
+
+	This patch adds one command line option which is only used
+	when the dynamic linker is started as an ordinary program,
+	which is a seldom used way to start dynamically linked
+	programs. SB2 uses that option to preserve semantics of the
+	exec* calls
+
+	[SB2 starts the dynamic linker as an ordinary program,
+	to be able to get full control of the execution environment -
+	this is somewhat complex system. Study the implementation
+	of SB2's exec-related functions for full details]
+
+	Note that this patch causes no harm in the default case, i.e.
+	when the dynamic linker is started "automatically" by the kernel.
+

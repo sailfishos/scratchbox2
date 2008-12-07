@@ -59,7 +59,7 @@ function exit_error()
 
 function sanity_check()
 {
-	if [ `id -u` = 0 ] ; then
+	if [ `id -u` = 0 ]; then
 		exit_error "Do not use sbox2 as root!"
 	fi
 	# check that most important host and target files exist
@@ -84,10 +84,8 @@ function write_rules_to_session_dir()
 --
 END
 	
-	for f in $input_files
-	do
-		if [ -r $f ]
-		then
+	for f in $input_files; do
+		if [ -r $f ]; then
 			echo "-- [ $f ]" >>$output_file_name
 			cat $f >>$output_file_name
 		else
@@ -98,11 +96,10 @@ END
 
 # Create reverse rules. Since that will be done using sb2-show, the environment
 # must to be ready => this function can be called only just before the shell
-# is executed at and of this script.
+# is executed at end of this script.
 function create_reverse_rules()
 {
-	for ammf in $SBOX_SESSION_DIR/rules/*.lua
-	do
+	for ammf in $SBOX_SESSION_DIR/rules/*.lua; do
 		amm_base=`basename $ammf .lua`
 
 		SBOX_SESSION_MODE=$amm_base sb2-monitor \
@@ -138,15 +135,13 @@ function sboxify_environment()
 	# Remember where SBOX_TARGET_ROOT was in the configuration file
 	SBOX_TARGET_ROOT_in_config_file=$SBOX_TARGET_ROOT
 
-	if [ -d $SBOX_SESSION_DIR/target_root ]
-	then
+	if [ -d $SBOX_SESSION_DIR/target_root ]; then
 		# A copy of target_root already exists, use that
 		# (this may happen when we are joining an old
 		# session, see options -J and -c)
 		SBOX_TARGET_ROOT=$SBOX_SESSION_DIR/target_root
 		SB2_TEMP_DPKG_ADMIN_DIR=$SBOX_SESSION_DIR/tmp-pkg-db
-	elif [ "$SBOX_CLONE_TARGET_ROOT" == "y" ]
-	then
+	elif [ "$SBOX_CLONE_TARGET_ROOT" == "y" ]; then
 		# SBOX_TARGET_ROOT has been set, make a clone of it
 		echo "Copying target root from $SBOX_TARGET_ROOT..."
 		# cp -Rp does not preserve hard links, but cpio does
@@ -160,8 +155,7 @@ function sboxify_environment()
 	fi
 
 	# SBOX_MAPMODE has been set, read mode-specific settings
-	if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$SBOX_MAPMODE ]
-	then
+	if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$SBOX_MAPMODE ]; then
 		. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$SBOX_MAPMODE starting
 	fi
 
@@ -186,8 +180,7 @@ function sboxify_environment()
 
 	SBOX_TARGET_TOOLCHAIN_DIR=$(dirname "$SBOX_CROSS_GCC_DIR")
 
-	if [ -z "$SBOX_MODE_PATH" ]
-	then
+	if [ -z "$SBOX_MODE_PATH" ]; then
 		# /sb2/wrappers and /sb2/scripts contain utilities for
 		# development support, and are available in the
 		# software development modes ("simple" and "devel")
@@ -208,8 +201,7 @@ function initialize_sb_logging()
 	args_param=$2
 	if [ "$SBOX_MAPPING_LOGLEVEL" != "" ]; then
 		tstamp=`SBOX_DISABLE_MAPPING=1 /bin/date +%Y%m%d-%H%M`
-		if [ ! -d $HOME/sb2_logs ]
-		then
+		if [ ! -d $HOME/sb2_logs ]; then
 			SBOX_DISABLE_MAPPING=1 mkdir $HOME/sb2_logs 
 			echo "Created directory $HOME/sb2_logs for log files"
 		fi
@@ -246,8 +238,7 @@ function initialize_sb_logging()
 function create_common_sb2_conf_file_for_session()
 {
 	sbox_user_home_dir=$HOME
-	if [ -z "$HOME" ]
-	then
+	if [ -z "$HOME" ]; then
 		sbox_user_home_dir="/home/unknown_user"
 	fi
 
@@ -259,8 +250,7 @@ function create_common_sb2_conf_file_for_session()
 	# fixed, but that has been delayed (because that would also force
 	# us to increment the config file version number, and that forces
 	# everyone to re-initialize sb2 environment everywhere...)
-	if [ "$SBOX_TARGET_ROOT_in_config_file" != "$SBOX_TARGET_ROOT" ]
-	then
+	if [ "$SBOX_TARGET_ROOT_in_config_file" != "$SBOX_TARGET_ROOT" ]; then
 		SBOX_EXTRA_CROSS_LD_ARGS=`echo "$SBOX_EXTRA_CROSS_LD_ARGS" |
 		  sed -e "s:$SBOX_TARGET_ROOT_in_config_file:$SBOX_TARGET_ROOT:g"`
 		SBOX_EXTRA_CROSS_COMPILER_ARGS=`echo "$SBOX_EXTRA_CROSS_COMPILER_ARGS" |
@@ -325,14 +315,12 @@ function write_ld_library_path_replacement_to_exec_config()
 	liblocations="$SBOX_DIR/lib/libsb2 /usr/lib/libsb2"
 
 	# Include directories listed in ld.so.conf
-	if [ -f $rootdir/etc/ld.so.conf ]
-	then
+	if [ -f $rootdir/etc/ld.so.conf ]; then
 		lloc2=`egrep '^/' $rootdir/etc/ld.so.conf`
 		liblocations="$liblocations $lloc2"
 	fi
 	# Include directories listed in ld.so.conf.d/*
-	if [ -d $rootdir/etc/ld.so.conf.d ]
-	then
+	if [ -d $rootdir/etc/ld.so.conf.d ]; then
 		lloc2=`cat $rootdir/etc/ld.so.conf.d/* 2>/dev/null | egrep '^/'`
 		liblocations="$liblocations $lloc2"
 	fi
@@ -342,8 +330,7 @@ function write_ld_library_path_replacement_to_exec_config()
 		/usr/lib64/libfakeroot /usr/lib32/libfakeroot"
 
 	# Find all directories that are used in the ld.so cache file:
-	if [ -x $rootdir/sbin/ldconfig ]
-	then
+	if [ -x $rootdir/sbin/ldconfig ]; then
 		# print contents of the cache, take destination
 		# names (the part after "=>"), drop file names (leave
 		# directory names, and remove duplicates:
@@ -363,10 +350,8 @@ function write_ld_library_path_replacement_to_exec_config()
 	# Create the variable.
 	echo "$varname =" >>$SBOX_SESSION_DIR/exec_config.lua
 	colon=""
-	for l in $liblocations
-	do
-		if [ -d $rootdir$l ]
-		then
+	for l in $liblocations; do
+		if [ -d $rootdir$l ]; then
 			echo " \"$colon$rootdir$l\" .." >>$SBOX_SESSION_DIR/exec_config.lua
 			colon=":"
 		fi
@@ -382,8 +367,7 @@ function check_qemu_features()
 	qemu_path=$1
 
 	test_output=`$qemu_path -h | grep '^-0'`
-	if [ -n "$test_output" ]
-	then
+	if [ -n "$test_output" ]; then
 		# -0 is supported
 		conf_cputransparency_has_argv0_flag="true"
 	else
@@ -391,8 +375,7 @@ function check_qemu_features()
 	fi
 
 	test_output=`$qemu_path -h | grep '^-E'`
-	if [ -n "$test_output" ]
-	then
+	if [ -n "$test_output" ]; then
 		# -E is supported
 		conf_cputransparency_qemu_has_env_control_flags="true"
 	else
@@ -400,8 +383,7 @@ function check_qemu_features()
 	fi
 
 	test_output=`$qemu_path -h | grep '^-libattr-hack'`
-	if [ -n "$test_output" ]
-	then
+	if [ -n "$test_output" ]; then
 		conf_cputransparency_qemu_has_libattr_hack_flag="true"
 	else
 		conf_cputransparency_qemu_has_libattr_hack_flag="false"
@@ -419,8 +401,7 @@ function check_ld_so_argv0_feature()
 	# Executing ld.so without any arguments should print 
 	# usage information to stderr:
 	test_output=`$ld_so_path 2>&1 | grep 'argv0 STRING'`
-	if [ -n "$test_output" ]
-	then
+	if [ -n "$test_output" ]; then
 		# description about --argv0 exists!
 		ld_so_argv_flag_works="true"
 	fi
@@ -437,18 +418,15 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 	# Check if ld.so can be used from $rootdir by 
 	# checking that libsb2 has been installed to tools
 
-	if [ -d $rootdir/$SBOX_DIR/lib/libsb2 ]
-	then
+	if [ -d $rootdir/$SBOX_DIR/lib/libsb2 ]; then
 		sbox_dir_2=$rootdir/$SBOX_DIR
-	elif [ -d $rootdir/usr/lib/libsb2 ]
-	then
+	elif [ -d $rootdir/usr/lib/libsb2 ]; then
 		sbox_dir_2=$rootdir/usr
 	else
 		sbox_dir_2=""
 	fi
 
-	if [ -f $sbox_dir_2/lib/libsb2/libsb2.so.1 ]
-	then
+	if [ -f $sbox_dir_2/lib/libsb2/libsb2.so.1 ]; then
 		echo "$sb2_installed_varname = true" >>$SBOX_SESSION_DIR/exec_config.lua
 		ld_so_found="yes"
 	else
@@ -462,20 +440,16 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 
 	# First try if the default linker can be used
 	ld_so_candidate=$rootdir/lib/ld-linux.so.2
-	if [ -f $ld_so_candidate ]
-	then
+	if [ -f $ld_so_candidate ]; then
 		check_ld_so_argv0_feature $rootdir $ld_so_candidate
-		if [ "$ld_so_argv_flag_works" != "true" ]
-		then
+		if [ "$ld_so_argv_flag_works" != "true" ]; then
 			# the default ld.so does not support --argv0.
 			# Find out if a replacement has been installed for sb2:
 			ld_so_with_version=`readlink $ld_so_candidate`
 			ld_so_candidate2=$SBOX_DIR/lib/libsb2/$ld_so_with_version
-			if [ -f "$ld_so_candidate2" ]
-			then
+			if [ -f "$ld_so_candidate2" ]; then
 				check_ld_so_argv0_feature $rootdir $ld_so_candidate2
-				if [ "$ld_so_argv_flag_works" == "true" ]
-				then
+				if [ "$ld_so_argv_flag_works" == "true" ]; then
 					ld_so_candidate=$ld_so_candidate2
 				fi # else keep the default ld_so_candidate
 			fi # no replacement, use the default ld.so. No --argv0
@@ -485,14 +459,12 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 		ld_so_argv_flag_works="false"
 	fi
 			
-	if [ -n "$SBOX_OPT_Z_NO_LD_SO_EXEC" ]
-	then
+	if [ -n "$SBOX_OPT_Z_NO_LD_SO_EXEC" ]; then
 		ld_so_candidate=""
 		ld_so_argv_flag_works="false"
 	fi
 
-	if [ -n "$ld_so_candidate" ]
-	then
+	if [ -n "$ld_so_candidate" ]; then
 		echo "$ld_so_path_varname = \"$ld_so_candidate\"" >>$SBOX_SESSION_DIR/exec_config.lua
 		echo "$ld_so_supports_argv0_varname = $ld_so_argv_flag_works" >>$SBOX_SESSION_DIR/exec_config.lua
 
@@ -537,8 +509,7 @@ END
 			conf_tools_sb2_installed conf_tools_sbox_dir \
 			conf_tools_ld_so conf_tools_ld_so_supports_argv0
 
-		if [ ld_so_found != "yes" ]
-		then
+		if [ ld_so_found != "yes" ]; then
 			# ld.so from tools can not be used. Add tools' shared
 			# library locations to the normal LD_LIBRARY_PATH;	
 			# this is risky but the best what we can do now
@@ -613,13 +584,11 @@ function get_SBOX_SESSION_DIR_from_file()
 	file=$1
 
 	SBOX_SESSION_DIR=""
-	if [ ! -r "$file" ]
-	then
+	if [ ! -r "$file" ]; then
 		exit_error "Failed to read '$file'"
 	fi
 
-	if grep -q "# SB2 SessionInfo:" "$file" 2>/dev/null
-	then
+	if grep -q "# SB2 SessionInfo:" "$file" 2>/dev/null; then
 		# $file seems to be valid
 		SBOX_SESSION_DIR=`sed -n -e 's/^SBOX_SESSION_DIR=//p' < $file`
 	else
@@ -627,8 +596,7 @@ function get_SBOX_SESSION_DIR_from_file()
 	fi
 
 	if [ ! -d "$SBOX_SESSION_DIR" -o \
-	     ! -f $SBOX_SESSION_DIR/.joinable-session ]
-	then
+	     ! -f $SBOX_SESSION_DIR/.joinable-session ]; then
 		exit_error "Session '$SBOX_SESSION_DIR' does not exist"
 	fi
 	# else the session seems to be valid.
@@ -637,15 +605,13 @@ function get_SBOX_SESSION_DIR_from_file()
 # used to select a mapping mode which is distributed with sb2.
 function add_map_mode()
 {
-	if [ -z "$SBOX_MAPMODE" ]
-	then
+	if [ -z "$SBOX_MAPMODE" ]; then
 		# SBOX_MAPMODE was not set, this will be the default mode.
 		# Note that more than one mapping mode can be defined only
 		# when a persistent session is created (opt. -S)
 		SBOX_MAPMODE=$1
 	else
-		if [ -z "$SB2_INTERNAL_MAPMODES" ]
-		then
+		if [ -z "$SB2_INTERNAL_MAPMODES" ]; then
 			SB2_INTERNAL_MAPMODES="$SBOX_MAPMODE"
 		fi
 	fi
@@ -656,8 +622,7 @@ function add_map_mode()
 
 function add_external_map_mode()
 {
-	if [ -z "$SBOX_MAPMODE" ]
-	then
+	if [ -z "$SBOX_MAPMODE" ]; then
 		# SBOX_MAPMODE was not set. Use basename of the rule file
 		# as default mode name:
 		SBOX_MAPMODE=`basename $1 .lua`
@@ -671,8 +636,7 @@ function initialize_new_sb2_session()
 {
 	# Create a new session
 	if [ -n "$SBOX_WRITE_SESSION_INFO_TO_FILE" -a \
-	     -f "$SBOX_WRITE_SESSION_INFO_TO_FILE" ]
-	then
+	     -f "$SBOX_WRITE_SESSION_INFO_TO_FILE" ]; then
 		exit_error "File '$SBOX_WRITE_SESSION_INFO_TO_FILE' already exists."
 	fi
 
@@ -685,8 +649,7 @@ function initialize_new_sb2_session()
 	mkdir $SBOX_SESSION_DIR/rules
 	mkdir $SBOX_SESSION_DIR/rev_rules
 
-	if [ -n "$SBOX_WRITE_SESSION_INFO_TO_FILE" ]
-	then
+	if [ -n "$SBOX_WRITE_SESSION_INFO_TO_FILE" ]; then
 		cat >$SBOX_WRITE_SESSION_INFO_TO_FILE <<END
 # SB2 SessionInfo:
 SBOX_SESSION_DIR=$SBOX_SESSION_DIR
@@ -700,8 +663,7 @@ function join_existing_session()
 	# Join an existing session, don't create it..
 	get_SBOX_SESSION_DIR_from_file "$SBOX_JOIN_SESSION_FILE"
 
-	if [ -n "$SBOX_MAPMODE" ]
-	then
+	if [ -n "$SBOX_MAPMODE" ]; then
 		# A specific mapping mode was requested by option -m,
 		# see if that mode has been made available for this session
 		if [ ! -f $SBOX_SESSION_DIR/rules/$SBOX_MAPMODE.lua ]
@@ -721,24 +683,19 @@ function link_wrappers_for_mapmode()
 {
 	w_mode=$1
 
-	if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$w_mode ]
-	then
+	if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$w_mode ]; then
 		# Get list of wrappers:
 		SBOX_WRAPPERS=""
 		. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$w_mode wrapper_list
-		if [ "$SBOX_WRAPPERS" != '' ]
-		then
+		if [ "$SBOX_WRAPPERS" != '' ]; then
 			mkdir $SBOX_SESSION_DIR/wrappers.$w_mode
 
-			if [ "$SBOX_WRAPPERS" == 'ALL' ]
-			then
+			if [ "$SBOX_WRAPPERS" == 'ALL' ]; then
 				ln -s $SBOX_DIR/share/scratchbox2/wrappers/* \
 					$SBOX_SESSION_DIR/wrappers.$w_mode
 			else
-				for ammw in $SBOX_WRAPPERS
-				do
-					if [ -f $SBOX_DIR/share/scratchbox2/wrappers/$ammw ]
-					then
+				for ammw in $SBOX_WRAPPERS; do
+					if [ -f $SBOX_DIR/share/scratchbox2/wrappers/$ammw ]; then
 						ln -s $SBOX_DIR/share/scratchbox2/wrappers/$ammw \
 							$SBOX_SESSION_DIR/wrappers.$w_mode
 					else
@@ -756,10 +713,8 @@ function write_configfiles_and_rules_for_new_session()
 	ln -s $SBOX_LUA_SCRIPTS $SBOX_SESSION_DIR/lua_scripts
 
 	# Create rulefiles and set up wrappers
-	if [ -n "$SB2_INTERNAL_MAPMODES" ]
-	then
-		for amm in $SB2_INTERNAL_MAPMODES
-		do
+	if [ -n "$SB2_INTERNAL_MAPMODES" ]; then
+		for amm in $SB2_INTERNAL_MAPMODES; do
 			ifiles=`ls $SBOX_SESSION_DIR/lua_scripts/pathmaps/$amm/*.lua`
 			write_rules_to_session_dir \
 				$SBOX_SESSION_DIR/rules/$amm.lua $amm $ifiles
@@ -768,10 +723,8 @@ function write_configfiles_and_rules_for_new_session()
 		done
 	fi
 
-	if [ -n "$SB2_EXTERNAL_RULEFILES" ]
-	then
-		for ammf in $SB2_EXTERNAL_RULEFILES
-		do
+	if [ -n "$SB2_EXTERNAL_RULEFILES" ]; then
+		for ammf in $SB2_EXTERNAL_RULEFILES; do
 			amm=`basename $ammf .lua`
 			write_rules_to_session_dir \
 				$SBOX_SESSION_DIR/rules/$amm.lua $amm $ammf
@@ -793,8 +746,7 @@ function write_configfiles_and_rules_for_new_session()
 
 	# Copy intial contents of /var/run from the rootstrap:
 	mkdir $SBOX_SESSION_DIR/var
-	if [ -d $SBOX_TARGET_ROOT/var ]
-	then
+	if [ -d $SBOX_TARGET_ROOT/var ]; then
 		(cd $SBOX_TARGET_ROOT/var; find run -depth -print |
 			cpio -pamd $SBOX_SESSION_DIR/var 2>/dev/null)
 	fi
@@ -807,8 +759,7 @@ function delete_old_sb2_session()
 
 	# now we "know" that $SBOX_SESSION_DIR is a directory,
 	# but double-checking doesn't hurt before rm -rf..
-	if [ -d "$SBOX_SESSION_DIR" ]
-	then
+	if [ -d "$SBOX_SESSION_DIR" ]; then
 		rm -rf $SBOX_SESSION_DIR
 	fi
 
@@ -862,8 +813,7 @@ do
 done
 shift $(($OPTIND - 1))
 
-if [ -n "$SBOX_SESSION_DIR" -a -f "$SBOX_SESSION_DIR/rules/Default.lua" ]
-then
+if [ -n "$SBOX_SESSION_DIR" -a -f "$SBOX_SESSION_DIR/rules/Default.lua" ]; then
 	# already inside an sb2 session; ignore all options and just exec the command.
 	echo "WARNING: recursive calls to sb2 are not supported (session already exists)"
 	echo "WARNING: going to execute '$*' in this session"
@@ -883,12 +833,10 @@ else
 	export SBOX_MAPPING_LOGLEVEL=warning
 fi
 
-if [ -z "$SBOX_WRITE_SESSION_INFO_TO_FILE" ]
-then
+if [ -z "$SBOX_WRITE_SESSION_INFO_TO_FILE" ]; then
 	# Multiple -m and/or -M options are allowed only
 	# when creating a parsistent session
-	if [ $NUM_MAPMODES -gt 1 ]
-	then
+	if [ $NUM_MAPMODES -gt 1 ]; then
 		exit_error "Only one of -e, -m or -M is allowed"
 	fi
 fi
@@ -900,22 +848,19 @@ fi
 
 # if SBOX_SESSION_PERM is set, export it. It may enable special permissions
 # in some mapping modes (e.g. see the "emulate" mode)
-if [ -n "$SBOX_SESSION_PERM" ]
-then
+if [ -n "$SBOX_SESSION_PERM" ]; then
 	export SBOX_SESSION_PERM
 	SBOX_FAKEROOT_PREFIX="fakeroot"
 fi
 
 #----------- End of parameter checks
 
-if [ -n "$SBOX_DELETE_SESSION_FILE" ]
-then
+if [ -n "$SBOX_DELETE_SESSION_FILE" ]; then
 	delete_old_sb2_session
 	exit 0
 fi
 
-if [ -n "$SBOX_JOIN_SESSION_FILE" ]
-then
+if [ -n "$SBOX_JOIN_SESSION_FILE" ]; then
 	join_existing_session
 else
 	initialize_new_sb2_session
@@ -926,15 +871,13 @@ export SBOX_SESSION_DIR
 
 sboxify_environment
 
-if [ -z "$SB2_INTERNAL_MAPMODES" -a -z "$SB2_EXTERNAL_RULEFILES" ]
-then
+if [ -z "$SB2_INTERNAL_MAPMODES" -a -z "$SB2_EXTERNAL_RULEFILES" ]; then
 	# mapping mode was not specified by an option, SBOX_MAPMODE has been
 	# set from the config file by sboxify_environment
 	SB2_INTERNAL_MAPMODES=$SBOX_MAPMODE
 fi
 
-if [ -z "$SBOX_JOIN_SESSION_FILE" ]
-then
+if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 	write_configfiles_and_rules_for_new_session
 fi
 
@@ -948,8 +891,7 @@ else
 fi
 
 # Final addition to LD_LIBRARY_PATH, if needed
-if [ -f $SBOX_SESSION_DIR/ld_library_path_extras ]
-then
+if [ -f $SBOX_SESSION_DIR/ld_library_path_extras ]; then
 	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`cat $SBOX_SESSION_DIR/ld_library_path_extras`
 fi
 
@@ -977,10 +919,8 @@ export LD_LIBRARY_PATH
 # ------------
 # Now everything is ready, programs can be executed in SB2'ed environment.
 # Create reverse mapping rules before starting the actual command (or shell)
-if [ -z "$SBOX_JOIN_SESSION_FILE" ]
-then
-	if [ "$SBOX_CREATE_REVERSE_RULES" == "y" ]
-	then
+if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
+	if [ "$SBOX_CREATE_REVERSE_RULES" == "y" ]; then
 		create_reverse_rules
 	else
 		echo "-- Reverse rules disabled by command line option -r" \
@@ -1004,7 +944,7 @@ unset SBOX_TOOLS_ROOT
 
 # ------------
 
-if [ $# -gt 0 -o "$STDIN" = true ] ; then
+if [ $# -gt 0 -o "$STDIN" = true ]; then
 	binary="$1"
 	shift 1
 	args="$@"

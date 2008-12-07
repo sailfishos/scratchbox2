@@ -13,8 +13,7 @@ $ sb2 $0"
 	exit 1
 }
 
-if [ -z "$SBOX_SESSION_DIR" ]
-then
+if [ -z "$SBOX_SESSION_DIR" ]; then
 	error_not_inside_sb2
 fi
 

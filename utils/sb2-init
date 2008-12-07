@@ -15,18 +15,15 @@ function show_existing_config_info()
 	has_targets="no"
 	echo "Already initialized targets:"
 	echo
-	for f in $HOME/.scratchbox2/*/sb2.config
-	do
-		if [ -f $f ]
-		then
+	for f in $HOME/.scratchbox2/*/sb2.config; do
+		if [ -f $f ]; then
 			SBOX_CONFIG_VERSION=0
 			. $f
 			has_targets="yes"
 			targetdir=`dirname $f`
 			targetname=`basename $targetdir`
 			echo "Target $targetname:"
-			if [ "$SBOX_CONFIG_VERSION" -lt 5 ]
-			then
+			if [ "$SBOX_CONFIG_VERSION" -lt 5 ]; then
 				echo "(configuration file version too old)"
 			else
 				echo "configured at $SBOX_INIT_TIME by $SBOX_INIT_ID, with command"
@@ -36,8 +33,7 @@ function show_existing_config_info()
 			echo
 		fi
 	done
-	if [ has_targets = "no" ]
-	then
+	if [ has_targets = "no" ]; then
 		echo "none."
 	fi
 }
@@ -210,8 +206,7 @@ you can re-run this script."
 	fi
 }
 
-if [ -z "$SBOX_DIR" ]
-then
+if [ -z "$SBOX_DIR" ]; then
 	SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
 fi
 
@@ -221,8 +216,7 @@ fi
 # another program is used to initialize the system)
 SBOX_INIT_ORIG_ARGS="$*"
 SBOX_INIT_TIME=`date +%Y-%m-%d_%H:%M:%S`
-if [ -z "$SBOX_INIT_ID" ]
-then
+if [ -z "$SBOX_INIT_ID" ]; then
 	SBOX_INIT_ID="user '$USER'"
 fi
 
@@ -296,8 +290,7 @@ else
 	SBOX_CROSS_GCC_SHORTVERSION=`echo $SBOX_CROSS_GCC_VERSION |
 		sed -e 's/^\([0-9][0-9]*\.[0-9][0-9]*\)\..*/\1/'`
 
-	if [ -z "$ARCH" ]
-	then
+	if [ -z "$ARCH" ]; then
 		echo "Using $GCC to detect target architecture:"
 		ARCH=$($GCC -dumpmachine | awk -F- '{ print $1 }')
 		GCC_TARGET=$($GCC -dumpmachine)
@@ -316,8 +309,7 @@ fi
 case "$ARCH" in
 	$HOST_ARCH*) ;;
 	arm*) 
-		if [ -z "$GCC_TARGET" ]
-		then
+		if [ -z "$GCC_TARGET" ]; then
 			DEBIAN_CPU=$ARCH
 		else
 			echo $GCC_TARGET | grep -q -i eabi
@@ -359,8 +351,7 @@ SB2INIT_DEB_HOST_ARCH_CPU=$DEBIAN_CPU
 SB2INIT_CROSS_GCC_PREFIX_LIST=$ARCH-linux-
 
 # $ARCH has been set, get mode-specific settings..
-if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$MAPPING_MODE ]
-then
+if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$MAPPING_MODE ]; then
 	echo "Reading mode-specific settings.."
 	. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$MAPPING_MODE "initializing"
 fi
@@ -411,7 +402,7 @@ SBOX_EXTRA_CROSS_COMPILER_ARGS="$SBOX_EXTRA_CROSS_COMPILER_ARGS -L$SBOX_TARGET_R
 # test if the cross compiler needs to be silenced about /usr/include
 # usage
 echo "" | $GCC_FULLPATH -E - -Wno-poison-system-directories > /dev/null 2>&1
-if [ $? = 0 ] ; then
+if [ $? = 0 ]; then
 	SBOX_EXTRA_CROSS_COMPILER_ARGS="$SBOX_EXTRA_CROSS_COMPILER_ARGS -Wno-poison-system-directories"
 fi
 

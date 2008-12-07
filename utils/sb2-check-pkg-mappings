@@ -48,8 +48,7 @@ function error_not_inside_sb2()
 	exit 1
 }
 
-if [ -z "$SBOX_SESSION_DIR" ]
-then
+if [ -z "$SBOX_SESSION_DIR" ]; then
 	error_not_inside_sb2
 fi
 
@@ -77,18 +76,14 @@ shift $(($OPTIND - 1))
 # Target's real package db:
 TARGET_DPKG_ADMINDIR_ALL_PKGS=$sbox_target_root/var/lib/dpkg
 
-if [ $check_all_pkgs = "yes" -o "$check_if_out_of_date" = "yes" ]
-then
-	if [ ! -d $sbox_temp_dpkg_admin_dir ]
-	then
+if [ $check_all_pkgs = "yes" -o "$check_if_out_of_date" = "yes" ]; then
+	if [ ! -d $sbox_temp_dpkg_admin_dir ]; then
 		mkdir $sbox_temp_dpkg_admin_dir
 	fi
 fi
 
-if [ "$update_timestamp_by_force" = "yes" ]
-then
-	if [ ! -f $sbox_temp_dpkg_admin_dir/status ]
-	then
+if [ "$update_timestamp_by_force" = "yes" ]; then
+	if [ ! -f $sbox_temp_dpkg_admin_dir/status ]; then
 		echo "FAILED: $sbox_temp_dpkg_admin_dir/status does not exist."
 		exit 1
 	fi
@@ -97,29 +92,25 @@ then
 	exit 0
 fi
 
-if [ "$check_if_out_of_date" = "yes" ]
-then
+if [ "$check_if_out_of_date" = "yes" ]; then
 	# Check that the list of usable packages exists and is up-to-date.
 	# That list is really a temporary package database, which contains only
 	# packages that are usable thru this mapping mode.
 
-	if [ ! -f $sbox_temp_dpkg_admin_dir/status ]
-	then
+	if [ ! -f $sbox_temp_dpkg_admin_dir/status ]; then
 		echo "$sbox_temp_dpkg_admin_dir/status does not exist."
 		echo "going to create it now. This is going to take a while.."
 		echo
 		check_all_pkgs="yes"
 	elif [ $sbox_temp_dpkg_admin_dir/status -ot \
-	       $TARGET_DPKG_ADMINDIR_ALL_PKGS/status ]
-	then
+	       $TARGET_DPKG_ADMINDIR_ALL_PKGS/status ]; then
 		echo "Target's primary package database has been updated =>"
 		echo "$sbox_temp_dpkg_admin_dir/status is out of date."
 		echo "going to update it now. This is going to take a while.."
 		echo
 		check_all_pkgs="yes"
 	elif [ $sbox_temp_dpkg_admin_dir/status -ot \
-	       $sbox_dir/share/scratchbox2/lua_scripts/pathmaps/$sbox_mapmode/00_default.lua ]
-	then
+	       $sbox_dir/share/scratchbox2/lua_scripts/pathmaps/$sbox_mapmode/00_default.lua ]; then
 		echo "SB2's mapping rules have been updated =>"
 		echo "$sbox_temp_dpkg_admin_dir/status might be out of date."
 		echo "going to update it now. This is going to take a while.."
@@ -127,8 +118,7 @@ then
 		check_all_pkgs="yes"
 	fi
 
-	if [ "$check_all_pkgs" != "yes" ]
-	then
+	if [ "$check_all_pkgs" != "yes" ]; then
 		echo "$sbox_temp_dpkg_admin_dir/status is up-to-date."
 		exit 0
 	fi
@@ -137,21 +127,18 @@ fi
 pkgs2check="$*"
 tstamp=`/bin/date +%Y%m%d-%H%M`
 
-if [ -z "$pkgs2check" -a "$check_all_pkgs" = "yes" ]
-then
+if [ -z "$pkgs2check" -a "$check_all_pkgs" = "yes" ]; then
 	# check all installed packages
 	pkgs2check=`dpkg --get-selections | grep 'install$' | sed -e 's/install$//'`
 	status_file=STATUS-NEW.$tstamp.$$
-elif [ "$check_all_pkgs" = "yes" ]
-then
+elif [ "$check_all_pkgs" = "yes" ]; then
 	# -a and package names - illegal
 	usage
 fi
 
 function remove_temp_files
 {
-	if [ -n "$status_file" -a -f "$status_file" ]
-	then
+	if [ -n "$status_file" -a -f "$status_file" ]; then
 		echo "removing temp file '$$status_file'"
 		rm $status_file
 	fi
@@ -164,14 +151,12 @@ num_failed=0
 
 # Read the mode-specific path ignore list.
 SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST=""
-if [ -f $sbox_dir/share/scratchbox2/modeconf/sb2rc.$sbox_mapmode ]
-then
+if [ -f $sbox_dir/share/scratchbox2/modeconf/sb2rc.$sbox_mapmode ]; then
 	. $sbox_dir/share/scratchbox2/modeconf/sb2rc.$sbox_mapmode "sb2-check-pkg-mappings"
 fi
 
 # for all installed packages..
-for pkg in $pkgs2check
-do
+for pkg in $pkgs2check; do
 	pkgnum=`expr $pkgnum + 1`
 	echo "=========== $pkgnum. Checking $pkg ==========="
 
@@ -181,8 +166,7 @@ do
 	# to these diretories listed in $SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST.
 	sb2_pkg_chk=`mktemp /tmp/sb2-pkg-chk.XXXXXXXXXX`
 	dpkg -L $pkg >$sb2_pkg_chk
-	if [ $? != 0 ]
-	then
+	if [ $? != 0 ]; then
 		num_failed=`expr $num_failed + 1`
 		echo "	$pkg is not available"
 	else
@@ -192,14 +176,11 @@ do
 		sb2-show -D verify-pathlist-mappings \
 			$VERBOSE_OPTION \
 			$sbox_target_root $SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST
-		if [ $? == 0 ]
-		then
+		if [ $? == 0 ]; then
 			echo "	$pkg = OK"
 			num_ok=`expr $num_ok + 1`
-			if [ $check_all_pkgs = "yes" ]
-			then
-				if [ -f $status_file ]
-				then
+			if [ $check_all_pkgs = "yes" ]; then
+				if [ -f $status_file ]; then
 					echo >>$status_file
 				fi
 				dpkg -s $pkg >>$status_file
@@ -214,10 +195,8 @@ done
 
 echo "Checked $pkgnum packages: Ok=$num_ok, unusable=$num_failed"
 
-if [ $check_all_pkgs = "yes" ]
-then
-	if [ ! -d $sbox_temp_dpkg_admin_dir ]
-	then
+if [ $check_all_pkgs = "yes" ]; then
+	if [ ! -d $sbox_temp_dpkg_admin_dir ]; then
 		mkdir $sbox_temp_dpkg_admin_dir
 	fi
 	mv $status_file $sbox_temp_dpkg_admin_dir/status

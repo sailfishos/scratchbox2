@@ -10,12 +10,12 @@ exit_reason=$1
 exit_status=$2
 
 if [ -z "$SBOX_MAPPING_LOGFILE" -o \
-     -z "$exit_reason" -o -z "$exit_status" ] ; then
+     -z "$exit_reason" -o -z "$exit_status" ]; then
 	echo "ERROR: $0 is an internal tool for sb2, do not use directly"
 	exit 1
 fi
 
-if [ "$exit_reason" == "exit" ] ; then
+if [ "$exit_reason" == "exit" ]; then
 	# Normal exit
 	ret=$exit_status
 else
@@ -23,7 +23,7 @@ else
 	ret=1
 fi
 
-if [ -s "$SBOX_MAPPING_LOGFILE" ] ; then
+if [ -s "$SBOX_MAPPING_LOGFILE" ]; then
 	# Logfile exists and is not empty
 	case "$SBOX_MAPPING_LOGLEVEL" in
 	(error|warning)
@@ -41,19 +41,17 @@ if [ -s "$SBOX_MAPPING_LOGFILE" ] ; then
 		echo "sb2-logz < $SBOX_MAPPING_LOGFILE"
 		;;
 	esac
-elif [ -f "$SBOX_MAPPING_LOGFILE" ] ; then
+elif [ -f "$SBOX_MAPPING_LOGFILE" ]; then
 	# Log file exists, but is empty
 	rm $SBOX_MAPPING_LOGFILE
 fi
 
-if [ -f $SBOX_SESSION_DIR/.joinable-session ]
-then
+if [ -f $SBOX_SESSION_DIR/.joinable-session ]; then
 	# The session was created with -S flag, don't clean it, but stay quiet
 	echo >/dev/null
 else
 	# cleanup
-	if [ -n "$SBOX_SESSION_DIR" -a -d "$SBOX_SESSION_DIR" ]
-	then
+	if [ -n "$SBOX_SESSION_DIR" -a -d "$SBOX_SESSION_DIR" ]; then
 		rm -rf $SBOX_SESSION_DIR
 	fi
 fi

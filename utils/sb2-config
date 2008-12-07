@@ -38,14 +38,23 @@ function version()
 
 function list_targets()
 {
+	if [ ! -d $HOME/.scratchbox2 ]; then
+		echo "$HOME/.scratchbox2 missing, create some targets with sb2-init!" >&2
+		exit 1
+	fi
 	list=$(find $HOME/.scratchbox2/ -maxdepth 1 -mindepth 1 \
 		-type d -and \
-		! -name '*.tmp-pkg-db.*')
-	if [ $? == 0 ]; then
-		for f in $list; do echo $(basename $f); done
-		exit 0
+		! -name '*.tmp-pkg-db.*' -and \
+		! -name 'libtool_build' 2>/dev/null)
+	if [ $? != 0 ]; then
+		echo "Error occured while getting list of targets" >&2
+		exit 2
 	fi
-	exit 1
+	if [ -z "$list" ]; then
+		echo "No targets found, create some with sb2-init!" >&2
+		exit 1
+	fi
+	for f in $list; do echo $(basename $f); done
 }
 
 function write_config()

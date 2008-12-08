@@ -71,6 +71,9 @@ function load_and_check_rules()
 	export_chains = {}
 	exec_policy_chains = {}
 
+	-- Differences between version 16 and 17:
+	-- - Added support for hierarcic rules (i.e. rule
+	--   trees. 16 supports only linear rule lists)
 	-- Differences between version 15 and 16:
 	-- - "match" rules are not supported anymore
 	-- - interface to custom_map_func was modified:
@@ -79,7 +82,7 @@ function load_and_check_rules()
 	--   (previously only one was expected)
 	-- - variables "esc_tools_root" and "esc_target_root"
 	--   were removed
-	local current_rule_interface_version = "16"
+	local current_rule_interface_version = "17"
 
 	do_file(rule_file_path)
 
@@ -328,6 +331,11 @@ function find_rule(chain, func, full_path)
 			min_path_len = sb.test_path_match(full_path,
 				rule.dir, rule.prefix, rule.path)
 			if min_path_len >= 0 then
+				if (rule.chain) then
+					return find_rule(rule.chain,
+						func, full_path)
+				end
+
 				-- Path matches, test if other conditions are
 				-- also OK:
 				if ((not rule.func_name

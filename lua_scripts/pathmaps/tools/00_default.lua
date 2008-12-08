@@ -6,7 +6,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "16"
+rule_file_interface_version = "17"
 ----------------------------------
 
 -- If the permission token exists and contains "root", tools_root directories

@@ -37,10 +37,12 @@ struct lua_instance {
  *   - sbox_translate_path(): as above
  * * Differences between "35,lta-2008-10-01" and "53,lta-2008-11-10"
  *   - added new functions sb.get_forced_mapmode() and sb.get_session_perm()
+ * * Differences between "59,lta-2008-12-04" and "53,lta-2008-11-10"
+ *   - part of rule selection logic is now implemented in C.
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "53,lta-2008-11-10"
+#define SB2_LUA_C_INTERFACE_VERSION "59,lta-2008-12-04"
 
 struct lua_instance *get_lua(void);
 

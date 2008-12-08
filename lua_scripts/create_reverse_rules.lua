@@ -58,6 +58,8 @@ function reverse_one_rule(output_rules, rule, n)
 			forward_path = rule.prefix
 		elseif (rule.path) then
 			forward_path = rule.path
+		elseif (rule.dir) then
+			forward_path = rule.dir
 		else
 			forward_path = nil
 			new_rule.error = string.format(
@@ -141,6 +143,8 @@ function reverse_rules(input_rules)
 		if rule.virtual_path then
 			-- don't reverse virtual paths
 			print("-- virtual_path set, not reversing", n)
+		elseif rule.chain then
+			reverse_rules(rule.chain.rules)
 		else
 			reverse_one_rule(output_rules, rule, n)
 		end

@@ -657,7 +657,7 @@ static int lua_sb_test_path_match(lua_State *l)
 			/* test a directory prefix: the next char after the
 			 * prefix must be '\0' or '/', unless we are accessing
 			 * the root directory */
-			if (!strncmp(str_path, str_rule_prefix, prefixlen)) {
+			if (!strncmp(str_path, str_rule_dir, prefixlen)) {
 				if ( ((prefixlen == 1) && (*str_path=='/')) ||
 				     (str_path[prefixlen] == '/') ||
 				     (str_path[prefixlen] == '\0') ) {

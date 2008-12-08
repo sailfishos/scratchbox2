@@ -8,7 +8,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "16"
+rule_file_interface_version = "17"
 ----------------------------------
 
 tools = tools_root
@@ -98,91 +98,9 @@ test_first_tools_default_is_target = {
 
 -- =========== Mapping rule chains ===========
 
-simple_chain = {
-	next_chain = nil,
-	binary = nil,
+-- Used when dir = "/usr/share/aclocal":
+devel_mode_rules_usr_share_aclocal = {
 	rules = {
-		-- -----------------------------------------------
-		-- 1. General SB2 environment:
-
-		{prefix = "/usr/bin/sb2-",
-		 use_orig_path = true, readonly = true},
-		{prefix = "/usr/share/scratchbox2/host_usr",
-		 replace_by = "/usr", readonly = true},
-		{prefix = "/usr/share/scratchbox2",
-		 use_orig_path = true, readonly = true},
-
-		-- -----------------------------------------------
-		-- 2. Development environment special destinations:
-
-		{prefix = "/sb2/wrappers",
-		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
-		 readonly = true},
-
-		{prefix = "/sb2/scripts",
-		 replace_by = sbox_dir.."/share/scratchbox2/scripts",
-		 readonly = true},
-
-		-- tools_root should not be mapped twice.
-		{prefix = tools, use_orig_path = true, readonly = true},
-
-		-- -----------------------------------------------
-		-- 5. Maemo SDK+
-
-		{prefix = "/opt/maemo",
-		 use_orig_path = true, readonly = true},
-
-		-- -----------------------------------------------
-		-- 10. Home directories
-
-		{prefix = sbox_user_home_dir, use_orig_path = true},
-
-		-- "user" is a special username at least on the Maemo platform:
-		-- (but note that if the real user name is "user",
-		-- our previous rule handled that and this rule won't be used)
-		{prefix = "/home/user", map_to = target_root},
-
-		-- Home directories = not mapped, R/W access
-		{prefix = "/home", use_orig_path = true},
-
-		-- -----------------------------------------------
-		-- 20. /bin/* and /usr/bin/*:
-		-- tools that need special processing:
-
-		{path = "/bin/sh",
-		 replace_by = tools .. "/bin/bash", readonly = true},
-		{prefix = "/usr/bin/host-",
-		 use_orig_path = true, readonly = true},
-
-		-- "localedef" *must* be used from the target, the version
-		-- which exists in tools_root appers to work but doesn't..
-		{path = "/usr/bin/localedef", map_to = target_root,
-		 readonly = true},
-
-		-- -----------------------------------------------
-		-- 30. /lib/*
-
-		{prefix = "/lib", map_to = target_root, readonly = true},
-
-		-- -----------------------------------------------
-		-- 40. /usr/lib/*
-		-- Most of /usr/lib should come from target_root, but
-		-- there are exceptions: Some tools have private subdirectories
-		-- there.
-
-		{prefix = "/usr/lib/gcc", map_to = tools, readonly = true},
-		{prefix = "/usr/lib/perl", map_to = tools, readonly = true},
-		{prefix = "/usr/lib/dpkg", map_to = tools, readonly = true},
-		{prefix = "/usr/lib/apt", map_to = tools, readonly = true},
-		{prefix = "/usr/lib/cdbs", map_to = tools, readonly = true},
-		{prefix = "/usr/lib/libfakeroot", map_to = tools, readonly = true},
-		{prefix = "/usr/lib/man-db", map_to = tools, readonly = true},
-
-		-- /usr/lib/python* from tools_root
-		{prefix = "/usr/lib/python", map_to = tools, readonly = true},
-
-		{prefix = "/usr/lib", map_to = target_root, readonly = true},
-
 		-- -----------------------------------------------
 		-- 45. /usr/share/aclocal*
 		-- This is more than a bit complex, we must mix files from
@@ -222,6 +140,22 @@ simple_chain = {
 		-- exists, but default is target_root
 		{prefix = "/usr/share/aclocal",
 		 actions = test_first_tools_default_is_target},
+	}
+}
+
+-- Used when dir = "/usr/share":
+devel_mode_rules_usr_share = {
+	rules = {
+		{dir = "/usr/share/aclocal",
+		 chain = devel_mode_rules_usr_share_aclocal},
+
+		-- -----------------------------------------------
+		-- 1. General SB2 environment:
+
+		{prefix = "/usr/share/scratchbox2/host_usr",
+		 replace_by = "/usr", readonly = true},
+		{prefix = "/usr/share/scratchbox2",
+		 use_orig_path = true, readonly = true},
 
 		-- -----------------------------------------------
 		-- 46. /usr/share/* (other than /usr/share/aclocal*)
@@ -279,9 +213,53 @@ simple_chain = {
 		{prefix = "/usr/share/modest", map_to = target_root,
 		 readonly = true},
 
-		-- default rules:
-		{path = "/usr/share", map_to = tools, readonly = true},
-		{prefix = "/usr/share/", map_to = tools, readonly = true},
+		-- -----------------------------------------------
+		-- 100. DEFAULT RULES:
+		{dir = "/usr/share", map_to = tools, readonly = true},
+	}
+}
+
+-- Used when dir = "/usr":
+devel_mode_rules_usr = {
+	rules = {
+		{dir = "/usr/share", chain = devel_mode_rules_usr_share},
+
+		-- -----------------------------------------------
+		-- 1. General SB2 environment:
+
+		{prefix = "/usr/bin/sb2-",
+		 use_orig_path = true, readonly = true},
+
+		-- -----------------------------------------------
+		-- 20. /bin/* and /usr/bin/*:
+		-- tools that need special processing:
+
+		{prefix = "/usr/bin/host-",
+		 use_orig_path = true, readonly = true},
+
+		-- "localedef" *must* be used from the target, the version
+		-- which exists in tools_root appers to work but doesn't..
+		{path = "/usr/bin/localedef", map_to = target_root,
+		 readonly = true},
+
+		-- -----------------------------------------------
+		-- 40. /usr/lib/*
+		-- Most of /usr/lib should come from target_root, but
+		-- there are exceptions: Some tools have private subdirectories
+		-- there.
+
+		{prefix = "/usr/lib/gcc", map_to = tools, readonly = true},
+		{prefix = "/usr/lib/perl", map_to = tools, readonly = true},
+		{prefix = "/usr/lib/dpkg", map_to = tools, readonly = true},
+		{prefix = "/usr/lib/apt", map_to = tools, readonly = true},
+		{prefix = "/usr/lib/cdbs", map_to = tools, readonly = true},
+		{prefix = "/usr/lib/libfakeroot", map_to = tools, readonly = true},
+		{prefix = "/usr/lib/man-db", map_to = tools, readonly = true},
+
+		-- /usr/lib/python* from tools_root
+		{prefix = "/usr/lib/python", map_to = tools, readonly = true},
+
+		{prefix = "/usr/lib", map_to = target_root, readonly = true},
 
 		-- -----------------------------------------------
 		-- 50. /usr/src/*
@@ -302,6 +280,20 @@ simple_chain = {
 		{prefix = "/usr/include", map_to = target_root,
 		 readonly = true},
 
+		-- -----------------------------------------------
+		-- 100. DEFAULT RULES:
+		-- the root directory must not be mapped:
+
+		-- "standard" directories are mapped to tools_root,
+		-- but everything else defaults to the host system
+		-- (so that things like /mnt, /media and /opt are
+		-- used from the host)
+		{prefix = "/usr", map_to = tools, readonly = true},
+	}
+}
+
+devel_mode_rules_etc = {
+	rules = {
 		-- -----------------------------------------------
 		-- 70. /etc/*
 		--
@@ -325,9 +317,12 @@ simple_chain = {
 		 use_orig_path = true, readonly = true},
 
 		-- default rules:
-		{path = "/etc", map_to = tools, readonly = true},
-		{prefix = "/etc/", map_to = tools, readonly = true},
+		{dir = "/etc", map_to = tools, readonly = true},
+	}
+}
 
+devel_mode_rules_var = {
+	rules = {
 		-- -----------------------------------------------
 		-- 80. /var/*
 
@@ -355,6 +350,109 @@ simple_chain = {
 		{prefix = "/var/log", map_to = target_root,
 		 readonly = true},
 
+		-- default rules:
+		{dir = "/var", map_to = tools, readonly = true},
+	}
+}
+
+devel_mode_rules_scratchbox1 = {
+	rules = {
+		-- -----------------------------------------------
+		-- 98. Scratchbox 1 emulation rules
+		-- (some packages have hard-coded paths to the SB1 enviroment;
+		-- replace those by the correct locations in our environment)
+		-- (these are marked "virtual"; these won't be reversed)
+		-- "libtool" for arm
+		{prefix = "/scratchbox/compilers/cs2005q3.2-glibc2.5-arm/arch_tools/share/libtool",
+		 replace_by = sb2_share_dir .. "/libtool",
+		 log_level = "warning",
+		 readonly = true, virtual_path = true},
+
+		-- "libtool" for i386
+		{prefix = "/scratchbox/compilers/cs2005q3.2-glibc-i386/arch_tools/share",
+		 replace_by = tools .. "/usr/share",
+		 log_level = "warning",
+		 readonly = true, virtual_path = true},
+
+		{prefix = "/scratchbox/tools/bin",
+		 replace_by = tools .. "/usr/bin",
+		 log_level = "warning",
+		 readonly = true, virtual_path = true},
+
+		{prefix = "/scratchbox/tools/autotools/automake-1.7/share/automake-1.7",
+		 replace_by = tools .. "/usr/share/automake-1.7",
+		 log_level = "warning",
+		 readonly = true, virtual_path = true},
+
+		-- otherwise, don't map /scratchbox, some people still
+		-- keep their projects there.
+		{prefix = "/scratchbox", use_orig_path = true},
+	}
+}
+
+simple_chain = {
+	next_chain = nil,
+	binary = nil,
+	rules = {
+
+		-- -----------------------------------------------
+		-- 2. Development environment special destinations:
+
+		{prefix = "/sb2/wrappers",
+		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
+		 readonly = true},
+
+		{prefix = "/sb2/scripts",
+		 replace_by = sbox_dir.."/share/scratchbox2/scripts",
+		 readonly = true},
+
+		-- tools_root should not be mapped twice.
+		{prefix = tools, use_orig_path = true, readonly = true},
+
+		-- -----------------------------------------------
+		-- 5. Maemo SDK+
+
+		{prefix = "/opt/maemo",
+		 use_orig_path = true, readonly = true},
+
+		-- -----------------------------------------------
+		-- 10. Home directories
+
+		{prefix = sbox_user_home_dir, use_orig_path = true},
+
+		-- "user" is a special username at least on the Maemo platform:
+		-- (but note that if the real user name is "user",
+		-- our previous rule handled that and this rule won't be used)
+		{prefix = "/home/user", map_to = target_root},
+
+		-- Home directories = not mapped, R/W access
+		{prefix = "/home", use_orig_path = true},
+
+		-- -----------------------------------------------
+		-- 20. /bin/*:
+		-- tools that need special processing:
+
+		{path = "/bin/sh",
+		 replace_by = tools .. "/bin/bash", readonly = true},
+
+		-- -----------------------------------------------
+		-- 30. /lib/*
+
+		{prefix = "/lib", map_to = target_root, readonly = true},
+
+		-- -----------------------------------------------
+		-- 40. /usr
+		{dir = "/usr", chain = devel_mode_rules_usr},
+
+		-- -----------------------------------------------
+		-- 70. /etc/*
+		--
+		{dir = "/etc", chain = devel_mode_rules_etc},
+
+		-- -----------------------------------------------
+		-- 80. /var/*
+		{dir = "/var", chain = devel_mode_rules_var},
+
 		-- -----------------------------------------------
 		-- 85. /tmp
 		{prefix = session_dir, use_orig_path = true},
@@ -381,32 +479,7 @@ simple_chain = {
 		-- (some packages have hard-coded paths to the SB1 enviroment;
 		-- replace those by the correct locations in our environment)
 		-- (these are marked "virtual"; these won't be reversed)
-
-		-- "libtool" for arm
-		{prefix = "/scratchbox/compilers/cs2005q3.2-glibc2.5-arm/arch_tools/share/libtool",
-		 replace_by = sb2_share_dir .. "/libtool",
-		 log_level = "warning",
-		 readonly = true, virtual_path = true},
-
-		-- "libtool" for i386
-		{prefix = "/scratchbox/compilers/cs2005q3.2-glibc-i386/arch_tools/share",
-		 replace_by = tools .. "/usr/share",
-		 log_level = "warning",
-		 readonly = true, virtual_path = true},
-
-		{prefix = "/scratchbox/tools/bin",
-		 replace_by = tools .. "/usr/bin",
-		 log_level = "warning",
-		 readonly = true, virtual_path = true},
-
-		{prefix = "/scratchbox/tools/autotools/automake-1.7/share/automake-1.7",
-		 replace_by = tools .. "/usr/share/automake-1.7",
-		 log_level = "warning",
-		 readonly = true, virtual_path = true},
-
-		-- otherwise, don't map /scratchbox, some people still
-		-- keep their projects there.
-		{prefix = "/scratchbox", use_orig_path = true},
+		{dir = "/scratchbox", chain = devel_mode_rules_scratchbox1},
 
 		-- -----------------------------------------------
 		-- 100. DEFAULT RULES:
@@ -418,10 +491,7 @@ simple_chain = {
 		-- (so that things like /mnt, /media and /opt are
 		-- used from the host)
 		{prefix = "/bin", map_to = tools, readonly = true},
-		{prefix = "/etc", map_to = tools, readonly = true},
 		{prefix = "/sbin", map_to = tools, readonly = true},
-		{prefix = "/usr", map_to = tools, readonly = true},
-		{prefix = "/var", map_to = tools, readonly = true},
 
 		-- Default = Host, R/W access
 		{prefix = "/", use_orig_path = true}

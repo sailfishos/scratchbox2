@@ -110,13 +110,12 @@ function create_reverse_rules()
 	done
 }
 
-function sboxify_environment()
+function set_and_check_SBOX_TARGET()
 {
-	if [ -r ~/.scratchbox2/config ]; then
-		. ~/.scratchbox2/config
-	fi
-
 	if [ -z "$SBOX_TARGET" ]; then
+		if [ -r ~/.scratchbox2/config ]; then
+			. ~/.scratchbox2/config
+		fi
 		SBOX_TARGET=$DEFAULT_TARGET
 	fi
 
@@ -127,7 +126,10 @@ function sboxify_environment()
 	if [ ! -e ~/.scratchbox2/$SBOX_TARGET/sb2.config ]; then
 		exit_error "Invalid target specified, aborting."
 	fi
+}
 
+function sboxify_environment()
+{
 	LD_LIBRARY_PATH=$SBOX_DIR/lib/libsb2:$SBOX_DIR/lib64/libsb2:$SBOX_DIR/lib32/libsb2:/emul/lib64/libsb2:/emul/lib32/libsb2
 	SBOX_LIBSB2="libsb2.so.1"
 	
@@ -666,6 +668,7 @@ function get_SBOX_SESSION_DIR_from_file()
 	if grep -q "# SB2 SessionInfo:" "$file" 2>/dev/null; then
 		# $file seems to be valid
 		SBOX_SESSION_DIR=`sed -n -e 's/^SBOX_SESSION_DIR=//p' < $file`
+		SBOX_TARGET=`sed -n -e 's/^SBOX_TARGET=//p' < $file`
 	else
 		exit_error "'$file' is not a valid SB2 session information file"
 	fi
@@ -729,6 +732,7 @@ function initialize_new_sb2_session()
 		cat >$SBOX_WRITE_SESSION_INFO_TO_FILE <<END
 # SB2 SessionInfo:
 SBOX_SESSION_DIR=$SBOX_SESSION_DIR
+SBOX_TARGET=$SBOX_TARGET
 END
 		touch $SBOX_SESSION_DIR/.joinable-session
 	fi
@@ -750,6 +754,9 @@ function join_existing_session()
 		# default mode for this session. Set an environment variable
 		# which will overide the value from the config file.
 		export SBOX_SESSION_MODE=$SBOX_MAPMODE
+	fi
+	if [ -z "$SBOX_TARGET" ]; then
+		exit_error "Failed to read SBOX_TARGET from $SBOX_JOIN_SESSION_FILE"
 	fi
 	SBOX_CLONE_TARGET_ROOT="n"
 }
@@ -937,6 +944,16 @@ if [ -n "$SBOX_FORCED_TOOLS_ROOT" ]; then
 	fi
 fi
 
+if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
+	# -J was not used
+	set_and_check_SBOX_TARGET
+else
+	# With -J, $SBOX_TARGET *must* come from the session file.
+	if [ -n "$SBOX_TARGET" ]; then
+		exit_error "Option '-t' can't be used with option '-J'"
+	fi
+fi
+
 #----------- End of parameter checks
 
 if [ -n "$SBOX_DELETE_SESSION_FILE" ]; then
@@ -946,6 +963,7 @@ fi
 
 if [ -n "$SBOX_JOIN_SESSION_FILE" ]; then
 	join_existing_session
+	set_and_check_SBOX_TARGET
 else
 	initialize_new_sb2_session
 fi

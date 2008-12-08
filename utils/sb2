@@ -5,7 +5,6 @@
 function version()
 {
 	cat $SBOX_DIR/share/scratchbox2/version
-	exit 0
 }
 
 function usage()
@@ -304,13 +303,47 @@ sbox_emulate_sb1_bugs="$SBOX_EMULATE_SB1_BUGS"
 END
 }
 
+# write_ld_library_path_replacement_to_exec_config():
+#
+# Create replacement for LD_LIBRARY_PATH and write it to the created config
+# file. This is called first for the tools (tools_root), and if host CPU
+# type == target CPU, then this is called again to create settings for
+# target_root as well.
+#
+# This also locates a libsb2.so.1 library which must be used; Several
+# possible locations are checked. Tools/target need to get the libsb2.so
+# library from a "neutral" place so that it would be possible to
+# upgrade/downgrade any component (tools,target_roots or sb2 itself)
+# without having to re-configure other components in the system.
 function write_ld_library_path_replacement_to_exec_config()
 {
 	rootdir=$1
 	varname=$2
+	shift 2
+	libsb2_candidates="$@"
 
 	# Build replacement for LD_LIBRARY_PATH:
 
+	# ---- Step 1. Location of libsb2.so
+	libsb2_dirname=""
+	libsb2_path=""
+	if [ -n "$libsb2_candidates" ]
+	then
+		for l in $libsb2_candidates
+		do
+			if [ -f $l ]
+			then
+				# IMPORTANT: $libsb2_dirname and $libsb2_path
+				# will be used by
+				# write_libsb2_and_ld_so_state_to_exec_config()
+				libsb2_dirname=`dirname $l`
+				libsb2_path=$l
+				break
+			fi
+		done
+	fi
+
+	# ---- Step 2. Directories under $rootdir
 	# First, make sure that libsb2 is searched
 	liblocations="$SBOX_DIR/lib/libsb2 /usr/lib/libsb2"
 
@@ -350,6 +383,10 @@ function write_ld_library_path_replacement_to_exec_config()
 	# Create the variable.
 	echo "$varname =" >>$SBOX_SESSION_DIR/exec_config.lua
 	colon=""
+	if [ -n "$libsb2_dirname" ]; then
+		echo " \"$colon$libsb2_dirname\" .." >>$SBOX_SESSION_DIR/exec_config.lua
+		colon=":"
+	fi
 	for l in $liblocations; do
 		if [ -d $rootdir$l ]; then
 			echo " \"$colon$rootdir$l\" .." >>$SBOX_SESSION_DIR/exec_config.lua
@@ -426,7 +463,13 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 		sbox_dir_2=""
 	fi
 
-	if [ -f $sbox_dir_2/lib/libsb2/libsb2.so.1 ]; then
+	if [ -z "$libsb2_path" ]; then
+		libsb2_path=$sbox_dir_2/lib/libsb2/libsb2.so.1
+		libsb2_dirname=""
+	fi
+
+	if [ -f $libsb2_path ]; then
+		echo "-- $libsb2_path" >>$SBOX_SESSION_DIR/exec_config.lua
 		echo "$sb2_installed_varname = true" >>$SBOX_SESSION_DIR/exec_config.lua
 		ld_so_found="yes"
 	else
@@ -444,15 +487,31 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 		check_ld_so_argv0_feature $rootdir $ld_so_candidate
 		if [ "$ld_so_argv_flag_works" != "true" ]; then
 			# the default ld.so does not support --argv0.
-			# Find out if a replacement has been installed for sb2:
+			# Find out if a replacement has been installed for sb2.
 			ld_so_with_version=`readlink $ld_so_candidate`
-			ld_so_candidate2=$SBOX_DIR/lib/libsb2/$ld_so_with_version
-			if [ -f "$ld_so_candidate2" ]; then
-				check_ld_so_argv0_feature $rootdir $ld_so_candidate2
+
+			# First try if it exists in the same directory where
+			# libsb2.so is:
+			ld_so_candidate2=$libsb2_dirname/$ld_so_with_version
+			if [ -n "$libsb2_dirname" -a -f $ld_so_candidate2 ]; then
+				check_ld_so_argv0_feature $rootdir \
+					$ld_so_candidate2
+
 				if [ "$ld_so_argv_flag_works" == "true" ]; then
 					ld_so_candidate=$ld_so_candidate2
 				fi # else keep the default ld_so_candidate
-			fi # no replacement, use the default ld.so. No --argv0
+			fi
+
+			if [ "$ld_so_argv_flag_works" != "true" ]; then
+				ld_so_candidate2=$SBOX_DIR/lib/libsb2/$ld_so_with_version
+				if [ -f "$ld_so_candidate2" ]; then
+					check_ld_so_argv0_feature $rootdir \
+						$ld_so_candidate2
+					if [ "$ld_so_argv_flag_works" == "true" ]; then
+						ld_so_candidate=$ld_so_candidate2
+					fi # else keep the default ld_so_candidate
+				fi # no replacement, use the default ld.so. No --argv0
+			fi
 		fi
 	else
 		ld_so_candidate=""
@@ -501,8 +560,12 @@ END
 
 	# 1. Exec settings for tools
 	if [ "$SBOX_TOOLS_ROOT" != "" ]; then
+		tools_basename=`basename $SBOX_TOOLS_ROOT`
 		write_ld_library_path_replacement_to_exec_config \
-			$SBOX_TOOLS_ROOT conf_tools_ld_so_library_path 
+			$SBOX_TOOLS_ROOT conf_tools_ld_so_library_path \
+			$SBOX_DIR/lib/libsb2/tools/$tools_basename/`version`/libsb2.so.1 \
+			$SBOX_DIR/lib/libsb2/tools/`version`/libsb2.so.1 \
+			$SBOX_TOOLS_ROOT/usr/lib/libsb2/libsb2.so.1
 
 		write_libsb2_and_ld_so_state_to_exec_config \
 			$SBOX_TOOLS_ROOT \
@@ -540,9 +603,15 @@ END
 	if [ "$SBOX_CPUTRANSPARENCY_METHOD" == "" ]; then
 		# CPU transparency method has not been set:
 		# host CPU == target CPU
+		target_basename=`basename $SBOX_TARGET_ROOT`
 
 		write_ld_library_path_replacement_to_exec_config \
-			$SBOX_TARGET_ROOT conf_target_ld_so_library_path 
+			$SBOX_TARGET_ROOT conf_target_ld_so_library_path \
+			~/.scratchbox2/libsb2/targets/$target_basename/`version`/libsb2.so.1 \
+			~/.scratchbox2/libsb2/targets/`version`/libsb2.so.1 \
+			$SBOX_DIR/lib/libsb2/targets/$target_basename/`version`/libsb2.so.1 \
+			$SBOX_DIR/lib/libsb2/targets/`version`/libsb2.so.1 \
+			$SBOX_TARGET_ROOT/usr/lib/libsb2/libsb2.so.1
 
 		write_libsb2_and_ld_so_state_to_exec_config \
 			$SBOX_TARGET_ROOT \
@@ -554,8 +623,8 @@ END
 			conf_target_locale_path \
 			conf_target_message_catalog_prefix
 	else
-		# SBOX_TOOLS_ROOT was empty, tools will be used from
-		# host environment.
+		# SBOX_CPUTRANSPARENCY_METHOD is set empty,
+		# host CPU != target CPU
 		cat <<END >>$SBOX_SESSION_DIR/exec_config.lua
 conf_target_ld_so_library_path = nil
 conf_target_sb2_installed = false
@@ -788,7 +857,7 @@ SBOX_CLONE_TARGET_ROOT="n"
 while getopts vdht:em:s:L:Q:M:ZrRS:J:D:O:c foo
 do
 	case $foo in
-	(v) version ;;
+	(v) version; exit 0;;
 	(d) export SBOX_MAPPING_DEBUG=1
 	    export SBOX_MAPPING_LOGLEVEL=debug ;;
 	(L) export SBOX_MAPPING_DEBUG=1

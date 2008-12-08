@@ -65,6 +65,11 @@ DEFAULT_TARGET=$DEFAULT_TARGET
 SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
 WRITE_CONFIG=0
 
+if [ $# == 0 ]; then
+	# No parameters
+	usage
+fi
+
 while getopts d:hlv foo
 do
 	case $foo in

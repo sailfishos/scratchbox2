@@ -40,6 +40,7 @@ Options:
     -c           When creating a session, also create a private copy
                  of target_root (rootstrap). Note that this can be
                  really slow, depending on the size of the orig.target_root
+    -T dir       use "dir" as tools_root (overriding the value from config file)
 
 Examples:
     sb2 ./configure
@@ -133,6 +134,11 @@ function sboxify_environment()
 	. ~/.scratchbox2/$SBOX_TARGET/sb2.config
 	# Remember where SBOX_TARGET_ROOT was in the configuration file
 	SBOX_TARGET_ROOT_in_config_file=$SBOX_TARGET_ROOT
+
+	# override SBOX_TOOLS_ROOT if requested by command-line option
+	if [ -n "$SBOX_FORCED_TOOLS_ROOT" ]; then
+		SBOX_TOOLS_ROOT=$SBOX_FORCED_TOOLS_ROOT
+	fi
 
 	if [ -d $SBOX_SESSION_DIR/target_root ]; then
 		# A copy of target_root already exists, use that
@@ -853,8 +859,9 @@ SBOX_SESSION_PERM=""
 SBOX_CREATE_REVERSE_RULES="y"
 SBOX_MODE_SPECIFIC_OPTIONS=""
 SBOX_CLONE_TARGET_ROOT="n"
+SBOX_FORCED_TOOLS_ROOT=""
 
-while getopts vdht:em:s:L:Q:M:ZrRS:J:D:O:c foo
+while getopts vdht:em:s:L:Q:M:ZrRS:J:D:O:cT: foo
 do
 	case $foo in
 	(v) version; exit 0;;
@@ -877,6 +884,7 @@ do
 	(D) SBOX_DELETE_SESSION_FILE=$OPTARG ;;
 	(O) SBOX_MODE_SPECIFIC_OPTIONS=$OPTARG ;;
 	(c) SBOX_CLONE_TARGET_ROOT="y" ;;
+	(T) SBOX_FORCED_TOOLS_ROOT=$OPTARG ;;
 	(*) usage ;;
 	esac
 done
@@ -920,6 +928,12 @@ fi
 if [ -n "$SBOX_SESSION_PERM" ]; then
 	export SBOX_SESSION_PERM
 	SBOX_FAKEROOT_PREFIX="fakeroot"
+fi
+
+if [ -n "$SBOX_FORCED_TOOLS_ROOT" ]; then
+	if [ ! -d "$SBOX_FORCED_TOOLS_ROOT" ]; then
+		exit_error "Directory $SBOX_FORCED_TOOLS_ROOT does not exist"
+	fi
 fi
 
 #----------- End of parameter checks

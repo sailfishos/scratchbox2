@@ -15,7 +15,7 @@ debug_messages_enabled = sb.debug_messages_enabled()
 --
 -- NOTE: the corresponding identifier for C is in include/sb2.h,
 -- see that file for description about differences
-sb2_lua_c_interface_version = "59,lta-2008-12-04"
+sb2_lua_c_interface_version = "60,2008-12-07"
 
 function do_file(filename)
 	if (debug_messages_enabled) then

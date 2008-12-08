@@ -3,7 +3,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "17"
+rule_file_interface_version = "18"
 ----------------------------------
 
 sb1_compat_dir = sbox_target_root .. "/scratchbox1-compat"
@@ -84,7 +84,7 @@ mapall_chain = {
 
 		-- 
 		{prefix = "/dev", use_orig_path = true},
-		{prefix = "/proc", use_orig_path = true},
+		{dir = "/proc", custom_map_funct = sb2_procfs_mapper},
 		{prefix = "/sys", use_orig_path = true},
 
 		{prefix = sbox_dir .. "/share/scratchbox2",

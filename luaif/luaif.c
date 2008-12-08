@@ -690,6 +690,34 @@ static int lua_sb_test_path_match(lua_State *l)
 	return 1;
 }
 
+/* "sb.procfs_mapping_request", to be called from lua code */
+static int lua_sb_procfs_mapping_request(lua_State *l)
+{
+	int n;
+	char *path;
+	char *resolved_path;
+
+	n = lua_gettop(l);
+	if (n != 1) {
+		lua_pushstring(l, NULL);
+		return 1;
+	}
+
+	path = strdup(lua_tostring(l, 1));
+
+	resolved_path = procfs_mapping_request(path);
+
+	if (resolved_path) {
+		/* mapped to somewhere else */
+		lua_pushstring(l, resolved_path);
+		free(resolved_path);
+	} else {
+		/* no need to map this path */
+		lua_pushnil(l);
+	}
+	free(path);
+	return 1;
+}
 
 /* mappings from c to lua */
 static const luaL_reg reg[] =
@@ -711,6 +739,7 @@ static const luaL_reg reg[] =
 	{"get_session_perm",		lua_sb_get_session_perm},
 	{"isprefix",			lua_sb_isprefix},
 	{"test_path_match",		lua_sb_test_path_match},
+	{"procfs_mapping_request",	lua_sb_procfs_mapping_request},
 	{NULL,				NULL}
 };
 

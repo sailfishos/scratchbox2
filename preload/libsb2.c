@@ -1159,6 +1159,7 @@ char *sbox_orig_ld_preload = NULL;
 char *sbox_orig_ld_library_path = NULL;
 char *sbox_binary_name = NULL;
 char *sbox_real_binary_name = NULL;
+char *sbox_orig_binary_name = NULL;
 
 int sb2_global_vars_initialized__ = 0;
 
@@ -1209,6 +1210,10 @@ void sb2_initialize_global_variables(void)
 		if (!sbox_real_binary_name) {
 			cp = getenv("__SB2_REAL_BINARYNAME");
 			if (cp) sbox_real_binary_name = strdup(cp);
+		}
+		if (!sbox_orig_binary_name) {
+			cp = getenv("__SB2_ORIG_BINARYNAME");
+			if (cp) sbox_orig_binary_name = strdup(cp);
 		}
 
 		if (sbox_session_dir) {

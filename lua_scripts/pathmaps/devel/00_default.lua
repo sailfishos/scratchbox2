@@ -8,7 +8,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "17"
+rule_file_interface_version = "18"
 ----------------------------------
 
 tools = tools_root
@@ -461,7 +461,7 @@ simple_chain = {
 		-- -----------------------------------------------
 		-- 90. Top-level directories that must not be mapped:
 		{prefix = "/dev", use_orig_path = true},
-		{prefix = "/proc", use_orig_path = true},
+		{dir = "/proc", custom_map_funct = sb2_procfs_mapper},
 		{prefix = "/sys",
 		 use_orig_path = true, readonly = true},
 
@@ -514,7 +514,7 @@ qemu_chain = {
 		{prefix = "/tmp", map_to = session_dir},
 
 		{prefix = "/dev", use_orig_path = true},
-		{prefix = "/proc", use_orig_path = true},
+		{dir = "/proc", custom_map_funct = sb2_procfs_mapper},
 		{prefix = "/sys", use_orig_path = true},
 
 		{prefix = "/etc/resolv.conf",

@@ -71,7 +71,7 @@ function reverse_one_rule(output_rules, rule, n)
 			allow_reversing = false
 		end
 
-		local d_path
+		local d_path = nil
 		if (rule.use_orig_path) then
 			new_rule.use_orig_path = true
 			d_path = forward_path
@@ -85,21 +85,27 @@ function reverse_one_rule(output_rules, rule, n)
 		elseif (rule.replace_by) then
 			d_path = rule.replace_by
 			new_rule.replace_by = forward_path
+		elseif (rule.custom_map_funct) then
+			new_rule.error = string.format(
+				"--Notice: custom_map_funct rules can't be reversed, please mark it 'virtual'",
+				new_rule.name)
 		else
 			new_rule.error = string.format(
 				"--ERROR: Rule '%s' does not contain any actions",
 				new_rule.name)
 		end
 
-		local idx
-		if (rule.prefix) then
-			new_rule.prefix = d_path
-			new_rule.orig_prefix = rule.prefix
-			idx = test_rev_rule_position(output_rules, d_path..":")
-		elseif (rule.path) then
-			new_rule.path = d_path
-			new_rule.orig_path = rule.path
-			idx = test_rev_rule_position(output_rules, d_path)
+		local idx = nil
+		if (d_path ~= nil) then
+			if (rule.prefix) then
+				new_rule.prefix = d_path
+				new_rule.orig_prefix = rule.prefix
+				idx = test_rev_rule_position(output_rules, d_path..":")
+			elseif (rule.path) then
+				new_rule.path = d_path
+				new_rule.orig_path = rule.path
+				idx = test_rev_rule_position(output_rules, d_path)
+			end
 		end
 
 		if (idx ~= nil) then

@@ -7,7 +7,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "17"
+rule_file_interface_version = "18"
 ----------------------------------
 
 tools = tools_root
@@ -61,7 +61,7 @@ simple_chain = {
 		{prefix = "/tmp", map_to = session_dir},
 
 		{prefix = "/dev", use_orig_path = true},
-		{prefix = "/proc", use_orig_path = true},
+		{prefix = "/proc", custom_map_funct = sb2_procfs_mapper},
 		{prefix = "/sys", use_orig_path = true},
 		{prefix = "/etc/resolv.conf", use_orig_path = true},
 		{prefix = "/etc/apt", map_to = target_root},
@@ -83,7 +83,7 @@ qemu_chain = {
 		{prefix = "/tmp", map_to = session_dir},
 
 		{prefix = "/dev", use_orig_path = true},
-		{prefix = "/proc", use_orig_path = true},
+		{dir = "/proc", custom_map_funct = sb2_procfs_mapper},
 		{prefix = "/sys", use_orig_path = true},
 		{prefix = "/etc/resolv.conf", use_orig_path = true},
 		{prefix = tools, use_orig_path = true},

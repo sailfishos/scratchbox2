@@ -567,7 +567,8 @@ static char **duplicate_argv(char *const *argv)
 	return(my_argv);
 }
 
-static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
+static char **prepare_envp_for_do_exec(const char *orig_file,
+	const char *binaryname, char *const *envp)
 {
 	char	**p;
 	int	envc = 0;
@@ -576,6 +577,7 @@ static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 	int	has_ld_library_path = 0;
 	int	i;
 	char	*new_binaryname_var;
+	char	*new_orig_file_var;
 	int	has_sbox_session_dir = 0;
 	int	has_sbox_session_mode = 0;
 	const int sbox_session_dir_varname_len = strlen("SBOX_SESSION_DIR");
@@ -627,19 +629,17 @@ static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 				"restored to %s", sbox_session_dir);
 	}
 
-	/* allocate new environment. Add 7 extra elements (all may not be
+	/* allocate new environment. Add 8 extra elements (all may not be
 	 * needed always) */
-	my_envp = (char **)calloc(envc + 7, sizeof(char *));
+	my_envp = (char **)calloc(envc + 8, sizeof(char *));
 
 	for (i = 0, p=(char **)envp; *p; p++) {
-		if (strncmp(*p, "__SB2_BINARYNAME=",
-				strlen("__SB2_BINARYNAME=")) == 0) {
-			/* this is current process' name, skip it */
-			continue;
-		}
-		if (strncmp(*p, "__SB2_REAL_BINARYNAME=",
-				strlen("__SB2_REAL_BINARYNAME=")) == 0) {
-			/* skip current process' real binary name */
+		if (strncmp(*p, "__SB2_", strlen("__SB2_")) == 0) {
+			/* __SB2_* are temporary variables that must not
+			 * be relayed to the next executable => skip it.
+			 * Such variables include: __SB2_BINARYNAME,
+			 * __SB2_REAL_BINARYNAME, __SB2_ORIG_BINARYNAME
+			*/
 			continue;
 		}
 		if (strncmp(*p, "SBOX_SESSION_MODE=",
@@ -718,6 +718,11 @@ static char **prepare_envp_for_do_exec(char *binaryname, char *const *envp)
 			"asprintf failed to create __SB2_BINARYNAME");
 	}
 	my_envp[i++] = new_binaryname_var; /* add the new process' name */
+	if (asprintf(&new_orig_file_var, "__SB2_ORIG_BINARYNAME=%s", orig_file) < 0) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"asprintf failed to create __SB2_ORIG_BINARYNAME");
+	}
+	my_envp[i++] = new_orig_file_var; /* add the new process' name */
 
 	/* allocate slot for __SB2_REAL_BINARYNAME that is filled later on */
 	my_envp[i++] = strdup("__SB2_REAL_BINARYNAME=");
@@ -855,11 +860,12 @@ static int prepare_exec(const char *exec_fn_name,
 	
 	my_file = strdup(orig_file);
 
-	my_envp = prepare_envp_for_do_exec(binaryname, orig_envp);
+	my_envp = prepare_envp_for_do_exec(orig_file, binaryname, orig_envp);
 	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
 		/* create a copy of intended environment for logging,
 		 * before sb_execve_preprocess() gets control */ 
-		my_envp_copy = prepare_envp_for_do_exec(binaryname, orig_envp);
+		my_envp_copy = prepare_envp_for_do_exec(orig_file,
+			binaryname, orig_envp);
 	}
 
 	my_argv = duplicate_argv(orig_argv);

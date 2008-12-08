@@ -39,24 +39,30 @@ struct lua_instance {
  *   - added new functions sb.get_forced_mapmode() and sb.get_session_perm()
  * * Differences between "59,lta-2008-12-04" and "53,lta-2008-11-10"
  *   - part of rule selection logic is now implemented in C.
+ * * Differences between "60,2008-12-07" and "59,lta-2008-12-04"
+ *   - Added special handler for /proc => sb.procfs_mapping_request() was
+ *     added to luaif.c (and mapping.lua needs it)
+ *   - sbox_get_mapping_requirements() now returns four values
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "59,lta-2008-12-04"
+#define SB2_LUA_C_INTERFACE_VERSION "60,2008-12-07"
 
-struct lua_instance *get_lua(void);
+extern struct lua_instance *get_lua(void);
 
 #if 0
-char *sb_decolonize_path(const char *path);
+extern char *sb_decolonize_path(const char *path);
 #endif
 
-int sb_next_execve(const char *filename, char *const argv [],
+extern int sb_next_execve(const char *filename, char *const argv [],
 			char *const envp[]);
 
-int do_exec(const char *exec_fn_name, const char *file,
+extern int do_exec(const char *exec_fn_name, const char *file,
 		char *const *argv, char *const *envp);
 
-time_t get_sb2_timestamp(void);
+extern time_t get_sb2_timestamp(void);
+
+extern char *procfs_mapping_request(char *path);
 
 /* ------ debug/trace logging system for sb2: */
 #define SB_LOGLEVEL_uninitialized (-1)
@@ -100,6 +106,7 @@ extern char *sbox_orig_ld_preload;
 extern char *sbox_orig_ld_library_path;
 extern char *sbox_binary_name;
 extern char *sbox_real_binary_name;
+extern char *sbox_orig_binary_name;
 
 extern int pthread_library_is_available; /* flag */
 extern pthread_t (*pthread_self_fnptr)(void);

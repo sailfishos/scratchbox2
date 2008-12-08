@@ -4,7 +4,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "17"
+rule_file_interface_version = "18"
 ----------------------------------
 
 if (tools_root and tools_root ~= "/") then
@@ -31,7 +31,7 @@ default_chain = {
 		{ prefix = "/usr/local/bin", func_name = ".*exec.*", map_to = tools_target },
 
 		{ prefix = "/dev", func_name = "open.*", use_orig_path = true },
-		{ prefix = "/proc", use_orig_path = true },
+		{ dir = "/proc", custom_map_funct = sb2_procfs_mapper},
 		{ prefix = "/sys", use_orig_path = true },
 
 		{ prefix = session_dir, use_orig_path = true },

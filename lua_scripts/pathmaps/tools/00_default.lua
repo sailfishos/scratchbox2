@@ -6,7 +6,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "17"
+rule_file_interface_version = "18"
 ----------------------------------
 
 -- If the permission token exists and contains "root", tools_root directories
@@ -54,7 +54,7 @@ mapall_chain = {
 
 		--
 		{prefix = "/dev", use_orig_path = true},
-		{prefix = "/proc", use_orig_path = true},
+		{dir = "/proc", custom_map_funct = sb2_procfs_mapper},
 		{prefix = "/sys", use_orig_path = true},
 
 		{prefix = sbox_user_home_dir .. "/.scratchbox2",

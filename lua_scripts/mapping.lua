@@ -50,6 +50,22 @@ end
 --    end
 isprefix = sb.isprefix
 
+function sb2_procfs_mapper(binary_name, func_name, rp, path, rule)
+	local ret_path = path;
+
+	if (debug_messages_enabled) then
+		sb.log("debug", "sb2_procfs_mapper "..path.." : "..rp)
+	end
+
+	local mapped = sb.procfs_mapping_request(path)
+
+	-- Returns exec_policy, path, readonly_flag
+	if (mapped) then
+		ret_path = mapped
+	end
+	return nil, ret_path, false
+end
+
 -- Load mode-specific rules.
 -- A mode file must define three variables:
 --  1. rule_file_interface_version (string) is checked and must match,
@@ -71,6 +87,8 @@ function load_and_check_rules()
 	export_chains = {}
 	exec_policy_chains = {}
 
+	-- Differences between version 17 and 18:
+	-- - added sb2_procfs_mapper()
 	-- Differences between version 16 and 17:
 	-- - Added support for hierarcic rules (i.e. rule
 	--   trees. 16 supports only linear rule lists)
@@ -82,7 +100,7 @@ function load_and_check_rules()
 	--   (previously only one was expected)
 	-- - variables "esc_tools_root" and "esc_target_root"
 	--   were removed
-	local current_rule_interface_version = "17"
+	local current_rule_interface_version = "18"
 
 	do_file(rule_file_path)
 
@@ -400,7 +418,7 @@ function sbox_translate_path(rule, binary_name, func_name, path)
 
 	if (rule.custom_map_funct ~= nil) then
 		exec_policy, ret, readonly_flag = rule.custom_map_funct(
-			binary_name, func_name, rp, path, rules[n])
+			binary_name, func_name, rp, path, rule)
 		if (rule.readonly ~= nil) then
 			readonly_flag = rule.readonly
 		end
@@ -428,7 +446,9 @@ end
 -- path resolution takes place. The primary purpose of this is to
 -- determine where to start resolving symbolic links; shorter paths than
 -- "min_path_len" should not be given to sbox_translate_path()
--- returns "rule", "rule_found", "min_path_len"
+-- returns "rule", "rule_found", "min_path_len", "call_translate_for_all"
+-- ("call_translate_for_all" is a flag which controls optimizations in
+-- the path resolution code)
 function sbox_get_mapping_requirements(binary_name, func_name, full_path)
 	-- loop through the chains, first match is used
 	local min_path_len = 0
@@ -440,17 +460,22 @@ function sbox_get_mapping_requirements(binary_name, func_name, full_path)
 		sb.log("error", string.format("Unable to find chain for: %s(%s)",
 			func_name, full_path))
 
-		return nil, false, 0
+		return nil, false, 0, false
 	end
 
 	rule, min_path_len = find_rule(chain, func_name, full_path)
 	if (not rule) then
 		-- error, not even a default rule found
 		sb.log("error", string.format("Unable to find rule for: %s(%s)", func_name, full_path))
-		return nil, false, 0
+		return nil, false, 0, false
 	end
 
-	return rule, true, min_path_len
+	local call_translate_for_all = false
+	if (rule.custom_map_funct) then
+		call_translate_for_all = true
+	end
+
+	return rule, true, min_path_len, call_translate_for_all
 end
 
 --

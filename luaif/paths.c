@@ -497,10 +497,12 @@ static int call_lua_function_sbox_get_mapping_requirements(
 	const char *binary_name,
 	const char *func_name,
 	const char *full_path_for_rule_selection,
-	int *min_path_lenp)
+	int *min_path_lenp,
+	int *call_translate_for_all_p)
 {
 	int rule_found;
 	int min_path_len;
+	int call_translate_for_all;
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"calling sbox_get_mapping_requirements for %s(%s)",
@@ -514,21 +516,26 @@ static int call_lua_function_sbox_get_mapping_requirements(
 	lua_pushstring(luaif->lua, binary_name);
 	lua_pushstring(luaif->lua, func_name);
 	lua_pushstring(luaif->lua, full_path_for_rule_selection);
-	/* 3 arguments, returns (rule, rule_found_flag, min_path_len) */
-	lua_call(luaif->lua, 3, 3);
+	/* 3 arguments, returns 4: (rule, rule_found_flag,
+	 * min_path_len, call_translate_for_all) */
+	lua_call(luaif->lua, 3, 4);
 
-	rule_found = lua_toboolean(luaif->lua, -2);
-	min_path_len = lua_tointeger(luaif->lua, -1);
+	rule_found = lua_toboolean(luaif->lua, -3);
+	min_path_len = lua_tointeger(luaif->lua, -2);
+	call_translate_for_all = lua_toboolean(luaif->lua, -1);
 	if (min_path_lenp) *min_path_lenp = min_path_len;
+	if (call_translate_for_all_p)
+		*call_translate_for_all_p = call_translate_for_all;
 
-	/* remove "flag" and "min_path_len"; leave "rule" to the stack */
-	lua_pop(luaif->lua, 2);
+	/* remove last 3 values; leave "rule" to the stack */
+	lua_pop(luaif->lua, 3);
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "sbox_get_mapping_requirements -> %d,%d",
-		rule_found, min_path_len);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "sbox_get_mapping_requirements -> %d,%d,%d",
+		rule_found, min_path_len, call_translate_for_all);
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
-		"call_lua_function_sbox_get_mapping_requirements: at exit, gettop=%d",
+		"call_lua_function_sbox_get_mapping_requirements:"
+		" at exit, gettop=%d",
 		lua_gettop(luaif->lua));
 	return(rule_found);
 }
@@ -609,6 +616,7 @@ static char *sb_path_resolution(
 	struct path_entry_list prefix_path_list;
 	int	ro_tmp;
 	char	*path_copy;
+	int	call_translate_for_all = 0;
 
 	if (nest_count > 16) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
@@ -646,7 +654,7 @@ static char *sb_path_resolution(
 
 	if (call_lua_function_sbox_get_mapping_requirements(
 		luaif, binary_name, func_name, abs_path,
-		&min_path_len_to_check)) {
+		&min_path_len_to_check, &call_translate_for_all)) {
 		/* has requirements:
 		 * skip over path components that we are not supposed to check,
 		 * because otherwise rule recognition & execution could fail.
@@ -839,18 +847,47 @@ static char *sb_path_resolution(
 		}
 		work = work->pe_next;
 		if (work) {
-			char	*next_dir = NULL;
+			if (call_translate_for_all) {
+				/* call_translate_for_all is set when
+				 * path resolution must call
+				 * sbox_translate_path() for each component;
+				 * this happens when a "custom_map_funct" has
+				 * been set. "custom_map_funct" may use any
+				 * kind of strategy to decide when mapping
+				 * needs to be done, for example, the /proc
+				 * mapping function looks at the suffix, and
+				 * not at the prefix...
+				*/
+				if (prefix_mapping_result) {
+					free(prefix_mapping_result);
+				}
+				prefix_mapping_result =
+					call_lua_function_sbox_translate_path(
+						SB_LOGLEVEL_NOISE,
+						luaif, binary_name,
+						"PATH_RESOLUTION/2",
+						work->pe_full_path, &ro_tmp);
+				drop_policy_from_lua_stack(luaif);
+			} else {
+				/* "standard mapping", based on prefix or
+				 * exact match. Ok to skip sbox_translate_path()
+				* because here it would just add the component
+				 * to end of the path; instead we'll do that
+				 * here. This is a performance optimization.
+				*/
+				char	*next_dir = NULL;
 
-			if (asprintf(&next_dir, "%s/%s",
-				prefix_mapping_result,
-				work->pe_last_component_name) < 0) {
-				SB_LOG(SB_LOGLEVEL_ERROR,
-					"asprintf failed");
+				if (asprintf(&next_dir, "%s/%s",
+					prefix_mapping_result,
+					work->pe_last_component_name) < 0) {
+					SB_LOG(SB_LOGLEVEL_ERROR,
+						"asprintf failed");
+				}
+				if (prefix_mapping_result) {
+					free(prefix_mapping_result);
+				}
+				prefix_mapping_result = next_dir;
 			}
-			if (prefix_mapping_result) {
-				free(prefix_mapping_result);
-			}
-			prefix_mapping_result = next_dir;
 		} else {
 			free(prefix_mapping_result);
 		}

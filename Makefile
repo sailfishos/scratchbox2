@@ -1,6 +1,7 @@
 # Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 # Licensed under LGPL 2.1
 
+
 TOPDIR = $(CURDIR)
 OBJDIR = $(TOPDIR)
 SRCDIR = $(TOPDIR)
@@ -18,7 +19,19 @@ endif
 CC = gcc
 CXX = g++
 LD = ld
-PACKAGE_VERSION = "1.99.0.29"
+PACKAGE_VERSION = 1.99.0.29
+
+ifeq ($(shell if [ -d $(SRCDIR)/.git ]; then echo y; fi),y)
+GIT_PV_COMMIT := $(shell git --git-dir=$(SRCDIR)/.git log -1 --pretty="format:%h" $(PACKAGE_VERSION) 2>/dev/null)
+GIT_CUR_COMMIT := $(shell git --git-dir=$(SRCDIR)/.git log -1 --pretty="format:%h" HEAD 2>/dev/null)
+ifneq ($(GIT_PV_COMMIT),$(GIT_CUR_COMMIT))
+PACKAGE_VERSION := $(PACKAGE_VERSION)-$(GIT_CUR_COMMIT)
+GIT_MODIFIED := $(shell cd $(SRCDIR); git ls-files -m)
+ifneq ($(strip "$(GIT_MODIFIED)"),"")
+PACKAGE_VERSION := $(PACKAGE_VERSION)-dirty
+endif
+endif
+endif
 PACKAGE = "SB2"
 LIBSB2_SONAME = "libsb2.so.1"
 LLBUILD ?= $(SRCDIR)/llbuild
@@ -60,7 +73,18 @@ do-all: $(targets)
 	$(SRCDIR)/configure $(CONFIGURE_ARGS)
 	touch .configure
 
-regular: .configure
+.version:
+	@(set -e; \
+	if [ -e .version ]; then \
+		version=$$(cat .version); \
+		if [ "$(PACKAGE_VERSION)" != "$$version" ]; then \
+			echo $(PACKAGE_VERSION) > .version; \
+		fi \
+	else \
+		echo $(PACKAGE_VERSION) > .version; \
+	fi)
+
+regular: .configure .version
 	$(MAKE) -f $(SRCDIR)/Makefile --include-dir=$(SRCDIR) SRCDIR=$(SRCDIR) do-all
 
 multilib:

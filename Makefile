@@ -1,7 +1,6 @@
 # Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 # Licensed under LGPL 2.1
 
-
 TOPDIR = $(CURDIR)
 OBJDIR = $(TOPDIR)
 SRCDIR = $(TOPDIR)
@@ -73,9 +72,10 @@ do-all: $(targets)
 	$(SRCDIR)/configure $(CONFIGURE_ARGS)
 	touch .configure
 
+.PHONY: .version
 .version:
 	@(set -e; \
-	if [ -e .version ]; then \
+	if [ -f .version ]; then \
 		version=$$(cat .version); \
 		if [ "$(PACKAGE_VERSION)" != "$$version" ]; then \
 			echo $(PACKAGE_VERSION) > .version; \

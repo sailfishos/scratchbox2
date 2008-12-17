@@ -541,22 +541,51 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 	fi
 }
 
+#
+# write_locale_paths_to_exec_config()
+#
+# Probes localization files and directories and writes
+# it to exec_config.lua.
+#
 function write_locale_paths_to_exec_config()
 {
-	local rootdir
-	local locale_path_varname
-	local message_catalog_prefix_varname
-	locale locale_path
-
 	rootdir=$1
-	locale_path_varname=$2
-	message_catalog_prefix_varname=$3
-	locale_path=$HOME/.scratchbox2/$SBOX_TARGET/locales
+	generated_locale_path=$2
+	locale_path_varname=$3
+	message_catalog_prefix_varname=$4
 
-	echo "$locale_path_varname=\"$locale_path\"" \
-	    >> $SBOX_SESSION_DIR/exec_config.lua
-	echo "$message_catalog_prefix_varname=\"$SBOX_TARGET_ROOT\"" \
-	    >> $SBOX_SESSION_DIR/exec_config.lua
+	#
+	# Check whether $rootdir has localization files
+	# in archived or extracted format.  If they are
+	# in extracted format, we can use files straight
+	# from $rootdir.  Otherwise we need to use extracted
+	# files that were created by sb2-generate-locales and
+	# placed under $locale_path.
+	#
+	locale_path="$rootdir/usr/lib/locale"
+	if [ -d "$locale_path" ]; then
+		if [ -f "$locale_path/locale-archive" ]; then
+			# need to use generated files
+			locale_path="$generated_locale_path"
+		fi
+		echo "$locale_path_varname = \"$locale_path\"" \
+		    >> $SBOX_SESSION_DIR/exec_config.lua
+	else
+		echo "$locale_path_varname = nil" \
+		    >> $SBOX_SESSION_DIR/exec_config.lua
+	fi
+
+	#
+	# Message catalogs are ok to run as is straight from
+	# $rootdir if they exist.
+	#
+	if [ -d "$rootdir/usr/share/locale" ]; then
+		echo "$message_catalog_prefix_varname = \"$rootdir\"" \
+		    >> $SBOX_SESSION_DIR/exec_config.lua
+	else
+		echo "$message_catalog_prefix_varname = nil" \
+		    >> $SBOX_SESSION_DIR/exec_config.lua
+	fi
 }
 
 # Write configuration file $SBOX_SESSION_DIR/exec_config.lua
@@ -580,6 +609,12 @@ END
 			conf_tools_sb2_installed conf_tools_sbox_dir \
 			conf_tools_ld_so conf_tools_ld_so_supports_argv0
 
+		write_locale_paths_to_exec_config \
+			$SBOX_TOOLS_ROOT \
+			$HOME/.scratchbox2/$tools_basename/locales \
+			conf_tools_locale_path \
+			conf_tools_message_catalog_prefix
+
 		if [ ld_so_found != "yes" ]; then
 			# ld.so from tools can not be used. Add tools' shared
 			# library locations to the normal LD_LIBRARY_PATH;	
@@ -600,6 +635,8 @@ conf_tools_sb2_installed = false
 conf_tools_sbox_dir = ""
 conf_tools_ld_so = nil
 conf_tools_ld_so_supports_argv0 = false
+conf_tools_locale_path = nil
+conf_tools_message_catalog_prefix = nil
 END
 	fi
 
@@ -628,6 +665,7 @@ END
 
 		write_locale_paths_to_exec_config \
 			$SBOX_TARGET_ROOT \
+			$HOME/.scratchbox2/$SBOX_TARGET/locales \
 			conf_target_locale_path \
 			conf_target_message_catalog_prefix
 	else

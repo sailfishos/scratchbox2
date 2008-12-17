@@ -428,9 +428,17 @@ fi
 #
 # If target architecture is same as host (currently i386)
 # we need to extract localization archive from target and
-# place resulting files under ~/.scratchbox2/locales.
+# place resulting files under ~/.scratchbox2/$SBOX_TARGET/locales.
+#
+# We do the same check for tools here and generate necessary
+# localization files if they are missing.
 #
 if [ $with_locales == 1 ]; then
+	if [ -n "$TOOLS_ROOT" ]; then
+		$SBOX_DIR/bin/sb2 -t $TARGET \
+		    $SBOX_DIR/share/scratchbox2/scripts/sb2-generate-locales -T
+	fi
+
 	if [ -z "$CPUTRANSP" ]; then
 		$SBOX_DIR/bin/sb2 -t $TARGET \
 		    $SBOX_DIR/share/scratchbox2/scripts/sb2-generate-locales

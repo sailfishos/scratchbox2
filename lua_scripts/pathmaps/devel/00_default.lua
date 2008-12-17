@@ -26,6 +26,9 @@ sb2_share_dir = sbox_user_home_dir.."/.scratchbox2/"..sbox_target.."/share"
 
 devel_mode_tools_ld_so = nil		-- default = not needed
 devel_mode_tools_ld_library_path = nil	-- default = not needed
+-- localization support for tools
+devel_mode_locale_path = nil
+devel_mode_message_catalog_prefix = nil
 
 if ((tools_root ~= nil) and conf_tools_sb2_installed) then
 	if (conf_tools_ld_so ~= nil) then
@@ -33,13 +36,21 @@ if ((tools_root ~= nil) and conf_tools_sb2_installed) then
 		devel_mode_tools_ld_so = conf_tools_ld_so
 		devel_mode_tools_ld_library_path = conf_tools_ld_so_library_path
 	end
+	if (conf_tools_locale_path ~= nil) then
+		-- use locales from tools
+		devel_mode_locale_path = conf_tools_locale_path
+		devel_mode_message_catalog_prefix =
+		    conf_tools_message_catalog_prefix
+	end
 end
 
 exec_policy_tools = {
 	name = "Tools",
 	native_app_ld_so = devel_mode_tools_ld_so,
 	native_app_ld_so_supports_argv0 = conf_tools_ld_so_supports_argv0,
-	native_app_ld_library_path = devel_mode_tools_ld_library_path
+	native_app_ld_library_path = devel_mode_tools_ld_library_path,
+	native_app_locale_path = devel_mode_locale_path,
+	native_app_message_catalog_prefix = devel_model_message_catalog_prefix,
 }
 
 -- For target binaries:

@@ -384,10 +384,6 @@ function write_ld_library_path_replacement_to_exec_config()
 		liblocations="$liblocations $dirs_in_cache"
 	fi
 
-	# Last, the default locations:
-	# (these may be already included by the previous step)
-	liblocations="$liblocations /lib /usr/lib"
-
 	# Create the variable.
 	echo "$varname =" >>$SBOX_SESSION_DIR/exec_config.lua
 	colon=""
@@ -401,6 +397,13 @@ function write_ld_library_path_replacement_to_exec_config()
 			colon=":"
 		fi
 	done
+
+	# Last, the default locations:
+	# (these may be already included by the previous step)
+	echo " \"$colon$rootdir/lib\" .." >>$SBOX_SESSION_DIR/exec_config.lua
+	colon=":"
+	echo " \"$colon$rootdir/usr/lib\" .." >>$SBOX_SESSION_DIR/exec_config.lua
+
 	# Finalize the library search path.
 	echo " \"\"" >>$SBOX_SESSION_DIR/exec_config.lua
 }
@@ -522,10 +525,36 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 			fi
 		fi
 	else
-		ld_so_candidate=""
-		ld_so_argv_flag_works="false"
+		#
+		# There is no dynamic linker in target rootstrap.  We
+		# still check whether it is installed in the same place
+		# where libsb2 for this target was found.  This is special
+		# case that is normally used when building rootstraps
+		# because they don't have dynamic linker installed
+		# into rootstrap (yet).
+		#
+		# Note that we need to have symlink ld-linux.so.2 that
+		# points to the actual dynamic linker since we don't
+		# know its version.
+		#
+		ld_so_candidate2="$libsb2_dirname/ld-linux.so.2"
+		if [ -L $ld_so_candidate2 ]; then
+			ld_so_candidate2=`/bin/readlink -f $ld_so_candidate2`
+			# check also that it has --argv0 support
+			check_ld_so_argv0_feature $rootdir $ld_so_candidate2
+			if [ "$ld_so_argv_flag_works" == "true" ]; then
+				ld_so_candidate=$ld_so_candidate2
+				ld_so_argv_flag_works="true"
+			else
+				ld_so_candidate=""
+				ld_so_argv_flag_works="false"
+			fi
+		else
+			ld_so_candidate=""
+			ld_so_argv_flag_works="false"
+		fi
 	fi
-			
+
 	if [ -n "$SBOX_OPT_Z_NO_LD_SO_EXEC" ]; then
 		ld_so_candidate=""
 		ld_so_argv_flag_works="false"

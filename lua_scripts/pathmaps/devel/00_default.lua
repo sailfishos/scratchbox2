@@ -213,6 +213,33 @@ devel_mode_rules_usr_share = {
 		{prefix = "/usr/share/modest", map_to = target_root,
 		 readonly = true},
 
+		-- for gnulib:
+		{dir = "/usr/share/gnulib", map_to = target_root,
+		 readonly = true},
+
+		-- for libltdl3-dev:
+		{dir = "/usr/share/libtool/libltdl", map_to = target_root,
+		 readonly = true},
+
+		-- for libsndfile1-dev:
+		{dir = "/usr/share/octave", map_to = target_root,
+		 readonly = true},
+
+		-- for xcb-proto:
+		{dir = "/usr/share/xcb", map_to = target_root,
+		 readonly = true},
+
+		-- for shared-mime-info:
+		{dir = "/usr/share/mime", map_to = target_root,
+		 readonly = true},
+		{path = "/usr/share/pkgconfig/shared-mime-info.pc",
+		 map_to = target_root, readonly = true},
+
+		-- debhelper scripts, now from rootstrap (maping changed due to
+		-- upstart-dev's requirements)
+		{dir = "/usr/share/debhelper/autoscripts",
+		 map_to = target_root, readonly = true},
+
 		-- -----------------------------------------------
 		-- 100. DEFAULT RULES:
 		{dir = "/usr/share", map_to = tools, readonly = true},

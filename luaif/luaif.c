@@ -681,7 +681,7 @@ static int lua_sb_test_path_match(lua_State *l)
 				match_type = "path";
 			}
 		}
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		SB_LOG(SB_LOGLEVEL_NOISE2,
 			"lua_sb_test_path_match '%s','%s','%s' => %d (%s)",
 			str_path, str_rule_prefix, str_rule_path,
 			result, match_type);

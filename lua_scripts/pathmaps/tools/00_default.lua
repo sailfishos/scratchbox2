@@ -9,6 +9,11 @@
 rule_file_interface_version = "18"
 ----------------------------------
 
+tools = tools_root
+if (not tools) then
+	tools = "/"
+end
+
 -- If the permission token exists and contains "root", tools_root directories
 -- will be available in R/W mode. Otherwise it will be "mounted" R/O.
 local tools_root_is_readonly
@@ -39,6 +44,9 @@ mapall_chain = {
 
 		{path = "/usr/bin/sb2-show", use_orig_path = true,
 		 readonly = true},
+
+		-- tools_root should not be mapped twice.
+		{prefix = tools, use_orig_path = true, readonly = true},
 
 		-- ldconfig is static binary, and needs to be wrapped
 		{prefix = "/sb2/wrappers",

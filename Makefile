@@ -196,7 +196,7 @@ do-install: install-noarch
 	else install -d -m 755 $(prefix)/lib ; \
 	fi
 	install -d -m 755 $(prefix)/lib/libsb2
-	install -c -m 755 $(OBJDIR)/preload/libsb2.so $(prefix)/lib/libsb2/libsb2.so.$(PACKAGE_VERSION)
+	install -c -m 755 $(OBJDIR)/preload/libsb2.$(SHLIBEXT) $(prefix)/lib/libsb2/libsb2.so.$(PACKAGE_VERSION)
 	install -c -m 755 $(OBJDIR)/utils/sb2-show $(prefix)/bin/sb2-show
 	install -c -m 755 $(OBJDIR)/utils/sb2-monitor $(prefix)/bin/sb2-monitor
 	install -c -m 755 $(OBJDIR)/utils/sb2-interp-wrapper $(prefix)/bin/sb2-interp-wrapper
@@ -215,7 +215,7 @@ do-install-multilib:
 	else install -d -m 755 $(prefix)/lib$(bitness) ; \
 	fi
 	install -d -m 755 $(multilib_prefix)/lib$(bitness)/libsb2
-	install -c -m 755 preload/libsb2.so $(multilib_prefix)/lib$(bitness)/libsb2/libsb2.so.$(PACKAGE_VERSION)
+	install -c -m 755 preload/libsb2.$(SHLIBEXT) $(multilib_prefix)/lib$(bitness)/libsb2/libsb2.so.$(PACKAGE_VERSION)
 	/sbin/ldconfig -n $(multilib_prefix)/lib$(bitness)/libsb2
 
 

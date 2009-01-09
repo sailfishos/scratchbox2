@@ -11,7 +11,7 @@ LIBSB2_LDFLAGS = -Wl,-soname=$(LIBSB2_SONAME) \
 LIBSB2_LIBS =
 SHLIBEXT = so
 else
-#LIBSB2_LDFLAGS = -dynamiclib
+LIBSB2_LIBS =
 SHLIBEXT = dylib
 endif
 

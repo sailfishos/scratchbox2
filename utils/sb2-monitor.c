@@ -370,7 +370,12 @@ int main(int argc, char *argv[])
 		 * never arrives - purpose of the pipe is only to keep
 		 * the PID reserved until the parent dies.
 		*/
-		setpgrp(); /* change process group to avoid signals*/
+#ifdef __APPLE__
+		setpgrp(0, 0); /* change process group to
+				* avoid signals*/
+#else
+		setpgrp();
+#endif
 		close(pipe_fds[1]); /* close W-end */
 		while (read(pipe_fds[0], &ch, 1) > 0);
 		DEBUG_MSG("dummy child: done\n");

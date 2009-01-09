@@ -107,8 +107,9 @@ char *strvec_to_string(char *const *argv)
 */
 static int restore_stack_before_exec = 0; /* 0, 1 or 64 */
 static struct rlimit stack_limits_for_exec;
+#ifndef __APPLE__
 static struct rlimit64 stack_limits64_for_exec;
-
+#endif
 static int (*next_execve) (const char *filename, char *const argv [],
 			char *const envp[]) = NULL;
 
@@ -140,6 +141,7 @@ int sb_next_execve(const char *file, char *const *argv, char *const *envp)
 				"failed to restore limits before exec");
 		}
 		break;
+#ifndef __APPLE__
 	case 64:
 		SB_LOG(SB_LOGLEVEL_DEBUG, "EXEC: need to restore stack limit");
 
@@ -149,6 +151,7 @@ int sb_next_execve(const char *file, char *const *argv, char *const *envp)
 				"failed to restore limits before exec");
 		}
 		break;
+#endif
 	}
 
 	return next_execve(file, argv, envp);
@@ -1114,6 +1117,7 @@ int setrlimit_gate(
 	return((*real_setrlimit_ptr)(resource,rlp));
 }
 
+#ifndef __APPLE__
 int setrlimit64_gate(
 	int (*real_setrlimit64_ptr)(SETRLIMIT_ARG1_TYPE resource,
 		const struct rlimit64 *rlp),
@@ -1146,6 +1150,7 @@ int setrlimit64_gate(
 	}
 	return((*real_setrlimit64_ptr)(resource,rlp));
 }
+#endif
 
 /* global variables, these come from the environment:
  * used to store session directory & ld.so settings.

@@ -487,7 +487,9 @@ WRAP: char *mktemp(char *template) : \
 #define SETRLIMIT_ARG1_TYPE int
 #endif
 GATE: int setrlimit(SETRLIMIT_ARG1_TYPE resource, const struct rlimit *rlp)
+#ifndef __APPLE__
 GATE: int setrlimit64(SETRLIMIT_ARG1_TYPE resource, const struct rlimit64 *rlp)
+#endif
 
 --
 -- gettext(3) and related message translation functions.

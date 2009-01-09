@@ -26,12 +26,18 @@ endif
 CC = gcc
 CXX = g++
 LD = ld
-PACKAGE_VERSION = 1.99.0.30
+PACKAGE_VERSION = 1.99.0.31
 
 ifeq ($(shell if [ -d $(SRCDIR)/.git ]; then echo y; fi),y)
-GIT_PV_COMMIT := $(shell git --git-dir=$(SRCDIR)/.git log -1 --pretty="format:%h" $(PACKAGE_VERSION) 2>/dev/null)
-GIT_CUR_COMMIT := $(shell git --git-dir=$(SRCDIR)/.git log -1 --pretty="format:%h" HEAD 2>/dev/null)
+GIT_PV_COMMIT := $(shell git --git-dir=$(SRCDIR)/.git log -1 --pretty="format:%h" $(PACKAGE_VERSION) -- 2>/dev/null)
+GIT_CUR_COMMIT := $(shell git --git-dir=$(SRCDIR)/.git log -1 --pretty="format:%h" HEAD -- 2>/dev/null)
 GIT_MODIFIED := $(shell cd $(SRCDIR); git ls-files -m)
+GIT_TAG_EXISTS := $(strip $(shell git --git-dir=$(SRCDIR)/.git tag -l $(PACKAGE_VERSION) 2>/dev/null))
+ifeq ("$(GIT_TAG_EXISTS)","")
+# Add -rc to version to signal that the PACKAGE_VERSION release has NOT
+# been yet tagged
+PACKAGE_VERSION := $(PACKAGE_VERSION)-rc
+endif
 ifneq ($(GIT_PV_COMMIT),$(GIT_CUR_COMMIT))
 PACKAGE_VERSION := $(PACKAGE_VERSION)-$(GIT_CUR_COMMIT)
 endif

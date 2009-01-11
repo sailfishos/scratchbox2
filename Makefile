@@ -6,8 +6,10 @@ OBJDIR = $(TOPDIR)
 SRCDIR = $(TOPDIR)
 VPATH = $(SRCDIR)
 
+MACH := $(shell uname -m)
+OS := $(shell uname -s)
 
-ifeq ($(shell uname -s),Linux)
+ifeq ($(OS),Linux)
 LIBSB2_LDFLAGS = -Wl,-soname=$(LIBSB2_SONAME) \
 		-Wl,--retain-symbols-file=preload/ldexportlist
 
@@ -16,8 +18,7 @@ else
 SHLIBEXT = dylib
 endif
 
-ifeq ($(shell uname -m),x86_64)
-X86_64 = y
+ifeq ($(MACH),x86_64)
 PRI_OBJDIR = obj-64
 else
 PRI_OBJDIR = obj-32
@@ -190,7 +191,7 @@ install-noarch: regular
 		ln -sf host-gcc-tools-wrapper $$f; \
 	done)
 
-ifeq ($(X86_64),y)
+ifeq ($(MACH),x86_64)
 install: install-multilib
 else
 install: do-install
@@ -206,8 +207,9 @@ do-install: install-noarch
 	install -c -m 755 $(OBJDIR)/utils/sb2-show $(prefix)/bin/sb2-show
 	install -c -m 755 $(OBJDIR)/utils/sb2-monitor $(prefix)/bin/sb2-monitor
 	install -c -m 755 $(OBJDIR)/utils/sb2-interp-wrapper $(prefix)/bin/sb2-interp-wrapper
+ifeq ($(OS),Linux)
 	/sbin/ldconfig -n $(prefix)/lib/libsb2
-
+endif
 
 multilib_prefix=$(prefix)
 
@@ -222,8 +224,9 @@ do-install-multilib:
 	fi
 	install -d -m 755 $(multilib_prefix)/lib$(bitness)/libsb2
 	install -c -m 755 preload/libsb2.$(SHLIBEXT) $(multilib_prefix)/lib$(bitness)/libsb2/libsb2.so.$(PACKAGE_VERSION)
+ifeq ($(OS),Linux)
 	/sbin/ldconfig -n $(multilib_prefix)/lib$(bitness)/libsb2
-
+endif
 
 CLEAN_FILES += $(targets) config.status config.log
 
@@ -235,7 +238,7 @@ clean-multilib:
 	-$(MAKE) -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. do-clean
 	-$(MAKE) -C obj-64 --include-dir .. -f ../Makefile SRCDIR=.. do-clean
 
-ifeq ($(X86_64),y)
+ifeq ($(MACH),x86_64)
 clean: clean-multilib
 else
 clean: do-clean

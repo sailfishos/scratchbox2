@@ -143,7 +143,23 @@ emulate_mode_target_ld_library_path = nil	-- default = not needed
 emulate_mode_target_ld_library_path_suffix = nil
 
 if (conf_target_sb2_installed) then
+	--
+	-- When libsb2 is installed to target we don't want to map
+	-- the path where it is found.  For example gdb needs access
+	-- to the library and dynamic linker.  So here we insert special
+	-- rules on top of mapall_chain that prevents sb2 to map these
+	-- paths.
+	--
+	if (conf_target_libsb2_dir ~= nil) then
+		table.insert(mapall_chain.rules, 1,
+		    { prefix = conf_target_libsb2_dir, use_orig_path = true,
+		      readonly = true }) 
+	end
 	if (conf_target_ld_so ~= nil) then
+		table.insert(mapall_chain.rules, 1,
+		    { path = conf_target_ld_so, use_orig_path = true,
+		      readonly = true }) 
+
 		-- use dynamic libraries from target, 
 		-- when executing native binaries!
 		emulate_mode_target_ld_so = conf_target_ld_so

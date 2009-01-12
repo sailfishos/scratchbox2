@@ -7,6 +7,17 @@ function version()
 	cat $SBOX_DIR/share/scratchbox2/version
 }
 
+#
+# Returns "base" version number that can be used to identify
+# correct version for example when finding libsb2 for tools
+# or for target.  Base version is first part of full version
+# string.
+#
+function base_version()
+{
+	version | /usr/bin/cut -d '-' -f 1
+}
+
 function usage()
 {
 	cat <<EOF
@@ -666,8 +677,8 @@ END
 		tools_basename=`basename $SBOX_TOOLS_ROOT`
 		write_ld_library_path_replacement_to_exec_config \
 			$SBOX_TOOLS_ROOT conf_tools_ld_so_library_path \
-			$SBOX_DIR/lib/libsb2/tools/$tools_basename/`version`/libsb2.so.1 \
-			$SBOX_DIR/lib/libsb2/tools/`version`/libsb2.so.1 \
+			$SBOX_DIR/lib/libsb2/tools/$tools_basename/`base_version`/libsb2.so.1 \
+			$SBOX_DIR/lib/libsb2/tools/`base_version`/libsb2.so.1 \
 			$SBOX_TOOLS_ROOT/usr/lib/libsb2/libsb2.so.1
 
 		write_libsb2_and_ld_so_state_to_exec_config \
@@ -718,10 +729,10 @@ END
 
 		write_ld_library_path_replacement_to_exec_config \
 			$SBOX_TARGET_ROOT conf_target_ld_so_library_path \
-			~/.scratchbox2/libsb2/targets/$target_basename/`version`/libsb2.so.1 \
-			~/.scratchbox2/libsb2/targets/`version`/libsb2.so.1 \
-			$SBOX_DIR/lib/libsb2/targets/$target_basename/`version`/libsb2.so.1 \
-			$SBOX_DIR/lib/libsb2/targets/`version`/libsb2.so.1 \
+			~/.scratchbox2/libsb2/targets/$target_basename/`base_version`/libsb2.so.1 \
+			~/.scratchbox2/libsb2/targets/`base_version`/libsb2.so.1 \
+			$SBOX_DIR/lib/libsb2/targets/$target_basename/`base_version`/libsb2.so.1 \
+			$SBOX_DIR/lib/libsb2/targets/`base_version`/libsb2.so.1 \
 			$SBOX_TARGET_ROOT/usr/lib/libsb2/libsb2.so.1
 
 		write_libsb2_and_ld_so_state_to_exec_config \

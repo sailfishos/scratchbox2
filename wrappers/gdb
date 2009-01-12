@@ -57,7 +57,7 @@ Example:
 and now gdb stops and you are able to set further breakpoints etc.
 end
 
-set prompt (sb2-$sbox_mapmode-gdb)
+set prompt (sb2-$sbox_mapmode-gdb) 
 echo \n
 echo ===========================================================\n
 echo Welcome to scratchbox2 enabled gdb!\n\n

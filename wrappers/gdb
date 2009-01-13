@@ -42,7 +42,7 @@ fi
 cat > $SBOX_SESSION_DIR/gdbinit << EOF
 def sb2-prepare
 	set breakpoint pending on
-	tbreak sb2_debug_breakpoint_marker
+	tbreak _dl_debug_state
 	set breakpoint pending off
 end
 

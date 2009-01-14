@@ -171,7 +171,7 @@ static void split_path_to_path_entries(
 			if(!listp->pl_first) listp->pl_first = work;
 			SB_LOG(SB_LOGLEVEL_NOISE2,
 				"created entry 0x%X '%s' '%s'",
-				(int)work, work->pe_full_path, start);
+				(unsigned long int)work, work->pe_full_path, start);
 		}
 
 		if (last)
@@ -243,7 +243,7 @@ static void remove_dots_and_dotdots_from_path_entries(
 	while (work) {
 		SB_LOG(SB_LOGLEVEL_NOISE2,
 			"remove_dots_and_dotdots: work=0x%X examine '%s'",
-			(int)work, work?work->pe_last_component_name:"");
+			(unsigned long int)work, work?work->pe_last_component_name:"");
 		if (strcmp(work->pe_last_component_name, "..") == 0) {
 			struct path_entry *dotdot = work;
 			struct path_entry *preventry = work->pe_prev;

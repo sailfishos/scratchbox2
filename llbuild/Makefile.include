@@ -117,8 +117,8 @@ built-in.o:: %.o
 
 
 define ll_clean
-	rm -rf $(CLEAN_FILES)
-	find . -name "*.[oasd]" -o -name ".*.d" -o -name "*.*~" -o -name "*~" -o -name "*.lock" | xargs rm -rf
+	$(Q)rm -rf $(CLEAN_FILES)
+	$(Q)find . -name "*.[oasd]" -o -name ".*.d" -o -name "*.*~" -o -name "*~" -o -name "*.lock" | xargs rm -rf
 endef
 
 endif

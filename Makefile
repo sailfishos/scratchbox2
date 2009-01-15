@@ -86,7 +86,7 @@ do-all: $(targets)
 
 .configure:
 	$(SRCDIR)/configure $(CONFIGURE_ARGS)
-	touch .configure
+	@touch .configure
 
 .PHONY: .version
 .version:
@@ -101,13 +101,13 @@ do-all: $(targets)
 	fi)
 
 regular: .configure .version
-	$(MAKE) -f $(SRCDIR)/Makefile --include-dir=$(SRCDIR) SRCDIR=$(SRCDIR) do-all
+	@$(MAKE) -f $(SRCDIR)/Makefile --include-dir=$(SRCDIR) SRCDIR=$(SRCDIR) do-all
 
 multilib:
 	@mkdir -p obj-32
 	@mkdir -p obj-64
-	$(MAKE) MACH_CFLAG=-m32 -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. regular
-	$(MAKE) MACH_CFLAG=-m64 -C obj-64 --include-dir=.. -f ../Makefile SRCDIR=.. regular
+	@$(MAKE) MACH_CFLAG=-m32 -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. regular
+	@$(MAKE) MACH_CFLAG=-m64 -C obj-64 --include-dir=.. -f ../Makefile SRCDIR=.. regular
 
 
 gcc_bins = addr2line ar as cc c++ c++filt cpp g++ gcc gcov gdb gdbtui gprof ld nm objcopy objdump ranlib rdi-stub readelf run size strings strip
@@ -115,79 +115,80 @@ host_prefixed_gcc_bins = $(foreach v,$(gcc_bins),host-$(v))
 
 
 tarball:
-	git archive --format=tar --prefix=sbox2-$(PACKAGE_VERSION)/ $(PACKAGE_VERSION) | bzip2 >sbox2-$(PACKAGE_VERSION).tar.bz2
+	@git archive --format=tar --prefix=sbox2-$(PACKAGE_VERSION)/ $(PACKAGE_VERSION) | bzip2 >sbox2-$(PACKAGE_VERSION).tar.bz2
 
 
 install-noarch: regular
-	if [ -d $(prefix)/bin ] ; \
+	$(P)INSTALL
+	@if [ -d $(prefix)/bin ] ; \
 	then echo "$(prefix)/bin present" ; \
-	else install -d -m 755 $(prefix)/bin ; \
+	else $(Q)install -d -m 755 $(prefix)/bin ; \
 	fi
-	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts
-	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps
-	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/emulate
-	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/tools
-	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/simple
-	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/devel
-	install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/install
+	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts
+	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps
+	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/emulate
+	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/tools
+	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/simple
+	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/devel
+	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/install
 
-	install -d -m 755 $(prefix)/share/scratchbox2/scripts
-	install -d -m 755 $(prefix)/share/scratchbox2/wrappers
-	install -d -m 755 $(prefix)/share/scratchbox2/tests
-	install -d -m 755 $(prefix)/share/scratchbox2/modeconf
-	if [ -d $(prefix)/share/man/man1 ] ; \
+	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/scripts
+	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/wrappers
+	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/tests
+	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/modeconf
+	@if [ -d $(prefix)/share/man/man1 ] ; \
 	then echo "$(prefix)/share/man/man1 present" ; \
-	else install -d -m 755 $(prefix)/share/man/man1 ; \
+	else $(Q)install -d -m 755 $(prefix)/share/man/man1 ; \
 	fi
-	echo "$(PACKAGE_VERSION)" > $(prefix)/share/scratchbox2/version
-	install -c -m 755 $(SRCDIR)/utils/sb2 $(prefix)/bin/sb2
-	install -c -m 755 $(SRCDIR)/utils/sb2-init $(prefix)/bin/sb2-init
-	install -c -m 755 $(SRCDIR)/utils/sb2-config $(prefix)/bin/sb2-config
-	install -c -m 755 $(SRCDIR)/utils/sb2-build-libtool $(prefix)/bin/sb2-build-libtool
-	install -c -m 755 $(SRCDIR)/utils/sb2-build-qemuserver $(prefix)/bin/sb2-build-qemuserver
-	install -c -m 755 $(SRCDIR)/utils/sb2-mkinitramfs $(prefix)/bin/sb2-mkinitramfs
-	install -c -m 755 $(SRCDIR)/utils/sb2-start-qemuserver $(prefix)/bin/sb2-start-qemuserver
-	install -c -m 755 $(SRCDIR)/utils/sb2-qemu-gdbserver-prepare $(prefix)/bin/sb2-qemu-gdbserver-prepare
-	install -c -m 755 $(SRCDIR)/utils/sb2-check-pkg-mappings $(prefix)/share/scratchbox2/scripts/sb2-check-pkg-mappings
-	install -c -m 755 $(SRCDIR)/utils/sb2-exitreport $(prefix)/share/scratchbox2/scripts/sb2-exitreport
-	install -c -m 755 $(SRCDIR)/utils/sb2-generate-locales $(prefix)/share/scratchbox2/scripts/sb2-generate-locales
-	install -c -m 755 $(SRCDIR)/utils/sb2-logz $(prefix)/bin/sb2-logz
-	install -c -m 644 $(SRCDIR)/lua_scripts/main.lua $(prefix)/share/scratchbox2/lua_scripts/main.lua
-	install -c -m 644 $(SRCDIR)/lua_scripts/mapping.lua $(prefix)/share/scratchbox2/lua_scripts/mapping.lua
-	install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp.lua $(prefix)/share/scratchbox2/lua_scripts/argvenvp.lua
-	install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp_gcc.lua $(prefix)/share/scratchbox2/lua_scripts/argvenvp_gcc.lua
-	install -c -m 644 $(SRCDIR)/lua_scripts/create_reverse_rules.lua $(prefix)/share/scratchbox2/lua_scripts/create_reverse_rules.lua
+	$(Q)echo "$(PACKAGE_VERSION)" > $(prefix)/share/scratchbox2/version
+	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2 $(prefix)/bin/sb2
+	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-init $(prefix)/bin/sb2-init
+	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-config $(prefix)/bin/sb2-config
+	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-build-libtool $(prefix)/bin/sb2-build-libtool
+	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-build-qemuserver $(prefix)/bin/sb2-build-qemuserver
+	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-mkinitramfs $(prefix)/bin/sb2-mkinitramfs
+	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-start-qemuserver $(prefix)/bin/sb2-start-qemuserver
+	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-qemu-gdbserver-prepare $(prefix)/bin/sb2-qemu-gdbserver-prepare
+	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-check-pkg-mappings $(prefix)/share/scratchbox2/scripts/sb2-check-pkg-mappings
+	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-exitreport $(prefix)/share/scratchbox2/scripts/sb2-exitreport
+	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-generate-locales $(prefix)/share/scratchbox2/scripts/sb2-generate-locales
+	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-logz $(prefix)/bin/sb2-logz
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/main.lua $(prefix)/share/scratchbox2/lua_scripts/main.lua
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/mapping.lua $(prefix)/share/scratchbox2/lua_scripts/mapping.lua
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp.lua $(prefix)/share/scratchbox2/lua_scripts/argvenvp.lua
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp_gcc.lua $(prefix)/share/scratchbox2/lua_scripts/argvenvp_gcc.lua
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/create_reverse_rules.lua $(prefix)/share/scratchbox2/lua_scripts/create_reverse_rules.lua
 
-	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/emulate/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/emulate/
-	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/tools/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/tools/
-	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/simple/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/simple/
-	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/devel/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/devel/
-	install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/install/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/install/
-	(cd $(prefix)/share/scratchbox2/lua_scripts/pathmaps; ln -sf devel maemo)
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/emulate/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/emulate/
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/tools/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/tools/
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/simple/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/simple/
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/devel/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/devel/
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/install/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/install/
+	$(Q)(set -e; cd $(prefix)/share/scratchbox2/lua_scripts/pathmaps; ln -sf devel maemo)
 
-	install -c -m 644 $(SRCDIR)/modeconf/* $(prefix)/share/scratchbox2/modeconf/
-	(set -x; cd $(prefix)/share/scratchbox2/modeconf; for f in *.devel; do \
+	$(Q)install -c -m 644 $(SRCDIR)/modeconf/* $(prefix)/share/scratchbox2/modeconf/
+	$(Q)(set -e; cd $(prefix)/share/scratchbox2/modeconf; for f in *.devel; do \
 		b=$(basename $$f .devel); ln -sf $$f $$b.maemo; \
 	done)
-	install -c -m 644 $(SRCDIR)/tests/* $(prefix)/share/scratchbox2/tests
-	chmod a+x $(prefix)/share/scratchbox2/tests/run.sh
+	$(Q)install -c -m 644 $(SRCDIR)/tests/* $(prefix)/share/scratchbox2/tests
+	$(Q)chmod a+x $(prefix)/share/scratchbox2/tests/run.sh
 
-	install -c -m 644 $(SRCDIR)/docs/sb2.1 $(prefix)/share/man/man1/sb2.1
-	install -c -m 644 $(SRCDIR)/docs/sb2-show.1 $(prefix)/share/man/man1/sb2-show.1
-	install -c -m 644 $(SRCDIR)/docs/sb2-config.1 $(prefix)/share/man/man1/sb2-config.1
-	rm -f $(prefix)/share/scratchbox2/host_usr
-	ln -sf /usr $(prefix)/share/scratchbox2/host_usr
-	# Wrappers:
-	install -c -m 755 $(SRCDIR)/wrappers/deb-pkg-tools-wrapper $(prefix)/share/scratchbox2/wrappers/dpkg
-	install -c -m 755 $(SRCDIR)/wrappers/deb-pkg-tools-wrapper $(prefix)/share/scratchbox2/wrappers/apt-get
-	install -c -m 755 $(SRCDIR)/wrappers/ldconfig $(prefix)/share/scratchbox2/wrappers/ldconfig
-	install -c -m 755 $(SRCDIR)/wrappers/texi2html $(prefix)/share/scratchbox2/wrappers/texi2html
-	install -c -m 755 $(SRCDIR)/wrappers/dpkg-checkbuilddeps $(prefix)/share/scratchbox2/wrappers/dpkg-checkbuilddeps
-	install -c -m 755 $(SRCDIR)/wrappers/debconf2po-update $(prefix)/share/scratchbox2/wrappers/debconf2po-update
-	install -c -m 755 $(SRCDIR)/wrappers/host-gcc-tools-wrapper $(prefix)/share/scratchbox2/wrappers/host-gcc-tools-wrapper
-	install -c -m 755 $(SRCDIR)/wrappers/gdb $(prefix)/share/scratchbox2/wrappers/gdb
-	install -c -m 755 $(SRCDIR)/wrappers/ldd $(prefix)/share/scratchbox2/wrappers/ldd
-	(set -x; cd $(prefix)/share/scratchbox2/wrappers; \
+	$(Q)install -c -m 644 $(SRCDIR)/docs/sb2.1 $(prefix)/share/man/man1/sb2.1
+	$(Q)install -c -m 644 $(SRCDIR)/docs/sb2-show.1 $(prefix)/share/man/man1/sb2-show.1
+	$(Q)install -c -m 644 $(SRCDIR)/docs/sb2-config.1 $(prefix)/share/man/man1/sb2-config.1
+	$(Q)rm -f $(prefix)/share/scratchbox2/host_usr
+	$(Q)ln -sf /usr $(prefix)/share/scratchbox2/host_usr
+	@# Wrappers:
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/deb-pkg-tools-wrapper $(prefix)/share/scratchbox2/wrappers/dpkg
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/deb-pkg-tools-wrapper $(prefix)/share/scratchbox2/wrappers/apt-get
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/ldconfig $(prefix)/share/scratchbox2/wrappers/ldconfig
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/texi2html $(prefix)/share/scratchbox2/wrappers/texi2html
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/dpkg-checkbuilddeps $(prefix)/share/scratchbox2/wrappers/dpkg-checkbuilddeps
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/debconf2po-update $(prefix)/share/scratchbox2/wrappers/debconf2po-update
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/host-gcc-tools-wrapper $(prefix)/share/scratchbox2/wrappers/host-gcc-tools-wrapper
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/gdb $(prefix)/share/scratchbox2/wrappers/gdb
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/ldd $(prefix)/share/scratchbox2/wrappers/ldd
+	$(Q)(set -e; cd $(prefix)/share/scratchbox2/wrappers; \
 	for f in $(host_prefixed_gcc_bins); do \
 		ln -sf host-gcc-tools-wrapper $$f; \
 	done)
@@ -199,45 +200,49 @@ install: do-install
 endif
 
 do-install: install-noarch
-	if [ -d $(prefix)/lib ] ; \
+	$(P)INSTALL
+	@if [ -d $(prefix)/lib ] ; \
 	then echo "$(prefix)/lib present" ; \
-	else install -d -m 755 $(prefix)/lib ; \
+	else $(Q)install -d -m 755 $(prefix)/lib ; \
 	fi
-	install -d -m 755 $(prefix)/lib/libsb2
-	install -c -m 755 $(OBJDIR)/preload/libsb2.$(SHLIBEXT) $(prefix)/lib/libsb2/libsb2.so.$(PACKAGE_VERSION)
-	install -c -m 755 $(OBJDIR)/utils/sb2-show $(prefix)/bin/sb2-show
-	install -c -m 755 $(OBJDIR)/utils/sb2-monitor $(prefix)/bin/sb2-monitor
-	install -c -m 755 $(OBJDIR)/utils/sb2-interp-wrapper $(prefix)/bin/sb2-interp-wrapper
+	$(Q)install -d -m 755 $(prefix)/lib/libsb2
+	$(Q)install -c -m 755 $(OBJDIR)/preload/libsb2.$(SHLIBEXT) $(prefix)/lib/libsb2/libsb2.so.$(PACKAGE_VERSION)
+	$(Q)install -c -m 755 $(OBJDIR)/utils/sb2-show $(prefix)/bin/sb2-show
+	$(Q)install -c -m 755 $(OBJDIR)/utils/sb2-monitor $(prefix)/bin/sb2-monitor
+	$(Q)install -c -m 755 $(OBJDIR)/utils/sb2-interp-wrapper $(prefix)/bin/sb2-interp-wrapper
 ifeq ($(OS),Linux)
-	/sbin/ldconfig -n $(prefix)/lib/libsb2
+	$(Q)/sbin/ldconfig -n $(prefix)/lib/libsb2
 endif
 
 multilib_prefix=$(prefix)
 
 install-multilib: multilib
-	$(MAKE) -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. do-install-multilib bitness=32
-	$(MAKE) -C obj-64 --include-dir=.. -f ../Makefile SRCDIR=.. do-install
+	@$(MAKE) -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. do-install-multilib bitness=32
+	@$(MAKE) -C obj-64 --include-dir=.. -f ../Makefile SRCDIR=.. do-install
 
 do-install-multilib:
-	if [ -d $(multilib_prefix)/lib$(bitness) ] ; \
+	$(P)INSTALL
+	@if [ -d $(multilib_prefix)/lib$(bitness) ] ; \
 	then echo "$(prefix)/lib$(bitness) present" ; \
-	else install -d -m 755 $(prefix)/lib$(bitness) ; \
+	else $(Q)install -d -m 755 $(prefix)/lib$(bitness) ; \
 	fi
-	install -d -m 755 $(multilib_prefix)/lib$(bitness)/libsb2
-	install -c -m 755 preload/libsb2.$(SHLIBEXT) $(multilib_prefix)/lib$(bitness)/libsb2/libsb2.so.$(PACKAGE_VERSION)
+	$(Q)install -d -m 755 $(multilib_prefix)/lib$(bitness)/libsb2
+	$(Q)install -c -m 755 preload/libsb2.$(SHLIBEXT) $(multilib_prefix)/lib$(bitness)/libsb2/libsb2.so.$(PACKAGE_VERSION)
 ifeq ($(OS),Linux)
-	/sbin/ldconfig -n $(multilib_prefix)/lib$(bitness)/libsb2
+	$(Q)/sbin/ldconfig -n $(multilib_prefix)/lib$(bitness)/libsb2
 endif
 
 CLEAN_FILES += $(targets) config.status config.log
 
 superclean: clean
-	rm -rf obj-32 obj-64 .configure-multilib .configure
-	rm -rf include/config.h config.mak
+	$(P)CLEAN
+	$(Q)rm -rf obj-32 obj-64 .configure-multilib .configure
+	$(Q)rm -rf include/config.h config.mak
 
 clean-multilib:
-	-$(MAKE) -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. do-clean
-	-$(MAKE) -C obj-64 --include-dir .. -f ../Makefile SRCDIR=.. do-clean
+	$(P)CLEAN
+	-$(Q)$(MAKE) -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. do-clean
+	-$(Q)$(MAKE) -C obj-64 --include-dir .. -f ../Makefile SRCDIR=.. do-clean
 
 ifeq ($(MACH),x86_64)
 clean: clean-multilib do-clean
@@ -246,5 +251,6 @@ clean: do-clean
 endif
 
 do-clean:
-	$(ll_clean)
+	$(P)CLEAN
+	$(Q)$(ll_clean)
 

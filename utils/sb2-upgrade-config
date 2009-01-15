@@ -73,7 +73,7 @@ function update_toolchain_configs()
 {
 	secondary_compiler=""
 	for compiler_path in $*; do
-		echo "Updating compiler $compiler_path"
+		# echo "Updating compiler $compiler_path"
 		log_config_action "Config upgrade: settings for compiler $compiler_path"
 		$SBOX_SHARE_DIR/scripts/sb2-config-gcc-toolchain \
 			$secondary_compiler \

@@ -144,13 +144,19 @@ function load_configuration()
 	# upgraded whenever needed:
 	
 	# check if we need to upgrade configuration:
-	if [ ! -f ~/.scratchbox2/$SBOX_TARGET/sb2.config.d/config-stamp.10 ]; then
+	if [ ! -f ~/.scratchbox2/$SBOX_TARGET/sb2.config.d/config-stamp.11 ]; then
 		$SBOX_DIR/share/scratchbox2/scripts/sb2-upgrade-config \
 			$SBOX_TARGET
 		if [ $? != 0 ]; then
 			echo "Failed to upgrade configuration files" >&2
 			exit 1
 		fi
+	fi
+
+	#-----------
+	# Read in primary toolchain config, if it has been defined
+	if [ -f $HOME/.scratchbox2/$TARGET/sb2.config.d/gcc.config.sh ]; then
+		. $HOME/.scratchbox2/$TARGET/sb2.config.d/gcc.config.sh
 	fi
 }
 
@@ -190,14 +196,9 @@ function sboxify_environment()
 		. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$SBOX_MAPMODE starting
 	fi
 
-	if [ "$SBOX_CONFIG_VERSION" != "9" ]; then
-		echo "Please run sb2-init for your target:"
-		echo "name: $SBOX_TARGET"
-		echo "dir:  $SBOX_TARGET_ROOT"
-		echo "gcc:  $SBOX_CROSS_GCC_DIR/${SBOX_CROSS_GCC_SUBST_PREFIX}gcc"
-		echo "to update its sb2.config to work with current version of sb2"
-		echo "for example: "
-		echo sb2-init $SBOX_TARGET $SBOX_CROSS_GCC_DIR/${SBOX_CROSS_GCC_SUBST_PREFIX}gcc""
+	if [ "$SBOX_CONFIG_VERSION" -lt "9" ]; then
+		echo "Please run sb2-init for your target"
+		echo "to update its sb2.config to work with current version of sb2."
 		exit 1
 	fi
 
@@ -209,6 +210,9 @@ function sboxify_environment()
 		exit_error "Incorrect target config in ~/.scratchbox2/$SBOX_TARGET/sb2.config"
 	fi
 
+	# This refers to the primary toolchain.
+	# FIXME: $SBOX_TARGET_TOOLCHAIN_DIR should be removed completely,
+	# but currently the "install" mode needs it.
 	SBOX_TARGET_TOOLCHAIN_DIR=$(dirname "$SBOX_CROSS_GCC_DIR")
 
 	if [ -z "$SBOX_MODE_PATH" ]; then
@@ -273,21 +277,6 @@ function create_common_sb2_conf_file_for_session()
 		sbox_user_home_dir="/home/unknown_user"
 	fi
 
-	# SBOX_EXTRA_CROSS_COMPILER_ARGS and SBOX_EXTRA_CROSS_LD_ARGS contain
-	# embedded absolute paths to the orig. rootstrap location.
-	#
-	# FIXME: It is generally a bad idea to store the rootstrap location
-	# in multiple places. sb2-init and format of sb2.config should be
-	# fixed, but that has been delayed (because that would also force
-	# us to increment the config file version number, and that forces
-	# everyone to re-initialize sb2 environment everywhere...)
-	if [ "$SBOX_TARGET_ROOT_in_config_file" != "$SBOX_TARGET_ROOT" ]; then
-		SBOX_EXTRA_CROSS_LD_ARGS=`echo "$SBOX_EXTRA_CROSS_LD_ARGS" |
-		  sed -e "s:$SBOX_TARGET_ROOT_in_config_file:$SBOX_TARGET_ROOT:g"`
-		SBOX_EXTRA_CROSS_COMPILER_ARGS=`echo "$SBOX_EXTRA_CROSS_COMPILER_ARGS" |
-		  sed -e "s:$SBOX_TARGET_ROOT_in_config_file:$SBOX_TARGET_ROOT:g"`
-	fi
-
 	cat <<END >>$SBOX_SESSION_DIR/sb2-session.conf
 comment_1=" Common configuration file for Lua and Shell scripts."
 comment_2=" Automatically generated file, do not edit."
@@ -309,19 +298,6 @@ sbox_cpu="$SBOX_CPU"
 sbox_cputransparency_method="$SBOX_CPUTRANSPARENCY_METHOD"
 sbox_sbrsh_config="$SBRSH_CONFIG"
 
-sbox_cross_gcc_prefix_list="$SBOX_CROSS_GCC_PREFIX_LIST"
-sbox_cross_gcc_dir="$SBOX_CROSS_GCC_DIR"
-sbox_cross_gcc_version="$SBOX_CROSS_GCC_VERSION"
-sbox_cross_gcc_shortversion="$SBOX_CROSS_GCC_SHORTVERSION"
-sbox_extra_cross_compiler_args="$SBOX_EXTRA_CROSS_COMPILER_ARGS"
-sbox_cross_gcc_subst_prefix="$SBOX_CROSS_GCC_SUBST_PREFIX"
-sbox_cross_gcc_specs_file="$SBOX_CROSS_GCC_SPECS_FILE"
-sbox_extra_cross_compiler_stdinc="$SBOX_EXTRA_CROSS_COMPILER_STDINC"
-sbox_block_cross_compiler_args="$SBOX_BLOCK_CROSS_COMPILER_ARGS"
-
-sbox_extra_cross_ld_args="$SBOX_EXTRA_CROSS_LD_ARGS"
-sbox_block_cross_ld_args="$SBOX_BLOCK_CROSS_LD_ARGS"
-
 sbox_host_gcc_prefix_list="$SBOX_HOST_GCC_PREFIX_LIST"
 sbox_host_gcc_dir="$SBOX_HOST_GCC_DIR"
 sbox_extra_host_compiler_args="$SBOX_EXTRA_HOST_COMPILER_ARGS"
@@ -333,6 +309,20 @@ sbox_libsb2="$SBOX_LIBSB2"
 
 sbox_emulate_sb1_bugs="$SBOX_EMULATE_SB1_BUGS"
 END
+}
+
+# create $SBOX_SESSION_DIR/gcc-conf.lua
+function create_gcc_conf_file_for_session()
+{
+	gcc_config_files=`ls ~/.scratchbox2/$SBOX_TARGET/sb2.config.d/gcc.config*.lua`
+	if [ -n "$gcc_config_files" ] ; then
+		# Create the configuration file. Do some variable substitutions:
+		# "extra_cross_compiler_args" and "extra_cross_ld_args"
+		# need absolute paths to the orig. rootstrap location, at least.
+		cat $gcc_config_files | \
+			sed -e "s:@SBOX_TARGET_ROOT@:$SBOX_TARGET_ROOT:g" \
+			>$SBOX_SESSION_DIR/gcc-conf.lua
+	fi
 }
 
 # write_ld_library_path_replacement_to_exec_config():
@@ -917,6 +907,7 @@ function write_configfiles_and_rules_for_new_session()
 
 	create_exec_config_file
 	create_common_sb2_conf_file_for_session
+	create_gcc_conf_file_for_session
 
 	# Copy intial contents of /var/run from the rootstrap:
 	mkdir $SBOX_SESSION_DIR/var

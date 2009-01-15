@@ -8,10 +8,13 @@ argvmods = {}
 
 -- only map gcc & friends if a cross compiler has been defined,
 -- and it has not been disabled by the mapping rules:
-if (sbox_cross_gcc_dir ~= nil and sbox_cross_gcc_dir ~= "" and
-    enable_cross_gcc_toolchain == true) then
-	-- this generates gcc related argv/envp manglings
-	do_file(session_dir .. "/lua_scripts/argvenvp_gcc.lua")
+if (enable_cross_gcc_toolchain == true) then
+	local gcc_rule_file_path = session_dir .. "/gcc-conf.lua"
+	
+	if (sb.path_exists(gcc_rule_file_path)) then
+		-- this generates gcc related argv/envp manglings
+		do_file(session_dir .. "/lua_scripts/argvenvp_gcc.lua")
+	end
 end
 
 -- regular mangling rules go here

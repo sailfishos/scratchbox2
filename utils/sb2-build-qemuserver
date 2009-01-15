@@ -20,6 +20,16 @@ fi
 
 . ~/.scratchbox2/$sbox_target/sb2.config
 
+# Read in primary toolchain config, if it has been defined;
+# SBOX_CROSS_* variables are there nowadays
+if [ -f $HOME/.scratchbox2/$sbox_target/sb2.config.d/gcc.config.sh ]; then
+	. $HOME/.scratchbox2/$sbox_target/sb2.config.d/gcc.config.sh 
+else
+	echo "$HOME/.scratchbox2/$sbox_target/sb2.config.d/gcc.config.sh does not exist;"
+	echo "Can't build qemuserver"
+	exit 1
+fi
+
 # ------------
 # FIXME: / LTA 2008-09-18:
 # Export variables from sb2.config; These used to be exported from sb2.config,

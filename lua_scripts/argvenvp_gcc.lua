@@ -14,7 +14,7 @@ gcc_compilers = {
 	"g77"
 }
 
--- names, where sbox_cross_gcc_shortversion may be embedded to the name
+-- names, where cross_gcc_shortversion may be embedded to the name
 -- (e.g. gcc-3.4, g++-3.4)
 gcc_compilers_with_version = {
 	"gcc",
@@ -43,96 +43,116 @@ gcc_tools = {
 	"strip"
 }
 
--- Path prefixes:
--- 1. currently all cross-gcc tools that we are going to replace
---    live in /usr/bin, but these tools may call other tools from
---    the same set (e.g. "gcc" calls "ld", etc). That is why
---    sbox_cross_gcc_dir is needed, too.
--- 2. note that sbox_cross_gcc_dir is not empty, this file
---    won't be loaded at all if it is (see argvenvp.lua),
--- 3. Wrappers for host-* tools live in /sb2/wrappers.
-gcc_tools_path_prefixes = {
+local generic_gcc_tools_path_prefixes = {
 	"/usr/bin/",
-	sbox_cross_gcc_dir,
 	"/sb2/"
 }
 
-function register_gcc_component_path(tmp)
-	tmp.path_prefixes = gcc_tools_path_prefixes
+function register_gcc_component_path(tmp, gccrule)
+	-- Path prefixes:
+	-- 1. currently all cross-gcc tools that we are going to replace
+	--    live in /usr/bin, but these tools may call other tools from
+	--    the same set (e.g. "gcc" calls "ld", etc). That is why
+	--    cross_gcc_dir is needed, too.
+	-- 2. note that cross_gcc_dir is not empty, this file
+	--    won't be loaded at all if it is (see argvenvp.lua),
+	-- 3. Wrappers for host-* tools live in /sb2/wrappers.
+	if gccrule == nil or gccrule.cross_gcc_dir == nil then
+		tmp.path_prefixes = generic_gcc_tools_path_prefixes
+	else
+		local gcc_tools_path_prefixes = {
+			"/usr/bin/",
+			gccrule.cross_gcc_dir,
+			"/sb2/"
+		}
+		tmp.path_prefixes = gcc_tools_path_prefixes
+	end
 	argvmods[tmp.name] = tmp
 end
 
-function gcc_compiler_arg_mods(tmp)
+function gcc_compiler_arg_mods(tmp, gccrule)
 	tmp.add_tail = {}
 	tmp.remove = {}
-	if (sbox_cross_gcc_specs_file and sbox_cross_gcc_specs_file ~= "") then
-		table.insert(tmp.add_tail, "-specs="..sbox_cross_gcc_specs_file)
+	if (gccrule.cross_gcc_specs_file and gccrule.cross_gcc_specs_file ~= "") then
+		table.insert(tmp.add_tail, "-specs="..gccrule.cross_gcc_specs_file)
 	end
-	if (sbox_extra_cross_compiler_args and sbox_extra_cross_compiler_args ~= "") then
-		for gcc_extra in string.gmatch(sbox_extra_cross_compiler_args, "[^ ]+") do
+	if (gccrule.extra_cross_compiler_args and gccrule.extra_cross_compiler_args ~= "") then
+		for gcc_extra in string.gmatch(gccrule.extra_cross_compiler_args, "[^ ]+") do
 			table.insert(tmp.add_tail, gcc_extra)
 		end
 	end
-	if (sbox_extra_cross_compiler_stdinc and sbox_extra_cross_compiler_stdinc ~= "") then
-		for gcc_stdinc in string.gmatch(sbox_extra_cross_compiler_stdinc, "[^ ]+") do
+	if (gccrule.extra_cross_compiler_stdinc and gccrule.extra_cross_compiler_stdinc ~= "") then
+		for gcc_stdinc in string.gmatch(gccrule.extra_cross_compiler_stdinc, "[^ ]+") do
 			table.insert(tmp.add_tail, gcc_stdinc)
 		end
 	end
-	if (sbox_block_cross_compiler_args and sbox_block_cross_compiler_args ~= "") then
-		for gcc_block in string.gmatch(sbox_block_cross_compiler_args, "[^ ]+") do
+	if (gccrule.block_cross_compiler_args and gccrule.block_cross_compiler_args ~= "") then
+		for gcc_block in string.gmatch(gccrule.block_cross_compiler_args, "[^ ]+") do
 			table.insert(tmp.remove, gcc_block)
 		end
 	end
 end
 
--- The trick with ":" .. is to have a non-prefixed gcc call caught here
-for prefix in string.gmatch(":" .. sbox_cross_gcc_prefix_list, "[^:]*") do
+function add_cross_compiler(gccrule, version)
+	local require_version = true
 
-	-- Compiler tools without version suffix
-	for i = 1, table.maxn(gcc_compilers) do
-		local tmp = {}
-		tmp.name = prefix .. gcc_compilers[i]
-		tmp.new_filename = sbox_cross_gcc_dir .. "/" .. sbox_cross_gcc_subst_prefix .. gcc_compilers[i]
-		gcc_compiler_arg_mods(tmp)
-		register_gcc_component_path(tmp)
-	end
-	-- Compiler tools with version suffix
-	for i = 1, table.maxn(gcc_compilers_with_version) do
-		local tmp = {}
-		tmp.name = prefix .. gcc_compilers_with_version[i] .. "-" ..
-			sbox_cross_gcc_shortversion
-		tmp.new_filename = sbox_cross_gcc_dir .. "/" .. sbox_cross_gcc_subst_prefix .. gcc_compilers_with_version[i]
-		gcc_compiler_arg_mods(tmp)
-		register_gcc_component_path(tmp)
+	if version == "" then
+		require_version = false
 	end
 	
-	-- just map the filename for linkers and tools
-	for i = 1, table.maxn(gcc_linkers) do
-		local tmp = {}
-		tmp.name = prefix .. gcc_linkers[i]
-		tmp.new_filename = sbox_cross_gcc_dir .. "/" .. sbox_cross_gcc_subst_prefix .. gcc_linkers[i]
-		tmp.add_tail = {}
-		tmp.remove = {}
-		if (sbox_extra_cross_ld_args and sbox_extra_cross_ld_args ~= "") then
-			for ld_extra in string.gmatch(sbox_extra_cross_ld_args, "[^ ]+") do
-				table.insert(tmp.add_tail, ld_extra)
+	-- The trick with ":" .. is to have a non-prefixed gcc call caught here
+	for prefix in string.gmatch(":" .. gccrule.cross_gcc_prefix_list, "[^:]*") do
+
+		if require_version == false then
+			-- Compiler tools without version suffix
+			for i = 1, table.maxn(gcc_compilers) do
+				local tmp = {}
+				tmp.name = prefix .. gcc_compilers[i]
+				tmp.new_filename = gccrule.cross_gcc_dir .. "/" .. gccrule.cross_gcc_subst_prefix .. gcc_compilers[i]
+				gcc_compiler_arg_mods(tmp, gccrule)
+				register_gcc_component_path(tmp, gccrule)
 			end
 		end
-		if (sbox_block_cross_ld_args and sbox_block_cross_ld_args ~= "") then
-			for ld_block in string.gmatch(sbox_block_cross_ld_args, "[^ ]+") do
-				table.insert(tmp.remove, ld_block)
+
+		-- Compiler tools with version suffix
+		for i = 1, table.maxn(gcc_compilers_with_version) do
+			local tmp = {}
+			tmp.name = prefix .. gcc_compilers_with_version[i] .. "-" ..
+				gccrule.cross_gcc_shortversion
+			tmp.new_filename = gccrule.cross_gcc_dir .. "/" .. gccrule.cross_gcc_subst_prefix .. gcc_compilers_with_version[i]
+			gcc_compiler_arg_mods(tmp, gccrule)
+			register_gcc_component_path(tmp, gccrule)
+		end
+		
+		if require_version == false then
+			-- just map the filename for linkers and tools
+			for i = 1, table.maxn(gcc_linkers) do
+				local tmp = {}
+				tmp.name = prefix .. gcc_linkers[i]
+				tmp.new_filename = gccrule.cross_gcc_dir .. "/" .. gccrule.cross_gcc_subst_prefix .. gcc_linkers[i]
+				tmp.add_tail = {}
+				tmp.remove = {}
+				if (gccrule.extra_cross_ld_args and gccrule.extra_cross_ld_args ~= "") then
+					for ld_extra in string.gmatch(gccrule.extra_cross_ld_args, "[^ ]+") do
+						table.insert(tmp.add_tail, ld_extra)
+					end
+				end
+				if (gccrule.block_cross_ld_args and gccrule.block_cross_ld_args ~= "") then
+					for ld_block in string.gmatch(gccrule.block_cross_ld_args, "[^ ]+") do
+						table.insert(tmp.remove, ld_block)
+					end
+				end
+				register_gcc_component_path(tmp, gccrule)
+			end
+			for i = 1, table.maxn(gcc_tools) do
+				local tmp = {}
+				tmp.name = prefix .. gcc_tools[i]
+				tmp.new_filename = gccrule.cross_gcc_dir .. "/" .. gccrule.cross_gcc_subst_prefix .. gcc_tools[i]
+				register_gcc_component_path(tmp, gccrule)
 			end
 		end
-		register_gcc_component_path(tmp)
-	end
-	for i = 1, table.maxn(gcc_tools) do
-		local tmp = {}
-		tmp.name = prefix .. gcc_tools[i]
-		tmp.new_filename = sbox_cross_gcc_dir .. "/" .. sbox_cross_gcc_subst_prefix .. gcc_tools[i]
-		register_gcc_component_path(tmp)
 	end
 end
-
 
 -- deal with host-gcc functionality, disables mapping
 for prefix in string.gmatch(sbox_host_gcc_prefix_list, "[^:]+") do
@@ -153,7 +173,7 @@ for prefix in string.gmatch(sbox_host_gcc_prefix_list, "[^:]+") do
 				table.insert(tmp.remove, gcc_block)
 			end
 		end
-		register_gcc_component_path(tmp)
+		register_gcc_component_path(tmp, nil)
 	end
 
 	-- just map the filename for linkers and tools
@@ -162,15 +182,22 @@ for prefix in string.gmatch(sbox_host_gcc_prefix_list, "[^:]+") do
 		tmp.name = prefix .. gcc_linkers[i]
 		tmp.new_filename = sbox_host_gcc_dir .. "/" .. sbox_host_gcc_subst_prefix .. gcc_linkers[i]
 		tmp.disable_mapping = 1
-		register_gcc_component_path(tmp)
+		register_gcc_component_path(tmp, nil)
 	end
 	for i = 1, table.maxn(gcc_tools) do
 		local tmp = {}
 		tmp.name = prefix .. gcc_tools[i]
 		tmp.new_filename = sbox_host_gcc_dir .. "/" .. sbox_host_gcc_subst_prefix .. gcc_tools[i]
 		tmp.disable_mapping = 1
-		register_gcc_component_path(tmp)
+		register_gcc_component_path(tmp, nil)
 	end
+end
+
+gcc_rule_file_path = session_dir .. "/gcc-conf.lua"
+
+if (sb.path_exists(gcc_rule_file_path)) then
+	sb.log("debug", "Loading GCC rules")
+	do_file(gcc_rule_file_path)
 end
 
 -- end of gcc related generation

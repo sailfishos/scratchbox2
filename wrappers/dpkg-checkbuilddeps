@@ -134,7 +134,7 @@ function check_gcc_dependency()
 {
 	required_gcc=$1
 
-	if [ -n "$sbox_cross_gcc_dir" ]
+	if [ -f $HOME/.scratchbox2/$sbox_target/sb2.config.d/gcc.config.sh ]
 	then
 		# a cross compiler has been configured
 		if [ "$required_gcc" = "gcc" ]
@@ -144,13 +144,22 @@ function check_gcc_dependency()
 			return 0
 		fi
 		#
-		# Find out if gcc version is suitable
-		gcc_vrs=`gcc -dumpversion`
-		case "gcc-$gcc_vrs" in
-		$required_gcc*)	# required_gcc is prefix of gcc_vrs => OK
-			echo "SB2 provides $required_gcc ($gcc_vrs)"
-			return 0
-		esac
+		# Find out if gcc version is suitable, try all configured
+		# toolchains
+		for gcc_conf_file in \
+			$HOME/.scratchbox2/$sbox_target/sb2.config.d/gcc*.config.sh
+		do
+			if [ -f $gcc_conf_file ]; then
+				. $gcc_conf_file
+				short_vrs="gcc-$SBOX_CROSS_GCC_SHORTVERSION"
+				full_vrs="gcc-$SBOX_CROSS_GCC_VERSION"
+				if [ "$required_gcc" = "$short_vrs" -o \
+				     "$required_gcc" = "$full_vrs" ]; then
+					echo "SB2 provides $required_gcc"
+					return 0
+				fi
+			fi
+		done
 	fi # else a cross-compiler is not available, gcc comes from tools
 
 	# Failed, SB2 environment does not provide a suitable gcc.

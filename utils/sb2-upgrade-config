@@ -69,6 +69,30 @@ function get_sb2_init_arguments_from_old_config_file()
 	log_config_action "Config upgrade: arguments of original sb2-init restored from old config file"
 }
 
+function update_toolchain_configs()
+{
+	secondary_compiler=""
+	for compiler_path in $*; do
+		echo "Updating compiler $compiler_path"
+		log_config_action "Config upgrade: settings for compiler $compiler_path"
+		$SBOX_SHARE_DIR/scripts/sb2-config-gcc-toolchain \
+			$secondary_compiler \
+			-R "$SB2INIT_TARGET_ROOT" \
+			-S "$SBOX_SHARE_DIR/../.." \
+			-t "$SB2INIT_TARGET" \
+			-m "$SB2INIT_MAPPING_MODE" \
+			-C "$SB2INIT_SBOX_EXTRA_CROSS_COMPILER_ARGS" \
+			-- \
+			$compiler_path
+		if [ $? != 0 ]; then
+			log_config_action "failed to configure $compiler_path"
+			echo "Failed to configure $compiler_path"
+			exit 1
+		fi
+		secondary_compiler="-V"
+	done
+}
+
 if [ ! -d $SBOX_CONFIG_DIR ]; then
 	mkdir $SBOX_CONFIG_DIR 
 	log_config_action "Config upgrade: Created configuration directory"
@@ -86,6 +110,12 @@ fi
 #==============================================
 # Finally:
 
-log_config_action "Config updated to version #10"
-touch $SBOX_CONFIG_DIR/config-stamp.10
+# check if we need to actually update something:
+# version "11" added separate config files for gcc toolchains:
+if [ ! -f $SBOX_CONFIG_DIR/config-stamp.11 ]; then
+	update_toolchain_configs $SB2INIT_COMPILERS
+fi
+
+log_config_action "Config updated to version #11"
+touch $SBOX_CONFIG_DIR/config-stamp.11
 

@@ -54,13 +54,16 @@ function usage()
 	cat <<EOF
 sb2-init - initialize a target root for scratchbox2
 Usage:
-	sb2-init [OPTION]... [TARGETNAME] [COMPILER]
+	sb2-init [OPTION]... [TARGETNAME] [COMPILER] [SECONDARY_COMPILER...]
 
 sb2-init is expected to be run in the directory you want
 to use as scratchbox 2 target root.
 
 TARGETNAME is what you want to call this target
 COMPILER is of the form $HOME/arm-2006q3/bin/arm-linux-gcc
+If more than one compiler is specified, the additional compilers
+are available by version number (e.g. if the primary is known as
+"gcc" and "gcc-4.1", the secondary may be "gcc-3.4", etc)
 
 
 Options:
@@ -108,28 +111,13 @@ SBOX_INIT_ORIG_ARGS="$SBOX_INIT_ORIG_ARGS"
 SBOX_INIT_TIME=$SB2INIT_INIT_TIME
 SBOX_INIT_ID="$SB2INIT_INIT_ID"
 
-SBOX_CONFIG_VERSION=9
+SBOX_CONFIG_VERSION=10
 
 SBOX_TARGET_ROOT=$SBOX_TARGET_ROOT
 
 SBOX_CPU=$ARCH
-SBOX_GCC_TARGET=$GCC_TARGET
 SBOX_CPUTRANSPARENCY_METHOD="$SB2INIT_CPUTRANSP"
 SBOX_UNAME_MACHINE=$ARCH
-
-SBOX_DEFAULT_GCC_PREFIX=$GCC_PREFIX
-
-SBOX_CROSS_GCC_NAME=cross-gcc
-SBOX_CROSS_GCC_VERSION="$SBOX_CROSS_GCC_VERSION"
-SBOX_CROSS_GCC_SHORTVERSION="$SBOX_CROSS_GCC_SHORTVERSION"
-SBOX_CROSS_GCC_PREFIX_LIST=$GCC_TARGET-:$SB2INIT_CROSS_GCC_PREFIX_LIST:$GCC_PREFIX
-SBOX_CROSS_GCC_SUBST_PREFIX=$GCC_PREFIX
-SBOX_CROSS_GCC_SPECS_FILE="$SBOX_CROSS_GCC_SPECS_FILE"
-SBOX_CROSS_GCC_DIR=$GCC_PATH
-SBOX_CROSS_GCC_LD_ARGS=
-SBOX_EXTRA_CROSS_COMPILER_ARGS="$SBOX_EXTRA_CROSS_COMPILER_ARGS"
-SBOX_EXTRA_CROSS_COMPILER_STDINC="$SBOX_EXTRA_CROSS_COMPILER_STDINC"
-SBOX_EXTRA_CROSS_LD_ARGS="-rpath-link $SBOX_TARGET_ROOT/usr/lib:$SBOX_TARGET_ROOT/lib"
 
 DEB_BUILD_ARCH=$SB2INIT_DEB_BUILD_ARCH
 DEB_BUILD_ARCH_CPU=$SB2INIT_DEB_BUILD_ARCH_CPU
@@ -219,6 +207,30 @@ you can re-run this script."
 	fi
 }
 
+function configure_toolchains()
+{
+	secondary_compiler=""
+	for compiler_path in $*; do
+		log_config_action "sb2-init: configuring toolchain, compiler $compiler_path"
+		$SBOX_SHARE_DIR/scripts/sb2-config-gcc-toolchain \
+			-v \
+			$secondary_compiler \
+			-R "$SBOX_TARGET_ROOT" \
+			-S "$SBOX_DIR" \
+			-t "$TARGET" \
+			-m "$MAPPING_MODE" \
+			-C "$SB2INIT_SBOX_EXTRA_CROSS_COMPILER_ARGS" \
+			-- \
+			$compiler_path
+		if [ $? != 0 ]; then
+			log_config_action "sb2-init: failed to configure $compiler_path"
+			echo "Failed to configure $compiler_path"
+			exit 1
+		fi
+		secondary_compiler="-V"
+	done
+}
+
 if [ -z "$SBOX_DIR" ]; then
 	SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
 fi
@@ -239,10 +251,8 @@ eval `$SBOX_SHARE_DIR/scripts/sb2-parse-sb2-init-args $SBOX_INIT_ORIG_ARGS`
 
 TARGET=$SB2INIT_TARGET
 SBOX_TARGET_ROOT=$SB2INIT_TARGET_ROOT
-GCC=$SB2INIT_COMPILERS
 
 MAPPING_MODE=$SB2INIT_MAPPING_MODE
-SBOX_EXTRA_CROSS_COMPILER_ARGS=$SB2INIT_SBOX_EXTRA_CROSS_COMPILER_ARGS
 
 # ---------- Check parameters
 
@@ -289,39 +299,16 @@ log_config_action "sb2-init $SBOX_INIT_ORIG_ARGS"
 $SBOX_SHARE_DIR/scripts/sb2-parse-sb2-init-args $SBOX_INIT_ORIG_ARGS \
 	>$SBOX_CONFIG_DIR/sb2-init-args
 
-if [ -z "$GCC" ]; then
+if [ -z "$SB2INIT_COMPILERS" ]; then
 	echo "Warning: no compiler given"
 	ARCH=$SB2INIT_ARCH
-	echo "Target architecture set to '$ARCH'"
 else
-	GCC_FULLPATH=$(which $GCC)
-	# test that gcc exists and can be executed
-	if [ $? != 0 ]; then
-		echo "$GCC doesn't exist"
-		exit 1
-	fi
-	GCC_PATH=$(dirname $(which $GCC))
-	if [ $GCC -v > /dev/null 2>&1 != 0 ]; then
-		echo "Invalid compiler specified: $GCC"
-		exit 1
-	fi
-
-	GCC_PREFIX=$(basename $GCC | sed 's/-gcc$/-/')
-
-	SBOX_CROSS_GCC_VERSION=`$GCC -dumpversion`
-	# Create a version string with two digits
-	SBOX_CROSS_GCC_SHORTVERSION=`echo $SBOX_CROSS_GCC_VERSION |
-		sed -e 's/^\([0-9][0-9]*\.[0-9][0-9]*\)\..*/\1/'`
-
-	if [ -z "$SB2INIT_ARCH" ]; then
-		echo "Using $GCC to detect target architecture:"
-		ARCH=$($GCC -dumpmachine | awk -F- '{ print $1 }')
-		GCC_TARGET=$($GCC -dumpmachine)
-	else
-		ARCH=$SB2INIT_ARCH
-		echo "Target architecture set to '$ARCH'"
-	fi
+	configure_toolchains $SB2INIT_COMPILERS
+	# get ARCH from the primary gcc config file
+	. $HOME/.scratchbox2/$TARGET/sb2.config.d/gcc.config.sh
+	ARCH=$SB2_GCC_INIT_ARCH
 fi
+echo "sb2-init: Target architecture is '$ARCH'"
 
 DEBIAN_CPU=$ARCH
 
@@ -329,14 +316,16 @@ HOST_ARCH="$(uname -m)"
 if echo "$HOST_ARCH" | grep -q "^i.86*"; then
 	HOST_ARCH="i[3456]86"
 fi
+echo "sb2-init: Host architecture is '$HOST_ARCH'"
 
 case "$ARCH" in
 	$HOST_ARCH*) ;;
 	arm*) 
-		if [ -z "$GCC_TARGET" ]; then
+		# SBOX_GCC_TARGET from gcc.config.sh..
+		if [ -z "$SBOX_GCC_TARGET" ]; then
 			DEBIAN_CPU=$ARCH
 		else
-			echo $GCC_TARGET | grep -q -i eabi
+			echo $SBOX_GCC_TARGET | grep -q -i eabi
 			if [ $? == 0 ]; then
 				DEBIAN_CPU=armel
 			fi
@@ -372,8 +361,6 @@ SB2INIT_DEB_HOST_GNU_SYSTEM=""
 SB2INIT_DEB_HOST_ARCH_OS="linux"
 SB2INIT_DEB_HOST_ARCH_CPU=$DEBIAN_CPU
 
-SB2INIT_CROSS_GCC_PREFIX_LIST=$ARCH-linux-
-
 # $ARCH has been set, get mode-specific settings..
 if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$MAPPING_MODE ]; then
 	echo "Reading mode-specific settings.."
@@ -400,24 +387,6 @@ if [ -n "$SB2INIT_TOOLS_ROOT" ]; then
 		SB2INIT_TOOLS_ROOT=$SB2INIT_TOOLS_ROOT/tools
 	fi
 	# else assume standard FHS system
-fi
-
-# Use "specs" file for gcc if it exists, otherwise add -I/usr/include to params
-SBOX_CROSS_GCC_SPECS_FILE=""
-SBOX_EXTRA_CROSS_COMPILER_STDINC=""
-if [ -f $SBOX_DIR/share/scratchbox2/modeconf/gcc-specs.$MAPPING_MODE ]; then
-	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modeconf/gcc-specs.$MAPPING_MODE"
-else
-	SBOX_EXTRA_CROSS_COMPILER_STDINC="-I/usr/include"
-fi
-
-SBOX_EXTRA_CROSS_COMPILER_ARGS="$SBOX_EXTRA_CROSS_COMPILER_ARGS -L$SBOX_TARGET_ROOT/usr/lib -L$SBOX_TARGET_ROOT/lib"
-
-# test if the cross compiler needs to be silenced about /usr/include
-# usage
-echo "" | $GCC_FULLPATH -E - -Wno-poison-system-directories > /dev/null 2>&1
-if [ $? = 0 ]; then
-	SBOX_EXTRA_CROSS_COMPILER_ARGS="$SBOX_EXTRA_CROSS_COMPILER_ARGS -Wno-poison-system-directories"
 fi
 
 HOST_GCC_INC=$(echo "#include <stdio.h>" | gcc -M -E - | SBOX_DIR=$SBOX_DIR perl -e 'while(<STDIN>) { $foo{$1} = 1 if m/\/usr([^[:space:]]*\/include)/;}; foreach my $k (keys %foo) {print " -isystem $ENV{SBOX_DIR}/share/scratchbox2/host_usr$k"};')

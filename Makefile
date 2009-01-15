@@ -18,6 +18,7 @@ else
 SHLIBEXT = dylib
 endif
 
+# pick main build bitness
 ifeq ($(MACH),x86_64)
 PRI_OBJDIR = obj-64
 else
@@ -75,7 +76,7 @@ else
 CONFIGURE_ARGS = 
 endif
 
-ifeq ($(X86_64),y)
+ifeq ($(MACH),x86_64)
 all: multilib
 else
 all: regular
@@ -165,8 +166,8 @@ install-noarch: regular
 	(cd $(prefix)/share/scratchbox2/lua_scripts/pathmaps; ln -sf devel maemo)
 
 	install -c -m 644 $(SRCDIR)/modeconf/* $(prefix)/share/scratchbox2/modeconf/
-	(cd $(prefix)/share/scratchbox2/modeconf; for f in *.devel; do \
-		b=`basename $$f .devel`; ln -sf $$f $$b.maemo; \
+	(set -x; cd $(prefix)/share/scratchbox2/modeconf; for f in *.devel; do \
+		b=$(basename $$f .devel); ln -sf $$f $$b.maemo; \
 	done)
 	install -c -m 644 $(SRCDIR)/tests/* $(prefix)/share/scratchbox2/tests
 	chmod a+x $(prefix)/share/scratchbox2/tests/run.sh
@@ -186,8 +187,8 @@ install-noarch: regular
 	install -c -m 755 $(SRCDIR)/wrappers/host-gcc-tools-wrapper $(prefix)/share/scratchbox2/wrappers/host-gcc-tools-wrapper
 	install -c -m 755 $(SRCDIR)/wrappers/gdb $(prefix)/share/scratchbox2/wrappers/gdb
 	install -c -m 755 $(SRCDIR)/wrappers/ldd $(prefix)/share/scratchbox2/wrappers/ldd
-	(cd $(prefix)/share/scratchbox2/wrappers; \
-	 for f in $(host_prefixed_gcc_bins); do \
+	(set -x; cd $(prefix)/share/scratchbox2/wrappers; \
+	for f in $(host_prefixed_gcc_bins); do \
 		ln -sf host-gcc-tools-wrapper $$f; \
 	done)
 
@@ -239,7 +240,7 @@ clean-multilib:
 	-$(MAKE) -C obj-64 --include-dir .. -f ../Makefile SRCDIR=.. do-clean
 
 ifeq ($(MACH),x86_64)
-clean: clean-multilib
+clean: clean-multilib do-clean
 else
 clean: do-clean
 endif

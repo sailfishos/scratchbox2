@@ -110,6 +110,29 @@ function create_reverse_rules()
 	done
 }
 
+# Create some additional rules for the default mapping mode:
+function create_argvmods_usr_bin_rules()
+{
+	default_rule=$1
+
+	for ammf in $SBOX_SESSION_DIR/rules/Default.lua \
+		    $SBOX_SESSION_DIR/rules/$SBOX_MAPMODE.lua; do
+		amm_base=`basename $ammf .lua`
+
+		SBOX_ARGVMODS_USR_BIN_DEFAULT_RULE=$default_rule \
+		SBOX_SESSION_MODE=$amm_base sb2-monitor \
+			-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
+			execluafile \
+			$SBOX_SESSION_DIR/lua_scripts/create_argvmods_usr_bin_rules.lua \
+			>$SBOX_SESSION_DIR/rules/$amm_base.ARGVMODS
+		# add the generated rules to the beginning of the rule file
+		cat $SBOX_SESSION_DIR/rules/$amm_base.ARGVMODS $ammf \
+		    >$SBOX_SESSION_DIR/rules/$amm_base.NEW
+		mv $SBOX_SESSION_DIR/rules/$amm_base.NEW $ammf
+		rm $SBOX_SESSION_DIR/rules/$amm_base.ARGVMODS
+	done
+}
+
 function set_and_check_SBOX_TARGET()
 {
 	if [ -z "$SBOX_TARGET" ]; then
@@ -1102,6 +1125,12 @@ export LD_LIBRARY_PATH
 
 # ------------
 # Now everything is ready, programs can be executed in SB2'ed environment.
+# Make automatically generated rules, if needed:
+if [ -n "CREATE_ARGVMODS_USR_BIN_RULES" ]
+then
+	create_argvmods_usr_bin_rules "$CREATE_ARGVMODS_USR_BIN_RULES"
+fi
+
 # Create reverse mapping rules before starting the actual command (or shell)
 if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 	if [ "$SBOX_CREATE_REVERSE_RULES" == "y" ]; then

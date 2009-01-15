@@ -280,6 +280,9 @@ devel_mode_rules_usr = {
 		{path = "/usr/bin/localedef", map_to = target_root,
 		 readonly = true},
 
+		-- automatically generated rules for /usr/bin:
+		{dir = "/usr/bin", chain = argvmods_rules_for_usr_bin},
+
 		-- -----------------------------------------------
 		-- 40. /usr/lib/*
 		-- Most of /usr/lib should come from target_root, but

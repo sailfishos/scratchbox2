@@ -87,6 +87,11 @@ function load_and_check_rules()
 	export_chains = {}
 	exec_policy_chains = {}
 
+	tools = tools_root
+	if (not tools) then
+		tools = "/"
+	end
+
 	-- Differences between version 17 and 18:
 	-- - added sb2_procfs_mapper()
 	-- Differences between version 16 and 17:

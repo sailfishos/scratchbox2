@@ -28,6 +28,13 @@ case "$sb2rc_mode" in
 		# switch to the "tools" mode; call add_map_mode to
 		# make "tools" available for this session.
 		add_map_mode tools
+
+		# If $CREATE_ARGVMODS_USR_BIN_RULES is not empty, some 
+		# mapping rules will be automatically generated for
+		# programs that belong to the toolchain.
+		# Value of this variable will be used as the default 
+		# mapping rule.
+		CREATE_ARGVMODS_USR_BIN_RULES="map_to=tools,readonly=true"
 		;;
 
 	wrapper_list)

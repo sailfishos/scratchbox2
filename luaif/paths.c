@@ -410,7 +410,7 @@ static char *call_lua_function_sbox_translate_path(
 	int *ro_flagp)
 {
 	int ro_flag;
-	char *traslate_result = NULL;
+	char *translate_result = NULL;
 
 	SB_LOG(SB_LOGLEVEL_NOISE, "calling sbox_translate_path for %s(%s)",
 		func_name, decolon_path);
@@ -429,30 +429,30 @@ static char *call_lua_function_sbox_translate_path(
 	 /* 4 arguments, returns rule,policy,path,ro_flag */
 	lua_call(luaif->lua, 4, 4);
 
-	traslate_result = (char *)lua_tostring(luaif->lua, -2);
-	if (traslate_result) {
-		traslate_result = strdup(traslate_result);
+	translate_result = (char *)lua_tostring(luaif->lua, -2);
+	if (translate_result) {
+		translate_result = strdup(translate_result);
 	}
 	ro_flag = lua_toboolean(luaif->lua, -1);
 	if (ro_flagp) *ro_flagp = ro_flag;
 	lua_pop(luaif->lua, 2); /* leave rule and policy to the stack */
 
-	if (traslate_result) {
+	if (translate_result) {
 		/* sometimes a mapping rule may create paths that contain
 		 * doubled slashes ("//") or end with a slash. We'll
 		 * need to clean the path here.
 		*/
 		char *cleaned_path;
 
-		cleaned_path = sb_decolonize_path(func_name, traslate_result);
+		cleaned_path = sb_decolonize_path(func_name, translate_result);
 		if (*cleaned_path != '/') {
 			/* oops, got a relative path. CWD is too long. */
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"OOPS, call_lua_function_sbox_translate_path:"
 				" relative");
 		}
-		free(traslate_result);
-		traslate_result = NULL;
+		free(translate_result);
+		translate_result = NULL;
 
 		/* log the result */
 		if (strcmp(cleaned_path, decolon_path) == 0) {
@@ -1146,7 +1146,7 @@ char *scratchbox_path_at(
 			abort();
 		}
 		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"Synthetic path for %s(%d,%s) => '%s'",
+			"Synthetic path for %s(%d,'%s') => '%s'",
 			func_name, dirfd, path, at_full_path);
 
 		ret = scratchbox_path_internal(

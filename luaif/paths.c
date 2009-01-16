@@ -312,9 +312,21 @@ static char *absolute_path(const char *fn_name, const char *path)
 			 * In this case this really won't be able to do all 
 			 * path mapping steps, but sb_decolonize_path()
 			 * must not fail!
+			 *
+			 * Added 2009-01-16: This actually happens sometimes;
+			 * there are configure scripts that find out MAX_PATH 
+			 * the hard way. So, if this process has already
+			 * logged this error, well suppress further messages.
+			 * [decided to add this check after I had seen 3686
+			 * error messages from "conftest" :-) /LTA]
 			*/
-			SB_LOG(SB_LOGLEVEL_ERROR,
-				"absolute_path failed to get current dir");
+			static int absolute_path_failed_message_logged = 0;
+
+			if (!absolute_path_failed_message_logged) {
+				absolute_path_failed_message_logged = 1;
+				SB_LOG(SB_LOGLEVEL_ERROR,
+				    "absolute_path failed to get current dir");
+			}
 			return(NULL);
 		}
 		if ((asprintf(&cpath, "%s/%s", cwd, path) < 0) || !cpath)

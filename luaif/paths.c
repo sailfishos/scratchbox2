@@ -1056,6 +1056,15 @@ static char *scratchbox_path_internal(
 	}
 	enable_mapping(luaif);
 
+#if defined(path_registration_has_not_yet_been_fixed_so_this_is_disabled)
+	/* This piece of code has been disabled temporarily 2009-01-16 / LTA
+	 *
+	 * (relative paths can not be used before the registration of
+	 * paths to fdpathdb.c can always get absolute paths, even if the
+	 * mapping result can be relative otherwise...this requires some
+	 * refactoring)
+	*/
+
 	/* now "mapping_result" is (should be) an absolute path.
 	 * sb2's exec logic needs absolute paths, but otherwise,
 	 * try to return a relative path if the original path was relative.
@@ -1094,6 +1103,7 @@ static char *scratchbox_path_internal(
 			}
 		}
 	}
+#endif
 
 	SB_LOG(SB_LOGLEVEL_NOISE, "scratchbox_path_internal: mapping_result='%s'",
 		mapping_result ? mapping_result : "<No result>");

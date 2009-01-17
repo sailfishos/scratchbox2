@@ -107,12 +107,20 @@ static void fdpathdb_register_mapped_path(
 		/* orig.path is an absolute path, use that directly */
 		path = orig_path;
 	} else {
-		/* mapped_path is always absolute */
-		path = mapped_path;
+		/* mapped_path should be always absolute */
+		if (*mapped_path == '/') {
+			path = mapped_path;
+		} else {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"Internal error: fdpathdb needs absolute"
+				" paths (but got '%s','%s')",
+				mapped_path, orig_path);
+			path = NULL; /* clear the entry */
+		}
 	}
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: Register %d => '%s'",
-		realfnname, fd, path);
+		realfnname, fd, path ? path : "(NULL path)");
 
 	fdpathdb_mutex_lock();
 	{
@@ -151,7 +159,7 @@ static void fdpathdb_register_mapped_path(
 			fd_path_db[fd].fpdb_path = NULL;
 		}
 
-		fd_path_db[fd].fpdb_path = strdup(path);
+		fd_path_db[fd].fpdb_path = path ? strdup(path) : NULL;
 	}
 	fdpathdb_mutex_unlock();
 }

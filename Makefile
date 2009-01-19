@@ -122,7 +122,7 @@ install-noarch: regular
 	$(P)INSTALL
 	@if [ -d $(prefix)/bin ] ; \
 	then echo "$(prefix)/bin present" ; \
-	else $(Q)install -d -m 755 $(prefix)/bin ; \
+	else install -d -m 755 $(prefix)/bin ; \
 	fi
 	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts
 	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps
@@ -138,7 +138,7 @@ install-noarch: regular
 	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/modeconf
 	@if [ -d $(prefix)/share/man/man1 ] ; \
 	then echo "$(prefix)/share/man/man1 present" ; \
-	else $(Q)install -d -m 755 $(prefix)/share/man/man1 ; \
+	else install -d -m 755 $(prefix)/share/man/man1 ; \
 	fi
 	$(Q)echo "$(PACKAGE_VERSION)" > $(prefix)/share/scratchbox2/version
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2 $(prefix)/bin/sb2
@@ -203,7 +203,7 @@ do-install: install-noarch
 	$(P)INSTALL
 	@if [ -d $(prefix)/lib ] ; \
 	then echo "$(prefix)/lib present" ; \
-	else $(Q)install -d -m 755 $(prefix)/lib ; \
+	else install -d -m 755 $(prefix)/lib ; \
 	fi
 	$(Q)install -d -m 755 $(prefix)/lib/libsb2
 	$(Q)install -c -m 755 $(OBJDIR)/preload/libsb2.$(SHLIBEXT) $(prefix)/lib/libsb2/libsb2.so.$(PACKAGE_VERSION)
@@ -224,7 +224,7 @@ do-install-multilib:
 	$(P)INSTALL
 	@if [ -d $(multilib_prefix)/lib$(bitness) ] ; \
 	then echo "$(prefix)/lib$(bitness) present" ; \
-	else $(Q)install -d -m 755 $(prefix)/lib$(bitness) ; \
+	else install -d -m 755 $(prefix)/lib$(bitness) ; \
 	fi
 	$(Q)install -d -m 755 $(multilib_prefix)/lib$(bitness)/libsb2
 	$(Q)install -c -m 755 preload/libsb2.$(SHLIBEXT) $(multilib_prefix)/lib$(bitness)/libsb2/libsb2.so.$(PACKAGE_VERSION)

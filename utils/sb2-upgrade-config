@@ -1,0 +1,91 @@
+#!/bin/bash
+# sb2-upgrade-config:
+# - This script is used to automatically update/upgrade configuration files.
+# - Called from the "sb2" script whenever needed; see the configuration 
+#   version check in load_configuration() of "sb2".
+# - Should not be called directly from the command line!
+#
+# Copyright (C) 2009 Nokia Corporation.
+# Licensed under GPL version 2
+
+my_path=$_
+if [ $(basename $my_path) != $(basename $0) ]; then
+	my_path=$0
+	if [ $(basename $my_path) = $my_path ]; then
+		my_path=$(which $my_path)
+	fi
+fi
+
+SBOX_SHARE_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
+SBOX_TARGET=$1
+SBOX_CONFIG_DIR=~/.scratchbox2/$SBOX_TARGET/sb2.config.d 
+
+function exit_error()
+{
+	echo "$my_path: Error: $@"
+	exit 1
+}
+
+if [ -z "$SBOX_TARGET" ]; then
+	exit_error "this script is intended for sb2's internal use only!"
+fi 
+
+function log_config_action()
+{
+	tstamp=`/bin/date '+%Y-%m-%d %H:%M:%S'`
+	echo "$tstamp	$*" >>$SBOX_CONFIG_DIR/CONFIG-LOG
+}
+
+# Get the original arguments that were specified to sb2-init from
+# the old configuration file; we only need three variables from that file..
+function get_sb2_init_arguments_from_old_config_file()
+{
+	OLD_CONFIG_FILE=$HOME/.scratchbox2/$SBOX_TARGET/sb2.config
+
+	if [ ! -f $OLD_CONFIG_FILE ]; then
+		exit_error "$OLD_CONFIG_FILE does not exist"
+	fi
+
+	# Check version
+	vers=`egrep -m 1 '^SBOX_CONFIG_VERSION=' $OLD_CONFIG_FILE`
+	SBOX_CONFIG_VERSION=0
+	eval $vers
+
+	if [ "$SBOX_CONFIG_VERSION" -lt 5 ]; then
+		exit_error "configuration file version is too old ($OLD_CONFIG_FILE)"
+	fi
+
+	# Get original options & target name & compiler(s)
+	args=`egrep -m 1 '^SBOX_INIT_ORIG_ARGS=' $OLD_CONFIG_FILE`
+	eval $args
+
+	# Get original target_root
+	targetroot=`egrep -m 1 '^SBOX_TARGET_ROOT=' $OLD_CONFIG_FILE`
+	eval $targetroot
+	export SB2INIT_TARGET_ROOT=$SBOX_TARGET_ROOT
+
+	$SBOX_SHARE_DIR/scripts/sb2-parse-sb2-init-args $SBOX_INIT_ORIG_ARGS \
+		> $SBOX_CONFIG_DIR/sb2-init-args
+	log_config_action "Config upgrade: arguments of original sb2-init restored from old config file"
+}
+
+if [ ! -d $SBOX_CONFIG_DIR ]; then
+	mkdir $SBOX_CONFIG_DIR 
+	log_config_action "Config upgrade: Created configuration directory"
+fi
+
+if [ ! -f $SBOX_CONFIG_DIR/sb2-init-args ]; then
+	# This is an old target.
+	# Need to get sb2-init's parameters from the old config file
+	get_sb2_init_arguments_from_old_config_file
+fi
+
+# read in the values that were used when sb2-init was executed:
+. $SBOX_CONFIG_DIR/sb2-init-args
+
+#==============================================
+# Finally:
+
+log_config_action "Config updated to version #10"
+touch $SBOX_CONFIG_DIR/config-stamp.10
+

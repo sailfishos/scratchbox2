@@ -128,14 +128,38 @@ function set_and_check_SBOX_TARGET()
 	fi
 }
 
+function load_configuration()
+{
+	#-----------
+	# part of the configuration is still stored in the "old format"
+	# configuration file, "sb2.config". It is created by "sb2-init"
+
+	. ~/.scratchbox2/$SBOX_TARGET/sb2.config
+	# Remember where SBOX_TARGET_ROOT was in the configuration file
+	SBOX_TARGET_ROOT_in_config_file=$SBOX_TARGET_ROOT
+
+	#-----------
+	# "New" config system stores configuration to various files
+	# in sb2.config.d directory, and the configuration is automatically
+	# upgraded whenever needed:
+	
+	# check if we need to upgrade configuration:
+	if [ ! -f ~/.scratchbox2/$SBOX_TARGET/sb2.config.d/config-stamp.10 ]; then
+		$SBOX_DIR/share/scratchbox2/scripts/sb2-upgrade-config \
+			$SBOX_TARGET
+		if [ $? != 0 ]; then
+			echo "Failed to upgrade configuration files" >&2
+			exit 1
+		fi
+	fi
+}
+
 function sboxify_environment()
 {
 	LD_LIBRARY_PATH=$SBOX_DIR/lib/libsb2:$SBOX_DIR/lib64/libsb2:$SBOX_DIR/lib32/libsb2:/emul/lib64/libsb2:/emul/lib32/libsb2
 	SBOX_LIBSB2="libsb2.so.1"
 	
-	. ~/.scratchbox2/$SBOX_TARGET/sb2.config
-	# Remember where SBOX_TARGET_ROOT was in the configuration file
-	SBOX_TARGET_ROOT_in_config_file=$SBOX_TARGET_ROOT
+	load_configuration
 
 	# override SBOX_TOOLS_ROOT if requested by command-line option
 	if [ -n "$SBOX_FORCED_TOOLS_ROOT" ]; then

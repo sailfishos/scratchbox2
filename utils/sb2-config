@@ -19,8 +19,10 @@ Usage:
 	sb2-config [OPTION]... [TARGETNAME]
 
 Options:
-    -d                set default scratchbox2 target
+    -d TARGETNAME     set default scratchbox2 target
     -l                list scratchbox2 targets
+    -L TARGETNAME     show configuration log ('-' as target name refers to the
+                      default target)
     -h                print this help
     -v                display version
 
@@ -55,6 +57,36 @@ function list_targets()
 	for f in $list; do echo $(basename $(dirname $f)); done
 }
 
+function show_config_log()
+{
+	target=$1
+
+	if [ "$target" == "-" ]; then
+		# use default target
+		if [ ! -f $HOME/.scratchbox2/config ]; then
+			echo "default target has not been set!" >&2
+			exit 1
+		fi
+		. $HOME/.scratchbox2/config
+		target=$DEFAULT_TARGET
+		echo "Configuration log of '$target'"
+	fi
+
+	if [ ! -d $HOME/.scratchbox2/$target ]; then
+		echo "target $target does not exist!" >&2
+		exit 1
+	fi
+
+	if [ ! -f $HOME/.scratchbox2/$target/sb2.config.d/CONFIG-LOG ]; then
+		echo "target $target does not have a configuration log!" >&2
+		exit 1
+	fi
+	# else log found
+
+	cat $HOME/.scratchbox2/$target/sb2.config.d/CONFIG-LOG
+	exit 0
+}
+
 function write_config()
 {
 	echo "
@@ -70,15 +102,15 @@ if [ $# == 0 ]; then
 	usage
 fi
 
-while getopts d:hlv foo
+while getopts d:hlL:v foo
 do
 	case $foo in
-	(d) set_as_default=1
-	    DEFAULT_TARGET=$OPTARG
+	(d) DEFAULT_TARGET=$OPTARG
 	    WRITE_CONFIG=1
 	    ;;
 	(h) usage ;;
 	(l) list_targets ;;
+	(L) show_config_log $OPTARG ;;
 	(v) version ;;
 	(*) usage ;;
 	esac

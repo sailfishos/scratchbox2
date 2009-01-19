@@ -91,7 +91,7 @@ static void fdpathdb_register_mapped_path(
 	const char *realfnname, int fd,
 	const char *mapped_path, const char *orig_path)
 {
-	const char *path;
+	const char *path = NULL;
 
 	if (fd < 0) return;
 
@@ -103,19 +103,21 @@ static void fdpathdb_register_mapped_path(
 	 * could be called from here, but that is not the cheapest
 	 * possible operation.. To Be Fixed.)
 	*/
-	if (*orig_path == '/') {
-		/* orig.path is an absolute path, use that directly */
-		path = orig_path;
-	} else {
-		/* mapped_path should be always absolute */
-		if (*mapped_path == '/') {
-			path = mapped_path;
+	if (orig_path && mapped_path) {
+		if (*orig_path == '/') {
+			/* orig.path is an absolute path, use that directly */
+			path = orig_path;
 		} else {
-			SB_LOG(SB_LOGLEVEL_ERROR,
-				"Internal error: fdpathdb needs absolute"
-				" paths (but got '%s','%s')",
-				mapped_path, orig_path);
-			path = NULL; /* clear the entry */
+			/* mapped_path should be always absolute */
+			if (*mapped_path == '/') {
+				path = mapped_path;
+			} else {
+				SB_LOG(SB_LOGLEVEL_ERROR,
+					"Internal error: fdpathdb needs absolute"
+					" paths (but got '%s','%s')",
+					mapped_path, orig_path);
+				path = NULL; /* clear the entry */
+			}
 		}
 	}
 
@@ -232,5 +234,32 @@ extern void openat64_postprocess_pathname(
 	(void)mode;
 	fdpathdb_register_mapped_path(realfnname, ret_fd,
 		mapped__pathname, pathname);
+}
+
+void dup_postprocess_(const char *realfnname, int ret, int fd)
+{
+	const char	*cp = NULL;
+
+	if (ret >= 0) {
+		cp = fdpathdb_find_path(fd);
+		if (cp) cp = strdup(cp);
+		fdpathdb_register_mapped_path(realfnname, ret, cp, cp);
+	}
+}
+
+void dup2_postprocess_(const char *realfnname, int ret, int fd, int fd2)
+{
+	const char	*cp = NULL;
+
+	if ((ret >= 0) && (fd != fd2)) {
+		cp = fdpathdb_find_path(fd);
+		if (cp) cp = strdup(cp);
+		fdpathdb_register_mapped_path(realfnname, fd2, cp, cp);
+	}
+}
+
+void close_postprocess_(const char *realfnname, int ret, int fd)
+{
+	fdpathdb_register_mapped_path(realfnname, fd, NULL, NULL);
 }
 

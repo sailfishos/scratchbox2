@@ -509,7 +509,8 @@ sub process_wrap_or_gate_modifiers {
 		} elsif($modifiers[$i] =~ m/^postprocess\((.*)\)$/) {
 			my $param_to_postprocess = $1;
 
-			if (defined($mods->{'mapped_params_by_orig_name'}->{$param_to_postprocess})) {
+			if (defined($mods->{'mapped_params_by_orig_name'}->{$param_to_postprocess}) ||
+			    ($param_to_postprocess eq '')) {
 				push(@{$mods->{'postprocess_vars'}},
 					$param_to_postprocess);
 			} else {
@@ -645,22 +646,38 @@ sub create_postprocessors {
 		my $ppvar;
 		foreach $ppvar (@{$mods->{'postprocess_vars'}}) {
 			my $pp_fn = "${fn_name}_postprocess_${ppvar}";
-			my $mapped_param = $mods->{'mapped_params_by_orig_name'}->{$ppvar};
-			my $type_of_param = find_type_of_parameter($fn,$ppvar);
 
-			$postprocessor_calls .= "$pp_fn(__func__, ".
-				$return_value_param_in_call.
-				"$mapped_param, ".
-				# add orig (unmapped) parameters
-				join(", ", @{$mods->{'parameter_names'}}).
-				"); ";
-			$postprocessor_prototypes .= "extern void ".
-				"$pp_fn(const char *realfnname, ".
-				$return_value_param_in_prototype.
-				"$type_of_param $mapped_param, ".
-				# orig (unmapped) parameters
-				join(", ", @{$mods->{'parameter_types'}}).
-				");\n";
+			if ($ppvar eq '') {
+				# postprocess, no mapped parameter
+				$postprocessor_calls .= "$pp_fn(__func__, ".
+					$return_value_param_in_call.
+					# add orig (unmapped) parameters
+					join(", ", @{$mods->{'parameter_names'}}).
+					"); ";
+				$postprocessor_prototypes .= "extern void ".
+					"$pp_fn(const char *realfnname, ".
+					$return_value_param_in_prototype.
+					# orig (unmapped) parameters
+					join(", ", @{$mods->{'parameter_types'}}).
+					");\n";
+			} else {
+				# has mapped parameter
+				my $mapped_param = $mods->{'mapped_params_by_orig_name'}->{$ppvar};
+				my $type_of_param = find_type_of_parameter($fn,$ppvar);
+				$postprocessor_calls .= "$pp_fn(__func__, ".
+					$return_value_param_in_call.
+					"$mapped_param, ".
+					# add orig (unmapped) parameters
+					join(", ", @{$mods->{'parameter_names'}}).
+					"); ";
+				$postprocessor_prototypes .= "extern void ".
+					"$pp_fn(const char *realfnname, ".
+					$return_value_param_in_prototype.
+					"$type_of_param $mapped_param, ".
+					# orig (unmapped) parameters
+					join(", ", @{$mods->{'parameter_types'}}).
+					");\n";
+			}
 		}
 	}
 	return($postprocessor_calls, $postprocessor_prototypes);

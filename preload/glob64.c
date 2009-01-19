@@ -6,7 +6,7 @@
 #ifndef __APPLE__
 
 #include <dirent.h>
-#include "glob.h"
+#include <glob.h>
 #include <sys/stat.h>
 
 #define dirent dirent64

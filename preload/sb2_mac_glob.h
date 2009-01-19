@@ -1,3 +1,10 @@
+#ifdef __APPLE__
+/* NOTE: Background: The Mac OS X support added this file, a copy of "glob.h",
+ * to SB2 with the original name ("glob.h"). That caused harm on Linux;
+ * Renamed this to "sb2_mac_glob.h" to fix problems with Linux... See the
+ * full description of the problem in glob.c(). 2009-01-16/LTA
+*/
+
 /* Copyright (C) 1991,92,95,96,97,98,2000,2001 Free Software Foundation, Inc.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -208,3 +215,4 @@ extern int glob_pattern_p __P ((__const char *__pattern, int __quote));
 #endif
 
 #endif /* glob.h  */
+#endif /* __APPLE__ */

@@ -35,7 +35,24 @@
 */
 #include <dirent.h>
 
+#ifndef __APPLE__
+#include <glob.h>
+#else /* SB2 - OS X Compat */
+/* Bugfix: Background: The Mac OS X support added a copy of "glob.h"
+ * to SB2. That file causes problems with glob() on Linux; it is maybe
+ * not the best possible idea to replace system's glob.h with something 
+ * that might not be fully compatible (it seems that the copy of
+ * glob.h was taken from an older version of glibc?)
+ * So, the fix is that for Linux systems we'll continue to use the 
+ * system's glob.h with our private copies of glob.c and glob64.c; glob.h
+ * was not missing by accident, this setup was intentional.
+ * I have renamed "glob.h" (the copy which was intended for the Mac OS X's)
+ * to "sb2_mac_glob.h. However, I don't know the meaning of the following 
+ * #include (since there is another #include below), so I might have broken 
+ * things on Mac OS X, sorry...  2009-01-16/LTA
+*/
 #include <glob.h> /* included here for Mac OS X support */
+#endif
 
 #include <errno.h>
 #include <sys/types.h>
@@ -224,7 +241,9 @@
 #include <mempcpy.h>
 #endif
 
-#include "glob.h" /* SB2 - OS X Compat */
+#ifdef __APPLE__ /* SB2 - OS X Compat */
+#include "sb2_mac_glob.h" /* SB2 - OS X Compat */
+#endif
 
 
 static const char *next_brace_sub (const char *begin, int flags) __THROW;

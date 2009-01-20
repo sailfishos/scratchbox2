@@ -348,7 +348,7 @@ END
 # create $SBOX_SESSION_DIR/gcc-conf.lua
 function create_gcc_conf_file_for_session()
 {
-	gcc_config_files=`ls ~/.scratchbox2/$SBOX_TARGET/sb2.config.d/gcc.config*.lua`
+	gcc_config_files=`ls ~/.scratchbox2/$SBOX_TARGET/sb2.config.d/gcc.config*.lua 2>/dev/null`
 	if [ -n "$gcc_config_files" ] ; then
 		# Create the configuration file. Do some variable substitutions:
 		# "extra_cross_compiler_args" and "extra_cross_ld_args"

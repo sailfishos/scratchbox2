@@ -114,7 +114,7 @@ static void write_to_logfile(const char *msg, int msglen)
 					S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP
 					| S_IROTH | S_IWOTH)) > 0) {
 			(void)write(logfd, msg, msglen);
-			close(logfd);
+			close_nomap_nolog(logfd);
 		}
 	}
 }

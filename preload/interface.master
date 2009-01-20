@@ -122,7 +122,8 @@ WRAP: int openat64(int dirfd, const char *pathname, int flags, ...) : \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
 
 WRAP: int close(int fd) : \
-	postprocess()
+	postprocess() \
+	create_nomap_nolog_version
 WRAP: int dup(int fd) : \
 	postprocess()
 WRAP: int dup2(int fd, int fd2) : \

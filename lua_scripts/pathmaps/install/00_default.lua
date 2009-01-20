@@ -31,7 +31,8 @@ default_chain = {
 		{ prefix = "/usr/local/bin", func_name = ".*exec.*", map_to = tools_target },
 
 		{ prefix = "/dev", func_name = "open.*", use_orig_path = true },
-		{ dir = "/proc", custom_map_funct = sb2_procfs_mapper},
+		{ dir = "/proc", custom_map_funct = sb2_procfs_mapper,
+		 virtual_path = true},
 		{ prefix = "/sys", use_orig_path = true },
 
 		{ prefix = session_dir, use_orig_path = true },

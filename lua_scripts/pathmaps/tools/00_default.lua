@@ -62,7 +62,8 @@ mapall_chain = {
 
 		--
 		{prefix = "/dev", use_orig_path = true},
-		{dir = "/proc", custom_map_funct = sb2_procfs_mapper},
+		{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
+		 virtual_path = true},
 		{prefix = "/sys", use_orig_path = true},
 
 		{prefix = sbox_user_home_dir .. "/.scratchbox2",

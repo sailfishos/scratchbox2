@@ -502,7 +502,8 @@ simple_chain = {
 		-- -----------------------------------------------
 		-- 90. Top-level directories that must not be mapped:
 		{prefix = "/dev", use_orig_path = true},
-		{dir = "/proc", custom_map_funct = sb2_procfs_mapper},
+		{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
+		 virtual_path = true},
 		{prefix = "/sys",
 		 use_orig_path = true, readonly = true},
 
@@ -555,7 +556,8 @@ qemu_chain = {
 		{prefix = "/tmp", map_to = session_dir},
 
 		{prefix = "/dev", use_orig_path = true},
-		{dir = "/proc", custom_map_funct = sb2_procfs_mapper},
+		{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
+		 virtual_path = true},
 		{prefix = "/sys", use_orig_path = true},
 
 		{prefix = "/etc/resolv.conf",

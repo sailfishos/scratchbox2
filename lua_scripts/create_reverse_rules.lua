@@ -23,6 +23,7 @@
 -- are not currently supported.
 
 allow_reversing = true	-- default = create reverse rules.
+reversing_disabled_message = ""
 
 -- Order of reverse rules is not necessarily the same as order of forward rules
 function test_rev_rule_position(output_rules, d_path)
@@ -69,6 +70,9 @@ function reverse_one_rule(output_rules, rule, n)
 
 		if (rule.func_name ~= nil) then
 			allow_reversing = false
+			reversing_disabled_message = string.format(
+				"Rule '%s' has 'func_name' attribute",
+				new_rule.name)
 		end
 
 		local d_path = nil
@@ -203,6 +207,7 @@ function print_rules(rules)
 		if (rule.error) then
 			print("\t -- ",rule.error)
 			allow_reversing = false
+			reversing_disabled_message = rule.error
 		end
 		print("\t},")
 	end
@@ -224,6 +229,7 @@ function process_chains(chains_table)
 				print("    -- NOTE: next_chain is not nil,")
 				print("    -- can't create reversing rules")
 				allow_reversing = false
+				reversing_disabled_message = "next_chain is not nil"
 			else
 				print("    next_chain=nil,")
 			end
@@ -256,7 +262,8 @@ function process_chains(chains_table)
 		end
 		print("}")
 	else
-		print("-- Failed to create reverse rules.")
+		print("-- Failed to create reverse rules (" ..
+			reversing_disabled_message .. ")")
 		print("reverse_chains = nil")
 	end
 end

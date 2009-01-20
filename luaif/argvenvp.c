@@ -65,7 +65,10 @@ void sb_push_string_to_lua_stack(char *str)
 {
 	struct lua_instance *luaif = get_lua();
 
-	if (luaif) lua_pushstring(luaif->lua, str);
+	if (luaif) {
+		lua_pushstring(luaif->lua, str);
+		release_lua(luaif);
+	}
 }
 
 /* Exec preprocessor:
@@ -81,11 +84,13 @@ int sb_execve_preprocess(char **file, char ***argv, char ***envp)
 	if (!argv || !envp) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"ERROR: sb_argvenvp: (argv || envp) == NULL");
+		release_lua(luaif);
 		return -1;
 	}
 
 	if (getenv("SBOX_DISABLE_ARGVENVP")) {
 		SB_LOG(SB_LOGLEVEL_DEBUG, "sb_argvenvp disabled(E):");
+		release_lua(luaif);
 		return 0;
 	}
 
@@ -119,6 +124,7 @@ int sb_execve_preprocess(char **file, char ***argv, char ***envp)
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"sb_execve_preprocess: at exit, gettop=%d", lua_gettop(luaif->lua));
+	release_lua(luaif);
 	return res;
 }
 
@@ -141,6 +147,7 @@ int sb_execve_postprocess(char *exec_type,
 	if (!argv || !envp) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"ERROR: sb_argvenvp: (argv || envp) == NULL");
+		release_lua(luaif);
 		return -1;
 	}
 
@@ -208,6 +215,7 @@ int sb_execve_postprocess(char *exec_type,
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"sb_execve_postprocess: at exit, gettop=%d", lua_gettop(luaif->lua));
+	release_lua(luaif);
 	return res;
 }
 
@@ -260,5 +268,6 @@ char *sb_query_exec_policy(const char *field_name, const char *binary_name,
 	/* normalize lua stack */
 	lua_pop(luaif->lua, 2);
 
+	release_lua(luaif);
 	return (result);
 }

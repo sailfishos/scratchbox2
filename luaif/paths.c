@@ -935,7 +935,7 @@ static char *scratchbox_path_internal(
 	int dont_resolve_final_symlink,
 	int process_path_for_exec)
 {
-	struct lua_instance *luaif;
+	struct lua_instance *luaif = NULL;
 	char *mapping_result;
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "scratchbox_path_internal: %s(%s)", func_name, path);
@@ -966,6 +966,7 @@ static char *scratchbox_path_internal(
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"ERROR: scratchbox_path_internal: path==NULL [%s]",
 			func_name);
+		release_lua(luaif);
 		return NULL;
 	}
 
@@ -976,6 +977,7 @@ static char *scratchbox_path_internal(
 		*/
 		SB_LOG(SB_LOGLEVEL_INFO, "disabled(E): %s '%s'",
 			func_name, path);
+		release_lua(luaif);
 		return strdup(path);
 	}
 	if (luaif->mapping_disabled) {
@@ -985,6 +987,7 @@ static char *scratchbox_path_internal(
 		*/
 		SB_LOG(SB_LOGLEVEL_INFO, "disabled(%d): %s '%s'",
 			luaif->mapping_disabled, func_name, path);
+		release_lua(luaif);
 		return strdup(path);
 	}
 
@@ -994,6 +997,11 @@ static char *scratchbox_path_internal(
 		char *decolon_path = NULL;
 		char *full_path_for_rule_selection = NULL;
 
+
+		/* FIXME: following call to sb_decolonize_path() will lead to
+		 * another call to get_lua()...it would be more efficient to just
+		 * pass luaif pointer from here.
+		*/
 		full_path_for_rule_selection = sb_decolonize_path(func_name, path);
 
 		if (*full_path_for_rule_selection != '/') {
@@ -1107,6 +1115,7 @@ static char *scratchbox_path_internal(
 
 	SB_LOG(SB_LOGLEVEL_NOISE, "scratchbox_path_internal: mapping_result='%s'",
 		mapping_result ? mapping_result : "<No result>");
+	release_lua(luaif);
 	return(mapping_result);
 }
 
@@ -1207,9 +1216,12 @@ char *scratchbox_reverse_path(
 	const char *full_path)
 {
 	struct lua_instance *luaif = get_lua();
+	char *result;
 
-	return (call_lua_function_sbox_reverse_path(luaif,
+	result = call_lua_function_sbox_reverse_path(luaif,
 		(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
-		func_name, full_path));
+		func_name, full_path);
+	release_lua(luaif);
+	return(result);
 }
 

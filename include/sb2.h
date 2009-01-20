@@ -25,6 +25,7 @@
 struct lua_instance {
 	lua_State *lua;
 	int mapping_disabled;
+	int lua_instance_in_use; /* used only if debug messages are active */
 };
 
 /* This version string is used to check that the lua scripts offer 
@@ -49,6 +50,7 @@ struct lua_instance {
 #define SB2_LUA_C_INTERFACE_VERSION "60,2008-12-07"
 
 extern struct lua_instance *get_lua(void);
+extern void release_lua(struct lua_instance *ptr);
 
 #if 0
 extern char *sb_decolonize_path(const char *path);

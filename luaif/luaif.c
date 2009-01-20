@@ -272,6 +272,48 @@ static struct lua_instance *alloc_lua(void)
 	return(tmp);
 }
 
+static void increment_luaif_usage_counter(volatile struct lua_instance *ptr)
+{
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
+		/* Well, to make this bullet-proof the luaif structure
+		 * should be locked, but since this code is now used only for
+		 * producing debugging information and the pointer is marked
+		 * "volatile", the results are good enough. No need to slow 
+		 * down anything with additional locks - this function is 
+		 * called frequently. */
+		if (ptr->lua_instance_in_use > 0) SB_LOG(SB_LOGLEVEL_DEBUG,
+			"Lua instance already in use! (%d)",
+			ptr->lua_instance_in_use);
+
+		(ptr->lua_instance_in_use)++;
+	}
+}
+
+void release_lua(struct lua_instance *luaif)
+{
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
+		int	i;
+		volatile struct lua_instance *ptr = luaif;
+
+		SB_LOG(SB_LOGLEVEL_NOISE, "release_lua()");
+
+		if (!ptr) {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"release_lua(): ptr is NULL ");
+			return;
+		}
+
+		i = ptr->lua_instance_in_use;
+		if (i > 1) SB_LOG(SB_LOGLEVEL_DEBUG,
+			"Lua instance usage counter was %d", i);
+
+		(ptr->lua_instance_in_use)--;
+	}
+}
+
+/* get access to lua context. Remember to call release_lua() after the
+ * pointer is not needed anymore.
+*/
 struct lua_instance *get_lua(void)
 {
 	struct lua_instance *ptr = NULL;
@@ -279,6 +321,8 @@ struct lua_instance *get_lua(void)
 	if (!sb2_global_vars_initialized__) sb2_initialize_global_variables();
 
 	if (!SB_LOG_INITIALIZED()) sblog_init();
+
+	SB_LOG(SB_LOGLEVEL_NOISE, "get_lua()");
 
 	if (pthread_detection_done == 0) check_pthread_library();
 
@@ -312,6 +356,10 @@ struct lua_instance *get_lua(void)
 			exit(1);
 		}
 	}
+
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
+		increment_luaif_usage_counter(ptr);
+	}
 	return(ptr);
 }
 
@@ -336,9 +384,12 @@ void sb2_preload_library_constructor(void)
 char *sb2__read_string_variable_from_lua__(const char *name)
 {
 	struct lua_instance *luaif;
+	char *cp;
 
 	luaif = get_lua();
-	return(read_string_variable_from_lua(luaif, name));
+	cp = read_string_variable_from_lua(luaif, name);
+	release_lua(luaif);
+	return(cp);
 }
 
 /* Read and execute an lua file. Used from sb2-show, useful
@@ -352,6 +403,7 @@ void sb2__load_and_execute_lua_file__(const char *filename)
 
 	luaif = get_lua();
 	load_and_execute_lua_file(luaif, filename);
+	release_lua(luaif);
 }
 
 #if 0 /* DISABLED 2008-10-23/LTA: sb_decolonize_path() is not currently available*/

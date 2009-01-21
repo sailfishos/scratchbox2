@@ -392,6 +392,14 @@ char *sb2__read_string_variable_from_lua__(const char *name)
 	return(cp);
 }
 
+/* Return the Lua/C interface version string = the library interface version.
+ * Note that this function is exported from libsb2.so (for sb2-show etc): */
+const char *sb2__lua_c_interface_version__(void)
+{
+	/* currently it is enough to return pointer to the constant string. */
+	return(SB2_LUA_C_INTERFACE_VERSION);
+}
+
 /* Read and execute an lua file. Used from sb2-show, useful
  * for debugging and benchmarking since the script is executed
  * in a context which already contains all SB2's varariables etc.

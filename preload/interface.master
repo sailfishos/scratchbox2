@@ -36,6 +36,7 @@ EXPORT: int sb2show__execve_mods__( \
 	char **new_file, char ***new_argv, char ***new_envp)
 EXPORT: char *sb2__read_string_variable_from_lua__(const char *name)
 EXPORT: void sb2__load_and_execute_lua_file__(const char *filename)
+EXPORT: const char *sb2__lua_c_interface_version__(void)
 
 --    FIXME: The following two functions do not have anything to do with path
 --    remapping. Instead the implementations in libsb2.c prevent locking of

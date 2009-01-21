@@ -74,7 +74,9 @@ static void usage_exit(const char *progname, const char *errmsg, int exitstatus)
 	    "\tvar variablename       show value of a string variable\n"
 	    "\texecluafile filename   load and execute Lua code from file\n"
 	    "\t                       (useful for debugging and/or\n"
-	    "\t                       benchmarking sb2 itself)\n");
+	    "\t                       benchmarking sb2 itself)\n"
+	    "\tlibraryinterface       show preload library interface version\n"
+	    "\t                       (the Lua <-> C code interface)\n");
 
 	fprintf(stderr, "\n"
 	    "'%s' must be executed inside sb2 sandbox (see the 'sb2'"
@@ -463,6 +465,11 @@ static void command_log(char **argv, int loglevel)
 	SB_LOG(loglevel, "%s", argv[0]);
 }
 
+static void command_show_libraryinterface(void)
+{
+	printf("%s\n", sb2__lua_c_interface_version__());
+}
+
 int main(int argc, char *argv[])
 {
 	int	opt;
@@ -548,7 +555,9 @@ int main(int argc, char *argv[])
 	}
 
 	/* params ok, go and perform the action */
-	if (!strcmp(argv[optind], "path")) {
+	if (!strcmp(argv[optind], "libraryinterface")) {
+		command_show_libraryinterface();
+	} else if (!strcmp(argv[optind], "path")) {
 		command_show_path(binary_name, function_name, 
 			argv + optind + 1);
 	} else if (!strcmp(argv[optind], "realcwd")) {

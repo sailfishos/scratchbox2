@@ -110,6 +110,25 @@ function create_reverse_rules()
 	done
 }
 
+#
+# Generates argvmods for cross-compilers and misc binaries.
+# Generated files are placed under $SBOX_SESSION_DIR/argvmods/.
+#
+function create_argvmods_rules()
+{
+	/bin/mkdir -p $SBOX_SESSION_DIR/argvmods
+	SBOX_ARGVMODS_SOURCE_FILE="argvenvp_misc.lua" sb2-monitor \
+	    -L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
+	    execluafile \
+	    $SBOX_SESSION_DIR/lua_scripts/create_argvmods_rules.lua \
+	    >$SBOX_SESSION_DIR/argvmods/argvmods_misc.lua
+	SBOX_ARGVMODS_SOURCE_FILE="argvenvp_gcc.lua" sb2-monitor \
+	    -L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
+	    execluafile \
+	    $SBOX_SESSION_DIR/lua_scripts/create_argvmods_rules.lua \
+	    >$SBOX_SESSION_DIR/argvmods/argvmods_gcc.lua
+}
+
 # Create some additional rules for the default mapping mode:
 function create_argvmods_usr_bin_rules()
 {
@@ -1146,8 +1165,17 @@ then
 	create_argvmods_usr_bin_rules "$CREATE_ARGVMODS_USR_BIN_RULES"
 fi
 
-# Create reverse mapping rules before starting the actual command (or shell)
 if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
+	#
+	# Only generate argvmods rules when we are not joining
+	# to session.
+	#
+	create_argvmods_rules
+
+	#
+	# Create reverse mapping rules before starting the
+	# actual command (or shell).
+	#
 	if [ "$SBOX_CREATE_REVERSE_RULES" == "y" ]; then
 		create_reverse_rules
 	else

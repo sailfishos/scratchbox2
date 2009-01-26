@@ -160,7 +160,9 @@ install-noarch: regular
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/mapping.lua $(prefix)/share/scratchbox2/lua_scripts/mapping.lua
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp.lua $(prefix)/share/scratchbox2/lua_scripts/argvenvp.lua
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp_gcc.lua $(prefix)/share/scratchbox2/lua_scripts/argvenvp_gcc.lua
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp_misc.lua $(prefix)/share/scratchbox2/lua_scripts/argvenvp_misc.lua
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/create_reverse_rules.lua $(prefix)/share/scratchbox2/lua_scripts/create_reverse_rules.lua
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/create_argvmods_rules.lua $(prefix)/share/scratchbox2/lua_scripts/create_argvmods_rules.lua
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/create_argvmods_usr_bin_rules.lua $(prefix)/share/scratchbox2/lua_scripts/create_argvmods_usr_bin_rules.lua
 
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/emulate/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/emulate/

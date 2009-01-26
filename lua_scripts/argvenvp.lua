@@ -4,21 +4,17 @@
 --
 -- Licensed under MIT license
 
-argvmods = {}
-
--- only map gcc & friends if a cross compiler has been defined,
--- and it has not been disabled by the mapping rules:
-if (enable_cross_gcc_toolchain == true) then
-	local gcc_rule_file_path = session_dir .. "/gcc-conf.lua"
-	
-	if (sb.path_exists(gcc_rule_file_path)) then
-		-- this generates gcc related argv/envp manglings
-		do_file(session_dir .. "/lua_scripts/argvenvp_gcc.lua")
-	end
-end
-
--- regular mangling rules go here
--- syntax is of the form:
+--
+-- argv&envp mangling rules are separated into two files
+-- 	argvenvp_misc.lua - rules for misc binaries
+-- 	argvenvp_gcc.lua  - rules for gcc
+--
+-- With these rules, script create_argvmods_rules.lua generates
+-- the actual rules that are loaded into sb2.  Generated files
+-- are placed under SBOX_SESSION_DIR/argvmods and they are named
+-- like argvmods_xxx.lua.
+--
+-- Syntax is of the form:
 --
 -- rule = {
 -- 	name = "binary-name",
@@ -39,12 +35,37 @@ end
 -- * new_filename should probably be replaced by integrating argv/envp
 --   mangling with the path mapping machinery.
 
-dpkg_architecture = {
-	name = "dpkg-architecture",
-	path_prefixes = {"/usr/bin/"},
-	remove = {"-f"}
-}
-argvmods[dpkg_architecture.name] = dpkg_architecture
+argvmods = {}
+
+-- only map gcc & friends if a cross compiler has been defined,
+-- and it has not been disabled by the mapping rules:
+if (enable_cross_gcc_toolchain == true) then
+	local gcc_argvmods_file_path =
+	    session_dir .. "/argvmods/argvmods_gcc.lua"
+	
+	if sb.path_exists(gcc_argvmods_file_path) then
+		-- load in autimatically generated argvmods for gcc
+		do_file(gcc_argvmods_file_path)
+		if debug_messages_enabled then
+			sb.log("debug", string.format(
+			    "loaded argvmods for gcc from '%s'",
+			    gcc_argvmods_file_path))
+		end
+	end
+end
+
+--
+-- Always load argvmods for misc binaries.
+--
+local misc_argvmods_file_path = session_dir .. "/argvmods/argvmods_misc.lua"
+if sb.path_exists(misc_argvmods_file_path) then
+	do_file(misc_argvmods_file_path)
+	if debug_messages_enabled then
+		sb.log("debug", string.format(
+		    "loaded argvmods for misc binaries from '%s'",
+		    misc_argvmods_file_path))
+	end
+end
 
 -- ------------------------------------
 -- Exec preprocessing.

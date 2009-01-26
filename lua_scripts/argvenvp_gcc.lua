@@ -3,6 +3,9 @@
 
 -- Here is the necessary plumbing to generate gcc related
 -- argv/envp manglings
+--
+-- See syntax from argvenvp.lua.
+--
 
 gcc_compilers = {
 	"cc",

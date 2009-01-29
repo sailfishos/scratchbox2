@@ -213,7 +213,12 @@ devel_mode_rules_usr_share = {
 
 		{prefix = "/usr/share/osso", map_to = target_root,
 		 readonly = true},
-		{prefix = "/usr/share/doc", map_to = target_root,
+
+		-- "doc" and "doc-base" from target_root,
+		-- but "docbook-utils" is needed for tools!!
+		{dir = "/usr/share/doc", map_to = target_root,
+		 readonly = true},
+		{dir = "/usr/share/doc-base", map_to = target_root,
 		 readonly = true},
 
 		-- for liblzo-dev:

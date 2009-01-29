@@ -51,6 +51,13 @@ exec_policy_tools = {
 	native_app_ld_library_path = devel_mode_tools_ld_library_path,
 	native_app_locale_path = devel_mode_locale_path,
 	native_app_message_catalog_prefix = devel_model_message_catalog_prefix,
+
+	script_log_level = "debug",
+	script_log_message = "SCRIPT from tools",
+	script_interpreter_rule = {
+		map_to = tools
+	},
+	script_set_argv0_to_mapped_interpreter = true,
 }
 
 -- For target binaries:
@@ -106,6 +113,35 @@ test_first_tools_default_is_target = {
 	{ if_exists_then_map_to = tools, readonly = true },
 	{ map_to = target_root, readonly = true }
 }
+
+perl_lib_test = {
+	{ if_active_exec_policy_is = "Tools",
+	  map_to = tools, readonly = true },
+	{ if_active_exec_policy_is = "Rootstrap",
+	  map_to = target_root, readonly = true },
+	{ map_to = tools, readonly = true }
+}
+
+perl_bin_test = {
+	{ if_active_exec_policy_is = "Rootstrap",
+	  map_to = target_root, readonly = true },
+	{ map_to = tools, readonly = true }
+}
+
+python_bin_test = {
+	{ if_active_exec_policy_is = "Rootstrap",
+	  map_to = target_root, readonly = true },
+	{ map_to = tools, readonly = true }
+}
+
+python_lib_test = {
+	{ if_active_exec_policy_is = "Tools",
+	  map_to = tools, readonly = true },
+	{ if_active_exec_policy_is = "Rootstrap",
+	  map_to = target_root, readonly = true },
+	{ map_to = tools, readonly = true }
+}
+
 
 -- =========== Mapping rule chains ===========
 
@@ -256,17 +292,22 @@ devel_mode_rules_usr_share = {
 		{dir = "/usr/share/debhelper/autoscripts",
 		 map_to = target_root, readonly = true},
 
+		-- Perl:
+		{prefix = "/usr/share/perl", actions = perl_lib_test},
+
+		-- Python:
+		{prefix = "/usr/share/python", actions = python_lib_test},
+		{prefix = "/usr/share/pygobject", actions = python_lib_test},
+
 		-- -----------------------------------------------
 		-- 100. DEFAULT RULES:
 		{dir = "/usr/share", map_to = tools, readonly = true},
 	}
 }
 
--- Used when dir = "/usr":
-devel_mode_rules_usr = {
+-- Used when dir = "/usr/bin":
+devel_mode_rules_usr_bin = {
 	rules = {
-		{dir = "/usr/share", chain = devel_mode_rules_usr_share},
-
 		-- -----------------------------------------------
 		-- 1. General SB2 environment:
 
@@ -274,7 +315,7 @@ devel_mode_rules_usr = {
 		 use_orig_path = true, readonly = true},
 
 		-- -----------------------------------------------
-		-- 20. /bin/* and /usr/bin/*:
+		-- 20. /usr/bin/*:
 		-- tools that need special processing:
 
 		{prefix = "/usr/bin/host-",
@@ -285,8 +326,26 @@ devel_mode_rules_usr = {
 		{path = "/usr/bin/localedef", map_to = target_root,
 		 readonly = true},
 
-		-- automatically generated rules for /usr/bin:
+		-- 19. perl & python:
+		-- 	processing depends on the
+		--	name of the current mapping mode.
+		--	(these are real prefixes, version number may
+		--	be included in the name (/usr/bin/python2.5 etc))
+		{prefix = "/usr/bin/perl", actions = perl_bin_test},
+		{prefix = "/usr/bin/python", actions = python_bin_test},
+
+		-- default: automatically generated rules for /usr/bin:
 		{dir = "/usr/bin", chain = argvmods_rules_for_usr_bin},
+	}
+}
+
+
+-- Used when dir = "/usr":
+devel_mode_rules_usr = {
+	rules = {
+		{dir = "/usr/share", chain = devel_mode_rules_usr_share},
+
+		{dir = "/usr/bin", chain = devel_mode_rules_usr_bin},
 
 		-- -----------------------------------------------
 		-- 40. /usr/lib/*
@@ -295,15 +354,16 @@ devel_mode_rules_usr = {
 		-- there.
 
 		{prefix = "/usr/lib/gcc", map_to = tools, readonly = true},
-		{prefix = "/usr/lib/perl", map_to = tools, readonly = true},
+
+		{prefix = "/usr/lib/perl", actions = perl_lib_test},
+
+		{prefix = "/usr/lib/python", actions = python_lib_test},
+
 		{prefix = "/usr/lib/dpkg", map_to = tools, readonly = true},
 		{prefix = "/usr/lib/apt", map_to = tools, readonly = true},
 		{prefix = "/usr/lib/cdbs", map_to = tools, readonly = true},
 		{prefix = "/usr/lib/libfakeroot", map_to = tools, readonly = true},
 		{prefix = "/usr/lib/man-db", map_to = tools, readonly = true},
-
-		-- /usr/lib/python* from tools_root
-		{prefix = "/usr/lib/python", map_to = tools, readonly = true},
 
 		{prefix = "/usr/lib", map_to = target_root, readonly = true},
 
@@ -545,60 +605,8 @@ simple_chain = {
 	}
 }
 
-qemu_chain = {
-	next_chain = nil,
-	binary = basename(sbox_cputransparency_method),
-	rules = {
-		{prefix = "/lib", map_to = target_root, readonly = true},
-		{prefix = "/usr/lib", map_to = target_root, readonly = true},
-		{prefix = "/usr/local/lib", map_to = target_root,
-		 readonly = true},
-
-		-- Home directories = not mapped, R/W access
-		{prefix = "/home", use_orig_path = true},
-
-		{prefix = session_dir, use_orig_path = true},
-		{prefix = "/tmp", map_to = session_dir},
-
-		{prefix = "/dev", use_orig_path = true},
-		{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
-		 virtual_path = true},
-		{prefix = "/sys", use_orig_path = true},
-
-		{prefix = "/etc/resolv.conf",
-		 use_orig_path = true, readonly = true},
-		{path = "/etc/passwd",
-		 use_orig_path = true, readonly = true},
-		{path = "/etc/shadow",
-		 use_orig_path = true, readonly = true},
-
-		-- tools_root should not be mapped twice.
-		{prefix = tools, use_orig_path = true, readonly = true},
-
-		-- unmodified view of the rootstrap, can be used as destination
-		-- directory when installing stuff to the rootstrap
-		{prefix = "/target_root", replace_by = target_root},
-
-		{path = "/", use_orig_path = true},
-
-		-- "standard" directories are mapped to tools_root,
-		-- but everything else defaults to the host system
-		-- (so that things like /mnt, /media and /opt are
-		-- used from the host)
-		{prefix = "/bin", map_to = tools, readonly = true},
-		{prefix = "/etc", map_to = tools, readonly = true},
-		{prefix = "/sbin", map_to = tools, readonly = true},
-		{prefix = "/usr", map_to = tools, readonly = true},
-		{prefix = "/var", map_to = tools, readonly = true},
-
-		-- Default = Host, R/W access
-		{prefix = "/", use_orig_path = true}
-	}
-}
-
 -- Path mapping rules.
 export_chains = {
-	qemu_chain,
 	simple_chain
 }
 

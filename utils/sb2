@@ -836,6 +836,10 @@ function initialize_new_sb2_session()
 	# Create session directories
 	date_and_time_now=`date +%Y%m%d-%H%M%S`
 	SBOX_SESSION_DIR=`mktemp -d /tmp/sb2-$USER-$date_and_time_now.XXXXXX`
+	if [ $? != 0 ]; then
+		echo "Failed to create directory for session (problems with /tmp ?) " >&2
+		exit 1
+	fi
 
 	mkdir -p $SBOX_SESSION_DIR
 	mkdir $SBOX_SESSION_DIR/tmp

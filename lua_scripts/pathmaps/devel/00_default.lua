@@ -203,9 +203,9 @@ devel_mode_rules_usr_share = {
 		-- -----------------------------------------------
 		-- 1. General SB2 environment:
 
-		{prefix = "/usr/share/scratchbox2/host_usr",
+		{prefix = sbox_dir .. "/share/scratchbox2/host_usr",
 		 replace_by = "/usr", readonly = true},
-		{prefix = "/usr/share/scratchbox2",
+		{prefix = sbox_dir .. "/share/scratchbox2",
 		 use_orig_path = true, readonly = true},
 
 		-- -----------------------------------------------

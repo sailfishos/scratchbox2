@@ -491,7 +491,7 @@ static int prepare_hashbang(
 
 	if ((c = read(fd, &hashbang[0], SBOX_MAXPATH - 1)) < 2) {
 		/* again unexpected error, close fd and run it */
-		close(fd);
+		close_nomap_nolog(fd);
 		return 0;
 	}
 
@@ -825,10 +825,10 @@ static int prepare_exec(const char *exec_fn_name,
 	char *const *orig_envp,
 	char **new_file,
 	char ***new_argv,
-	char ***new_envp)
+	char ***new_envp) /* *new_envp must be filled by the caller */
 {
-	char **my_envp, **my_argv, *my_file;
-	char **my_envp_copy = NULL; /* used only for debug log */
+	char **my_envp = *new_envp;
+	char **my_argv = NULL, *my_file = NULL;
 	char *binaryname, *tmp, *mapped_file;
 	int err = 0;
 	enum binary_type type;
@@ -837,47 +837,18 @@ static int prepare_exec(const char *exec_fn_name,
 	size_t idx;
 
 	(void)exec_fn_name; /* not yet used */
+	(void)orig_envp; /* not used */
 
-	if (getenv("SBOX_DISABLE_MAPPING")) {
-		/* just run it, don't worry, be happy! */
-		*new_file = NULL;
-		*new_argv = NULL;
-		*new_envp = NULL;
-		return(0);
-	}
-
-	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
-		char *buf = strvec_to_string(orig_argv);
-
-		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"EXEC/Orig.args: %s : %s", orig_file, buf);
-		free(buf);
-	}
-	
 	tmp = strdup(orig_file);
-	binaryname = strdup(basename(tmp));
+	binaryname = strdup(basename(tmp)); /* basename may modify *tmp */
 	free(tmp);
 	
 	my_file = strdup(orig_file);
-
-	my_envp = prepare_envp_for_do_exec(orig_file, binaryname, orig_envp);
-	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
-		/* create a copy of intended environment for logging,
-		 * before sb_execve_preprocess() gets control */ 
-		my_envp_copy = prepare_envp_for_do_exec(orig_file,
-			binaryname, orig_envp);
-	}
 
 	my_argv = duplicate_argv(orig_argv);
 
 	if ((err = sb_execve_preprocess(&my_file, &my_argv, &my_envp)) != 0) {
 		SB_LOG(SB_LOGLEVEL_ERROR, "argvenvp processing error %i", err);
-	}
-
-	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
-		/* find out and log if sb_execve_preprocess() did something */
-		compare_and_log_strvec_changes("argv", orig_argv, my_argv);
-		compare_and_log_strvec_changes("envp", my_envp_copy, my_envp);
 	}
 
 	/* test if mapping is enabled during the exec()..
@@ -1006,15 +977,51 @@ static int prepare_exec(const char *exec_fn_name,
 int do_exec(const char *exec_fn_name, const char *orig_file,
 		char *const *orig_argv, char *const *orig_envp)
 {
-	int	r;
 	char *new_file = NULL;
 	char **new_argv = NULL;
 	char **new_envp = NULL;
 
-	r = prepare_exec(exec_fn_name, orig_file, orig_argv, orig_envp,
-		&new_file, &new_argv, &new_envp);
+	if (getenv("SBOX_DISABLE_MAPPING")) {
+		/* just run it, don't worry, be happy! */
+	} else {
+		int	r;
+		char	**my_envp_copy = NULL; /* used only for debug log */
+		char	*tmp, *binaryname;
 
-	if (r < 0) return(r); /* exec denied */
+		tmp = strdup(orig_file);
+		binaryname = strdup(basename(tmp)); /* basename may modify *tmp */
+		free(tmp);
+
+		if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
+			char *buf = strvec_to_string(orig_argv);
+
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"EXEC/Orig.args: %s : %s", orig_file, buf);
+			free(buf);
+		
+			/* create a copy of intended environment for logging,
+			 * before sb_execve_preprocess() gets control */ 
+			my_envp_copy = prepare_envp_for_do_exec(orig_file,
+				binaryname, orig_envp);
+		}
+		
+		new_envp = prepare_envp_for_do_exec(orig_file, binaryname, orig_envp);
+
+		r = prepare_exec(exec_fn_name, orig_file, orig_argv, orig_envp,
+			&new_file, &new_argv, &new_envp);
+
+		if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
+			/* find out and log if sb_execve_preprocess() did something */
+			compare_and_log_strvec_changes("argv", orig_argv, new_argv);
+			compare_and_log_strvec_changes("envp", my_envp_copy, new_envp);
+		}
+
+		if (r < 0) {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"EXEC denied by prepare_exec(), %s", orig_file);
+			return(r); /* exec denied */
+		}
+	}
 
 	return sb_next_execve(
 		(new_file ? new_file : orig_file),
@@ -1029,10 +1036,17 @@ int sb2show__execve_mods__(
 	char **new_file, char ***new_argv, char ***new_envp)
 {
 	int	ret = 0;
+	char	*tmp, *binaryname;
 
 	if (!sb2_global_vars_initialized__) sb2_initialize_global_variables();
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s '%s'", __func__, orig_argv[0]);
+
+	tmp = strdup(file);
+	binaryname = strdup(basename(tmp)); /* basename may modify *tmp */
+	free(tmp);
+
+	*new_envp = prepare_envp_for_do_exec(file, binaryname, orig_envp);
 
 	ret = prepare_exec("sb2show_exec", file, orig_argv, orig_envp,
 		new_file, new_argv, new_envp);

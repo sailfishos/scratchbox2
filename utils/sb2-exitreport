@@ -25,6 +25,8 @@ fi
 
 if [ -s "$SBOX_MAPPING_LOGFILE" ]; then
 	# Logfile exists and is not empty
+	# add reason and status to the logfile
+	echo "# $* ($ret)" >> $SBOX_MAPPING_LOGFILE
 	case "$SBOX_MAPPING_LOGLEVEL" in
 	(error|warning)
 		# Brief log, only error and warning messages.

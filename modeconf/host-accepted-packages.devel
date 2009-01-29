@@ -21,6 +21,7 @@ bc
 binutils
 bison
 byacc
+bzip2
 cpio
 dc
 ed
@@ -68,6 +69,7 @@ docbook-dsssl
 docbook-to-man
 docbook-xml
 docbook-xsl
+doxygen
 groff
 gs
 gs-common

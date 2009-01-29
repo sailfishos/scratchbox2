@@ -112,10 +112,11 @@ fi
 
 # check if we need to actually update something:
 # version "11" added separate config files for gcc toolchains:
-if [ ! -f $SBOX_CONFIG_DIR/config-stamp.11 ]; then
+# version "12" version-specific specs files for gcc compilers:
+if [ ! -f $SBOX_CONFIG_DIR/config-stamp.12 ]; then
 	update_toolchain_configs $SB2INIT_COMPILERS
 fi
 
-log_config_action "Config updated to version #11"
-touch $SBOX_CONFIG_DIR/config-stamp.11
+log_config_action "Config updated to version #12"
+touch $SBOX_CONFIG_DIR/config-stamp.12
 

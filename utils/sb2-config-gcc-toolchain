@@ -13,6 +13,13 @@ if [ $(basename $my_path) != $(basename $0) ]; then
 	fi
 fi
 
+function log_config_action()
+{
+	tstamp=`/bin/date '+%Y-%m-%d %H:%M:%S'`
+	echo "$tstamp	$*" >>$SBOX_CONFIG_DIR/CONFIG-LOG
+}
+
+# Get the original arguments that were specified to sb2-init from
 function usage()
 {
 	cat <<EOF
@@ -158,6 +165,8 @@ if [ -z "$TARGET" ]; then
         exit 1
 fi
 
+SBOX_CONFIG_DIR=~/.scratchbox2/$TARGET/sb2.config.d 
+
 if [ -z "$SBOX_TARGET_ROOT" ]; then
         echo "Error: no target_root given"
         exit 1
@@ -235,7 +244,12 @@ fi
 # Use "specs" file for gcc if it exists, otherwise add -I/usr/include to params
 SBOX_CROSS_GCC_SPECS_FILE=""
 SBOX_EXTRA_CROSS_COMPILER_STDINC=""
-if [ -f $SBOX_DIR/share/scratchbox2/modeconf/gcc-specs.$MAPPING_MODE ]; then
+
+if [ -f $SBOX_DIR/share/scratchbox2/modeconf/gcc-$SBOX_CROSS_GCC_VERSION-specs.$MAPPING_MODE ]; then
+	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modeconf/gcc-$SBOX_CROSS_GCC_VERSION-specs.$MAPPING_MODE"
+elif [ -f $SBOX_DIR/share/scratchbox2/modeconf/gcc-$SBOX_CROSS_GCC_SHORTVERSION-specs.$MAPPING_MODE ]; then
+	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modeconf/gcc-$SBOX_CROSS_GCC_SHORTVERSION-specs.$MAPPING_MODE"
+elif [ -f $SBOX_DIR/share/scratchbox2/modeconf/gcc-specs.$MAPPING_MODE ]; then
 	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modeconf/gcc-specs.$MAPPING_MODE"
 else
 	SBOX_EXTRA_CROSS_COMPILER_STDINC="-I/usr/include"
@@ -263,4 +277,10 @@ fi
 if [ -n "$verbose" ] ; then
 	echo "gcc configured."
 fi
+
+log_config_action "gcc configured ($SBOX_CROSS_GCC_VERSION)"
+if [ -n "$SBOX_CROSS_GCC_SPECS_FILE" ]; then
+	log_config_action "(gcc specs from $SBOX_CROSS_GCC_SPECS_FILE)"
+fi
+
 exit 0

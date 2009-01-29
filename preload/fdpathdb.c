@@ -43,7 +43,7 @@ static pthread_mutex_t	fd_path_db_mutex = PTHREAD_MUTEX_INITIALIZER;
 static void fdpathdb_mutex_lock(void)
 {
 	if (pthread_library_is_available) {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "Going to lock fd_path_db_mutex");
+		SB_LOG(SB_LOGLEVEL_NOISE2, "Going to lock fd_path_db_mutex");
 		(*pthread_mutex_lock_fnptr)(&fd_path_db_mutex);
 		/* NO logging here! */
 	}
@@ -53,7 +53,7 @@ static void fdpathdb_mutex_unlock(void)
 	if (pthread_library_is_available) {
 		/* NO logging here! */
 		(*pthread_mutex_unlock_fnptr)(&fd_path_db_mutex);
-		SB_LOG(SB_LOGLEVEL_DEBUG, "unlocked fd_path_db_mutex");
+		SB_LOG(SB_LOGLEVEL_NOISE2, "unlocked fd_path_db_mutex");
 	}
 }
 
@@ -76,11 +76,11 @@ const char *fdpathdb_find_path(int fd)
 	fdpathdb_mutex_unlock();
 
 	if (ret) {
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		SB_LOG(SB_LOGLEVEL_NOISE,
 			"fdpathdb_find_path: FD %d => '%s'",
 			fd, fd_path_db[fd].fpdb_path);
 	} else {
-		SB_LOG(SB_LOGLEVEL_DEBUG,
+		SB_LOG(SB_LOGLEVEL_NOISE,
 			"fdpathdb_find_path: No pathname for FD %d", fd);
 	}
 
@@ -121,7 +121,7 @@ static void fdpathdb_register_mapped_path(
 		}
 	}
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: Register %d => '%s'",
+	SB_LOG(SB_LOGLEVEL_NOISE, "%s: Register %d => '%s'",
 		realfnname, fd, path ? path : "(NULL path)");
 
 	fdpathdb_mutex_lock();

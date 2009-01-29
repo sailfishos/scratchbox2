@@ -672,6 +672,10 @@ function sb_execve_postprocess(rule, exec_policy, exec_type,
 	sb.log("debug", string.format("sb_execve_postprocess:type=%s",
 		exec_type))
 
+	if (exec_policy.name) then
+		table.insert(envp, "__SB2_EXEC_POLICY_NAME="..exec_policy.name)
+	end
+
 	-- End of generic part. Rest of postprocessing depends on type of
 	-- the executable.
 

@@ -629,6 +629,13 @@ static int lua_sb_get_binary_name(lua_State *l)
 	return 1;
 }
 
+/* "sb.get_active_exec_policy_name", to be called from lua code */
+static int lua_sb_get_active_exec_policy_name(lua_State *l)
+{
+	lua_pushstring(l, sbox_active_exec_policy_name);
+	return 1;
+}
+
 /* "sb.get_forced_mapmode", to be called from lua code */
 static int lua_sb_get_forced_mapmode(lua_State *l)
 {
@@ -773,6 +780,7 @@ static const luaL_reg reg[] =
 	{"debug_messages_enabled",	lua_sb_debug_messages_enabled},
 	{"getcwd",			lua_sb_getcwd},
 	{"get_binary_name",		lua_sb_get_binary_name},
+	{"get_active_exec_policy_name",	lua_sb_get_active_exec_policy_name},
 	{"get_forced_mapmode",		lua_sb_get_forced_mapmode},
 	{"get_session_perm",		lua_sb_get_session_perm},
 	{"isprefix",			lua_sb_isprefix},

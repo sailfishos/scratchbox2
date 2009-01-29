@@ -635,3 +635,11 @@ exec_policy_chains = {
 	devel_exec_policies
 }
 
+-- This table lists all exec policies - this is used when the current
+-- process wants to locate the currently active policy
+all_exec_policies = {
+	exec_policy_host_os,
+	exec_policy_target,
+	exec_policy_tools,
+}
+

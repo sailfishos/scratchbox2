@@ -208,3 +208,10 @@ exec_policy_chains = {
 	all_exec_policies_chain
 }
 
+-- This table lists all exec policies - this is used when the current
+-- process wants to locate the currently active policy
+all_exec_policies = {
+	exec_policy_target,
+	default_exec_policy,
+}
+

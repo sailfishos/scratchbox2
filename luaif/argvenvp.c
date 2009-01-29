@@ -141,7 +141,8 @@ int sb_execve_postprocess(char *exec_type,
 	char ***envp)
 {
 	struct lua_instance *luaif;
-	int res, new_argc, new_envc;
+	int res, new_argc;
+	int replace_environment = 0;
 
 	luaif = get_lua();
 	if (!luaif) return(0);
@@ -170,7 +171,7 @@ int sb_execve_postprocess(char *exec_type,
 
 	/* args: rule, exec_policy, exec_type, mapped_file, filename,
 	 *	 binaryname, argv, envp
-	 * returns: err, mapped_file, filename, argc, argv, envc, envp */
+	 * returns: res, mapped_file, filename, argc, argv, envc, envp */
 	lua_call(luaif->lua, 8, 7);
 	
 	res = lua_tointeger(luaif->lua, -7);
@@ -178,7 +179,7 @@ int sb_execve_postprocess(char *exec_type,
 
 	case 0:
 		/* exec arguments were modified, replace contents of
-		 * argv and envp vectors */
+		 * argv vector */
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"sb_execve_postprocess: Updated argv&envp");
 		free(*mapped_file);
@@ -191,14 +192,14 @@ int sb_execve_postprocess(char *exec_type,
 		new_argc = lua_tointeger(luaif->lua, -4);
 		lua_string_table_to_strvec(luaif, -3, argv, new_argc);
 
-		new_envc = lua_tointeger(luaif->lua, -2);
-		strvec_free(*envp);
-		lua_string_table_to_strvec(luaif, -1, envp, new_envc);
+		replace_environment = 1;
 		break;
 
 	case 1:
 		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"sb_execve_postprocess: argv&envp were not modified");
+			"sb_execve_postprocess: argv was not modified");
+		/* always update environment when we are going to exec */
+		replace_environment = 1;
 		break;
 
 	case -1:
@@ -210,6 +211,13 @@ int sb_execve_postprocess(char *exec_type,
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"sb_execve_postprocess: Unsupported result %d", res);
 		break;
+	}
+
+	if (replace_environment) {
+		int new_envc;
+		new_envc = lua_tointeger(luaif->lua, -2);
+		strvec_free(*envp);
+		lua_string_table_to_strvec(luaif, -1, envp, new_envc);
 	}
 
 	/* remove sb_execve_postprocess return values from the stack.  */

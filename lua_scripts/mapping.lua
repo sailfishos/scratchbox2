@@ -66,6 +66,45 @@ function sb2_procfs_mapper(binary_name, func_name, rp, path, rule)
 	return nil, ret_path, false
 end
 
+-- all_exec_policies is a table, defined by the mapping rule file
+all_exec_policies = nil
+
+-- return the exec policy used for this process
+--
+local active_exec_policy_checked = false
+local active_exec_policy_ptr = nil
+
+function get_active_exec_policy()
+	if (active_exec_policy_checked == false) then
+		local ep_name = sb.get_active_exec_policy_name()
+
+		if (ep_name and all_exec_policies ~= nil) then
+			-- Name of it is known, try to find the object itself
+			for i = 1, table.maxn(all_exec_policies) do
+				if all_exec_policies[i].name == ep_name then
+					active_exec_policy_ptr = all_exec_policies[i]
+					break
+				end
+			end
+			if (debug_messages_enabled) then
+				if active_exec_policy_ptr then
+					sb.log("debug", "Found active Exec policy "..ep_name)
+				else
+					sb.log("debug", "FAILED to find active Exec policy "..ep_name)
+				end
+			end
+		else
+			-- Don't know what exec policy is active
+			if (debug_messages_enabled) then
+				sb.log("debug", "Unknown active Exec policy")
+			end
+		end
+
+		active_exec_policy_checked = true
+	end
+	return active_exec_policy_ptr
+end
+
 -- Load mode-specific rules.
 -- A mode file must define three variables:
 --  1. rule_file_interface_version (string) is checked and must match,
@@ -98,6 +137,8 @@ function load_and_check_rules()
 	--
 	-- (version 19 is in intermediate version;
 	--  several interface changes will follow)
+	-- - added "all_exec_policies" list to all
+	--   mapping modes
 	-- Differences between version 17 and 18:
 	-- - added sb2_procfs_mapper()
 	-- Differences between version 16 and 17:

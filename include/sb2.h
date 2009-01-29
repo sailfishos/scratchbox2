@@ -111,6 +111,7 @@ extern char *sbox_orig_ld_library_path;
 extern char *sbox_binary_name;
 extern char *sbox_real_binary_name;
 extern char *sbox_orig_binary_name;
+extern char *sbox_active_exec_policy_name;
 
 extern int pthread_library_is_available; /* flag */
 extern pthread_t (*pthread_self_fnptr)(void);

@@ -1160,17 +1160,19 @@ export LD_LIBRARY_PATH
 # ------------
 # Now everything is ready, programs can be executed in SB2'ed environment.
 # Make automatically generated rules, if needed:
-if [ -n "CREATE_ARGVMODS_USR_BIN_RULES" ]
-then
-	create_argvmods_usr_bin_rules "$CREATE_ARGVMODS_USR_BIN_RULES"
-fi
-
 if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 	#
 	# Only generate argvmods rules when we are not joining
 	# to session.
 	#
 	create_argvmods_rules
+
+	# if needed, create path mapping rules for toolchain components.
+	# this can only be done after "create_argvmods_rules" has been executed.
+	if [ -n "CREATE_ARGVMODS_USR_BIN_RULES" ]
+	then
+		create_argvmods_usr_bin_rules "$CREATE_ARGVMODS_USR_BIN_RULES"
+	fi
 
 	#
 	# Create reverse mapping rules before starting the

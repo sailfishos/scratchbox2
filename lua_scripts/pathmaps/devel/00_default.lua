@@ -330,6 +330,11 @@ devel_mode_rules_usr_bin = {
 		{path = "/usr/bin/localedef", map_to = target_root,
 		 readonly = true},
 
+		-- "chrpath" comes from target, too, but we haven't 
+		-- verified what happens if it was used from tools.
+		{path = "/usr/bin/chrpath", map_to = target_root,
+		 readonly = true},
+
 		-- 19. perl & python:
 		-- 	processing depends on SBOX_REDIRECT_IGNORE and
 		--	name of the current mapping mode. 

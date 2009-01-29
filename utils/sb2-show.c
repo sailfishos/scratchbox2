@@ -41,6 +41,8 @@ static void usage_exit(const char *progname, const char *errmsg, int exitstatus)
 	fprintf(stderr,
 	    "\t-b binary_name show using binary_name as name of\n"
 	    "\t               the calling program\n"
+	    "\t-p policy_name show using policy_name as name of\n"
+	    "\t               the active exec policy\n"
 	    "\t-f function    show using 'function' as callers name\n"
 	    "\t-D             ignore directories while verifying path lists\n"
 	    "\t-v             be more verbose\n"
@@ -501,7 +503,7 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-	while ((opt = getopt(argc, argv, "hm:f:b:Dvtg:x:X:E:")) != -1) {
+	while ((opt = getopt(argc, argv, "hm:f:b:Dvtg:x:X:E:p:")) != -1) {
 		switch (opt) {
 		case 'h': usage_exit(progname, NULL, 0); break;
 		case 'm':
@@ -511,6 +513,7 @@ int main(int argc, char *argv[])
 			break;
 		case 'f': function_name = optarg; break;
 		case 'b': binary_name = optarg; break;
+		case 'p': sb2__set_active_exec_policy_name__(optarg); break;
 		case 'D': ignore_directories = 1; break;
 		case 'v': verbose = 1; break;
 		case 't': report_time = 1; break;

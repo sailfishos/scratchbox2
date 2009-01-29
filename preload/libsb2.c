@@ -1169,6 +1169,12 @@ char *sbox_active_exec_policy_name = NULL;
 
 int sb2_global_vars_initialized__ = 0;
 
+/* to be used from sb2-show only: */
+void sb2__set_active_exec_policy_name__(const char *name)
+{
+	sbox_active_exec_policy_name = name ? strdup(name) : NULL;
+}
+
 /* sb2_initialize_global_variables()
  *
  * NOTE: This function can be called before the environment

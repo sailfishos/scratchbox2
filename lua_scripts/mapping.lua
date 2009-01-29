@@ -92,6 +92,12 @@ function load_and_check_rules()
 		tools = "/"
 	end
 
+	-- INTERFACE VERSION between this file, the
+	-- exec mapping code (argvenp.lua) and the
+	-- rule files:
+	--
+	-- (version 19 is in intermediate version;
+	--  several interface changes will follow)
 	-- Differences between version 17 and 18:
 	-- - added sb2_procfs_mapper()
 	-- Differences between version 16 and 17:
@@ -105,7 +111,7 @@ function load_and_check_rules()
 	--   (previously only one was expected)
 	-- - variables "esc_tools_root" and "esc_target_root"
 	--   were removed
-	local current_rule_interface_version = "18"
+	local current_rule_interface_version = "19"
 
 	do_file(rule_file_path)
 

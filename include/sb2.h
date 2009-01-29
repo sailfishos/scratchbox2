@@ -44,10 +44,12 @@ struct lua_instance {
  *   - Added special handler for /proc => sb.procfs_mapping_request() was
  *     added to luaif.c (and mapping.lua needs it)
  *   - sbox_get_mapping_requirements() now returns four values
+ * * Differences between "61" and "60,2008-12-07"
+ *   - added execve_map_script_interpreter()
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "60,2008-12-07"
+#define SB2_LUA_C_INTERFACE_VERSION "61"
 
 extern struct lua_instance *get_lua(void);
 extern void release_lua(struct lua_instance *ptr);

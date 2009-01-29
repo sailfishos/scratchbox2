@@ -24,7 +24,9 @@ static void strvec_to_lua_table(struct lua_instance *luaif, char **args)
 	int	i;
 
 	lua_newtable(luaif->lua);
-	for (p = args, i = 1; *p; p++, i++) {
+	SB_LOG(SB_LOGLEVEL_NOISE2, "strvec_to_lua_table: ");
+	for (p = args, i = 1; p && *p; p++, i++) {
+		SB_LOG(SB_LOGLEVEL_NOISE2, "set element %d to '%s'", i, *p);
 		lua_pushnumber(luaif->lua, i);
 		lua_pushstring(luaif->lua, *p);
 		lua_settable(luaif->lua, -3);
@@ -217,6 +219,131 @@ int sb_execve_postprocess(char *exec_type,
 		"sb_execve_postprocess: at exit, gettop=%d", lua_gettop(luaif->lua));
 	release_lua(luaif);
 	return res;
+}
+
+/* Map script interpreter:
+ * Called with "rule" and "exec_policy" already in lua's stack,
+ * leaves (possibly modified) "rule" and "exec_policy" to lua's stack.
+*/
+char *sb_execve_map_script_interpreter(
+	const char *interpreter, 
+	const char *interp_arg, 
+	const char *mapped_script_filename,
+	const char *orig_script_filename,
+	char ***argv,
+	char ***envp)
+{
+	struct lua_instance *luaif;
+	char *mapped_interpreter;
+	int new_argc, new_envc;
+	int res;
+
+	luaif = get_lua();
+	if (!luaif) return(0);
+
+	if (!argv || !envp) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"ERROR: sb_execve_map_script_interpreter: "
+			"(argv || envp) == NULL");
+		release_lua(luaif);
+		return NULL;
+	}
+
+	SB_LOG(SB_LOGLEVEL_NOISE,
+		"sb_execve_map_script_interpreter: gettop=%d"
+		" interpreter=%s interp_arg=%s "
+		"mapped_script_filename=%s orig_script_filename=%s",
+		lua_gettop(luaif->lua), interpreter, interp_arg,
+		mapped_script_filename, orig_script_filename);
+
+	lua_getfield(luaif->lua, LUA_GLOBALSINDEX,
+		"sb_execve_map_script_interpreter");
+
+	/* stack now contains "rule", "exec_policy" and
+	 * "sb_execve_map_script_interpreter".
+	 * move "sb_execve_map_script_interpreter" to the bottom : */
+	lua_insert(luaif->lua, -3);
+
+	lua_pushstring(luaif->lua, interpreter);
+	if (interp_arg) lua_pushstring(luaif->lua, interp_arg);
+	else lua_pushnil(luaif->lua);
+	lua_pushstring(luaif->lua, mapped_script_filename);
+	lua_pushstring(luaif->lua, orig_script_filename);
+	strvec_to_lua_table(luaif, *argv);
+	strvec_to_lua_table(luaif, *envp);
+
+	/* args: rule, exec_policy, interpreter, interp_arg, 
+	 *	 mapped_script_filename, orig_script_filename,
+	 *	 argv, envp
+	 * returns: rule, policy, result, mapped_interpreter, #argv, argv,
+	 *	#envp, envp
+	 * "result" is one of:
+	 *  0: argv / envp were modified; mapped_interpreter was set
+	 *  1: argv / envp were not modified; mapped_interpreter was set
+	 * -1: deny exec.
+	*/
+	SB_LOG(SB_LOGLEVEL_NOISE, "sb_execve_map_script_interpreter: call lua");
+	lua_call(luaif->lua, 8, 8);
+	SB_LOG(SB_LOGLEVEL_NOISE, "sb_execve_map_script_interpreter: return from lua");
+	
+	mapped_interpreter = (char *)lua_tostring(luaif->lua, -5);
+	if (mapped_interpreter) mapped_interpreter = strdup(mapped_interpreter);
+
+	res = lua_tointeger(luaif->lua, -6);
+	switch (res) {
+
+	case 0:
+		/* exec arguments were modified, replace contents of
+		 * argv and envp vectors */
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"sb_execve_map_script_interpreter: Updated argv&envp");
+
+		strvec_free(*argv);
+		new_argc = lua_tointeger(luaif->lua, -4);
+		lua_string_table_to_strvec(luaif, -3, argv, new_argc);
+
+		new_envc = lua_tointeger(luaif->lua, -2);
+		strvec_free(*envp);
+		lua_string_table_to_strvec(luaif, -1, envp, new_envc);
+		break;
+
+	case 1:
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"sb_execve_map_script_interpreter: argv&envp were not modified");
+		break;
+
+	case 2:
+		if (mapped_interpreter) free(mapped_interpreter);
+		mapped_interpreter = NULL;
+		mapped_interpreter = scratchbox_path("script_interp",
+			interpreter, NULL/*RO-flag addr.*/,
+			0/*dont_resolve_final_symlink*/);
+		SB_LOG(SB_LOGLEVEL_DEBUG, "sb_execve_map_script_interpreter: "
+			"interpreter=%s mapped_interpreter=%s",
+			interpreter, mapped_interpreter);
+		break;
+
+	case -1:
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"sb_execve_map_script_interpreter: exec denied");
+		if (mapped_interpreter) free(mapped_interpreter);
+		mapped_interpreter = NULL;
+		break;
+
+	default:
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"sb_execve_map_script_interpreter: Unsupported result %d", res);
+		break;
+	}
+
+	/* remove return values from the stack, leave rule & policy.  */
+	lua_pop(luaif->lua, 6);
+
+	SB_LOG(SB_LOGLEVEL_NOISE,
+		"sb_execve_map_script_interpreter: at exit, gettop=%d",
+		lua_gettop(luaif->lua));
+	release_lua(luaif);
+	return mapped_interpreter;
 }
 
 /*

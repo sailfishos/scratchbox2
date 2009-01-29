@@ -205,6 +205,115 @@ function setenv_native_app_ld_library_path(exec_policy, envp)
 end
 
 -- ------------------------------------
+-- returns args_ok, rule, exec_policy 
+function check_rule_and_policy(rule, exec_policy, filename, mapped_file)
+
+	-- First, if either rule or the exec policy is a string, something
+	-- has failed during the previous steps or mapping has been disabled;
+	-- => fail
+	if ((type(rule) == "string") or (type(exec_policy) == "string")) then
+		local rs = ""
+		local eps = ""
+		if (type(rule) == "string") then
+			rs = rule
+		end
+		if (type(exec_policy) == "string") then
+			eps = exec_policy
+		end
+
+		sb.log("debug", "check_rule_and_policy: "..rs..";"..eps);
+		return false, rule, exec_policy
+	end
+
+	-- if exec_policy was not provided by the caller (i.e. not
+	-- provided by the mapping rule), look up the policy from
+	-- exec_policy_chains array.
+	if (exec_policy == nil) then
+		local res
+
+		sb.log("debug", "trying exec_policy_chains..")
+		res, exec_policy = sb_find_exec_policy(binaryname, mapped_file)
+		if res == 0 then
+			-- there is no default policy for this mode
+			sb.log("notice",
+				"sb_execve_postprocess: No exec_policy for "..filename)
+			return false, rule, exec_policy
+		end
+	end
+
+	-- Exec policy is OK.
+	
+	return true, rule, exec_policy
+end
+
+-- ------------------------------------
+-- Script interpreter mapping.
+
+-- This is called from C:
+-- returns: rule, policy, result, mapped_interpreter, #argv, argv, #envp, envp
+-- "result" is one of:
+--  0: argv / envp were modified; mapped_interpreter was set
+--  1: argv / envp were not modified; mapped_interpreter was set
+--  2: argv / envp were not modified; caller should call ordinary path 
+--	mapping to find the interpreter
+-- -1: deny exec.
+function sb_execve_map_script_interpreter(rule, exec_policy, interpreter,
+	interp_arg, mapped_script_filename, orig_script_filename, argv, envp)
+
+	local args_ok
+	args_ok, rule, exec_policy = check_rule_and_policy(rule,
+		exec_policy, orig_script_filename, mapped_script_filename) 
+
+	if args_ok == false then
+		-- no exec policy. Deny exec, we can't find the interpreter
+		sb.log("error", "Unable to map script interpreter.");
+		return rule, exec_policy, -1, interpreter, #argv, argv, #envp, envp
+	end
+
+	-- exec policy is OK.
+
+	if (exec_policy.script_log_level ~= nil) then
+		sb.log(exec_policy.script_log_level,
+			exec_policy.script_log_message)
+	end
+
+	if (exec_policy.script_deny_exec == true) then
+		return rule, exec_policy, -1, interpreter, #argv, argv, #envp, envp
+	end
+
+	if (exec_policy.name == nil) then
+		sb.log("debug", "Applying nameless exec_policy to script")
+	else
+		sb.log("debug", string.format(
+			"Applying exec_policy '%s' to script",
+			exec_policy.name))
+	end
+
+	if (exec_policy.script_interpreter_rule ~= nil) then
+		local exec_pol_2, mapped_interpreter, ro_flag
+
+		exec_pol_2, mapped_interpreter, ro_flag = sbox_execute_rule(
+			interpreter, "map_script_interpreter",
+			interpreter, interpreter,
+			exec_policy.script_interpreter_rule)
+	
+		if exec_policy.script_set_argv0_to_mapped_interpreter then
+			argv[1] = mapped_interpreter
+			return rule, exec_policy, 0, 
+				mapped_interpreter, #argv, argv, #envp, envp
+		else
+			return rule, exec_policy, 1, 
+				mapped_interpreter, #argv, argv, #envp, envp
+		end
+	end
+
+	-- The default case:
+	-- exec policy says nothing about the script interpreters.
+	-- use ordinary path mapping to find it
+	return rule, exec_policy, 2, interpreter, #argv, argv, #envp, envp
+end
+
+-- ------------------------------------
 -- Exec postprocessing.
 -- function sb_execve_postprocess is called to decide HOW the executable
 -- should be started (see description of the algorithm in sb_exec.c)
@@ -533,38 +642,14 @@ end
 function sb_execve_postprocess(rule, exec_policy, exec_type,
 	mapped_file, filename, binaryname, argv, envp)
 
-	-- First, if either rule or the exec policy is a string, something
-	-- has failed during the previous steps or mapping has been disabled;
-	-- in both cases postprocessing is not needed, exec must be allowed.
-	if ((type(rule) == "string") or (type(exec_policy) == "string")) then
-		local rs = ""
-		local eps = ""
-		if (type(rule) == "string") then
-			rs = rule
-		end
-		if (type(exec_policy) == "string") then
-			eps = exec_policy
-		end
+	local args_ok
+	args_ok, rule, exec_policy = check_rule_and_policy(rule,
+		exec_policy, filename, mapped_file) 
 
-		sb.log("debug", "sb_execve_postprocess: "..rs..";"..eps..
-			" (going to exec with orig.args)")
+	if args_ok == false then
+		-- postprocessing is not needed / can't be done, but
+		-- exec must be allowed.
 		return 1, mapped_file, filename, #argv, argv, #envp, envp
-	end
-
-	-- if exec_policy was not provided by the caller (i.e. not
-	-- provided by the mapping rule), look up the policy from
-	-- exec_policy_chains array.
-	if (exec_policy == nil) then
-		local res
-
-		sb.log("debug", "trying exec_policy_chains..")
-		res, exec_policy = sb_find_exec_policy(binaryname, mapped_file)
-		if res == 0 then
-			-- there is no default policy for this mode
-			sb.log("notice",
-				"sb_execve_postprocess: No exec_policy for "..filename)
-			return 1, mapped_file, filename, #argv, argv, #envp, envp
-		end
 	end
 
 	-- Exec policy found.

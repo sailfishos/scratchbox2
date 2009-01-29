@@ -41,8 +41,12 @@
  *    following:
  *
  *    4a. For scripts (files starting with #!), script interpreter name 
- *        will be read from the file and it will be processed again by 
- *	  prepare_exec()
+ *        will be read from the file, mapped by sb_execve_map_script_interpreter()
+ *	  (a lua function in argvenvp.lua), and once the interpreter
+ *	  location has been found, the parameters will be processed again by 
+ *	  prepare_exec().
+ *        This solution supports location- and exec policy based mapping
+ *	  of the script interpreter.
  *
  *    4b. For native binaries, an additional call to an exec postprocessing 
  *        function will be made, because the type of the file is not enough
@@ -483,6 +487,7 @@ static int prepare_hashbang(
 	char **new_argv;
 	char hashbang[SBOX_MAXPATH]; /* only 60 needed on linux, just be safe */
 	char interpreter[SBOX_MAXPATH];
+	char *interp_arg = NULL;
 
 	if ((fd = open_nomap(*mapped_file, O_RDONLY)) < 0) {
 		/* unexpected error, just run it */
@@ -518,11 +523,12 @@ static int prepare_hashbang(
 					strcpy(interpreter, ptr);
 					new_argv[n++] = strdup(interpreter);
 				} else {
-					new_argv[n++] = strdup(&hashbang[j]);
 					/* this was the one and only
 					 * allowed argument for the
 					 * interpreter
 					 */
+					interp_arg = strdup(&hashbang[j]);
+					new_argv[n++] = interp_arg;
 					break;
 				}
 			}
@@ -531,18 +537,27 @@ static int prepare_hashbang(
 		if (ch == '\n' || ch == 0) break;
 	}
 
-	mapped_interpreter = scratchbox_path("execve", interpreter, 
-		NULL/*RO-flag addr.*/, 0/*dont_resolve_final_symlink*/);
-	SB_LOG(SB_LOGLEVEL_DEBUG, "prepare_hashbang(): interpreter=%s,"
-			"mapped_interpreter=%s", interpreter,
-			mapped_interpreter);
 	new_argv[n++] = strdup(orig_file); /* the unmapped script path */
-
 	for (i = 1; (*argvp)[i] != NULL && i < argc; ) {
 		new_argv[n++] = (*argvp)[i++];
 	}
-
 	new_argv[n] = NULL;
+
+	/* rule & policy are in the stack */
+	mapped_interpreter = sb_execve_map_script_interpreter(
+		interpreter, interp_arg, *mapped_file, orig_file,
+		&new_argv, envpp);
+
+	if (!mapped_interpreter) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"failed to map script interpreter=%s", interpreter);
+		return(-1);
+	}
+	
+	SB_LOG(SB_LOGLEVEL_DEBUG, "prepare_hashbang(): interpreter=%s,"
+			"mapped_interpreter=%s", interpreter,
+			mapped_interpreter);
+	/* rule & policy are in still stack */
 
 	/* feed this through prepare_exec to let it deal with
 	 * cpu transparency etc.

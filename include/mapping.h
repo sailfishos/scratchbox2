@@ -25,6 +25,9 @@ char *scratchbox_path_for_exec(const char *func_name, const char *path,
 extern int sb_execve_preprocess(char **file, char ***argv, char ***envp);
 extern char *emumode_map(const char *path);
 extern void sb_push_string_to_lua_stack(char *str);
+extern char *sb_execve_map_script_interpreter(const char *interpreter,
+        const char *interp_arg, const char *mapped_script_filename,
+	const char *orig_script_filename, char ***argv, char ***envp);
 extern int sb_execve_postprocess(char *exec_type,
 	char **mapped_file, char **filename, const char *binary_name,
 	char ***argv, char ***envp);

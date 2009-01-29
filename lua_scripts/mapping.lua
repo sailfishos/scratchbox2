@@ -290,10 +290,11 @@ function sbox_execute_replace_rule(path, replacement, rule)
 	return ret
 end
 
--- returns path and readonly_flag
+-- returns exec_policy, path and readonly_flag
 function sbox_execute_conditional_actions(binary_name,
 		func_name, rp, path, rule)
 	local actions = rule.actions
+	local ret_exec_policy = nil
 
 	local a
 	for a = 1, table.maxn(actions) do
@@ -301,43 +302,61 @@ function sbox_execute_conditional_actions(binary_name,
 			sb.log("debug", string.format("try %d", a))
 		end
 
+		-- each member in the "actions" array is a 
+		-- candidate for the rule which will be applied
+		local rule_cand = actions[a]
+
 		local ret_ro = false
-		if (actions[a].readonly) then
-			ret_ro = actions[a].readonly
+		if (rule_cand.readonly) then
+			ret_ro = rule_cand.readonly
 		end
 
-		-- first, if there are any unconditional actions:
-		if (actions[a].use_orig_path) then
-			return path, ret_ro
-		elseif (actions[a].map_to) then
-			return actions[a].map_to .. path, ret_ro
-		end
-
-		-- next try conditional destinations: build a path to
-		-- "tmp_dest", and if that destination exists, use that path.
-		local tmp_dest = nil
-		if (actions[a].if_exists_then_map_to) then
-			tmp_dest = actions[a].if_exists_then_map_to .. path
-		elseif (actions[a].if_exists_then_replace_by) then
-			tmp_dest = sbox_execute_replace_rule(path,
-				actions[a].if_exists_then_replace_by, rule)
-		end
-		if (tmp_dest ~= nil) then
+		if (rule_cand.if_exists_then_map_to or
+		    rule_cand.if_exists_then_replace_by) then
+			-- conditional destinations: build a path to
+			-- "tmp_dest", and if that destination exists, use that path.
+			local tmp_dest = nil
+			if (rule_cand.if_exists_then_map_to) then
+				tmp_dest = rule_cand.if_exists_then_map_to .. path
+			else
+				tmp_dest = sbox_execute_replace_rule(path,
+					rule_cand.if_exists_then_replace_by, rule)
+			end
 			if (sb.path_exists(tmp_dest)) then
 				if (debug_messages_enabled) then
-					sb.log("debug", string.format("target exists: => %s", tmp_dest))
+					sb.log("debug", string.format(
+						"target exists: => %s", tmp_dest))
 				end
-				return tmp_dest, ret_ro
+				if (rule_cand.exec_policy ~= nil) then
+					ret_exec_policy = rule_cand.exec_policy
+				end
+				return ret_exec_policy, tmp_dest, ret_ro
+			end
+		elseif (rule_cand.if_active_exec_policy_is) then
+			local ep = get_active_exec_policy()
+
+			if (ep ~= nil and ep.name == rule_cand.if_active_exec_policy_is) then
+				return sbox_execute_rule(binary_name,
+					 func_name, rp, path, rule_cand)
 			end
 		else
-			sb.log("error", string.format("error in rule: no valid conditional actions for '%s'", path))
+			-- there MUST BE unconditional actions:
+			if (rule_cand.use_orig_path 
+			    or rule_cand.map_to or rule_cand.replace_by) then
+				return sbox_execute_rule(binary_name,
+					 func_name, rp, path, rule_cand)
+			else
+				sb.log("error", string.format(
+					"error in rule: no valid conditional actions for '%s'",
+					path))
+			end
 		end
 	end
 
 	-- no valid action found. This should not happen.
 	sb.log("error", string.format("mapping rule for '%s': execution of conditional actions failed", path))
 
-	return path, false
+	return ret_exec_policy, path, false
 end
 
 -- returns exec_policy, path and readonly_flag
@@ -356,10 +375,9 @@ function sbox_execute_rule(binary_name, func_name, rp, path, rule)
 	if (rule.use_orig_path) then
 		ret_path = path
 	elseif (rule.actions) then
-		-- FIXME: sbox_execute_conditional_actions should also
-		-- be able to return exec_policy
-		ret_path, ret_ro = sbox_execute_conditional_actions(binary_name,
-			func_name, rp, path, rule)
+		ret_exec_policy, ret_path, ret_ro = 
+			sbox_execute_conditional_actions(binary_name,
+				func_name, rp, path, rule)
 	elseif (rule.map_to) then
 		if (rule.map_to == "/") then
 			ret_path = path

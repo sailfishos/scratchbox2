@@ -339,6 +339,13 @@ function sbox_execute_conditional_actions(binary_name,
 				return sbox_execute_rule(binary_name,
 					 func_name, rp, path, rule_cand)
 			end
+		elseif (rule_cand.if_redirect_ignore_is_active) then
+			if (sb.test_redirect_ignore(
+				rule_cand.if_redirect_ignore_is_active)) then
+
+				return sbox_execute_rule(binary_name,
+					 func_name, rp, path, rule_cand)
+			end
 		else
 			-- there MUST BE unconditional actions:
 			if (rule_cand.use_orig_path 

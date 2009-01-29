@@ -764,6 +764,58 @@ static int lua_sb_procfs_mapping_request(lua_State *l)
 	return 1;
 }
 
+/* "sb.test_redirect_ignore", to be called from lua code
+ * Parameters (in stack):
+ *	1. string: unmapped path
+ * Returns (in stack):
+ *	1. flag (boolean): true if the path is listed in environment
+ *			   variable "SBOX_REDIRECT_IGNORE", false otherwise
+ *
+ * Note: It would be nice if the value of SBOX_REDIRECT_IGNORE could be
+ * cached, but it can't; it can be changed by the current process.
+*/
+static int lua_sb_test_redirect_ignore(lua_State *l)
+{
+	char *env_sbox_redirect_ignore = NULL;
+	int result = 0; /* boolean; default result is "false" */
+	int n;
+	const char *path = NULL;
+	char *tok = NULL;
+	char *tok_state = NULL;
+
+	n = lua_gettop(l);
+	if (n != 1) {
+		SB_LOG(SB_LOGLEVEL_DEBUG, "lua_sb_test_redirect_ignore FAILS: lua_gettop = %d", n);
+		goto out;
+	}
+
+	env_sbox_redirect_ignore = getenv("SBOX_REDIRECT_IGNORE");
+	if (!env_sbox_redirect_ignore) {
+		SB_LOG(SB_LOGLEVEL_DEBUG, "no SBOX_REDIRECT_IGNORE");
+		goto out;
+	}
+	env_sbox_redirect_ignore = strdup(env_sbox_redirect_ignore);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "SBOX_REDIRECT_IGNORE is '%s'",
+		env_sbox_redirect_ignore);
+
+	path = lua_tostring(l, 1);
+	if (!path) goto out;
+
+	tok = strtok_r(env_sbox_redirect_ignore, ":", &tok_state);
+	while (tok) {
+		result = !strcmp(path, tok);
+		if (result) goto out; /* return if matched */
+		tok = strtok_r(NULL, ":", &tok_state);
+	}
+
+    out:
+	if (env_sbox_redirect_ignore) free(env_sbox_redirect_ignore);
+	lua_pushboolean(l, result);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "lua_sb_test_redirect_ignore(%s) => %d",
+		path, result);
+	return 1;
+}
+
 /* mappings from c to lua */
 static const luaL_reg reg[] =
 {
@@ -786,6 +838,7 @@ static const luaL_reg reg[] =
 	{"isprefix",			lua_sb_isprefix},
 	{"test_path_match",		lua_sb_test_path_match},
 	{"procfs_mapping_request",	lua_sb_procfs_mapping_request},
+	{"test_redirect_ignore",	lua_sb_test_redirect_ignore},
 	{NULL,				NULL}
 };
 

@@ -31,6 +31,8 @@ args="$*"
 prog="$0"
 progbase=`basename $0`
 
+SBOX_REDIRECT_IGNORE=""
+
 function error_not_inside_sb2()
 {
 	echo "SB2: $progbase: This wrapper can only be used from inside"

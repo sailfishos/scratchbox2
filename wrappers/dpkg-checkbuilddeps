@@ -225,9 +225,8 @@ function check_host_builddeps()
 			do
 				echo "       ...$mmm"
 				check_host_pkg $mmm
-				if [ $? == 0 ]
+				if [ "$installed_to_host" = "yes" ]
 				then
-					# nothing is missing = nothing needed from the host side
 					echo "       $mmm = ok"
 					has_one_alternative=1
 				else

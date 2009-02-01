@@ -397,6 +397,18 @@ sub create_code_for_va_list_get_mode {
 		"\t}\n");
 }
 
+sub create_code_for_va_list_get_void_ptr {
+	my $last_named_var = shift;
+
+print("vararg=>void*\n");
+	return( "\t{\n".
+		"\t\tva_list arg;\n".
+                "\t\tva_start (arg, $last_named_var);\n".
+                "\t\topt_arg = va_arg (arg, void*);\n".
+                "\t\tva_end (arg);\n".
+		"\t}\n");
+}
+
 sub process_readonly_check_modifier {
 	my $mods = shift;
 	my $extra_check = shift;
@@ -588,6 +600,16 @@ sub process_wrap_or_gate_modifiers {
 			$mods->{'va_list_handler_code'} =
 				create_code_for_va_list_get_mode(
 					$va_list_condition,
+					$fn->{'last_named_var'});
+			$varargs_handled = 1;
+		} elsif(($modifiers[$i] =~ m/^optional_arg_is_void_ptr$/) &&
+			($fn->{'has_varargs'})) {
+			$r_param_names->[$varargs_index] = "opt_arg";
+			$r_param_types->[$varargs_index] = "void *";
+			$mods->{'local_vars_for_varargs_handler'} .=
+				"\tvoid *opt_arg = NULL;\n";
+			$mods->{'va_list_handler_code'} =
+				create_code_for_va_list_get_void_ptr(
 					$fn->{'last_named_var'});
 			$varargs_handled = 1;
 		} elsif(($modifiers[$i] eq 'pass_va_list') &&

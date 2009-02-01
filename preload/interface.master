@@ -126,9 +126,23 @@ WRAP: int openat64(int dirfd, const char *pathname, int flags, ...) : \
 WRAP: int close(int fd) : \
 	postprocess() \
 	create_nomap_nolog_version
+
+-- 5b. other ways to create new filedescriptors:
+--     we'll wrap these to be able to update fdpathdb
+
 WRAP: int dup(int fd) : \
 	postprocess()
 WRAP: int dup2(int fd, int fd2) : \
+	postprocess()
+
+-- 3rd parameter of fcntl() and fcntl64() is either a "long" or a
+-- "struct flock *".  However, treat it as "void*"; it is not needed
+-- by the postprocessor.
+WRAP: int fcntl(int fd, int cmd, ...) : \
+	optional_arg_is_void_ptr \
+	postprocess()
+WRAP: int fcntl64(int fd, int cmd, ...) : \
+	optional_arg_is_void_ptr \
 	postprocess()
 
 --

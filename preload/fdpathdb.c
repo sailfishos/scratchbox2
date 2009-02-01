@@ -23,6 +23,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include "libsb2.h"
 #include "exported.h"
@@ -262,4 +264,28 @@ void close_postprocess_(const char *realfnname, int ret, int fd)
 {
 	fdpathdb_register_mapped_path(realfnname, fd, NULL, NULL);
 }
+
+void fcntl_postprocess_(const char *realfnname, int ret,
+	int fd, int cmd, void *arg)
+{
+	const char	*cp = NULL;
+
+	switch (cmd) {
+	case F_DUPFD:
+#ifdef F_DUPFD_CLOEXEC
+	case F_DUPFD_CLOEXEC:
+#endif
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: cmd==dup %d -> %d",
+			realfnname, fd, ret);
+		dup_postprocess_(realfnname, ret, fd);
+		break;
+	}
+}
+
+void fcntl64_postprocess_(const char *realfnname, int ret,
+	int fd, int cmd, void *arg)
+{
+	fcntl_postprocess_(realfnname, ret, fd, cmd, arg);
+}
+
 

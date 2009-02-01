@@ -118,7 +118,7 @@ static const char *read_env_value(const char *env)
 }
 
 /* check (and create if it doesn't exits) the symlink which is used to
- * replace /proc/sef/exe or /proc/<pid>/exe
+ * replace /proc/self/exe or /proc/<pid>/exe
  *
  * [Note that this code may be called from several threads or even several
  * processes in parallel, but because the resulting link is always the same,
@@ -139,8 +139,8 @@ static char *symlink_for_exe_path(
 		}
 	}
 	/* ensure that the directory for links with "depth" levels exists: */
-	prefixlen = snprintf(pathbuf, bufsize, "%s/proc/%u.%d",
-		sbox_session_dir, depth, pid);
+	prefixlen = snprintf(pathbuf, bufsize, "%s/proc/X.%d",
+		sbox_session_dir, depth);
 	if ((prefixlen + 2 + strlen(exe_path)) >= bufsize) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"Can't create replacement for /proc/%u/exe; "

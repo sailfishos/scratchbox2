@@ -427,26 +427,38 @@ function find_rule(chain, func, full_path)
 				rule.dir, rule.prefix, rule.path)
 			if min_path_len >= 0 then
 				if (rule.chain) then
-					return find_rule(rule.chain,
-						func, full_path)
-				end
-
-				-- Path matches, test if other conditions are
-				-- also OK:
-				if ((not rule.func_name
-					or string.match(func,
-						 rule.func_name))) then
-					if (debug_messages_enabled) then
-						local rulename = rule.name
-						if rulename == nil then
-							rulename = string.format("#%d",i)
-						end
-
-						sb.log("noise", string.format(
-						  "selected rule '%s'",
-						  rulename))
+					-- if rule can be found from
+					-- a subtree, return it,
+					-- otherwise continue looping here.
+					local s_rule
+					local s_min_len
+					s_rule, s_min_len = find_rule(
+						rule.chain, func, full_path)
+					if (s_rule ~= nil) then
+						return s_rule, s_min_len
 					end
-					return rule, min_path_len
+					if (debug_messages_enabled) then
+						sb.log("noise",
+						  "rule not found from subtree")
+					end
+				else
+					-- Path matches, test if other conditions are
+					-- also OK:
+					if ((not rule.func_name
+						or string.match(func,
+							 rule.func_name))) then
+						if (debug_messages_enabled) then
+							local rulename = rule.name
+							if rulename == nil then
+								rulename = string.format("#%d",i)
+							end
+
+							sb.log("noise", string.format(
+							  "selected rule '%s'",
+							  rulename))
+						end
+						return rule, min_path_len
+					end
 				end
 			end
 		end

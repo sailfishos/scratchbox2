@@ -58,6 +58,9 @@
 #     final symbolic link should not be followed, because the call operates
 #     on the symlink itself (for example, see the difference between stat() and
 #     lstat()). NOTE: THIS MUST BE USED BEFORE THE map() OR map_at() MODIFIERS!
+#   - "dont_resolve_final_symlink_if(condition)" conditionally
+#     leaves the final symlink unresolved (see "dont_resolve_final_symlink")
+#     NOTE: THIS MUST BE USED BEFORE THE map() OR map_at() MODIFIERS!
 #   - "resolve_final_symlink" is the opposite of "dont_resolve_final_symlink"
 #     (and it is on by default)
 #   - "postprocess(varname)" can be used to call  postprocessor functions for
@@ -590,6 +593,9 @@ sub process_wrap_or_gate_modifiers {
 			$varargs_handled = 1;
 		} elsif($modifiers[$i] eq 'dont_resolve_final_symlink') {
 			$mods->{'dont_resolve_final_symlink'} = 1;
+		} elsif($modifiers[$i] =~ m/^dont_resolve_final_symlink_if\((.*)\)$/) {
+			my $condition = $1;
+			$mods->{'dont_resolve_final_symlink'} = "($condition)";
 		} elsif(($modifiers[$i] =~ m/^optional_arg_is_create_mode\((.*)\)$/) &&
 			($fn->{'has_varargs'})) {
 			my $va_list_condition = $1;

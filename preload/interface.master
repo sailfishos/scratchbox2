@@ -238,6 +238,7 @@ WRAP: int fchmodat(int dirfd, const char *pathname, mode_t mode, int flags) : \
 	fail_if_readonly(pathname,-1,EROFS)
 WRAP: int fchownat(int dirfd, const char *pathname, uid_t owner, gid_t group, \
 	int flags) : \
+	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname) \
 	fail_if_readonly(pathname,-1,EROFS)
 

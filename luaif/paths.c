@@ -738,12 +738,14 @@ static char *sb_path_resolution(
 			if (work->pe_next) {
 				rest_of_path = path_entries_to_string(
 					work->pe_next);
+				SB_LOG(SB_LOGLEVEL_NOISE,
+					"symlink:more: rest='%s'", rest_of_path);
 			} else {
 				/* last component of the path was a symlink. */
 				rest_of_path = strdup("");
+				SB_LOG(SB_LOGLEVEL_NOISE,
+					"symlink:last: rest=''");
 			}
-			SB_LOG(SB_LOGLEVEL_NOISE,
-				"is symlink: rest='%s'", rest_of_path);
 
 			if (*link_dest == '/') {
 				/* absolute symlink.

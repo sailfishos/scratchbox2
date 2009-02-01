@@ -60,6 +60,38 @@ exec_policy_tools = {
 	script_set_argv0_to_mapped_interpreter = true,
 }
 
+exec_policy_tools_perl = {
+	name = "Tools-perl",
+	native_app_ld_so = devel_mode_tools_ld_so,
+	native_app_ld_so_supports_argv0 = conf_tools_ld_so_supports_argv0,
+	native_app_ld_library_path = devel_mode_tools_ld_library_path,
+	native_app_locale_path = devel_mode_locale_path,
+	native_app_message_catalog_prefix = devel_model_message_catalog_prefix,
+
+	script_log_level = "debug",
+	script_log_message = "SCRIPT from tools (t.p)",
+	script_interpreter_rule = {
+		map_to = tools
+	},
+	script_set_argv0_to_mapped_interpreter = true,
+}
+
+exec_policy_tools_python = {
+	name = "Tools-python",
+	native_app_ld_so = devel_mode_tools_ld_so,
+	native_app_ld_so_supports_argv0 = conf_tools_ld_so_supports_argv0,
+	native_app_ld_library_path = devel_mode_tools_ld_library_path,
+	native_app_locale_path = devel_mode_locale_path,
+	native_app_message_catalog_prefix = devel_model_message_catalog_prefix,
+
+	script_log_level = "debug",
+	script_log_message = "SCRIPT from tools (t.p)",
+	script_interpreter_rule = {
+		map_to = tools
+	},
+	script_set_argv0_to_mapped_interpreter = true,
+}
+
 -- For target binaries:
 -- First, note that "foreign" binaries are easy to handle, no problem there.
 -- But if CPU transparency method has not been set, then host CPU == target CPU:
@@ -119,11 +151,11 @@ test_first_tools_default_is_target = {
 }
 
 perl_lib_test = {
-	{ if_active_exec_policy_is = "Tools",
+	{ if_active_exec_policy_is = "Tools-perl",
 	  map_to = tools, readonly = true },
 	{ if_active_exec_policy_is = "Rootstrap",
 	  map_to = target_root, readonly = true },
-	{ map_to = tools, readonly = true }
+	{ map_to = target_root, readonly = true }
 }
 
 perl_bin_test = {
@@ -131,7 +163,9 @@ perl_bin_test = {
 	  map_to = target_root, readonly = true },
 	{ if_active_exec_policy_is = "Rootstrap",
 	  map_to = target_root, readonly = true },
-	{ map_to = tools, readonly = true }
+	{ if_active_exec_policy_is = "Tools-perl",
+	  map_to = tools, readonly = true },
+	{ map_to = target_root, readonly = true }
 }
 
 python_bin_test = {
@@ -139,15 +173,17 @@ python_bin_test = {
 	  map_to = target_root, readonly = true },
 	{ if_active_exec_policy_is = "Rootstrap",
 	  map_to = target_root, readonly = true },
-	{ map_to = tools, readonly = true }
+	{ if_active_exec_policy_is = "Tools-python",
+	  map_to = tools, readonly = true },
+	{ map_to = target_root, readonly = true }
 }
 
 python_lib_test = {
-	{ if_active_exec_policy_is = "Tools",
+	{ if_active_exec_policy_is = "Tools-python",
 	  map_to = tools, readonly = true },
 	{ if_active_exec_policy_is = "Rootstrap",
 	  map_to = target_root, readonly = true },
-	{ map_to = tools, readonly = true }
+	{ map_to = target_root, readonly = true }
 }
 
 
@@ -656,6 +692,8 @@ devel_exec_policies = {
 		{prefix = target_root, exec_policy = exec_policy_target},
 
 		-- Tools:
+		{prefix = tools .. "/usr/bin/perl", exec_policy = exec_policy_tools_perl},
+		{prefix = tools .. "/usr/bin/python", exec_policy = exec_policy_tools_python},
 		{prefix = tools, exec_policy = exec_policy_tools},
 
 		-- -----------------------------------------------
@@ -674,5 +712,7 @@ all_exec_policies = {
 	exec_policy_host_os,
 	exec_policy_target,
 	exec_policy_tools,
+	exec_policy_tools_perl,
+	exec_policy_tools_python,
 }
 

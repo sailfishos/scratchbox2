@@ -9,6 +9,26 @@
 # Licensed under GPL version 2
 #
 # -------------------
+#
+# dpkg-checkbuilddeps wrapper for SB2.
+#
+# Currently there are two algorithms for this: Old and new.
+#
+# The old one, implemented completely as a shell script,
+# ignores many things that should be checked. The new one is 
+# is written in perl, but the implementation is still
+# incomplete. Currently things work so that this shell
+# script digs out the needed variables and feeds them to
+# the perl script (the old algorithm is off by default).
+#
+# Alternatively, the old and new algorithms can both be
+# enable by setting environment variable SBOX_DOUBLECHECK_DEPS
+# to any non-empty value. I haven't seen any cases where the
+# old algorithm would be better that the new one, but I'm
+# interested to hear if there are any...before this old
+# stuff will be completely removed / Lauri T. Aarnio 2009-01-31.
+#
+# Here is description of the OLD algorithm:
 # Idea behind operation is to first check target's package db,
 # then check if missing packages are tools that could be used
 # from the host (or sbox_tools_root, if that has been set)
@@ -22,10 +42,11 @@
 # - can switch temporarily to tools mode, and then the
 #   db maps to *tools* package db
 #
+# [N.B. The new algorithm solves this:
 # FIXME: This implementation is still incomplete, as this does not
 # check package versions while checking host/tools_root tools.
 # Also, it would be a good idea to do a "visibility check" for host packages,
-# too (see how sb2-check-pkg-mappings does it for target's pkg db)
+# too (see how sb2-check-pkg-mappings does it for target's pkg db)]
 
 args="$*"
 prog="$0"
@@ -135,6 +156,7 @@ function check_host_pkg()
 function check_gcc_dependency()
 {
 	required_gcc=$1
+	prefix="$2"
 
 	if [ -f $HOME/.scratchbox2/$sbox_target/sb2.config.d/gcc.config.sh ]
 	then
@@ -142,7 +164,7 @@ function check_gcc_dependency()
 		if [ "$required_gcc" = "gcc" ]
 		then
 			# requires GCC, but does not depend on gcc version
-			echo "SB2 provides gcc"
+			echo "$prefix""SB2 provides gcc"
 			return 0
 		fi
 		#
@@ -157,7 +179,7 @@ function check_gcc_dependency()
 				full_vrs="gcc-$SBOX_CROSS_GCC_VERSION"
 				if [ "$required_gcc" = "$short_vrs" -o \
 				     "$required_gcc" = "$full_vrs" ]; then
-					echo "SB2 provides $required_gcc"
+					echo "$prefix""SB2 provides $required_gcc"
 					return 0
 				fi
 			fi
@@ -171,6 +193,8 @@ function check_gcc_dependency()
 function check_sb2_builddeps()
 {
 	orig_missing="$1"
+	prefix="$2"
+
 	new_missing=""
 	ret=0
 
@@ -178,7 +202,7 @@ function check_sb2_builddeps()
 	for m in $orig_missing
 	do
 		case $m in
-		gcc*)	check_gcc_dependency $m
+		gcc*)	check_gcc_dependency "$m" "$prefix"
 			if [ $? != 0 ]; then
 				# gcc check failed
 				new_missing="$new_missing $m"
@@ -205,10 +229,11 @@ function check_sb2_builddeps()
 function check_host_builddeps()
 {
 	missing="$1"
+	prefix="$2"
 	ret=0
 
 	# do the magic here
-	echo "SB2 Checking host build deps.."
+	echo "$prefix""SB2 Checking host build deps.."
 
 	list_ok=1	# default to ok
 	# $m will be the package to test, or pkg/pkg[/...] if there are
@@ -223,31 +248,31 @@ function check_host_builddeps()
 			has_one_alternative=0
 			for mmm in $(echo $m | sed -e 's:/: :')
 			do
-				echo "       ...$mmm"
+				echo "$prefix""       ...$mmm"
 				check_host_pkg $mmm
 				if [ "$installed_to_host" = "yes" ]
 				then
-					echo "       $mmm = ok"
+					echo "$prefix""       $mmm = ok"
 					has_one_alternative=1
 				else
-					echo "       no $mmm.."
+					echo "$prefix""       no $mmm.."
 				fi
 			done
 			if [ $has_one_alternative == 0 ]
 			then
-				echo "     Requirement $m failed; none of the alternatives were found."
+				echo "$prefix""     Requirement $m failed; none of the alternatives were found."
 				list_ok=0
 			else
-                                echo "     '$m': At least one alternative found, ok."
+                                echo "$prefix""     '$m': At least one alternative found, ok."
 			fi
 			;;
 
 		*)	# No alternatives.
 			check_host_pkg $m
-			echo "     $check_result_msg"
+			echo "$prefix""     $check_result_msg"
 			if [ -n "$check_result_msg2" ]
 			then
-				echo "     $check_result_msg2"
+				echo "$prefix""     $check_result_msg2"
 			fi
 			if [ "$installed_to_host" = "no" ]
 			then
@@ -262,6 +287,46 @@ function check_host_builddeps()
 		false
 	else
 		true
+	fi
+}
+
+function check_host_builddeps_by_real_tool()
+{
+	ret=0
+	echo "SB2 Checking tools build deps..."
+	x_missing_dep_file=`mktemp -p $SBOX_SESSION_DIR/tmp tools_missing_deps.XXXXXXXXXX`
+
+	# Run dpkg-checkbuilddeps in the "tools" mode
+	# Note: Can't use a pipeline here, we want to the
+	# dpkg-checkbuilddeps' return status.
+	SBOX_SESSION_MODE=tools /usr/bin/dpkg-checkbuilddeps \
+		$args > $x_missing_dep_file 2>&1
+	if [ $? == 0 ]
+	then
+		# real dpkg-checkbuilddeps says "all ok"
+		rm $x_missing_dep_file
+		tools_missing_deps=""
+		return 0
+	fi
+
+	# else real dpkg-checkbuilddeps failed.
+	# sed -e 's/^/     /' < $x_missing_dep_file
+	tools_missing_deps=$(egrep \
+		"^dpkg-checkbuilddeps: Unmet build dependencies:" \
+			$x_missing_dep_file | \
+		sed 's/dpkg-checkbuilddeps: Unmet build dependencies: //')
+	rm $x_missing_dep_file
+
+	if [ -n "$tools_missing_deps" ]; then
+		# failing target deps, and missing packages are listed
+		# in $tools_missing_deps = continue by checking if those are
+		# available on the host environment
+		return 1
+	else
+		# failing target deps, but $tools_missing_deps is empty. Something
+		# is fatally wrong.
+		echo "FATAL: Failed to check dependencies from tools_root DB"
+		exit 1
 	fi
 }
 
@@ -302,8 +367,37 @@ function check_target_builddeps()
 	else
 		# failing target deps, but $missing_deps is empty. Something
 		# is fatally wrong.
+		echo "FATAL: Failed to check dependencies from target_root DB"
 		exit 1
 	fi
+}
+
+function compare_target_and_host_results_with_new_tool() 
+{
+	t_missing=$missing_deps
+	h_missing=$tools_missing_deps
+
+	both_required=`cat $TARGET_DPKG_ADMINDIR_USABLE_PKGS/both-required`
+	host_accepted=`grep -v "#" $cfgfile_host_accepted_pkgs`
+
+	host_ignored=""
+	if [ -f $cfgfile_host_ignored_pkgs ]
+	then
+		# ignorelist exists
+		host_ignored=`grep -v "#" $cfgfile_host_ignored_pkgs`
+	fi
+
+	echo "SB2 Combining results from target and tools..."
+
+	$sbox_dir/share/scratchbox2/lib/sb2-cmp-checkbuilddeps-output.pl \
+		"$t_missing" "$h_missing" "$both_required" "$host_accepted" "$host_ignored"
+	result2=$?
+	return $result2
+	#### if [ $? = 0 ]; then
+	####	result2="ok"
+	####else
+	####	result2="fail"
+	####fi
 }
 
 # First, make sure we are in a correct directory:
@@ -319,43 +413,96 @@ fi
 sb2-check-pkg-mappings -u
 
 check_target_builddeps
-if [ $? == 0 ]; then
-	# nothing is missing = nothing needed from the host side
-	echo "Target rootstrap => all dependencies OK"
-	exit 0
+check_target_builddeps_result=$?
+missing_deps_after_target_check="$missing_deps"
+
+function old_deps_checker()
+{
+	if [ $check_target_builddeps_result == 0 ]; then
+		# nothing is missing = nothing needed from the host side
+		echo "OLD_CHK: Target rootstrap => all dependencies OK"
+		return 0
+	fi
+
+	echo "OLD_CHK: Build dependencies missing from the target environment:"
+	echo "OLD_CHK:      $missing_deps"
+
+	# Something is missing. Check if SB2 can fulfill the requirements:
+	check_sb2_builddeps "$missing_deps" "OLD_CHK: "
+	if [ $? == 0 ]; then
+		# OK now, nothing needed from the host side
+		echo "OLD_CHK: SB2 tools check => all dependencies OK"
+		return 0
+	fi
+
+	# Something is missing. To be able to get the missing packages from the
+	# host environment, at least the list of allowed packages is needed:
+	#
+	if [ ! -f $cfgfile_host_accepted_pkgs ]
+	then
+		echo "OLD_CHK:"
+		echo "OLD_CHK: Configuration file $cfgfile_host_accepted_pkgs"
+		echo "OLD_CHK: does not exist. This means that no packages have been approved to be used"
+		echo "OLD_CHK: from the host environment in this mapping mode ($sbox_mapmode)."
+		return 1
+	fi
+
+	check_host_builddeps "$missing_deps" "OLD_CHK: "
+	if [ $? != 0 ]; then
+		echo "OLD_CHK: Failed. Host environment did not meet all requirements."
+		return 1
+	fi
+
+	# since we're here, everything is more or less ok
+	echo "OLD_CHK: All OK."
+	return 0
+}
+
+function new_deps_checker()
+{
+	check_sb2_builddeps "$missing_deps" ""
+	# $missing_deps has been updated
+
+	check_host_builddeps_by_real_tool
+	# $tools_missing_deps now contains a list of missing
+	# packages, liste by the real dpkg-checkbuilddeps
+
+	compare_target_and_host_results_with_new_tool
+	new_deps_checker_result=$?
+}
+
+if [ -n "$SBOX_DOUBLECHECK_DEPS" ]; then
+	old_deps_checker
+	old_deps_checker_result=$?
 fi
 
-echo "Build dependencies missing from the target environment:"
-echo "     $missing_deps"
+missing_deps="$missing_deps_after_target_check"
+new_deps_checker
 
-# Something is missing. Check if SB2 can fulfill the requirements:
-check_sb2_builddeps "$missing_deps"
-if [ $? == 0 ]; then
-	# OK now, nothing needed from the host side
-	echo "SB2 tools check => all dependencies OK"
-	exit 0
+if [ -n "$SBOX_DOUBLECHECK_DEPS" ]; then
+	if [ "$new_deps_checker_result" != "$old_deps_checker_result" ]; then
+		echo "INCONSISTENT: new and old methods do not agree:"
+		if [ "$new_deps_checker_result" = 0 ]; then
+			echo "            : new => dependency checks OK"
+		else
+			echo "            : new => dependency checks FAILED"
+		fi
+		if [ "$old_deps_checker_result" = 0 ]; then
+			echo "            : old => dependency checks OK"
+		else
+			echo "            : old => dependency checks FAILED"
+		fi
+		echo "Failed."
+		exit 1
+	fi
 fi
 
-# Something is missing. To be able to get the missing packages from the
-# host environment, at least the list of allowed packages is needed:
-#
-if [ ! -f $cfgfile_host_accepted_pkgs ]
-then
-	echo
-	echo "Configuration file $cfgfile_host_accepted_pkgs"
-	echo "does not exist. This means that no packages have been approved to be used"
-	echo "from the host environment in this mapping mode ($sbox_mapmode)."
-	exit 1
-fi
-
-check_host_builddeps "$missing_deps"
-if [ $? != 0 ]; then
-	echo "Failed. Host environment did not meet all requirements."
+if [ "$new_deps_checker_result" != "0" ]; then
+	echo "Failed."
 	exit 1
 fi
 
 # since we're here, everything is more or less ok
-
 echo "All OK."
 exit 0
 

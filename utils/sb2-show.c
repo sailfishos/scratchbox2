@@ -408,6 +408,9 @@ static int command_verify_pathlist_mappings(
 		int	destination_prefix_cmp_result;
 		char	**ignore_path;
 		int	ignore_this = 0;
+		int	require_both = 0;
+		/* 1 == ignore, 2 == require_both */
+		int	compare_mode = 1;
 
 		if ((len > 0) && (path_buf[len-1] == '\n')) {
 			path_buf[--len] = '\0';
@@ -415,14 +418,40 @@ static int command_verify_pathlist_mappings(
 		if (len == 0) continue;
 
 		for (ignore_path = argv+1; *ignore_path; ignore_path++) {
-			int	ign_len = strlen(*ignore_path);
+			int	ign_len;
 
-			if (!strncmp(path_buf, *ignore_path, ign_len)) {
-				ignore_this = 1;
-				if (verbose)
-					printf("IGNORED by prefix: %s\n",
-						path_buf);
-				break;
+			if (**ignore_path == '@') {
+				if (!strcmp(*ignore_path, "@ignore:")) {
+					compare_mode = 1;
+					continue;
+				}
+				if (!strcmp(*ignore_path, "@require-both:")) {
+					compare_mode = 2;
+					continue;
+				}
+			}
+
+			if (compare_mode == 1) {
+				ign_len = strlen(*ignore_path);
+
+				if (!strncmp(path_buf, *ignore_path, ign_len)) {
+					ignore_this = 1;
+					if (verbose)
+						printf("IGNORED by prefix: %s\n",
+							path_buf);
+					break;
+				}
+			} else {
+				/* FIXME: check it is 2 */
+				ign_len = strlen(*ignore_path);
+
+				if (!strncmp(path_buf, *ignore_path, ign_len)) {
+					require_both = 1;
+					if (verbose)
+						printf("REQUIRE_BOTH by prefix: %s\n",
+							path_buf);
+					break;
+				}
 			}
 		}
 
@@ -446,11 +475,19 @@ static int command_verify_pathlist_mappings(
 		destination_prefix_cmp_result = strncmp(mapped_path,
 			required_destination_prefix, destination_prefix_len);
 		if (destination_prefix_cmp_result) {
-			result = 1;
-			if (verbose)
-				printf("%s => %s%s: NOT OK\n",
-					path_buf, mapped_path,
-					(readonly_flag ? " (readonly)" : ""));
+			if (require_both) {
+				result |= 2;
+				if (verbose)
+					printf("%s => %s%s: NOT OK (Require both)\n",
+						path_buf, mapped_path,
+						(readonly_flag ? " (readonly)" : ""));
+			} else {
+				result |= 1;
+				if (verbose)
+					printf("%s => %s%s: NOT OK\n",
+						path_buf, mapped_path,
+						(readonly_flag ? " (readonly)" : ""));
+			}
 		} else {
 			/* mapped OK. */
 			if (verbose)

@@ -132,6 +132,9 @@ install-noarch: regular
 	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/devel
 	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/install
 
+	# "scripts" and "wrappers" are visible to the user in some 
+	# mapping modes, "lib" is for sb2's internal use
+	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lib
 	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/scripts
 	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/wrappers
 	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/tests
@@ -149,6 +152,9 @@ install-noarch: regular
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-mkinitramfs $(prefix)/bin/sb2-mkinitramfs
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-start-qemuserver $(prefix)/bin/sb2-start-qemuserver
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-qemu-gdbserver-prepare $(prefix)/bin/sb2-qemu-gdbserver-prepare
+
+	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-cmp-checkbuilddeps-output.pl $(prefix)/share/scratchbox2/lib/sb2-cmp-checkbuilddeps-output.pl
+
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-upgrade-config $(prefix)/share/scratchbox2/scripts/sb2-upgrade-config
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-parse-sb2-init-args $(prefix)/share/scratchbox2/scripts/sb2-parse-sb2-init-args
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-config-gcc-toolchain $(prefix)/share/scratchbox2/scripts/sb2-config-gcc-toolchain

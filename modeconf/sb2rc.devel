@@ -56,7 +56,9 @@ case "$sb2rc_mode" in
 		#    /usr/share/aclocal/glib-gettext.m4
 		#
 		SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST=" \
+			@require-both: \
 			/usr/bin /usr/sbin /sbin \
+			@ignore: \
 			/etc \
 			/usr/share/man /usr/share/doc /usr/share/gtk-doc \
 			/usr/share/doc-base \

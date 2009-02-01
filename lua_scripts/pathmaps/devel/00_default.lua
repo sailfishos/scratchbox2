@@ -98,7 +98,11 @@ exec_policy_target = {
 exec_policy_host_os = {
 	name = "Host",
 	log_level = "debug",
-	log_message = "executing in host OS mode"
+	log_message = "executing in host OS mode",
+
+	script_interpreter_rule = {
+		use_orig_path = true
+	},
 }
 
 -- =========== Actions for conditional rules ===========

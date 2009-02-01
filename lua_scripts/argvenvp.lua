@@ -320,10 +320,10 @@ function sb_execve_map_script_interpreter(rule, exec_policy, interpreter,
 	
 		if exec_policy.script_set_argv0_to_mapped_interpreter then
 			argv[1] = mapped_interpreter
-			return rule, exec_policy, 0, 
+			return rule, exec_pol_2, 0, 
 				mapped_interpreter, #argv, argv, #envp, envp
 		else
-			return rule, exec_policy, 1, 
+			return rule, exec_pol_2, 1, 
 				mapped_interpreter, #argv, argv, #envp, envp
 		end
 	end

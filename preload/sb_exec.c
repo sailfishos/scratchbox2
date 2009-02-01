@@ -164,7 +164,7 @@ static const struct target_info target_table[] = {
 static int elf_hdr_match(Elf_Ehdr *ehdr, uint16_t match, int ei_data);
 
 static int prepare_exec(const char *exec_fn_name,
-	const char *orig_file, char *const *orig_argv, char *const *orig_envp,
+	const char *orig_file, int file_has_been_mapped, char *const *orig_argv, char *const *orig_envp,
 	char **new_file, char ***new_argv, char ***new_envp);
 
 static uint16_t byte_swap(uint16_t a)
@@ -563,6 +563,7 @@ static int prepare_hashbang(
 	 * cpu transparency etc.
 	 */
 	return prepare_exec("run_hashbang", mapped_interpreter,
+		1/*file_has_been_mapped, and rue&policy exist*/,
 		new_argv, *envpp, mapped_file, argvp, envpp);
 }
 
@@ -836,6 +837,7 @@ static int strvec_contains(char *const *strvec, const char *id,
 
 static int prepare_exec(const char *exec_fn_name,
 	const char *orig_file,
+	int file_has_been_mapped,
 	char *const *orig_argv,
 	char *const *orig_envp,
 	char **new_file,
@@ -862,14 +864,22 @@ static int prepare_exec(const char *exec_fn_name,
 
 	my_argv = duplicate_argv(orig_argv);
 
-	if ((err = sb_execve_preprocess(&my_file, &my_argv, &my_envp)) != 0) {
-		SB_LOG(SB_LOGLEVEL_ERROR, "argvenvp processing error %i", err);
+	if (!file_has_been_mapped) {
+		if ((err = sb_execve_preprocess(&my_file, &my_argv, &my_envp)) != 0) {
+			SB_LOG(SB_LOGLEVEL_ERROR, "argvenvp processing error %i", err);
+		}
 	}
 
 	/* test if mapping is enabled during the exec()..
 	 * (host-* tools disable it)
 	*/
-	if (strvec_contains(my_envp, "SBOX_DISABLE_MAPPING=1", NULL)) {
+	if (file_has_been_mapped) {
+		/* rule and policy already in stack
+		 * (e.g. we came back from run_hashbang()) */
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"do_exec(): no double mapping, my_file = %s", my_file);
+		mapped_file = strdup(my_file);
+	} else if (strvec_contains(my_envp, "SBOX_DISABLE_MAPPING=1", NULL)) {
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"do_exec(): mapping disabled, my_file = %s", my_file);
 		mapped_file = strdup(my_file);
@@ -1022,7 +1032,7 @@ int do_exec(const char *exec_fn_name, const char *orig_file,
 		
 		new_envp = prepare_envp_for_do_exec(orig_file, binaryname, orig_envp);
 
-		r = prepare_exec(exec_fn_name, orig_file, orig_argv, orig_envp,
+		r = prepare_exec(exec_fn_name, orig_file, 0, orig_argv, orig_envp,
 			&new_file, &new_argv, &new_envp);
 
 		if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
@@ -1063,7 +1073,7 @@ int sb2show__execve_mods__(
 
 	*new_envp = prepare_envp_for_do_exec(file, binaryname, orig_envp);
 
-	ret = prepare_exec("sb2show_exec", file, orig_argv, orig_envp,
+	ret = prepare_exec("sb2show_exec", file, 0, orig_argv, orig_envp,
 		new_file, new_argv, new_envp);
 
 	if (!*new_file) *new_file = strdup(file);

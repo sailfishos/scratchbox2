@@ -34,7 +34,7 @@ case "$sb2rc_mode" in
 		# programs that belong to the toolchain.
 		# Value of this variable will be used as the default 
 		# mapping rule.
-		CREATE_ARGVMODS_USR_BIN_RULES="map_to=tools,readonly=true"
+		CREATE_ARGVMODS_USR_BIN_RULES="-- return"
 		;;
 
 	wrapper_list)

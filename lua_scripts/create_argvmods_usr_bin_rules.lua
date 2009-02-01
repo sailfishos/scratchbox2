@@ -42,7 +42,7 @@ function argvmods_to_mapping_rules()
 	end
 	if (default_rule ~= nil) then
 		print("  -- default:")
-		print("  {prefix=\"/usr/bin\",", default_rule, "}")
+		print("  ", default_rule)
 	end
 	print(" }")
 	print("}")

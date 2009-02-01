@@ -343,8 +343,12 @@ devel_mode_rules_usr_bin = {
 		{prefix = "/usr/bin/perl", actions = perl_bin_test},
 		{prefix = "/usr/bin/python", actions = python_bin_test},
 
-		-- default: automatically generated rules for /usr/bin:
+		-- next, automatically generated rules for /usr/bin:
 		{dir = "/usr/bin", chain = argvmods_rules_for_usr_bin},
+
+		-- and finally, the default:
+		{dir = "/usr/bin",
+		 actions = test_first_tools_default_is_target},
 	}
 }
 
@@ -394,6 +398,10 @@ devel_mode_rules_usr = {
 
 		{prefix = "/usr/include", map_to = target_root,
 		 readonly = true},
+
+		-- -----------------------------------------------
+		{dir = "/usr/sbin",
+		 actions = test_first_tools_default_is_target},
 
 		-- -----------------------------------------------
 		-- 100. DEFAULT RULES:
@@ -602,12 +610,16 @@ simple_chain = {
 		-- the root directory must not be mapped:
 		{path = "/", use_orig_path = true},
 
-		-- "standard" directories are mapped to tools_root,
+		-- "standard" directories default to tools_root
+		-- (except that bin and sbin also test for target-
+		-- specific programs from target_root),
 		-- but everything else defaults to the host system
 		-- (so that things like /mnt, /media and /opt are
 		-- used from the host)
-		{prefix = "/bin", map_to = tools, readonly = true},
-		{prefix = "/sbin", map_to = tools, readonly = true},
+		{dir = "/bin",
+		 actions = test_first_tools_default_is_target},
+		{dir = "/sbin",
+		 actions = test_first_tools_default_is_target},
 
 		-- Default = Host, R/W access
 		{prefix = "/", use_orig_path = true}
@@ -629,7 +641,7 @@ devel_exec_policies = {
 	binary = nil,
 	rules = {
 
-		-- ~/bin proobably contains programs for the host OS:
+		-- ~/bin probably contains programs for the host OS:
                 {prefix = sbox_user_home_dir.."/bin", exec_policy = exec_policy_host_os},
 
                 -- Other places under the home directory are expected

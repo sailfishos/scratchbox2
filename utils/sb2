@@ -138,7 +138,7 @@ function create_argvmods_usr_bin_rules()
 		    $SBOX_SESSION_DIR/rules/$SBOX_MAPMODE.lua; do
 		amm_base=`basename $ammf .lua`
 
-		SBOX_ARGVMODS_USR_BIN_DEFAULT_RULE=$default_rule \
+		SBOX_ARGVMODS_USR_BIN_DEFAULT_RULE="$default_rule" \
 		SBOX_SESSION_MODE=$amm_base sb2-monitor \
 			-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
 			execluafile \

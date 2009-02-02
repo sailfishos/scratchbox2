@@ -207,7 +207,14 @@ fi
 
 # ---------- end of parameter checks
 
-GCC_PREFIX=$(basename $GCC | sed 's/-gcc$/-/')
+case "$(basename $GCC)" in
+(*-*)	# $GCC contains a prefix
+	GCC_PREFIX=$(basename $GCC | sed 's/-gcc$/-/')
+	;;
+(*)	# No embedded prefix
+	GCC_PREFIX=""
+	;;
+esac
 
 SBOX_CROSS_GCC_VERSION=`$GCC -dumpversion`
 
@@ -245,7 +252,9 @@ fi
 SBOX_CROSS_GCC_SPECS_FILE=""
 SBOX_EXTRA_CROSS_COMPILER_STDINC=""
 
-if [ -f $SBOX_DIR/share/scratchbox2/modeconf/gcc-$SBOX_CROSS_GCC_VERSION-specs.$MAPPING_MODE ]; then
+if [ -f $SBOX_DIR/share/scratchbox2/modeconf/gcc-$SBOX_CROSS_GCC_VERSION-specs-$ARCH.$MAPPING_MODE ]; then
+	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modeconf/gcc-$SBOX_CROSS_GCC_VERSION-specs-$ARCH.$MAPPING_MODE"
+elif [ -f $SBOX_DIR/share/scratchbox2/modeconf/gcc-$SBOX_CROSS_GCC_VERSION-specs.$MAPPING_MODE ]; then
 	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modeconf/gcc-$SBOX_CROSS_GCC_VERSION-specs.$MAPPING_MODE"
 elif [ -f $SBOX_DIR/share/scratchbox2/modeconf/gcc-$SBOX_CROSS_GCC_SHORTVERSION-specs.$MAPPING_MODE ]; then
 	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modeconf/gcc-$SBOX_CROSS_GCC_SHORTVERSION-specs.$MAPPING_MODE"

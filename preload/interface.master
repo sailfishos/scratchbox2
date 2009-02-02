@@ -172,12 +172,14 @@ WRAP: int __xstat(int ver, const char *filename, struct stat *buf) : map(filenam
 WRAP: int __xstat64(int ver, const char *filename, struct stat64 *buf) : map(filename)
 #endif
 
+#ifdef AT_SYMLINK_NOFOLLOW
 WRAP: int __fxstatat(int ver, int dirfd, const char *pathname, struct stat *buf, int flags) : \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname)
 WRAP: int __fxstatat64(int ver, int dirfd, const char *pathname, struct stat64 *buf, int flags) : \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname)
+#endif
 
 WRAP: int _xftw(int mode, const char *dir, int (*fn)(const char *file, const struct stat *sb, int flag), int nopenfd) : map(dir)
 #ifdef HAVE__XFTW64
@@ -223,15 +225,18 @@ WRAP: int eaccess(const char *pathname, int mode) : \
 	map(pathname) \
 	check_and_fail_if_readonly(mode&W_OK,pathname,-1,EROFS)
 
+#ifdef AT_SYMLINK_NOFOLLOW
 WRAP: int faccessat(int dirfd, const char *pathname, int mode, int flags) : \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname) \
 	check_and_fail_if_readonly(mode&W_OK,pathname,-1,EROFS)
+#endif
 
 -- FIXME: fchmod() should be handled when -at-functions can be handled 
 -- properly, now just introduce the wrapper (we'll get the calls to logger!)
 WRAP: int fchmod(int fildes, mode_t mode)
 
+#ifdef AT_SYMLINK_NOFOLLOW
 WRAP: int fchmodat(int dirfd, const char *pathname, mode_t mode, int flags) : \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname) \
@@ -241,6 +246,7 @@ WRAP: int fchownat(int dirfd, const char *pathname, uid_t owner, gid_t group, \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname) \
 	fail_if_readonly(pathname,-1,EROFS)
+#endif
 
 WRAP: FILE *fopen(const char *path, const char *mode) : \
 	map(path) \
@@ -255,12 +261,14 @@ WRAP: FILE *freopen64(const char *path, const char *mode, FILE *stream) : \
 	map(path) \
 	check_and_fail_if_readonly(fopen_mode_w_perm(mode),path,NULL,freopen_errno(stream))
 
+#ifdef AT_SYMLINK_NOFOLLOW
 WRAP: int fstatat(int dirfd, const char *pathname, struct stat *buf, int flags) : \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname)
 WRAP: int fstatat64(int dirfd, const char *pathname, struct stat64 *buf, int flags) : \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname)
+#endif
 
 WRAP: int ftw(const char *dir, int (*fn)(const char *file, const struct stat *sb, int flag), int nopenfd) : map(dir)
 #ifdef HAVE_FTW64

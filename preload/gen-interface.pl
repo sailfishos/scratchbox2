@@ -403,7 +403,6 @@ sub create_code_for_va_list_get_mode {
 sub create_code_for_va_list_get_void_ptr {
 	my $last_named_var = shift;
 
-print("vararg=>void*\n");
 	return( "\t{\n".
 		"\t\tva_list arg;\n".
                 "\t\tva_start (arg, $last_named_var);\n".

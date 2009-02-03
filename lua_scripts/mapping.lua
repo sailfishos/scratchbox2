@@ -340,8 +340,17 @@ function sbox_execute_conditional_actions(binary_name,
 					 func_name, rp, path, rule_cand)
 			end
 		elseif (rule_cand.if_redirect_ignore_is_active) then
-			if (sb.test_redirect_ignore(
-				rule_cand.if_redirect_ignore_is_active)) then
+			if (sb.test_if_listed_in_envvar(
+				rule_cand.if_redirect_ignore_is_active,
+				"SBOX_REDIRECT_IGNORE")) then
+
+				return sbox_execute_rule(binary_name,
+					 func_name, rp, path, rule_cand)
+			end
+		elseif (rule_cand.if_redirect_force_is_active) then
+			if (sb.test_if_listed_in_envvar(
+				rule_cand.if_redirect_force_is_active,
+				"SBOX_REDIRECT_FORCE")) then
 
 				return sbox_execute_rule(binary_name,
 					 func_name, rp, path, rule_cand)

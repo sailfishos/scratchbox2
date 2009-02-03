@@ -161,6 +161,8 @@ perl_lib_test = {
 perl_bin_test = {
 	{ if_redirect_ignore_is_active = "/usr/bin/perl",
 	  map_to = target_root, readonly = true },
+	{ if_redirect_force_is_active = "/usr/bin/perl",
+	  map_to = tools, readonly = true },
 	{ if_active_exec_policy_is = "Rootstrap",
 	  map_to = target_root, readonly = true },
 	{ if_active_exec_policy_is = "Tools-perl",
@@ -171,6 +173,8 @@ perl_bin_test = {
 python_bin_test = {
 	{ if_redirect_ignore_is_active = "/usr/bin/python",
 	  map_to = target_root, readonly = true },
+	{ if_redirect_force_is_active = "/usr/bin/python",
+	  map_to = tools, readonly = true },
 	{ if_active_exec_policy_is = "Rootstrap",
 	  map_to = target_root, readonly = true },
 	{ if_active_exec_policy_is = "Tools-python",
@@ -376,7 +380,8 @@ devel_mode_rules_usr_bin = {
 		 readonly = true},
 
 		-- 19. perl & python:
-		-- 	processing depends on SBOX_REDIRECT_IGNORE and
+		-- 	processing depends on SBOX_REDIRECT_IGNORE,
+		--	SBOX_REDIRECT_FORCE and 
 		--	name of the current mapping mode. 
 		--	(these are real prefixes, version number may
 		--	be included in the name (/usr/bin/python2.5 etc))

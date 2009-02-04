@@ -429,6 +429,10 @@ static char *call_lua_function_sbox_translate_path(
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"call_lua_function_sbox_translate_path: gettop=%d",
 		lua_gettop(luaif->lua));
+	if(SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE3)) {
+		dump_lua_stack("call_lua_function_sbox_translate_path entry",
+			luaif->lua);
+	}
 
 	lua_getfield(luaif->lua, LUA_GLOBALSINDEX, "sbox_translate_path");
 	/* stack now contains the rule object and string "sbox_translate_path",
@@ -486,18 +490,21 @@ static char *call_lua_function_sbox_translate_path(
 				func_name, decolon_path, cleaned_path,
 				(ro_flag ? " (readonly)" : ""));
 		}
-		SB_LOG(SB_LOGLEVEL_NOISE,
-			"call_lua_function_sbox_translate_path: at exit, gettop=%d",
-			lua_gettop(luaif->lua));
-		return cleaned_path;
+		translate_result = cleaned_path;
 	}
-	SB_LOG(SB_LOGLEVEL_ERROR,
-		"No result from sbox_translate_path for: %s '%s'",
-		func_name, decolon_path);
+	if (!translate_result) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"No result from sbox_translate_path for: %s '%s'",
+			func_name, decolon_path);
+	}
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"call_lua_function_sbox_translate_path: at exit, gettop=%d",
 		lua_gettop(luaif->lua));
-	return(NULL);
+	if(SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE)) {
+		dump_lua_stack("call_lua_function_sbox_translate_path exit",
+			luaif->lua);
+	}
+	return(translate_result);
 }
 
 /* - returns 1 if ok (then *min_path_lenp is valid)

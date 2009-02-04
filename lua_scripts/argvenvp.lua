@@ -242,7 +242,7 @@ function check_rule_and_policy(rule, exec_policy, filename, mapped_file)
 			eps = exec_policy
 		end
 
-		sb.log("debug", "check_rule_and_policy: "..rs..";"..eps);
+		sb.log("debug", "check_rule_and_policy:Fail: "..rs..";"..eps);
 		return false, rule, exec_policy
 	end
 

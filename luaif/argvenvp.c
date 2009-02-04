@@ -15,6 +15,46 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+/* This stack dump routine is based on an example from the
+ * book "Programming in Lua"
+ *
+ * - This uses logging level DEBUG, but the calls are usually
+ *   enabled only at NOISE3.
+*/
+void dump_lua_stack(const char *msg, lua_State *L)
+{
+	int i;
+	int top = lua_gettop(L);
+
+	SB_LOG(SB_LOGLEVEL_DEBUG, "Stack dump/%s (gettop=%d):", msg, top);
+
+	for (i = 1; i <= top; i++) {
+		int t = lua_type(L, i);
+		switch (t) {
+		case LUA_TSTRING: /* strings */
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"%d: '%s'", i, lua_tostring(L, i));
+			break;
+
+		case LUA_TBOOLEAN:  /* booleans */
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"%d: %s", i,
+				(lua_toboolean(L, i) ? "true" : "false"));
+			break;
+
+		case LUA_TNUMBER:  /* numbers */
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"%d: %g", i, lua_tonumber(L, i));
+			break;
+
+		default:
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"%d: %s", i, lua_typename(L, t));
+			break;
+		}
+	}
+}
+
 /* Convert a vector of strings to a lua table, leaves that table to
  * lua's stack.
 */
@@ -147,6 +187,10 @@ int sb_execve_postprocess(char *exec_type,
 	luaif = get_lua();
 	if (!luaif) return(0);
 
+	if(SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE3)) {
+		dump_lua_stack("sb_execve_postprocess entry", luaif->lua);
+	}
+
 	if (!argv || !envp) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"ERROR: sb_argvenvp: (argv || envp) == NULL");
@@ -221,7 +265,7 @@ int sb_execve_postprocess(char *exec_type,
 	}
 
 	/* remove sb_execve_postprocess return values from the stack.  */
-	lua_pop(luaif->lua, 6);
+	lua_pop(luaif->lua, 7);
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"sb_execve_postprocess: at exit, gettop=%d", lua_gettop(luaif->lua));
@@ -290,9 +334,19 @@ char *sb_execve_map_script_interpreter(
 	 *  1: argv / envp were not modified; mapped_interpreter was set
 	 * -1: deny exec.
 	*/
-	SB_LOG(SB_LOGLEVEL_NOISE, "sb_execve_map_script_interpreter: call lua");
+	if(SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE3)) {
+		dump_lua_stack("sb_execve_map_script_interpreter M1", luaif->lua);
+	}
+	SB_LOG(SB_LOGLEVEL_NOISE,
+		"sb_execve_map_script_interpreter: call lua, gettop=%d",
+		lua_gettop(luaif->lua));
 	lua_call(luaif->lua, 8, 8);
-	SB_LOG(SB_LOGLEVEL_NOISE, "sb_execve_map_script_interpreter: return from lua");
+	SB_LOG(SB_LOGLEVEL_NOISE,
+		"sb_execve_map_script_interpreter: return from lua, gettop=%d",
+		lua_gettop(luaif->lua));
+	if(SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE3)) {
+		dump_lua_stack("sb_execve_map_script_interpreter M2", luaif->lua);
+	}
 	
 	mapped_interpreter = (char *)lua_tostring(luaif->lua, -5);
 	if (mapped_interpreter) mapped_interpreter = strdup(mapped_interpreter);
@@ -313,17 +367,26 @@ char *sb_execve_map_script_interpreter(
 		new_envc = lua_tointeger(luaif->lua, -2);
 		strvec_free(*envp);
 		lua_string_table_to_strvec(luaif, -1, envp, new_envc);
+
+		/* remove return values from the stack, leave rule & policy.  */
+		lua_pop(luaif->lua, 6);
 		break;
 
 	case 1:
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"sb_execve_map_script_interpreter: argv&envp were not modified");
+		/* remove return values from the stack, leave rule & policy.  */
+		lua_pop(luaif->lua, 6);
 		break;
 
 	case 2:
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"sb_execve_map_script_interpreter: use scratchbox_path_for_exec");
+		/* remove all return values from the stack. */
+		lua_pop(luaif->lua, 8);
 		if (mapped_interpreter) free(mapped_interpreter);
 		mapped_interpreter = NULL;
-		mapped_interpreter = scratchbox_path("script_interp",
+		mapped_interpreter = scratchbox_path_for_exec("script_interp",
 			interpreter, NULL/*RO-flag addr.*/,
 			0/*dont_resolve_final_symlink*/);
 		SB_LOG(SB_LOGLEVEL_DEBUG, "sb_execve_map_script_interpreter: "
@@ -334,6 +397,8 @@ char *sb_execve_map_script_interpreter(
 	case -1:
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"sb_execve_map_script_interpreter: exec denied");
+		/* remove return values from the stack, leave rule & policy.  */
+		lua_pop(luaif->lua, 6);
 		if (mapped_interpreter) free(mapped_interpreter);
 		mapped_interpreter = NULL;
 		break;
@@ -341,11 +406,15 @@ char *sb_execve_map_script_interpreter(
 	default:
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"sb_execve_map_script_interpreter: Unsupported result %d", res);
+		/* remove return values from the stack, leave rule & policy.  */
+		lua_pop(luaif->lua, 6);
 		break;
 	}
 
-	/* remove return values from the stack, leave rule & policy.  */
-	lua_pop(luaif->lua, 6);
+
+	if(SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE3)) {
+		dump_lua_stack("sb_execve_map_script_interpreter E2", luaif->lua);
+	}
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"sb_execve_map_script_interpreter: at exit, gettop=%d",

@@ -70,6 +70,8 @@ extern time_t get_sb2_timestamp(void);
 
 extern char *procfs_mapping_request(char *path);
 
+extern void dump_lua_stack(const char *msg, lua_State *L);
+
 /* ------ debug/trace logging system for sb2: */
 #define SB_LOGLEVEL_uninitialized (-1)
 #define SB_LOGLEVEL_NONE	0
@@ -80,6 +82,7 @@ extern char *procfs_mapping_request(char *path);
 #define SB_LOGLEVEL_DEBUG	8
 #define SB_LOGLEVEL_NOISE	9
 #define SB_LOGLEVEL_NOISE2	10
+#define SB_LOGLEVEL_NOISE3	11
 
 extern void sblog_init(void);
 extern void sblog_vprintf_line_to_logfile(const char *file, int line,

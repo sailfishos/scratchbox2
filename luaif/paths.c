@@ -500,7 +500,7 @@ static char *call_lua_function_sbox_translate_path(
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"call_lua_function_sbox_translate_path: at exit, gettop=%d",
 		lua_gettop(luaif->lua));
-	if(SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE)) {
+	if(SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE3)) {
 		dump_lua_stack("call_lua_function_sbox_translate_path exit",
 			luaif->lua);
 	}

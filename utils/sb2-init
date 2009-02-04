@@ -210,11 +210,18 @@ you can re-run this script."
 function configure_toolchains()
 {
 	secondary_compiler=""
+
+	if [ -n "$SB2INIT_ARCH" ]; then
+		gccconfig_arch_option="-A $SB2INIT_ARCH"
+	else
+		gccconfig_arch_option=""
+	fi
 	for compiler_path in $*; do
 		log_config_action "sb2-init: configuring toolchain, compiler $compiler_path"
 		$SBOX_SHARE_DIR/scripts/sb2-config-gcc-toolchain \
 			-v \
 			$secondary_compiler \
+			$gccconfig_arch_option \
 			-R "$SBOX_TARGET_ROOT" \
 			-S "$SBOX_DIR" \
 			-t "$TARGET" \

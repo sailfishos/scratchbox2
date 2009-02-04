@@ -72,11 +72,18 @@ function get_sb2_init_arguments_from_old_config_file()
 function update_toolchain_configs()
 {
 	secondary_compiler=""
+
+	if [ -n "$SB2INIT_ARCH" ]; then
+		gccconfig_arch_option="-A $SB2INIT_ARCH"
+	else
+		gccconfig_arch_option=""
+	fi
 	for compiler_path in $*; do
 		# echo "Updating compiler $compiler_path"
 		log_config_action "Config upgrade: settings for compiler $compiler_path"
 		$SBOX_SHARE_DIR/scripts/sb2-config-gcc-toolchain \
 			$secondary_compiler \
+			$gccconfig_arch_option \
 			-R "$SB2INIT_TARGET_ROOT" \
 			-S "$SBOX_SHARE_DIR/../.." \
 			-t "$SB2INIT_TARGET" \
@@ -114,10 +121,11 @@ fi
 # version "11" added separate config files for gcc toolchains:
 # version "12" version-specific specs files for gcc compilers:
 # version "13" version- and architecture-specific specs files for gcc compilers:
-if [ ! -f $SBOX_CONFIG_DIR/config-stamp.13 ]; then
+# version "14" fixes a bug in previous ones; "-A" was not relayed to gcc config
+if [ ! -f $SBOX_CONFIG_DIR/config-stamp.14 ]; then
 	update_toolchain_configs $SB2INIT_COMPILERS
 fi
 
-log_config_action "Config updated to version #13"
-touch $SBOX_CONFIG_DIR/config-stamp.13
+log_config_action "Config updated to version #14"
+touch $SBOX_CONFIG_DIR/config-stamp.14
 

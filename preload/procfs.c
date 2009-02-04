@@ -111,10 +111,13 @@ static const char *read_env_variable(
 /* name=value'\0' */
 static const char *read_env_value(const char *env)
 {
-	if (env == NULL)
-		return(NULL);
-	else
-		return(strchr(env, '=') + 1);
+	const char *cp;
+
+	if (env == NULL) return(NULL);
+
+	cp = strchr(env, '=');
+	if (cp) return(cp + 1);
+	return(NULL);
 }
 
 /* check (and create if it doesn't exits) the symlink which is used to
@@ -125,11 +128,11 @@ static const char *read_env_value(const char *env)
  * this doesn't matter!]
 */
 static char *symlink_for_exe_path(
-	char *pathbuf, size_t bufsize, char *exe_path, pid_t pid)
+	char *pathbuf, size_t bufsize, const char *exe_path, pid_t pid)
 {
-	int	depth;
-	char	*cp;
-	int	prefixlen;
+	int		depth;
+	const char	*cp;
+	int		prefixlen;
 
 	/* first count number of slashes in exe_path */
 	for (cp=exe_path, depth=0; *cp; cp++) {
@@ -172,6 +175,31 @@ static char *symlink_for_exe_path(
 	return(pathbuf);
 }
 
+static const char *select_exe_path_for_sb2(
+	const char *orig_binary_name, const char *real_binary_name)
+{
+	/* Try to use the unmapped path (..orig..) if
+	 * possible, otherwise use the mapped path
+	 */
+
+	/* use absolute unmapped path if possible: */
+	if (orig_binary_name && (*orig_binary_name == '/')) {
+		SB_LOG(SB_LOGLEVEL_NOISE,
+		       "procfs_mapping -> orig.name '%s'", orig_binary_name);
+		return(orig_binary_name);
+	}
+	/* Alternative: absolute mapped path: */
+	if (real_binary_name && (*real_binary_name == '/')) {
+		SB_LOG(SB_LOGLEVEL_NOISE,
+		       "procfs_mapping -> real name '%s'", real_binary_name);
+		return(real_binary_name);
+	}
+
+	SB_LOG(SB_LOGLEVEL_DEBUG,
+	       "procfs_mapping failed to get absolute exe path");
+	return(NULL);
+}
+
 static char *procfs_mapping_request_for_my_files(
 	char *full_path, char *base_path)
 {
@@ -179,16 +207,15 @@ static char *procfs_mapping_request_for_my_files(
 		full_path);
 
 	if (!strcmp(base_path,"exe")) {
-		char	*exe_path_inside_sb2;
+		const char *exe_path_inside_sb2;
 		char	pathbuf[PATH_MAX];
 		char    link_dest[PATH_MAX+1];
 		int	link_len;
 
-		/* Try to use the unmapped path (..orig..) if
-		 * possible, otherwise use the mapped path
-		*/
-		exe_path_inside_sb2 = sbox_orig_binary_name ?
-			sbox_orig_binary_name : sbox_real_binary_name;
+                exe_path_inside_sb2 = select_exe_path_for_sb2(
+			sbox_orig_binary_name, sbox_real_binary_name);
+
+                if (!exe_path_inside_sb2) return(NULL);
 
 		/* check if the real link is OK: */
 		link_len = readlink_nomap(full_path, link_dest, PATH_MAX);
@@ -219,7 +246,7 @@ static char *procfs_mapping_request_for_other_files(
 	       full_path);
 
         if (!strcmp(base_path,"exe")) {
-                char    *exe_path_inside_sb2;
+                const char *exe_path_inside_sb2;
                 char    *buffer;
                 char    pathbuf[PATH_MAX];
                 char    link_dest[PATH_MAX+1];
@@ -249,12 +276,9 @@ static char *procfs_mapping_request_for_other_files(
 		orig_binary_name = read_env_value(orig_binary_name);
 		real_binary_name = read_env_value(real_binary_name);
 
-                /* Try to use the unmapped path (..orig..) if
-                 * possible, otherwise use the mapped path
-		 */
-                exe_path_inside_sb2 = orig_binary_name ?
-			(char *)orig_binary_name : (char *)real_binary_name;
-
+                exe_path_inside_sb2 = select_exe_path_for_sb2(
+			orig_binary_name, real_binary_name);
+		
                 /* this is not under runned binary */
                 if (!exe_path_inside_sb2) {
                         return(NULL);

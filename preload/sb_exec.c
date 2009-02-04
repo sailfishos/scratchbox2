@@ -164,8 +164,12 @@ static const struct target_info target_table[] = {
 static int elf_hdr_match(Elf_Ehdr *ehdr, uint16_t match, int ei_data);
 
 static int prepare_exec(const char *exec_fn_name,
-	const char *orig_file, int file_has_been_mapped, char *const *orig_argv, char *const *orig_envp,
+	const char *orig_file, int file_has_been_mapped,
+	char *const *orig_argv, char *const *orig_envp,
 	char **new_file, char ***new_argv, char ***new_envp);
+
+static void change_environment_variable(
+	char **my_envp, const char *var_prefix, const char *new_value);
 
 static uint16_t byte_swap(uint16_t a)
 {
@@ -470,13 +474,13 @@ static enum binary_type inspect_binary(const char *filename)
 _out_munmap:
 	munmap(region, status.st_size);
 _out_close:
-	close(fd);
+	close_nomap_nolog(fd);
 _out:
 	return retval;
 }
 
 static int prepare_hashbang(
-	char **mapped_file,
+	char **mapped_file,	/* In: script, out: mapped script interpreter */
 	char *orig_file,
 	char ***argvp,
 	char ***envpp)
@@ -488,6 +492,7 @@ static int prepare_hashbang(
 	char hashbang[SBOX_MAXPATH]; /* only 60 needed on linux, just be safe */
 	char interpreter[SBOX_MAXPATH];
 	char *interp_arg = NULL;
+	int result = 0;
 
 	if ((fd = open_nomap(*mapped_file, O_RDONLY)) < 0) {
 		/* unexpected error, just run it */
@@ -543,6 +548,13 @@ static int prepare_hashbang(
 	}
 	new_argv[n] = NULL;
 
+	/* Now we need to update __SB2_ORIG_BINARYNAME to point to 
+	 * the unmapped script interpreter (sb_execve_map_script_interpreter
+	 * may change it again (not currently, but in the future)
+	*/
+	change_environment_variable(
+		*envpp, "__SB2_ORIG_BINARYNAME=", interpreter);
+
 	/* rule & policy are in the stack */
 	mapped_interpreter = sb_execve_map_script_interpreter(
 		interpreter, interp_arg, *mapped_file, orig_file,
@@ -562,9 +574,14 @@ static int prepare_hashbang(
 	/* feed this through prepare_exec to let it deal with
 	 * cpu transparency etc.
 	 */
-	return prepare_exec("run_hashbang", mapped_interpreter,
+	result = prepare_exec("run_hashbang", mapped_interpreter,
 		1/*file_has_been_mapped, and rue&policy exist*/,
 		new_argv, *envpp, mapped_file, argvp, envpp);
+
+	SB_LOG(SB_LOGLEVEL_DEBUG, "prepare_hashbang done: mapped_file='%s'",
+			*mapped_file);
+
+	return(result);
 }
 
 static char **duplicate_argv(char *const *argv)
@@ -819,19 +836,62 @@ static void compare_and_log_strvec_changes(const char *vecname,
 	}
 }
 
-static int strvec_contains(char *const *strvec, const char *id,
-    size_t *index)
+static int strvec_contains_prefix(char *const *strvec,
+	const char *prefix, size_t *index)
 {
-	int i;
+	int i, len;
 
+	if (!strvec || !prefix) return(0);
+
+	len = strlen(prefix);
 	for (i = 0; strvec[i] != NULL; i++) {
-		if (strcmp(strvec[i], id) == 0) {
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"strvec_contains_prefix: try %s", strvec[i]);
+		if (strncmp(strvec[i], prefix, len) == 0) {
 			if (index != NULL)
 				*index = i;
+			SB_LOG(SB_LOGLEVEL_NOISE2,
+				"strvec_contains_prefix: found");
 			return (1);
 		}
 	}
+	SB_LOG(SB_LOGLEVEL_NOISE2, "strvec_contains_prefix: not found");
 	return (0);
+}
+
+/* "patch" environment = change environment variables.
+ * the variable must already exist in the environment;
+ * this doesn't do anything if the variable has been
+ * removed from environment.
+ *
+ * - "var_perfix" should contain the variable name + '='
+*/
+static void change_environment_variable(
+	char **my_envp, const char *var_prefix, const char *new_value)
+{
+	size_t idx;
+
+	if (strvec_contains_prefix(my_envp, var_prefix, &idx)) {
+		char *new_value_buf, *orig_value;
+
+		/* release the placeholder */
+		orig_value = my_envp[idx];
+		free(orig_value);
+
+		if (asprintf(&new_value_buf, "%s%s",
+		    var_prefix, new_value) < 0) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"asprintf failed to create new value %s%s",
+				var_prefix, new_value);
+		} else {
+			my_envp[idx] = new_value_buf;
+		}
+
+		SB_LOG(SB_LOGLEVEL_DEBUG, "Changed: %s", new_value_buf);
+	} else {
+		SB_LOG(SB_LOGLEVEL_DEBUG, "Failed to change %s%s", 
+			var_prefix, new_value);
+	}
 }
 
 
@@ -840,7 +900,7 @@ static int prepare_exec(const char *exec_fn_name,
 	int file_has_been_mapped,
 	char *const *orig_argv,
 	char *const *orig_envp,
-	char **new_file,
+	char **new_file,  /* return value */
 	char ***new_argv,
 	char ***new_envp) /* *new_envp must be filled by the caller */
 {
@@ -851,10 +911,13 @@ static int prepare_exec(const char *exec_fn_name,
 	enum binary_type type;
 	int postprocess_result = 0;
 	int ret = 0; /* 0: ok to exec, ret<0: exec fails */
-	size_t idx;
 
 	(void)exec_fn_name; /* not yet used */
 	(void)orig_envp; /* not used */
+
+	SB_LOG(SB_LOGLEVEL_DEBUG,
+		"prepare_exec(): orig_file='%s'",
+		orig_file);
 
 	tmp = strdup(orig_file);
 	binaryname = strdup(basename(tmp)); /* basename may modify *tmp */
@@ -877,9 +940,9 @@ static int prepare_exec(const char *exec_fn_name,
 		/* rule and policy already in stack
 		 * (e.g. we came back from run_hashbang()) */
 		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"do_exec(): no double mapping, my_file = %s", my_file);
+			"prepare_exec(): no double mapping, my_file = %s", my_file);
 		mapped_file = strdup(my_file);
-	} else if (strvec_contains(my_envp, "SBOX_DISABLE_MAPPING=1", NULL)) {
+	} else if (strvec_contains_prefix(my_envp, "SBOX_DISABLE_MAPPING=1", NULL)) {
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"do_exec(): mapping disabled, my_file = %s", my_file);
 		mapped_file = strdup(my_file);
@@ -908,27 +971,8 @@ static int prepare_exec(const char *exec_fn_name,
 	 * prepare_envp_for_do_exec() left us placeholder in envp array
 	 * that we will fill now with fully mangled binary name.
 	 */
-	if (strvec_contains(my_envp, "__SB2_REAL_BINARYNAME=", &idx)) {
-		char *real_binaryname, *orig_real_binaryname;
-
-		/* release the placeholder */
-		orig_real_binaryname = my_envp[idx];
-		free(orig_real_binaryname);
-
-		/*
-		 * Append fully mangled binary name to exec'd process
-		 * environment with name __SB2_REAL_BINARYNAME.
-		 */
-		if (asprintf(&real_binaryname, "__SB2_REAL_BINARYNAME=%s",
-		    mapped_file) < 0) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
-				"asprintf failed to create __SB2_REAL_BINARYNAME");
-		} else {
-			my_envp[idx] = real_binaryname;
-		}
-
-		SB_LOG(SB_LOGLEVEL_DEBUG, "setting %s", real_binaryname);
-	}
+	change_environment_variable(my_envp,
+		"__SB2_REAL_BINARYNAME=", mapped_file);
 
 	/* inspect the completely mangled filename */
 	type = inspect_binary(mapped_file);

@@ -155,6 +155,8 @@ perl_lib_test = {
 	  map_to = tools, readonly = true },
 	{ if_active_exec_policy_is = "Rootstrap",
 	  map_to = target_root, readonly = true },
+	{ if_active_exec_policy_is = "Host",
+	  use_orig_path = true, readonly = true },
 	{ map_to = target_root, readonly = true }
 }
 
@@ -189,6 +191,8 @@ python_lib_test = {
 	  map_to = tools, readonly = true },
 	{ if_active_exec_policy_is = "Rootstrap",
 	  map_to = target_root, readonly = true },
+	{ if_active_exec_policy_is = "Host",
+	  use_orig_path = true, readonly = true },
 	{ map_to = target_root, readonly = true }
 }
 

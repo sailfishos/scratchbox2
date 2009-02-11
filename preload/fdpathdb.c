@@ -262,6 +262,7 @@ void dup2_postprocess_(const char *realfnname, int ret, int fd, int fd2)
 
 void close_postprocess_(const char *realfnname, int ret, int fd)
 {
+	(void)ret;
 	fdpathdb_register_mapped_path(realfnname, fd, NULL, NULL);
 }
 
@@ -269,6 +270,9 @@ void fcntl_postprocess_(const char *realfnname, int ret,
 	int fd, int cmd, void *arg)
 {
 	const char	*cp = NULL;
+
+	(void)cp;
+	(void)arg;
 
 	switch (cmd) {
 	case F_DUPFD:

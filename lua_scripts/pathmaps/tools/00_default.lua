@@ -14,6 +14,15 @@ if (not tools) then
 	tools = "/"
 end
 
+-- Don't map the working directory where sb2 was started, unless
+-- that happens to be the root directory.
+if sbox_workdir == "/" then
+	-- FIXME. There should be a way to skip a rule...
+	unmapped_workdir = "/XXXXXX" 
+else
+	unmapped_workdir = sbox_workdir
+end
+
 -- If the permission token exists and contains "root", tools_root directories
 -- will be available in R/W mode. Otherwise it will be "mounted" R/O.
 local tools_root_is_readonly
@@ -85,7 +94,10 @@ mapall_chain = {
 		{path = "/var/lib/dpkg/status", replace_by = var_lib_dpkg_status_location,
 		 readonly = tools_root_is_readonly},
 
-		-- The default is to map everything to tools_root
+		-- The default is to map everything to tools_root,
+		-- except that we don't map the directory tree where
+		-- sb2 was started.
+		{prefix = unmapped_workdir, use_orig_path = true},
 
 		{path = "/", use_orig_path = true},
 		{prefix = "/", map_to = tools_root,

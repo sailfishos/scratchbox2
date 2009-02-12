@@ -75,6 +75,17 @@ TARGET_DPKG_ADMINDIR_USABLE_PKGS=$sbox_temp_dpkg_admin_dir
 cfgfile_host_accepted_pkgs=$sbox_dir/share/scratchbox2/modeconf/host-accepted-packages.$sbox_mapmode
 cfgfile_host_ignored_pkgs=$sbox_dir/share/scratchbox2/modeconf/host-ignored-packages.$sbox_mapmode
 
+# Execute a command in tools mode. forces /usr/bin/perl to tools,
+# otherwise the shell which is running this script may try to take perl from
+# the rootstrap - some, but not all, of the dpkg* tools are perl scripts.
+# Return status is in $tools_mode_tool_stat when this returns.
+function run_in_tools_mode()
+{
+	SBOX_REDIRECT_FORCE="/usr/bin/perl" SBOX_SESSION_MODE=tools \
+		eval "$*"
+	tools_mode_tool_stat=$?
+}
+
 # Check if a named package exists of the host.
 # Returns result in three variables:
 # - $installed_to_host is either "yes" or "no"
@@ -130,8 +141,8 @@ function check_host_pkg()
 
 	# package is not present in the rootstrap, but
 	# it can be accepted from the host environment.
-	if SBOX_SESSION_MODE=tools dpkg-query -s "$pkgname" >/dev/null 2>&1
-	then
+	run_in_tools_mode dpkg-query -s "$pkgname" >/dev/null 2>&1
+	if [ $tools_mode_tool_stat == 0 ]; then
 		installed_to_host="yes"
 		check_result_msg="'$pkgname' found from the host environment"
 		return
@@ -299,10 +310,9 @@ function check_host_builddeps_by_real_tool()
 	# Run dpkg-checkbuilddeps in the "tools" mode
 	# Note: Can't use a pipeline here, we want to the
 	# dpkg-checkbuilddeps' return status.
-	SBOX_SESSION_MODE=tools /usr/bin/dpkg-checkbuilddeps \
+	run_in_tools_mode /usr/bin/dpkg-checkbuilddeps \
 		$args > $x_missing_dep_file 2>&1
-	if [ $? == 0 ]
-	then
+	if [ $tools_mode_tool_stat == 0 ]; then
 		# real dpkg-checkbuilddeps says "all ok"
 		rm $x_missing_dep_file
 		tools_missing_deps=""
@@ -342,10 +352,9 @@ function check_target_builddeps()
 	# --admindir option. Can't use a pipeline here, we want to the
 	# dpkg-checkbuilddeps' return status.
 	SBOX_TOOLS_MODE_VAR_LIB_DPKG_STATUS_LOCATION=$TARGET_DPKG_ADMINDIR_USABLE_PKGS/status \
-		SBOX_SESSION_MODE=tools /usr/bin/dpkg-checkbuilddeps \
-		$args > $missing_dep_file 2>&1
-	if [ $? == 0 ]
-	then
+		run_in_tools_mode /usr/bin/dpkg-checkbuilddeps \
+			$args > $missing_dep_file 2>&1
+	if [ $tools_mode_tool_stat == 0 ]; then
 		# real dpkg-checkbuilddeps says "all ok"
 		rm $missing_dep_file
 		return 0

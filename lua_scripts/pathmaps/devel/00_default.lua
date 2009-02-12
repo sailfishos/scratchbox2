@@ -553,6 +553,13 @@ devel_mode_rules_scratchbox1 = {
 		 log_level = "warning",
 		 readonly = true, virtual_path = true},
 
+		-- "policy-rc.d" checks if scratchbox-version exists, 
+		-- to detect if it is running inside scratchbox..
+		{prefix = "/scratchbox/etc/scratchbox-version",
+		 replace_by = "/usr/share/scratchbox2/version",
+		 log_level = "warning",
+		 readonly = true, virtual_path = true},
+
 		{prefix = "/scratchbox/tools/autotools/automake-1.7/share/automake-1.7",
 		 replace_by = tools .. "/usr/share/automake-1.7",
 		 log_level = "warning",

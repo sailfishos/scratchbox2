@@ -70,7 +70,12 @@ mapall_chain = {
                 { path = "/etc/osso-af-init/dbus-systembus.sh",
                   map_to = sb1_compat_dir,
 		  readonly = target_root_is_readonly},
-		
+		-- "policy-rc.d" checks if scratchbox-version exists, 
+		-- to detect if it is running inside scratchbox..
+		{prefix = "/scratchbox/etc/scratchbox-version",
+		 replace_by = "/usr/share/scratchbox2/version",
+		 readonly = true, virtual_path = true},
+
 		-- gdb wants to have access to our dynamic linker also.
 		{path = "/usr/lib/libsb2/ld-2.5.so", use_orig_path = true,
 		 readonly = true},

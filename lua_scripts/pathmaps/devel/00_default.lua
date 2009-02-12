@@ -714,8 +714,18 @@ devel_exec_policies = {
 	binary = nil,
 	rules = {
 
+		-- Tools:
+		-- (tools must be listed first, the tools directory
+		-- might be under user's home directory)
+		{prefix = tools .. "/usr/bin/perl",
+		 exec_policy = exec_policy_tools_perl},
+		{prefix = tools .. "/usr/bin/python",
+		 exec_policy = exec_policy_tools_python},
+		{prefix = tools, exec_policy = exec_policy_tools},
+
 		-- ~/bin probably contains programs for the host OS:
-                {prefix = sbox_user_home_dir.."/bin", exec_policy = exec_policy_host_os},
+                {prefix = sbox_user_home_dir.."/bin",
+		 exec_policy = exec_policy_host_os},
 
                 -- Other places under the home directory are expected
                 -- to contain target binaries:
@@ -723,11 +733,6 @@ devel_exec_policies = {
 
 		-- Target binaries:
 		{prefix = target_root, exec_policy = exec_policy_target},
-
-		-- Tools:
-		{prefix = tools .. "/usr/bin/perl", exec_policy = exec_policy_tools_perl},
-		{prefix = tools .. "/usr/bin/python", exec_policy = exec_policy_tools_python},
-		{prefix = tools, exec_policy = exec_policy_tools},
 
 		-- -----------------------------------------------
 		-- DEFAULT RULE (must exist):

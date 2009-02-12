@@ -22,6 +22,17 @@ case "$sb2rc_mode" in
 		SB2INIT_DEB_BUILD_ARCH_ABI="gnueabi"
 		;;
 
+	starting)
+		# Make sure /var/log/apt exists, needed when 
+		# running as "sb2 -eR":
+		if [ "$SBOX_SESSION_PERM" = "root" -a \
+		     -d $SBOX_TARGET_ROOT/var/log ]; then
+			if [ ! -d $SBOX_TARGET_ROOT/var/log/apt ]; then
+				mkdir $SBOX_TARGET_ROOT/var/log/apt
+			fi
+		fi
+		;;
+
 	wrapper_list)
 		SBOX_WRAPPERS="gdb ldconfig"
 		;;

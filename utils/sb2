@@ -43,6 +43,8 @@ Options:
     -c           When creating a session, also create a private copy
                  of target_root (rootstrap). Note that this can be
                  really slow, depending on the size of the orig.target_root
+    -C dir       When creating a session, create copy of "dir" and use it as the 
+                 target_root (rootstrap).
     -T dir       use "dir" as tools_root (overriding the value from config file)
 
 Examples:
@@ -205,6 +207,19 @@ function load_configuration()
 	fi
 }
 
+function clone_target_root_dir_from()
+{
+	source_directory=$1
+
+	echo "Copying target root from $source_directory..."
+	# cp -Rp does not preserve hard links, but cpio does
+	(cd $source_directory; find . -depth -print |
+		cpio -pamd $SBOX_SESSION_DIR/target_root)
+	SBOX_TARGET_ROOT=$SBOX_SESSION_DIR/target_root
+	SB2_TEMP_DPKG_ADMIN_DIR=$SBOX_SESSION_DIR/tmp-pkg-db
+	mkdir -p $SB2_TEMP_DPKG_ADMIN_DIR
+}
+
 function sboxify_environment()
 {
 	LD_LIBRARY_PATH=$SBOX_DIR/lib/libsb2:$SBOX_DIR/lib64/libsb2:$SBOX_DIR/lib32/libsb2:/emul/lib64/libsb2:/emul/lib32/libsb2
@@ -223,15 +238,18 @@ function sboxify_environment()
 		# session, see options -J and -c)
 		SBOX_TARGET_ROOT=$SBOX_SESSION_DIR/target_root
 		SB2_TEMP_DPKG_ADMIN_DIR=$SBOX_SESSION_DIR/tmp-pkg-db
-	elif [ "$SBOX_CLONE_TARGET_ROOT" == "y" ]; then
+	elif [ "$OPT_CLONE_TARGET_ROOT" == "y" ]; then
 		# SBOX_TARGET_ROOT has been set, make a clone of it
-		echo "Copying target root from $SBOX_TARGET_ROOT..."
-		# cp -Rp does not preserve hard links, but cpio does
-		(cd $SBOX_TARGET_ROOT; find . -depth -print |
-			cpio -pamd $SBOX_SESSION_DIR/target_root)
-		SBOX_TARGET_ROOT=$SBOX_SESSION_DIR/target_root
-		SB2_TEMP_DPKG_ADMIN_DIR=$SBOX_SESSION_DIR/tmp-pkg-db
-		mkdir -p $SB2_TEMP_DPKG_ADMIN_DIR
+		clone_target_root_dir_from $SBOX_TARGET_ROOT
+	elif [ -n "$OPT_CLONE_TARGET_ROOT_FROM" ]; then
+		if [ -d "$OPT_CLONE_TARGET_ROOT_FROM" ]; then
+			# the source is a directory, clone it.
+			clone_target_root_dir_from $OPT_CLONE_TARGET_ROOT_FROM
+		elif [ ! -e "$OPT_CLONE_TARGET_ROOT_FROM" ]; then
+			exit_error "'$OPT_CLONE_TARGET_ROOT_FROM' does not exist."
+		else
+			exit_error "Don't know how to create target root from '$OPT_CLONE_TARGET_ROOT_FROM'"
+		fi
 	else
 		SB2_TEMP_DPKG_ADMIN_DIR=$HOME/.scratchbox2/$SBOX_TARGET.tmp-pkg-db.$SBOX_MAPMODE
 	fi
@@ -906,7 +924,8 @@ function join_existing_session()
 	if [ -z "$SBOX_TARGET" ]; then
 		exit_error "Failed to read SBOX_TARGET from $SBOX_JOIN_SESSION_FILE"
 	fi
-	SBOX_CLONE_TARGET_ROOT="n"
+	OPT_CLONE_TARGET_ROOT="n"
+	OPT_CLONE_TARGET_ROOT_FROM=""
 }
 
 # create destination for /sb2/wrappers for this session
@@ -1015,10 +1034,12 @@ SBOX_WORKDIR=$(readlink -f $PWD)
 SBOX_SESSION_PERM=""
 SBOX_CREATE_REVERSE_RULES="y"
 SBOX_MODE_SPECIFIC_OPTIONS=""
-SBOX_CLONE_TARGET_ROOT="n"
+OPT_CLONE_TARGET_ROOT="n"
+OPT_CLONE_TARGET_ROOT_FROM=""
+OPT_SESSION_DIR=""
 SBOX_FORCED_TOOLS_ROOT=""
 
-while getopts vdht:em:s:L:Q:M:ZrRS:J:D:W:O:cT: foo
+while getopts vdht:em:s:L:Q:M:ZrRS:J:D:W:O:cC:T: foo
 do
 	case $foo in
 	(v) version; exit 0;;
@@ -1041,7 +1062,8 @@ do
 	(D) SBOX_DELETE_SESSION_FILE=$OPTARG ;;
 	(W) OPT_SESSION_DIR=$OPTARG ;;
 	(O) SBOX_MODE_SPECIFIC_OPTIONS=$OPTARG ;;
-	(c) SBOX_CLONE_TARGET_ROOT="y" ;;
+	(c) OPT_CLONE_TARGET_ROOT="y" ;;
+	(C) OPT_CLONE_TARGET_ROOT_FROM=$OPTARG ;;
 	(T) SBOX_FORCED_TOOLS_ROOT=$OPTARG ;;
 	(*) usage ;;
 	esac

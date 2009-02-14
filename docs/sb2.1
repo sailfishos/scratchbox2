@@ -68,6 +68,10 @@ keep DIR as short as possible.
 \-c
 When creating a session, also create a private copy of target_root (rootstrap). Note that this can be really slow, depending on the size of the orig.target_root.
 .TP
+\-C DIR
+When creating a session, create copy of DIR and use it as the
+target_root (rootstrap). Note that this can be really slow. See alse option -c.
+.TP
 \-T DIRECTORY
 Use DIRECTORY as tools_root (override the value which was specified to sb2-init when the target specification was created).
 

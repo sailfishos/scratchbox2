@@ -59,6 +59,12 @@ Join a persistent session assossiated with FILE.
 Delete a persistent session assosiated with FILE. 
 Warning: this does not check if the session is still in use!
 .TP
+\-W DIR
+Use DIR as the session directory when creating the session (The default is to
+create the session in /tmp). DIR must be an absolute path and must not exist.
+Note that long pathnames may cause trouble with socket operations, so try to
+keep DIR as short as possible. 
+.TP
 \-c
 When creating a session, also create a private copy of target_root (rootstrap). Note that this can be really slow, depending on the size of the orig.target_root.
 .TP

@@ -37,6 +37,9 @@ Options:
     -J file      Don't create a new session; join an existing one (see -S) 
     -D file      delete an old session (see -S). Warning: this does not
                  check if the session is still in use!
+    -W dir       Use "dir" as the session directory when creating the session
+                 ("dir" must be absolute path and must not exist. N.B. long 
+                 pathnames here may cause trouble with socket operations) 
     -c           When creating a session, also create a private copy
                  of target_root (rootstrap). Note that this can be
                  really slow, depending on the size of the orig.target_root
@@ -852,15 +855,22 @@ function initialize_new_sb2_session()
 		exit_error "File '$SBOX_WRITE_SESSION_INFO_TO_FILE' already exists."
 	fi
 
-	# Create session directories
-	date_and_time_now=`date +%Y%m%d-%H%M%S`
-	SBOX_SESSION_DIR=`mktemp -d /tmp/sb2-$USER-$date_and_time_now.XXXXXX`
-	if [ $? != 0 ]; then
-		echo "Failed to create directory for session (problems with /tmp ?) " >&2
-		exit 1
+	if [ -n "$OPT_SESSION_DIR" ]; then
+		# session directory name was specified by an option
+		SBOX_SESSION_DIR=$OPT_SESSION_DIR
+	else
+		# Create session directories
+		date_and_time_now=`date +%Y%m%d-%H%M%S`
+		SBOX_SESSION_DIR=`mktemp -d /tmp/sb2-$USER-$date_and_time_now.XXXXXX`
+		if [ $? != 0 ]; then
+			exit_error "Failed to create directory for session (problems with /tmp ?)"
+		fi
 	fi
 
 	mkdir -p $SBOX_SESSION_DIR
+	if [ $? != 0 ]; then
+		exit_error "Failed to create directory for session"
+	fi
 	mkdir $SBOX_SESSION_DIR/tmp
 	mkdir $SBOX_SESSION_DIR/proc
 	mkdir $SBOX_SESSION_DIR/rules
@@ -1008,7 +1018,7 @@ SBOX_MODE_SPECIFIC_OPTIONS=""
 SBOX_CLONE_TARGET_ROOT="n"
 SBOX_FORCED_TOOLS_ROOT=""
 
-while getopts vdht:em:s:L:Q:M:ZrRS:J:D:O:cT: foo
+while getopts vdht:em:s:L:Q:M:ZrRS:J:D:W:O:cT: foo
 do
 	case $foo in
 	(v) version; exit 0;;
@@ -1029,6 +1039,7 @@ do
 	(S) SBOX_WRITE_SESSION_INFO_TO_FILE=$OPTARG ;;
 	(J) SBOX_JOIN_SESSION_FILE=$OPTARG ;;
 	(D) SBOX_DELETE_SESSION_FILE=$OPTARG ;;
+	(W) OPT_SESSION_DIR=$OPTARG ;;
 	(O) SBOX_MODE_SPECIFIC_OPTIONS=$OPTARG ;;
 	(c) SBOX_CLONE_TARGET_ROOT="y" ;;
 	(T) SBOX_FORCED_TOOLS_ROOT=$OPTARG ;;
@@ -1086,10 +1097,22 @@ fi
 if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 	# -J was not used
 	set_and_check_SBOX_TARGET
+	if [ -n "$OPT_SESSION_DIR" ]; then
+		case "$OPT_SESSION_DIR" in
+		(/*)	;; # OK, absolute
+		(*)	exit_error "Option '-W' requires an absolute path"
+		esac
+		if [ -e "$OPT_SESSION_DIR" ]; then
+			exit_error "Option '-W': $OPT_SESSION_DIR exists"
+		fi
+	fi
 else
 	# With -J, $SBOX_TARGET *must* come from the session file.
 	if [ -n "$SBOX_TARGET" ]; then
 		exit_error "Option '-t' can't be used with option '-J'"
+	fi
+	if [ -n "$OPT_SESSION_DIR" ]; then
+		exit_error "Option '-W' can't be used with option '-J'"
 	fi
 fi
 

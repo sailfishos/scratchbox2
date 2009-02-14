@@ -12,6 +12,11 @@
 #
 # dpkg-checkbuilddeps wrapper for SB2.
 #
+# ENVIRONMENT VARIABLES:
+# - set SBOX_CHECKBUILDDEPS_VERBOSE to non-empty value to get
+#   verbose description about what is missing.
+# - SBOX_DOUBLECHECK_DEPS; see the text below:
+#
 # Currently there are two algorithms for this: Old and new.
 #
 # The old one, implemented completely as a shell script,
@@ -22,7 +27,7 @@
 # the perl script (the old algorithm is off by default).
 #
 # Alternatively, the old and new algorithms can both be
-# enable by setting environment variable SBOX_DOUBLECHECK_DEPS
+# enabled by setting environment variable SBOX_DOUBLECHECK_DEPS
 # to any non-empty value. I haven't seen any cases where the
 # old algorithm would be better that the new one, but I'm
 # interested to hear if there are any...before this old
@@ -59,6 +64,13 @@ function error_not_inside_sb2()
 	echo "SB2: $progbase: This wrapper can only be used from inside"
 	echo "the scratchbox 2'ed environment"
 	exit 1
+}
+
+function verbose_message()
+{
+	if [ -n "$SBOX_CHECKBUILDDEPS_VERBOSE" ]; then
+		echo "$*" 1>&2
+	fi
 }
 
 if [ -z "$SBOX_SESSION_DIR" ]
@@ -175,7 +187,7 @@ function check_gcc_dependency()
 		if [ "$required_gcc" = "gcc" ]
 		then
 			# requires GCC, but does not depend on gcc version
-			echo "$prefix""SB2 provides gcc"
+			verbose_message "$prefix""SB2 provides gcc"
 			return 0
 		fi
 		#
@@ -190,7 +202,7 @@ function check_gcc_dependency()
 				full_vrs="gcc-$SBOX_CROSS_GCC_VERSION"
 				if [ "$required_gcc" = "$short_vrs" -o \
 				     "$required_gcc" = "$full_vrs" ]; then
-					echo "$prefix""SB2 provides $required_gcc"
+					verbose_message "$prefix""SB2 provides $required_gcc"
 					return 0
 				fi
 			fi
@@ -244,7 +256,7 @@ function check_host_builddeps()
 	ret=0
 
 	# do the magic here
-	echo "$prefix""SB2 Checking host build deps.."
+	verbose_message "$prefix""SB2 Checking host build deps.."
 
 	list_ok=1	# default to ok
 	# $m will be the package to test, or pkg/pkg[/...] if there are
@@ -259,31 +271,31 @@ function check_host_builddeps()
 			has_one_alternative=0
 			for mmm in $(echo $m | sed -e 's:/: :')
 			do
-				echo "$prefix""       ...$mmm"
+				verbose_message "$prefix""       ...$mmm"
 				check_host_pkg $mmm
 				if [ "$installed_to_host" = "yes" ]
 				then
-					echo "$prefix""       $mmm = ok"
+					verbose_message "$prefix""       $mmm = ok"
 					has_one_alternative=1
 				else
-					echo "$prefix""       no $mmm.."
+					verbose_message "$prefix""       no $mmm.."
 				fi
 			done
 			if [ $has_one_alternative == 0 ]
 			then
-				echo "$prefix""     Requirement $m failed; none of the alternatives were found."
+				verbose_message "$prefix""     Requirement $m failed; none of the alternatives were found."
 				list_ok=0
 			else
-                                echo "$prefix""     '$m': At least one alternative found, ok."
+                                verbose_message "$prefix""     '$m': At least one alternative found, ok."
 			fi
 			;;
 
 		*)	# No alternatives.
 			check_host_pkg $m
-			echo "$prefix""     $check_result_msg"
+			verbose_message "$prefix""     $check_result_msg"
 			if [ -n "$check_result_msg2" ]
 			then
-				echo "$prefix""     $check_result_msg2"
+				verbose_message "$prefix""     $check_result_msg2"
 			fi
 			if [ "$installed_to_host" = "no" ]
 			then
@@ -304,7 +316,7 @@ function check_host_builddeps()
 function check_host_builddeps_by_real_tool()
 {
 	ret=0
-	echo "SB2 Checking tools build deps..."
+	verbose_message "SB2 Checking tools build deps..."
 	x_missing_dep_file=`mktemp -p $SBOX_SESSION_DIR/tmp tools_missing_deps.XXXXXXXXXX`
 
 	# Run dpkg-checkbuilddeps in the "tools" mode
@@ -335,7 +347,7 @@ function check_host_builddeps_by_real_tool()
 	else
 		# failing target deps, but $tools_missing_deps is empty. Something
 		# is fatally wrong.
-		echo "FATAL: Failed to check dependencies from tools_root DB"
+		echo "dpkg-checkbuilddeps: FATAL: Failed to check dependencies from tools_root DB"
 		exit 1
 	fi
 }
@@ -343,7 +355,7 @@ function check_host_builddeps_by_real_tool()
 function check_target_builddeps()
 {
 	ret=0
-	echo "SB2 Checking target build deps..."
+	verbose_message "SB2 Checking target build deps..."
 	missing_dep_file=`mktemp -p $SBOX_SESSION_DIR/tmp missing_deps.XXXXXXXXXX`
 
 	# dpkg-checkbuilddeps with another package db..
@@ -361,7 +373,9 @@ function check_target_builddeps()
 	fi
 
 	# else real dpkg-checkbuilddeps failed.
-	sed -e 's/^/     /' < $missing_dep_file
+	if [ -n "$SBOX_CHECKBUILDDEPS_VERBOSE" ]; then
+		sed -e 's/^/     /' < $missing_dep_file
+	fi
 	missing_deps=$(egrep \
 		"^dpkg-checkbuilddeps: Unmet build dependencies:" \
 			$missing_dep_file | \
@@ -376,7 +390,7 @@ function check_target_builddeps()
 	else
 		# failing target deps, but $missing_deps is empty. Something
 		# is fatally wrong.
-		echo "FATAL: Failed to check dependencies from target_root DB"
+		echo "dpkg-checkbuilddeps: FATAL: Failed to check dependencies from target_root DB"
 		exit 1
 	fi
 }
@@ -396,7 +410,7 @@ function compare_target_and_host_results_with_new_tool()
 		host_ignored=`grep -v "#" $cfgfile_host_ignored_pkgs`
 	fi
 
-	echo "SB2 Combining results from target and tools..."
+	verbose_message "SB2 Combining results from target and tools..."
 
 	$sbox_dir/share/scratchbox2/lib/sb2-cmp-checkbuilddeps-output.pl \
 		"$t_missing" "$h_missing" "$both_required" "$host_accepted" "$host_ignored"
@@ -412,7 +426,7 @@ function compare_target_and_host_results_with_new_tool()
 # First, make sure we are in a correct directory:
 if [ ! -f debian/control ]
 then
-	echo "Error: Can't find file debian/control"
+	echo "dpkg-checkbuilddeps: failure: cannot read debian/control: No such file or directory" 1>&2
 	exit 1
 fi
 
@@ -429,18 +443,18 @@ function old_deps_checker()
 {
 	if [ $check_target_builddeps_result == 0 ]; then
 		# nothing is missing = nothing needed from the host side
-		echo "OLD_CHK: Target rootstrap => all dependencies OK"
+		verbose_message "OLD_CHK: Target rootstrap => all dependencies OK"
 		return 0
 	fi
 
-	echo "OLD_CHK: Build dependencies missing from the target environment:"
-	echo "OLD_CHK:      $missing_deps"
+	verbose_message "OLD_CHK: Build dependencies missing from the target environment:"
+	verbose_message "OLD_CHK:      $missing_deps"
 
 	# Something is missing. Check if SB2 can fulfill the requirements:
 	check_sb2_builddeps "$missing_deps" "OLD_CHK: "
 	if [ $? == 0 ]; then
 		# OK now, nothing needed from the host side
-		echo "OLD_CHK: SB2 tools check => all dependencies OK"
+		verbose_message "OLD_CHK: SB2 tools check => all dependencies OK"
 		return 0
 	fi
 
@@ -449,21 +463,21 @@ function old_deps_checker()
 	#
 	if [ ! -f $cfgfile_host_accepted_pkgs ]
 	then
-		echo "OLD_CHK:"
-		echo "OLD_CHK: Configuration file $cfgfile_host_accepted_pkgs"
-		echo "OLD_CHK: does not exist. This means that no packages have been approved to be used"
-		echo "OLD_CHK: from the host environment in this mapping mode ($sbox_mapmode)."
+		verbose_message "OLD_CHK:"
+		verbose_message "OLD_CHK: Configuration file $cfgfile_host_accepted_pkgs"
+		verbose_message "OLD_CHK: does not exist. This means that no packages have been approved to be used"
+		verbose_message "OLD_CHK: from the host environment in this mapping mode ($sbox_mapmode)."
 		return 1
 	fi
 
 	check_host_builddeps "$missing_deps" "OLD_CHK: "
 	if [ $? != 0 ]; then
-		echo "OLD_CHK: Failed. Host environment did not meet all requirements."
+		verbose_message "OLD_CHK: Failed. Host environment did not meet all requirements."
 		return 1
 	fi
 
 	# since we're here, everything is more or less ok
-	echo "OLD_CHK: All OK."
+	verbose_message "OLD_CHK: All OK."
 	return 0
 }
 
@@ -480,6 +494,15 @@ function new_deps_checker()
 	new_deps_checker_result=$?
 }
 
+function deps_check_failed_exit_1()
+{
+	verbose_message "Failed."
+	if [ -z "$SBOX_CHECKBUILDDEPS_VERBOSE" ]; then
+		echo "dpkg-checkbuilddeps: (Set env.var. SBOX_CHECKBUILDDEPS_VERBOSE='y' and run this command again to get more details)" 1>&2
+	fi
+	exit 1
+}
+
 if [ -n "$SBOX_DOUBLECHECK_DEPS" ]; then
 	old_deps_checker
 	old_deps_checker_result=$?
@@ -490,25 +513,23 @@ new_deps_checker
 
 if [ -n "$SBOX_DOUBLECHECK_DEPS" ]; then
 	if [ "$new_deps_checker_result" != "$old_deps_checker_result" ]; then
-		echo "INCONSISTENT: new and old methods do not agree:"
+		verbose_message "INCONSISTENT: new and old methods do not agree:"
 		if [ "$new_deps_checker_result" = 0 ]; then
-			echo "            : new => dependency checks OK"
+			verbose_message "            : new => dependency checks OK"
 		else
-			echo "            : new => dependency checks FAILED"
+			verbose_message "            : new => dependency checks FAILED"
 		fi
 		if [ "$old_deps_checker_result" = 0 ]; then
-			echo "            : old => dependency checks OK"
+			verbose_message "            : old => dependency checks OK"
 		else
-			echo "            : old => dependency checks FAILED"
+			verbose_message "            : old => dependency checks FAILED"
 		fi
-		echo "Failed."
-		exit 1
+		deps_check_failed_exit_1
 	fi
 fi
 
 if [ "$new_deps_checker_result" != "0" ]; then
-	echo "Failed."
-	exit 1
+	deps_check_failed_exit_1
 fi
 
 # since we're here, everything is more or less ok

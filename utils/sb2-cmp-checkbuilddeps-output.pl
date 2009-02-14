@@ -25,6 +25,12 @@ my $both_required=$ARGV[2];
 my $accepted_from_tools=$ARGV[3];
 my $ignored_from_tools=$ARGV[4];
 
+my $verbose_messages_env_var=$ENV{'SBOX_CHECKBUILDDEPS_VERBOSE'};
+my $verbose_messages = 0;
+if (defined $verbose_messages_env_var && $verbose_messages_env_var ne '') {
+	$verbose_messages = 1;
+}
+
 my @both_required = split(/\s/,$both_required);
 
 my @accepted_from_tools = split(/\s/,$accepted_from_tools);
@@ -56,16 +62,16 @@ sub is_accepted_from_tools {
 
 	if ($accepted_from_tools{$name}) {
 		if (defined $r_host_missing->{$name}) {
-			return 0, "$name $vers can be used from tools, but is is not installed there";
+			return(0, "$name $vers can be used from tools, but is is not installed there");
 		}
-		return 1, "$name $vers found from tools";
+		return(1, "$name $vers found from tools");
 	}
 
 	# not allowed from tools
 	if (defined $r_host_missing->{$name}) {
-		return 0, "$name $vers can not be used from tools (not found and not allowed)";
+		return(0, "$name $vers can not be used from tools (not found and not allowed)");
 	}
-	return 0, "$name $vers can not be used from tools (installed, but not allowed)";
+	return(0, "$name $vers can not be used from tools (installed, but not allowed)");
 }
 
 # Parse one required package name from output of "dpkg-checkbuilddeps"
@@ -90,7 +96,7 @@ sub parse_requirement {
 	}
 	
 	# else failed to recognize enything from $list
-	print "Parse error in '$list'\n";
+	print "dpkg-checkbuilddeps: Parse error in '$list'\n";
 	return(undef, undef, undef);	
 }
 
@@ -110,7 +116,7 @@ sub parse_list_of_missing_packages {
 		($pkg_name, $version, $leftovers) = parse_requirement($a, "\t");
 		
 		if (!defined $pkg_name) {
-			print "FAILED to parse '$a'\n";
+			print "dpkg-checkbuilddeps: FAILED to parse '$a'\n";
 			exit(1);
 		}
 
@@ -142,7 +148,7 @@ sub parse_list_of_missing_packages {
 			($alt_pkg_name, $alt_version, $leftovers) = parse_requirement($leftovers, "\t\t");
 
 			if (!defined $alt_pkg_name) {
-				print "FAILED to process alternatives ($leftovers)\n";
+				print "dpkg-checkbuilddeps: FAILED to process alternatives ($leftovers)\n";
 				exit(1);
 			}
 			$alternatives .= " ".$alt_pkg_name;
@@ -155,7 +161,7 @@ sub parse_list_of_missing_packages {
 		}
 		if ($debug) {
 			if ($alternatives ne "") {
-				print "\talternatives=[".
+				print "\talternatives for $pkg_name=[".
 					join(", ", @{$pkgs{$pkg_name}->{'alternatives'}}).
 					"] == $alternatives\n";
 			}
@@ -166,6 +172,7 @@ sub parse_list_of_missing_packages {
 	return(\%pkgs);
 }
 
+# a debugging routine:
 sub show_missing {
 	my $r_missing = shift;
 
@@ -193,8 +200,9 @@ my $r_host_missing = parse_list_of_missing_packages($host_missing_deps);
 my @host_listed = sort(keys(%$r_host_missing));
 
 if ($debug) {
-	print "Host is missing: ".join("; ", @host_listed)."\n";
+	print "\n\nHost is missing: ".join("; ", @host_listed)."\n";
 	show_missing($r_host_missing);
+	print "\n\n";
 }
 
 my $r_target_missing = parse_list_of_missing_packages($target_missing_deps);
@@ -202,13 +210,15 @@ my $r_target_missing = parse_list_of_missing_packages($target_missing_deps);
 my @target_listed = sort(keys(%$r_target_missing));
 
 if ($debug) {
-	print "Target is missing: ".join("; ", @target_listed)."\n";
+	print "\n\nTarget is missing: ".join("; ", @target_listed)."\n";
 	show_missing($r_target_missing);
+	print "\n\n";
 }
 
 my $build_deps_ok = 1;	# assume everything is ok.
+my $std_missing_pkg_msg = "";	# list of missing packages in "standard" format.
 
-# See if the packages that target is missing can be found from host:
+# See if the packages that target is missing can be found from tools:
 my $n;
 foreach $n (@target_listed) {
 	if (defined $r_target_missing->{$n}->{'primary'}) {
@@ -216,55 +226,86 @@ foreach $n (@target_listed) {
 			print "(skipping alternative $n)\n";
 		}
 	} elsif ($ignored_from_tools{$n}) {
-		print "\t$n: Missing from tools, but dependency has been ignored by configuration\n";
+		if ($verbose_messages) {
+			print "\t$n: Missing from tools, but dependency has been ignored by configuration\n";
+		}
 	} elsif (defined $r_host_missing->{$n}) {
 		my $target_vers_req = $r_target_missing->{$n}->{'version'};
 		my $tools_vers_req = $r_host_missing->{$n}->{'version'};
 
-		print "\t$n: Missing from tools $tools_vers_req and target $target_vers_req\n";
+		if ($verbose_messages) {
+			print "\t$n: Missing from tools $tools_vers_req and target $target_vers_req\n";
+		}
 
 		my $alt = $r_target_missing->{$n}->{'alternatives'};
-		if (defined $alt && @$alt > 0) {
+		if (defined $alt && (@$alt > 0)) {
 			# there are alternatives: see if any of those exists on the host
 			
-			print "\t   There are alternatives: ".join(", ", @$alt)."\n";
+			if ($verbose_messages) {
+				print "\t   There are alternatives: ".join(", ", @$alt)."\n";
+			}
 
 			my $no_alternatives_found = 1;
 			my $k;
 			foreach $k (@$alt) {
 				if (defined $r_host_missing->{$k}) {
-					print "\t   ($k not found from tools)\n";
+					if ($verbose_messages) {
+						print "\t   ($k not found from tools)\n";
+					}
 				} elsif ($ignored_from_tools{$k}) {
-					print "\t   $k: Missing from tools, ignored by configuration, good..\n";
+					if ($verbose_messages) {
+						print "\t   $k: Missing from tools, ignored by configuration, good..\n";
+					}
 					$no_alternatives_found = 0;
 				} else {
 					my ($found, $message);
-					$found, $message = is_accepted_from_tools(
+					($found, $message) = is_accepted_from_tools(
 						$r_host_missing, $n, $target_vers_req);
 					if ($found) {
-						print "\t   $n: found from tools, good..\n";
+						if ($verbose_messages) {
+							print "\t   $n: found from tools, good..\n";
+						}
 						$no_alternatives_found = 0;
 					} else {
-						print "\t   $n: $message\n";
+						if ($verbose_messages) {
+							print "\t   $n: $message\n";
+						}
 					}
 				}
 			}
 
 			if ($no_alternatives_found) {
-				print "\t$n: none of the alternatives exist, requirement failed.\n";
+				if ($verbose_messages) {
+					print "\t$n: none of the alternatives exist, requirement failed.\n";
+				}
 				$build_deps_ok = 0;
+				$std_missing_pkg_msg .= 
+					" ".$n." | ".join(" | ", @$alt);
 			}
 		} else {
-			print "\t$n: not found, requirement failed.\n";
+			if ($verbose_messages) {
+				print "\t$n: not found, requirement failed.\n";
+			}
 			$build_deps_ok = 0;
+			$std_missing_pkg_msg .= " ".$n;
 		}
 	} else {
 		my ($found, $message);
-		$found, $message = is_accepted_from_tools($n);
-		if ($found) {
-			print "\t$n: found from tools, good..\n";
-		} else {
-			print "\t$n: $message\n";
+		($found, $message) = is_accepted_from_tools($n);
+		if ($verbose_messages) {
+			if ($found) {
+				print "\t$n: found from tools, good..\n";
+			} else {
+				print "\t$n: $message\n";
+			}
+		}
+		if ($found == 0) {
+			$build_deps_ok = 0;
+			$std_missing_pkg_msg .= " ".$n;
+			my $alt = $r_target_missing->{$n}->{'alternatives'};
+			if (defined $alt && (@$alt > 0)) {
+				$std_missing_pkg_msg .= " | ".join(" | ", @$alt);
+			}
 		}
 	}
 }
@@ -273,6 +314,7 @@ foreach $n (@target_listed) {
 # but the host does not have:
 my $n;
 my @failures_in_dual_requirements;
+my @failed_pkgs_in_dual_requirements;
 foreach $n (@both_required) {
 	if (defined $r_host_missing->{$n}) {
 		# Host does not have this...
@@ -297,10 +339,12 @@ foreach $n (@both_required) {
 
 		}
 		push(@failures_in_dual_requirements, $msg);
+		push(@failed_pkgs_in_dual_requirements, $n);
 	} elsif (defined $r_target_missing->{$n}) {
 		my $target_vers_req = $r_target_missing->{$n}->{'version'};
 		my $msg = "$n: only tools has it $target_vers_req\n";
 		push(@failures_in_dual_requirements, $msg);
+		push(@failed_pkgs_in_dual_requirements, $n);
 	} else {
 		if ($debug) {
 			print "B: $n, both have it\n";
@@ -308,16 +352,26 @@ foreach $n (@both_required) {
 	}
 }
 if (@failures_in_dual_requirements > 0) {
-	print "Some packages must exist in target and tools:\n";
-	print "\t".join("\n\t", @failures_in_dual_requirements)."\n";
+	if ($verbose_messages) {
+		print "Some packages must exist in target and tools:\n";
+		print "\t".join("\n\t", @failures_in_dual_requirements)."\n";
+	} else {
+		print "dpkg-checkbuilddeps: Some packages must exist in target and tools.\n";
+	}
 	$build_deps_ok = 0;
+	$std_missing_pkg_msg .= " ".join(" ", @failed_pkgs_in_dual_requirements);
 }
 
 if ($build_deps_ok) {
-	print "Dependency checks ok\n";
+	if ($verbose_messages) {
+		print "Dependency checks ok\n";
+	}
 	exit(0);
 }
 
-print "Dependency checks failed\n";
+if ($verbose_messages) {
+	print "Dependency checks failed\n";
+}
+print "dpkg-checkbuilddeps: Unmet build dependencies:$std_missing_pkg_msg\n";
 exit(1);
 

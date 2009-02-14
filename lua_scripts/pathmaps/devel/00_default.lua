@@ -8,7 +8,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "19"
+rule_file_interface_version = "20"
 ----------------------------------
 
 tools = tools_root
@@ -44,6 +44,15 @@ if ((tools_root ~= nil) and conf_tools_sb2_installed) then
 	end
 end
 
+tools_script_interp_rules = {
+	rules = {
+		{dir = "/scratchbox/tools/bin",
+		 replace_by = tools .. "/usr/bin", log_level = "warning"},
+
+		{prefix = "/", map_to = tools}
+	}
+}
+
 exec_policy_tools = {
 	name = "Tools",
 	native_app_ld_so = devel_mode_tools_ld_so,
@@ -54,9 +63,7 @@ exec_policy_tools = {
 
 	script_log_level = "debug",
 	script_log_message = "SCRIPT from tools",
-	script_interpreter_rule = {
-		map_to = tools
-	},
+	script_interpreter_rules = tools_script_interp_rules,
 	script_set_argv0_to_mapped_interpreter = true,
 }
 
@@ -70,9 +77,7 @@ exec_policy_tools_perl = {
 
 	script_log_level = "debug",
 	script_log_message = "SCRIPT from tools (t.p)",
-	script_interpreter_rule = {
-		map_to = tools
-	},
+	script_interpreter_rules = tools_script_interp_rules,
 	script_set_argv0_to_mapped_interpreter = true,
 }
 
@@ -86,9 +91,7 @@ exec_policy_tools_python = {
 
 	script_log_level = "debug",
 	script_log_message = "SCRIPT from tools (t.p)",
-	script_interpreter_rule = {
-		map_to = tools
-	},
+	script_interpreter_rules = tools_script_interp_rules,
 	script_set_argv0_to_mapped_interpreter = true,
 }
 
@@ -132,8 +135,10 @@ exec_policy_host_os = {
 	log_level = "debug",
 	log_message = "executing in host OS mode",
 
-	script_interpreter_rule = {
-		use_orig_path = true
+	script_interpreter_rules = {
+		rules = {
+			{prefix = "/", use_orig_path = true}
+		}
 	},
 }
 

@@ -135,8 +135,10 @@ function load_and_check_rules()
 	-- exec mapping code (argvenp.lua) and the
 	-- rule files:
 	--
-	-- (version 19 is in intermediate version;
-	--  several interface changes will follow)
+	-- Version 20 changed "script_interpreter_rule" field in
+	-- exec policies to "script_interpreter_rules"; find_rule()
+	-- is now used to select the rule (there may be more than one!)
+	-- (version 19 was an intermediate version)
 	-- - added "all_exec_policies" list to all
 	--   mapping modes
 	-- Differences between version 17 and 18:
@@ -152,7 +154,7 @@ function load_and_check_rules()
 	--   (previously only one was expected)
 	-- - variables "esc_tools_root" and "esc_target_root"
 	--   were removed
-	local current_rule_interface_version = "19"
+	local current_rule_interface_version = "20"
 
 	do_file(rule_file_path)
 

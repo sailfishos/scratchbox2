@@ -310,21 +310,31 @@ function sb_execve_map_script_interpreter(rule, exec_policy, interpreter,
 			exec_policy.name))
 	end
 
-	if (exec_policy.script_interpreter_rule ~= nil) then
+	if (exec_policy.script_interpreter_rules ~= nil) then
+		local min_path_len = 0
+		local rule = nil
 		local exec_pol_2, mapped_interpreter, ro_flag
 
-		exec_pol_2, mapped_interpreter, ro_flag = sbox_execute_rule(
-			interpreter, "map_script_interpreter",
-			interpreter, interpreter,
-			exec_policy.script_interpreter_rule)
-	
-		if exec_policy.script_set_argv0_to_mapped_interpreter then
-			argv[1] = mapped_interpreter
-			return rule, exec_pol_2, 0, 
-				mapped_interpreter, #argv, argv, #envp, envp
+		rule, min_path_len = find_rule(exec_policy.script_interpreter_rules,
+			"map_script_interpreter", interpreter)
+
+		if (rule) then
+			exec_pol_2, mapped_interpreter, ro_flag = sbox_execute_rule(
+				interpreter, "map_script_interpreter",
+				interpreter, interpreter, rule)
+		
+			if exec_policy.script_set_argv0_to_mapped_interpreter then
+				argv[1] = mapped_interpreter
+				return rule, exec_pol_2, 0, 
+					mapped_interpreter, #argv, argv, #envp, envp
+			else
+				return rule, exec_pol_2, 1, 
+					mapped_interpreter, #argv, argv, #envp, envp
+			end
 		else
-			return rule, exec_pol_2, 1, 
-				mapped_interpreter, #argv, argv, #envp, envp
+			sb.log("warning", string.format(
+				"Failed to find script interpreter mapping rule for %s",
+				interpreter))
 		end
 	end
 

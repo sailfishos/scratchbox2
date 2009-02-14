@@ -91,6 +91,15 @@ mapall_chain = {
 
 		-- -----------------------------------------------
 
+		-- "policy-rc.d" checks if scratchbox-version exists, 
+		-- to detect if it is running inside scratchbox..
+		{prefix = "/scratchbox/etc/scratchbox-version",
+		 replace_by = "/usr/share/scratchbox2/version",
+		 log_level = "warning",
+		 readonly = true, virtual_path = true},
+
+		-- -----------------------------------------------
+
 		{path = "/var/lib/dpkg/status", replace_by = var_lib_dpkg_status_location,
 		 readonly = tools_root_is_readonly},
 

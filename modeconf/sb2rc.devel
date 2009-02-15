@@ -55,10 +55,17 @@ case "$sb2rc_mode" in
 		#    /usr/share/aclocal/glib-2.0.m4
 		#    /usr/share/aclocal/glib-gettext.m4
 		#
+		# Note: now there are special mapping rules for perl & python,
+		# /usr/lib/perl* and /usr/lib/python* can be ignored here,
+		# because the mapping rules select correct versions for
+		# the binaries automatically.
+		#
 		SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST=" \
 			@require-both: \
 			/usr/bin /usr/sbin /sbin \
 			@ignore: \
+			/usr/lib/perl \
+			/usr/lib/python \
 			/etc \
 			/usr/share/man /usr/share/doc /usr/share/gtk-doc \
 			/usr/share/doc-base \

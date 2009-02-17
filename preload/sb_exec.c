@@ -492,6 +492,7 @@ static int prepare_hashbang(
 	char hashbang[SBOX_MAXPATH]; /* only 60 needed on linux, just be safe */
 	char interpreter[SBOX_MAXPATH];
 	char *interp_arg = NULL;
+	char *tmp, *mapped_binaryname;
 	int result = 0;
 
 	if ((fd = open_nomap(*mapped_file, O_RDONLY)) < 0) {
@@ -565,6 +566,18 @@ static int prepare_hashbang(
 			"failed to map script interpreter=%s", interpreter);
 		return(-1);
 	}
+
+	/*
+	 * Binaryname (the one expected by the rules) comes still from
+	 * the interpreter name so we set it here.  Note that it is now
+	 * basename of the mapped interpreter (not the original one)!
+	 */
+	tmp = strdup(mapped_interpreter);
+	mapped_binaryname = strdup(basename(tmp));
+	change_environment_variable(*envpp, "__SB2_BINARYNAME=",
+	    mapped_binaryname);
+	free(mapped_binaryname);
+	free(tmp);
 	
 	SB_LOG(SB_LOGLEVEL_DEBUG, "prepare_hashbang(): interpreter=%s,"
 			"mapped_interpreter=%s", interpreter,

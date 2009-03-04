@@ -26,6 +26,10 @@ struct lua_instance {
 	lua_State *lua;
 	int mapping_disabled;
 	int lua_instance_in_use; /* used only if debug messages are active */
+
+	/* for path mapping logic: */
+	char *real_cwd;
+	char *reversed_cwd;
 };
 
 /* This version string is used to check that the lua scripts offer 

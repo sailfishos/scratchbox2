@@ -35,9 +35,9 @@
 #
 # Following modifiers are available for "WRAP" and "GATE":
 #   - "map(varname)" will map function's parameter "varname" using
-#     the SBOX_MAP_PATH macro
+#     the sbox_map_path() function
 #   - "map_at(fdname,varname)" will map function's parameter "varname" using
-#     the SBOX_MAP_PATH_AT macro
+#     the sbox_map_path_at() function
 #   - "hardcode_param(N,name)" will hardcode name of the Nth parameter
 #     to "name" (this is typically needed only if the function definition uses
 #     macros to build the parameter list, instead of specifying names of
@@ -371,20 +371,6 @@ sub minimal_function_declarator_parser {
 # End of the minimal C declarator parser.
 #============================================
 
-sub find_type_of_parameter {
-	my $fn = shift;
-	my $param_name = shift;
-	my $r_param_names = $fn->{'parameter_names'};
-
-	my $i;
-	for ($i = 0; $i < @{$r_param_names}; $i++) {
-		if ($r_param_names->[$i] eq $param_name) {
-			return($fn->{'parameter_types'}->[$i]);
-		}
-	}
-	return(undef);
-}
-
 sub create_code_for_va_list_get_mode {
 	my $condition = shift;
 	my $last_named_var = shift;
@@ -418,8 +404,14 @@ sub process_readonly_check_modifier {
 	my $return_value = shift;
 	my $error_code = shift;
 
-	my $new_name = "mapped__".$param_to_be_mapped;
-	my $ro_flag = $param_to_be_mapped."_is_readonly";
+	my $new_name = "res_mapped__".$param_to_be_mapped.".mres_result_path";
+	my $ro_flag = "res_mapped__".$param_to_be_mapped.".mres_readonly";
+
+	if (!defined($mods->{'mapping_results_by_orig_name'}->{$param_to_be_mapped})) {
+		printf "ERROR: mapping_results_by_orig_name not found for '%s'\n",
+			$param_to_be_mapped;
+		$num_errors++;
+	}
 
 	if (defined($extra_check)) {
 		$extra_check = " && ($extra_check)";
@@ -473,6 +465,7 @@ sub process_wrap_or_gate_modifiers {
 		'va_list_handler_code' => "",
 		'va_list_end_code' => "",
 		'mapped_params_by_orig_name' => {},
+		'mapping_results_by_orig_name' => {},
 		'dont_resolve_final_symlink' => 0,
 
 		'postprocess_vars' => [],
@@ -503,19 +496,20 @@ sub process_wrap_or_gate_modifiers {
 			my $param_to_be_mapped = $1;
 
 			my $new_name = "mapped__".$param_to_be_mapped;
-			my $ro_flag = $param_to_be_mapped."_is_readonly";
 			my $no_symlink_resolve = $mods->{'dont_resolve_final_symlink'};
 
-			$mods->{'mapped_params_by_orig_name'}->{$param_to_be_mapped} = $new_name;
+			$mods->{'mapped_params_by_orig_name'}->{$param_to_be_mapped} = "res_$new_name.mres_result_path";
+			$mods->{'mapping_results_by_orig_name'}->{$param_to_be_mapped} = "res_$new_name";
 			$mods->{'path_mapping_vars'} .= 
-				"\tchar *$new_name = NULL;\n".
-				"\tint $ro_flag = 0;\n";
+				"\tmapping_results_t res_$new_name;\n";
 			$mods->{'path_mapping_code'} .=
-				"\tSBOX_MAP_PATH($param_to_be_mapped, ".
-					"$new_name, &$ro_flag, ".
-					"$no_symlink_resolve);\n";
+				"\tclear_mapping_results_struct(&res_$new_name);\n".
+				"\tsbox_map_path(__func__, ".
+					"$param_to_be_mapped, ".
+					"$no_symlink_resolve, ".
+					"&res_$new_name);\n";
 			$mods->{'free_path_mapping_vars_code'} .=
-				"\tif($new_name) free($new_name);\n";
+				"\tfree_mapping_results(&res_$new_name);\n";
 
 			# Make a "..._nomap" version, because the main
 			# wrapper has mappings.
@@ -543,16 +537,19 @@ sub process_wrap_or_gate_modifiers {
 			my $ro_flag = $param_to_be_mapped."_is_readonly";
 			my $no_symlink_resolve = $mods->{'dont_resolve_final_symlink'};
 
-			$mods->{'mapped_params_by_orig_name'}->{$param_to_be_mapped} = $new_name;
+			$mods->{'mapped_params_by_orig_name'}->{$param_to_be_mapped} = "res_$new_name.mres_result_path";
+			$mods->{'mapping_results_by_orig_name'}->{$param_to_be_mapped} = "res_$new_name";
 			$mods->{'path_mapping_vars'} .= 
-				"\tchar *$new_name = NULL;\n".
-				"\tint $ro_flag = 0;\n";
+				"\tmapping_results_t res_$new_name;\n";
 			$mods->{'path_mapping_code'} .=
-				"\tSBOX_MAP_PATH_AT($fd_param, ".
-				"$param_to_be_mapped, $new_name, &$ro_flag, ".
-				"$no_symlink_resolve);\n";
+				"\tclear_mapping_results_struct(&res_$new_name);\n".
+				"\tsbox_map_path_at(__func__, ".
+					"$fd_param, ".
+					"$param_to_be_mapped, ".
+					"$no_symlink_resolve, ".
+					"&res_$new_name);\n";
 			$mods->{'free_path_mapping_vars_code'} .=
-				"\tif($new_name) free($new_name);\n";
+				"\tfree_mapping_results(&res_$new_name);\n";
 
 			# Make a "..._nomap" version, because the main
 			# wrapper has mappings.
@@ -689,18 +686,18 @@ sub create_postprocessors {
 					");\n";
 			} else {
 				# has mapped parameter
-				my $mapped_param = $mods->{'mapped_params_by_orig_name'}->{$ppvar};
-				my $type_of_param = find_type_of_parameter($fn,$ppvar);
+				my $mapping_results = $mods->{'mapping_results_by_orig_name'}->{$ppvar};
+
 				$postprocessor_calls .= "$pp_fn(__func__, ".
 					$return_value_param_in_call.
-					"$mapped_param, ".
+					"&$mapping_results, ".
 					# add orig (unmapped) parameters
 					join(", ", @{$mods->{'parameter_names'}}).
 					"); ";
 				$postprocessor_prototypes .= "extern void ".
 					"$pp_fn(const char *realfnname, ".
 					$return_value_param_in_prototype.
-					"$type_of_param $mapped_param, ".
+					"mapping_results_t *res, ".
 					# orig (unmapped) parameters
 					join(", ", @{$mods->{'parameter_types'}}).
 					");\n";
@@ -847,6 +844,8 @@ my $export_h_buffer =
 #ifdef HAVE_SYS_XATTR_H
 #include <sys/xattr.h>
 #endif
+
+#include \"mapping.h\"
 
 ";
 

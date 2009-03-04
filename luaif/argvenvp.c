@@ -381,14 +381,23 @@ char *sb_execve_map_script_interpreter(
 
 	case 2:
 		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"sb_execve_map_script_interpreter: use scratchbox_path_for_exec");
+			"sb_execve_map_script_interpreter: use sbox_map_path_for_exec");
 		/* remove all return values from the stack. */
 		lua_pop(luaif->lua, 8);
 		if (mapped_interpreter) free(mapped_interpreter);
 		mapped_interpreter = NULL;
-		mapped_interpreter = scratchbox_path_for_exec("script_interp",
-			interpreter, NULL/*RO-flag addr.*/,
-			0/*dont_resolve_final_symlink*/);
+		{
+			mapping_results_t	mapping_result;
+
+			clear_mapping_results_struct(&mapping_result);
+			sbox_map_path_for_exec("script_interp",
+				interpreter, &mapping_result);
+			if (mapping_result.mres_result_buf) {
+				mapped_interpreter =
+					strdup(mapping_result.mres_result_buf);
+			}
+			free_mapping_results(&mapping_result);
+		}
 		SB_LOG(SB_LOGLEVEL_DEBUG, "sb_execve_map_script_interpreter: "
 			"interpreter=%s mapped_interpreter=%s",
 			interpreter, mapped_interpreter);

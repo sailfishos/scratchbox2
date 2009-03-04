@@ -960,7 +960,7 @@ static int prepare_exec(const char *exec_fn_name,
 			"do_exec(): mapping disabled, my_file = %s", my_file);
 		mapped_file = strdup(my_file);
 
-		/* we won't call scratchbox_path_for_exec() because mapping
+		/* we won't call sbox_map_path_for_exec() because mapping
 		 * is disabled; instead we must push a string to Lua's stack
 		 * which explains the situation to the Lua code
 		*/
@@ -970,14 +970,20 @@ static int prepare_exec(const char *exec_fn_name,
 		/* now we have to do path mapping for my_file to find exactly
 		 * what is the path we're supposed to deal with
 		 */
+		mapping_results_t	mapping_result;
 
-		mapped_file = scratchbox_path_for_exec("do_exec", my_file,
-			NULL/*RO-flag addr.*/, 0/*dont_resolve_final_symlink*/);
+		clear_mapping_results_struct(&mapping_result);
+		sbox_map_path_for_exec("do_exec", my_file, &mapping_result);
+		if (mapping_result.mres_result_buf) {
+			mapped_file = strdup(mapping_result.mres_result_buf);
+		}
+		free_mapping_results(&mapping_result);
+
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"do_exec(): my_file = %s, mapped_file = %s",
 			my_file, mapped_file);
 
-		/* Note: the Lua stack should now have rule and policy objects */
+		/* Note: the Lua stack now contains rule and policy objects */
 	}
 
 	/*

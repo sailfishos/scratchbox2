@@ -168,74 +168,73 @@ static void fdpathdb_register_mapped_path(
 	fdpathdb_mutex_unlock();
 }
 
+static void fdpathdb_register_mapping_result(const char *realfnname,
+	int ret_fd, mapping_results_t *res, const char *pathname)
+{
+	/* "mres_result_buf" is supposed to be an absolute path,
+	 * while "mres_result_path" may be relative or absolute.
+	 * (the path DB can not use relative paths)
+	*/
+	fdpathdb_register_mapped_path(realfnname, ret_fd,
+		res->mres_result_buf, pathname);
+}
+
 /* Wrappers' postprocessors: these register paths to this DB */
 
 extern void __open_postprocess_pathname(
-	const char *realfnname, int ret_fd, const char *mapped__pathname,
+	const char *realfnname, int ret_fd, mapping_results_t *res,
 	const char *pathname, int flags, int mode)
 {
-	(void)pathname;
 	(void)flags;
 	(void)mode;
-	fdpathdb_register_mapped_path(realfnname, ret_fd,
-		mapped__pathname, pathname);
+	fdpathdb_register_mapping_result(realfnname, ret_fd, res, pathname);
 }
 
 extern void __open64_postprocess_pathname(
-	const char *realfnname, int ret_fd, const char *mapped__pathname,
+	const char *realfnname, int ret_fd, mapping_results_t *res,
 	const char *pathname, int flags, int mode)
 {
-	(void)pathname;
 	(void)flags;
 	(void)mode;
-	fdpathdb_register_mapped_path(realfnname, ret_fd,
-		mapped__pathname, pathname);
+	fdpathdb_register_mapping_result(realfnname, ret_fd, res, pathname);
 }
 
 extern void open_postprocess_pathname(
-	const char *realfnname, int ret_fd, const char *mapped__pathname,
+	const char *realfnname, int ret_fd, mapping_results_t *res,
 	const char *pathname, int flags, int mode)
 {
-	(void)pathname;
 	(void)flags;
 	(void)mode;
-	fdpathdb_register_mapped_path(realfnname, ret_fd,
-		mapped__pathname, pathname);
+	fdpathdb_register_mapping_result(realfnname, ret_fd, res, pathname);
 }
 
 extern void open64_postprocess_pathname(
-	const char *realfnname, int ret_fd, const char *mapped__pathname,
+	const char *realfnname, int ret_fd, mapping_results_t *res,
 	const char *pathname, int flags, int mode)
 {
-	(void)pathname;
 	(void)flags;
 	(void)mode;
-	fdpathdb_register_mapped_path(realfnname, ret_fd,
-		mapped__pathname, pathname);
+	fdpathdb_register_mapping_result(realfnname, ret_fd, res, pathname);
 }
 
 extern void openat_postprocess_pathname(
-	const char *realfnname, int ret_fd, const char *mapped__pathname,
+	const char *realfnname, int ret_fd, mapping_results_t *res,
 	int dirfd, const char *pathname, int flags, int mode)
 {
 	(void)dirfd;
-	(void)pathname;
 	(void)flags;
 	(void)mode;
-	fdpathdb_register_mapped_path(realfnname, ret_fd,
-		mapped__pathname, pathname);
+	fdpathdb_register_mapping_result(realfnname, ret_fd, res, pathname);
 }
 
 extern void openat64_postprocess_pathname(
-	const char *realfnname, int ret_fd, const char *mapped__pathname,
+	const char *realfnname, int ret_fd, mapping_results_t *res,
 	int dirfd, const char *pathname, int flags, int mode)
 {
 	(void)dirfd;
-	(void)pathname;
 	(void)flags;
 	(void)mode;
-	fdpathdb_register_mapped_path(realfnname, ret_fd,
-		mapped__pathname, pathname);
+	fdpathdb_register_mapping_result(realfnname, ret_fd, res, pathname);
 }
 
 void dup_postprocess_(const char *realfnname, int ret, int fd)

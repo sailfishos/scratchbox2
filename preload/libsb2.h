@@ -95,33 +95,6 @@
  *      if ( amount /../ > amount /other/ ) ) remove extra /../
  */
 
-#define SBOX_MAP_PROLOGUE() \
-	char *sbox_path = NULL;
-
-#define SBOX_MAP_AT_PROLOGUE() \
-	char *sbox_path = NULL;
-
-#define SBOX_MAP_PATH_NARROW(path, sbox_path, readonly_flag_addr) \
-{ \
-	if ((path) != NULL && *((char *)(path)) != '\0') { \
-		sbox_path = scratchbox_path(__FUNCTION__, path, readonly_flag_addr); \
-	} \
-}
-
-#define SBOX_MAP_PATH(path, sbox_path, readonly_flag_addr, no_symlink_resolve) \
-{ \
-	if ((path) != NULL) { \
-		sbox_path = scratchbox_path(__FUNCTION__, path, readonly_flag_addr, no_symlink_resolve); \
-	} \
-}
-
-#define SBOX_MAP_PATH_AT(dirfd, path, sbox_path, readonly_flag_addr, no_symlink_resolve) \
-{ \
-	if ((path) != NULL) { \
-		sbox_path = scratchbox_path_at(__FUNCTION__, dirfd, path, \
-			readonly_flag_addr, no_symlink_resolve); \
-	} \
-}
 
 extern void *sbox_find_next_symbol(int log_enabled, const char *functname);
 

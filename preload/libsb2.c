@@ -428,7 +428,6 @@ FTS * fts_open_gate(FTS * (*real_fts_open_ptr)(char * const *path_argv,
 	int options,
 	int (*compar)(const FTSENT **,const FTSENT **))
 {
-	SBOX_MAP_PROLOGUE();
 	char *path;
 	char * const *p;
 	char **new_path_argv;
@@ -441,11 +440,22 @@ FTS * fts_open_gate(FTS * (*real_fts_open_ptr)(char * const *path_argv,
 	}
 
 	for (n=0, p=path_argv, np=new_path_argv; *p; n++, p++, np++) {
+		mapping_results_t res;
+
+		clear_mapping_results_struct(&res);
 		path = *p;
-		sbox_path = scratchbox_path(realfnname, path, NULL/*RO-flag*/,
-			0/*dont_resolve_final_symlink*/);
-		*np = sbox_path;
+		sbox_map_path(realfnname, path,
+			0/*dont_resolve_final_symlink*/, &res);
+		if (res.mres_result_path) {
+			/* Mapped OK */
+			*np = strdup(res.mres_result_path);
+		} else {
+			*np = strdup("");
+		}
+		free_mapping_results(&res);
 	}
+
+	/* FIXME: this system causes memory leaks */
 
 	return (*real_fts_open_ptr)(new_path_argv, options, compar);
 }
@@ -455,7 +465,7 @@ char * get_current_dir_name_gate(
 	char * (*real_get_current_dir_name_ptr)(void),
 	const char *realfnname)
 {
-	SBOX_MAP_PROLOGUE();
+	char *sbox_path = NULL;
 	char *cwd;
 
 	if ((cwd = (*real_get_current_dir_name_ptr)()) == NULL) {
@@ -520,7 +530,7 @@ char * getwd_gate(
 	const char *realfnname,
 	char *buf)
 {
-	SBOX_MAP_PROLOGUE();
+	char *sbox_path = NULL;
 	char *cwd;
 
 	if ((cwd = (*real_getwd_ptr)(buf)) == NULL) {
@@ -552,7 +562,7 @@ char *realpath_gate(
 	const char *name,	/* name, already mapped */
 	char *resolved)
 {
-	SBOX_MAP_PROLOGUE();
+	char *sbox_path = NULL;
 	char *rp;
 	
 	if ((rp = (*real_realpath_ptr)(name,resolved)) == NULL) {
@@ -594,7 +604,7 @@ static char *check_and_prepare_glob_pattern(
 	 * log the mapped pattern (NOTICE level) if it was mapped
 	*/
 	if (*pattern == '/') { /* if absolute path in pattern.. */
-		mapped__pattern = scratchbox_path(realfnname, pattern,
+		mapped__pattern = sbox_map_path(realfnname, pattern,
 			NULL/*RO-flag*/, 0/*dont_resolve_final_symlink*/);
 		if (!strcmp(mapped__pattern, pattern)) {
 			/* no change */
@@ -761,24 +771,32 @@ static void map_sockaddr_un(
 	struct sockaddr_un *orig_serv_addr_un,
 	struct sockaddr_un *mapped_serv_addr_un)
 {
-	int	pathname_is_readonly = 0;
-	char	*mapped_addr = NULL;
+	mapping_results_t	res;
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: checking AF_UNIX addr '%s'",
 		realfnname, orig_serv_addr_un->sun_path);
-	SBOX_MAP_PATH(orig_serv_addr_un->sun_path, mapped_addr,
-		&pathname_is_readonly, 0/*dont_resolve_final_symlink*/);
-	/* FIXME: implement if(pathname_is_readonly!=0)... */
 
-	*mapped_serv_addr_un = *orig_serv_addr_un;
-	if (sizeof(mapped_serv_addr_un->sun_path) <= strlen(mapped_addr)) {
+	clear_mapping_results_struct(&res);
+	/* FIXME: implement if(pathname_is_readonly!=0)... */
+	sbox_map_path(realfnname, orig_serv_addr_un->sun_path,
+		0/*dont_resolve_final_symlink*/, &res);
+	if (res.mres_result_path == NULL) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
-			"%s: Mapped AF_UNIX address (%s) is too long",
-			realfnname, mapped_addr);
+			"%s: Failed to map AF_UNIX address '%s'",
+			realfnname, orig_serv_addr_un->sun_path);
 	} else {
-		strcpy(mapped_serv_addr_un->sun_path, mapped_addr);
+		*mapped_serv_addr_un = *orig_serv_addr_un;
+		if (sizeof(mapped_serv_addr_un->sun_path) <=
+		    strlen(res.mres_result_path)) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"%s: Mapped AF_UNIX address (%s) is too long",
+				realfnname, res.mres_result_path);
+		} else {
+			strcpy(mapped_serv_addr_un->sun_path,
+				res.mres_result_path);
+		}
 	}
-	if (mapped_addr) free(mapped_addr);
+	free_mapping_results(&res);
 }
 
 int bind_gate(
@@ -856,15 +874,22 @@ char *sb2show__map_path2__(const char *binary_name, const char *mapping_mode,
         const char *fn_name, const char *pathname, int *readonly)
 {
 	char *mapped__pathname = NULL;
+	mapping_results_t mapping_result;
 
 	(void)mapping_mode;	/* mapping_mode is not used anymore. */
 
 	if (!sb2_global_vars_initialized__) sb2_initialize_global_variables();
 
+	clear_mapping_results_struct(&mapping_result);
 	if (pathname != NULL) {
-		mapped__pathname = scratchbox_path3(binary_name, fn_name,
-			pathname, readonly, 0/*dont_resolve_final_symlink*/);
+		sbox_map_path_for_sb2show(binary_name, fn_name,
+			pathname, &mapping_result);
+		if (mapping_result.mres_result_path)
+			mapped__pathname =
+				strdup(mapping_result.mres_result_path);
+		if (readonly) *readonly = mapping_result.mres_readonly;
 	}
+	free_mapping_results(&mapping_result);
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s '%s'", __func__, pathname);
 	return(mapped__pathname);
 }
@@ -965,31 +990,31 @@ static void postprocess_tempname_template(const char *realfnname,
 }
 
 void mkstemp_postprocess_template(const char *realfnname,
-	int ret, char *mapped__template, char *template)
+	int ret, mapping_results_t *res, char *template)
 {
 	(void)ret;
-	postprocess_tempname_template(realfnname, mapped__template, template);
+	postprocess_tempname_template(realfnname, res->mres_result_path, template);
 }
 
 void mkstemp64_postprocess_template(const char *realfnname,
-	int ret, char *mapped__template, char *template)
+	int ret, mapping_results_t *res, char *template)
 {
 	(void)ret;
-	postprocess_tempname_template(realfnname, mapped__template, template);
+	postprocess_tempname_template(realfnname, res->mres_result_path, template);
 }
 
 void mkdtemp_postprocess_template(const char *realfnname,
-	char *ret, char *mapped__template, char *template)
+	char *ret, mapping_results_t *res, char *template)
 {
 	(void)ret;
-	postprocess_tempname_template(realfnname, mapped__template, template);
+	postprocess_tempname_template(realfnname, res->mres_result_path, template);
 }
 
 void mktemp_postprocess_template(const char *realfnname,
-	char *ret, char *mapped__template, char *template)
+	char *ret, mapping_results_t *res, char *template)
 {
 	(void)ret;
-	postprocess_tempname_template(realfnname, mapped__template, template);
+	postprocess_tempname_template(realfnname, res->mres_result_path, template);
 }
 
 /* the real tmpnam() can not be used at all, because the generated name must

@@ -400,7 +400,8 @@ devel_mode_rules_usr_bin = {
 		{prefix = "/usr/bin/python", actions = python_bin_test},
 
 		-- next, automatically generated rules for /usr/bin:
-		{dir = "/usr/bin", chain = argvmods_rules_for_usr_bin},
+		{dir = "/usr/bin", chain = argvmods_rules_for_usr_bin,
+		 virtual_path = true}, -- don't reverse these.
 
 		-- and finally, the default:
 		{dir = "/usr/bin",

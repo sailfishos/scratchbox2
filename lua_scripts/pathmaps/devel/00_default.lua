@@ -489,6 +489,8 @@ devel_mode_rules_etc = {
 		{prefix = "/etc/apt", map_to = target_root, readonly = true},
 
 		-- Files that must not be mapped:
+		{prefix = "/etc/resolvconf", use_orig_path = true,
+		 readonly = true},
 		{prefix = "/etc/resolv.conf",
 		 use_orig_path = true, readonly = true},
 		{path = "/etc/passwd",
@@ -505,6 +507,9 @@ devel_mode_rules_var = {
 	rules = {
 		-- -----------------------------------------------
 		-- 80. /var/*
+
+		{prefix = "/var/run/resolvconf", use_orig_path = true,
+		 readonly = true},
 
 		{prefix = "/var/run", map_to = session_dir},
 

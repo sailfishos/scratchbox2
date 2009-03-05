@@ -237,6 +237,11 @@ function sboxify_environment()
 		SBOX_TOOLS_ROOT=$SBOX_FORCED_TOOLS_ROOT
 	fi
 
+	# Check that tools exist (or at least the directory exists)
+	if [ ! -d "$SBOX_TOOLS_ROOT" ]; then
+		exit_error "Tools directory '$SBOX_TOOLS_ROOT' does not exist."
+	fi
+
 	if [ -d $SBOX_SESSION_DIR/target_root ]; then
 		# A copy of target_root already exists, use that
 		# (this may happen when we are joining an old

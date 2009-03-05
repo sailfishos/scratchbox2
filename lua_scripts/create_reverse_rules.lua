@@ -10,16 +10,11 @@
 -- available and SB2 works just as it did before this feature was implemented)
 --
 -- FIXME:
--- 1. Rules with conditional actions are not reversed correctly. Basically,
--- this script just gives up and marks the destinations with "use_orig_path".
--- This should be fixed, even if it is not a problem with our current
--- "official" mapping modes.
---
--- 2. Reverse rules won't be created if the forward rules use "func_name"
+-- 1. Reverse rules won't be created if the forward rules use "func_name"
 -- conditions. It might be possible to fix that, but "func_names" certainly
 -- complicate sorting of the generated reversing rules.
 --
--- 3. Rule chains with "next_chain" set to something else than 'nil'
+-- 2. Rule chains with "next_chain" set to something else than 'nil'
 -- are not currently supported.
 
 allow_reversing = true	-- default = create reverse rules.
@@ -30,30 +25,49 @@ function test_rev_rule_position(output_rules, d_path)
         local n
         for n=1,table.maxn(output_rules) do
 		local rule = output_rules[n]
-		if (rule.prefix and (rule.prefix ~= "") and
-		    (isprefix(rule.prefix, d_path))) then
-			return n
-		end
-		-- "path" rules: (exact match)
-		if (rule.path == d_path) then
+		local cmp_result
+		cmp_result = sb.test_path_match(d_path,
+			rule.dir, rule.prefix, rule.path)
+		if (cmp_result >= 0) then
 			return n
 		end
 	end
 	return nil
 end
 
+function is_identical_reverse_rule(r1,r2)
+	if ((r1.prefix == r2.prefix) and
+	    (r1.path == r2.path) and
+	    (r1.dir == r2.dir) and
+	    (r1.replace_by == r2.replace_by)) then
+		return true
+	end
+	return false
+end
+
+function reverse_conditional_actions(output_rules, rev_rule_name, rule, n, forward_path)
+	local actions = rule.actions
+
+	local a
+        for a = 1, table.maxn(actions) do
+		-- actions are only partial rules; the "selector" is in
+		-- "rule", but we must copy it temporarily to action[a],
+		-- otherwise reverse_one_rule_xxxx() won't be able to
+		-- process it completely. Also, invent a better 
+		-- temporary name for it.
+		actions[a].prefix = rule.prefix
+		actions[a].path = rule.path
+		actions[a].dir = rule.dir
+		actions[a].name = string.format("%s/Act.%d", rev_rule_name, a)
+		reverse_one_rule_xxxx(output_rules, actions[a], a, forward_path)
+		actions[a].prefix = nil
+		actions[a].path = nil
+		actions[a].dir = nil
+		actions[a].name = nil
+	end
+end
+
 function reverse_one_rule(output_rules, rule, n)
-		local new_rule = {}
-		new_rule.comments = {}
-
-		if rule.name then
-			new_rule.name = string.format(
-				"Rev: %s (%d)", rule.name, n)
-		else
-			new_rule.name = string.format(
-				"Rev: Rule %d", n)
-		end
-
 		local forward_path
 		if (rule.prefix) then
 			forward_path = rule.prefix
@@ -63,8 +77,35 @@ function reverse_one_rule(output_rules, rule, n)
 			forward_path = rule.dir
 		else
 			forward_path = nil
+		end
+		reverse_one_rule_xxxx(output_rules, rule, n, forward_path)
+end
+
+function reverse_one_rule_xxxx(output_rules, rule, n, forward_path)
+
+		local new_rule = {}
+		new_rule.comments = {}
+
+		if rule.name then
+			new_rule.name = string.format(
+				"Rev: %s <%d>", rule.name, n)
+		else
+			local auto_name = "??"
+			if (rule.prefix) then
+				auto_name = "prefix="..rule.prefix
+			elseif (rule.dir) then
+				auto_name = "dir="..rule.dir
+			elseif (rule.path) then
+				auto_name = "path="..rule.path
+			end
+			new_rule.name = string.format(
+				"Rev: %s <%d>", auto_name, n)
+		end
+
+
+		if (forward_path == nil) then
 			new_rule.error = string.format(
-				"--ERROR: Rule '%s' does not contain 'prefix' or 'path'",
+				"--ERROR: Rule '%s' does not contain 'prefix' 'dir' or 'path'",
 				new_rule.name)
 		end
 
@@ -80,9 +121,9 @@ function reverse_one_rule(output_rules, rule, n)
 			new_rule.use_orig_path = true
 			d_path = forward_path
 		elseif (rule.actions) then
-			-- FIXME: To be implemented. See the "TODO" list at top.
-			new_rule.use_orig_path = true
-			d_path = forward_path
+			reverse_conditional_actions(output_rules, new_rule.name,
+				rule, n, forward_path)
+			return
 		elseif (rule.map_to) then
 			d_path = rule.map_to .. forward_path
 			new_rule.replace_by = forward_path
@@ -93,6 +134,12 @@ function reverse_one_rule(output_rules, rule, n)
 			new_rule.error = string.format(
 				"--Notice: custom_map_funct rules can't be reversed, please mark it 'virtual'",
 				new_rule.name)
+		elseif (rule.if_exists_then_map_to) then
+			d_path = rule.if_exists_then_map_to .. forward_path
+			new_rule.replace_by = forward_path
+		elseif (rule.if_exists_then_replace_by) then
+			d_path = rule.if_exists_then_replace_by
+			new_rule.replace_by = forward_path
 		else
 			new_rule.error = string.format(
 				"--ERROR: Rule '%s' does not contain any actions",
@@ -105,6 +152,10 @@ function reverse_one_rule(output_rules, rule, n)
 				new_rule.prefix = d_path
 				new_rule.orig_prefix = rule.prefix
 				idx = test_rev_rule_position(output_rules, d_path..":")
+			elseif (rule.dir) then
+				new_rule.dir = d_path
+				new_rule.orig_path = rule.dir
+				idx = test_rev_rule_position(output_rules, d_path)
 			elseif (rule.path) then
 				new_rule.path = d_path
 				new_rule.orig_path = rule.path
@@ -117,35 +168,50 @@ function reverse_one_rule(output_rules, rule, n)
 			table.insert(new_rule.comments, string.format(
 				"--NOTE: '%s' conflicts with '%s', reorganized",
 				new_rule.name, output_rules[idx].name))
+			if (is_identical_reverse_rule(new_rule,output_rules[idx])) then
+				table.insert(output_rules[idx].comments,
+					string.format("--NOTE: Identical rule '%s' generated (dropped)",
+					new_rule.name))
+			else
+				local x_path = nil
+				local older_rule = output_rules[idx]
+				if (older_rule.prefix) then
+					x_path = older_rule.prefix
+				elseif (older_rule.dir) then
+					x_path = older_rule.dir
+				elseif (older_rule.path) then
+					x_path = older_rule.path
+				end
 
-			local x_path = nil
-			if (output_rules[idx].prefix) then
-				x_path = output_rules[idx].prefix
-			elseif (output_rules[idx].path) then
-				x_path = output_rules[idx].path
-			end
+				if x_path then
+					local dummy_rules = {}
+					dummy_rules[1] = new_rule
+					dummy_rules[2] = older_rule
+					local idx2
+					idx2 = test_rev_rule_position(dummy_rules, x_path)
 
-			table.insert(output_rules, idx, new_rule)
-			
-			if x_path then
-				local idx2
-				idx2 = test_rev_rule_position(output_rules, x_path)
-
-				if idx2 ~= idx+1 then
-					table.insert(new_rule.comments, string.format(
-						"--NOTE: '%s' DOUBLE CONFLICT with '%s'",
-						new_rule.name, output_rules[idx].name))
+					if idx2 ~= 2 then
+						-- x_path (selector for the older rule)
+						-- hit the new_rule, not the older rule.
+						-- Two targets were mapped to the same place,
+						-- can't reverse one path to two locations..
+						table.insert(older_rule.comments, string.format(
+							"--NOTE: '%s' WOULD CONFLICT with '%s', conflicting rule dropped",
+							new_rule.name, older_rule.name))
+					else
+						table.insert(output_rules, idx, new_rule)
+					end
+				else
+					table.insert(output_rules, idx, new_rule)
 				end
 			end
-
 		else
 			-- no conflicts
 			table.insert(output_rules, new_rule)
 		end
 end
 
-function reverse_rules(input_rules)
-	local output_rules = {}
+function reverse_rules(output_rules, input_rules)
         local n
         for n=1,table.maxn(input_rules) do
 		local rule = input_rules[n]
@@ -154,7 +220,7 @@ function reverse_rules(input_rules)
 			-- don't reverse virtual paths
 			print("-- virtual_path set, not reversing", n)
 		elseif rule.chain then
-			reverse_rules(rule.chain.rules)
+			reverse_rules(output_rules, rule.chain.rules)
 		else
 			reverse_one_rule(output_rules, rule, n)
 		end
@@ -211,6 +277,7 @@ function print_rules(rules)
 		end
 		print("\t},")
 	end
+        print("-- Printed",table.maxn(rules),"rules")
 end
 
 function process_chains(chains_table)
@@ -241,7 +308,8 @@ function process_chains(chains_table)
 				print("    binary=nil,")
 			end
 
-			local rev_rules = reverse_rules(chains_table[n].rules)
+			local output_rules = {}
+			local rev_rules = reverse_rules(output_rules, chains_table[n].rules)
 			if (allow_reversing) then
 				print("    rules={")
 				print_rules(rev_rules)

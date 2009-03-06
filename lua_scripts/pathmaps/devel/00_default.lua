@@ -358,6 +358,10 @@ devel_mode_rules_usr_share = {
 		{prefix = "/usr/share/python", actions = python_lib_test},
 		{prefix = "/usr/share/pygobject", actions = python_lib_test},
 
+		-- qt:
+		{prefix = "/usr/share/qt",
+		 map_to = target_root, readonly = true},
+
 		-- -----------------------------------------------
 		-- 100. DEFAULT RULES:
 		{dir = "/usr/share", map_to = tools, readonly = true},

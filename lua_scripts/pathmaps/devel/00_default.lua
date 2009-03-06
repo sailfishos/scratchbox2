@@ -201,6 +201,15 @@ python_lib_test = {
 	{ map_to = target_root, readonly = true }
 }
 
+terminfo_test = {
+	{ if_active_exec_policy_is = "Tools",
+	  map_to = tools, readonly = true },
+	{ if_active_exec_policy_is = "Rootstrap",
+	  map_to = target_root, readonly = true },
+	{ if_active_exec_policy_is = "Host",
+	  use_orig_path = true, readonly = true },
+	{ map_to = target_root, readonly = true }
+}
 
 -- =========== Mapping rule chains ===========
 
@@ -288,6 +297,8 @@ devel_mode_rules_usr_share = {
 		 readonly = true},
 		{prefix = "/usr/share/idl/microb-engine", map_to = target_root,
 		 readonly = true},
+
+		{prefix = "/usr/share/terminfo", actions = terminfo_test},
 
 		-- /usr/share/hildon* (this is a real prefix):
 		-- (was added to map hildon-theme-layout-4)
@@ -491,6 +502,7 @@ devel_mode_rules_etc = {
 		 readonly = true},
 
 		{prefix = "/etc/apt", map_to = target_root, readonly = true},
+		{prefix = "/etc/terminfo", actions = terminfo_test},
 
 		-- Files that must not be mapped:
 		{prefix = "/etc/resolvconf", use_orig_path = true,
@@ -649,6 +661,14 @@ simple_chain = {
 		-- -----------------------------------------------
 		-- 30. /lib/*
 
+		-- 
+		-- terminfo search path is by default:
+		-- /etc/terminfo, /lib/terminfo and /usr/share/terminfo
+		-- we map these depending on active exec policy.
+		--
+		-- Other rules are in /etc and /usr/share rules above.
+		--
+		{prefix = "/lib/terminfo", actions = terminfo_test},
 		{prefix = "/lib", map_to = target_root, readonly = true},
 
 		-- -----------------------------------------------

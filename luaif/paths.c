@@ -985,6 +985,17 @@ static void sbox_map_path_internal(
 				luaif,
 				(sbox_binary_name?sbox_binary_name:"UNKNOWN"),
 				func_name, real_cwd);
+			if (reversed_cwd == NULL) {
+				/*
+				 * In case reverse path couldn't be resolved
+				 * we fallback into real_cwd.  This is the
+				 * way it used to work before.
+				 */
+				reversed_cwd = strdup(real_cwd);
+				SB_LOG(SB_LOGLEVEL_DEBUG,
+				    "unable to reverse, using reversed_cwd=%s",
+				    reversed_cwd);
+			}
 			/* put the reversed CWD to our one-slot cache: */
 			if (luaif->real_cwd) free(luaif->real_cwd);
 			if (luaif->reversed_cwd) free(luaif->reversed_cwd);

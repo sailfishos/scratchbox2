@@ -94,7 +94,6 @@ qemu_chain = {
 	}
 }
 
-
 export_chains = {
 	qemu_chain,
 	simple_chain
@@ -125,4 +124,3 @@ exec_policy_chains = {
 all_exec_policies = {
 	default_exec_policy,
 }
-

@@ -41,9 +41,18 @@ simple_chain = {
 		-- -----------------------------------------------
 		-- 99. Other rules.
 		{prefix = "/lib", map_to = target_root},
+		{prefix = "/usr/share/osso", map_to = target_root},
 		{prefix = "/usr/lib/perl", map_to = tools},
+		{prefix = "/usr/lib/dpkg", map_to = tools},
+		{prefix = "/usr/lib/apt", map_to = tools},
+		{prefix = "/usr/lib/cdbs", map_to = tools},
+		{prefix = "/usr/lib/libfakeroot", map_to = tools},
 		{prefix = "/usr/lib", map_to = target_root},
 		{prefix = "/usr/include", map_to = target_root},
+		{prefix = "/var/lib/apt", map_to = target_root},
+		{prefix = "/var/cache/apt", map_to = target_root},
+		{prefix = "/var/lib/dpkg", map_to = target_root},
+		{prefix = "/var/cache/dpkg", map_to = target_root},
 		{prefix = "/home/user", map_to = target_root},
 		{prefix = "/home", use_orig_path = true},
 		{prefix = "/host_usr", map_to = target_root},
@@ -56,6 +65,7 @@ simple_chain = {
 		 virtual_path = true},
 		{prefix = "/sys", use_orig_path = true},
 		{prefix = "/etc/resolv.conf", use_orig_path = true},
+		{prefix = "/etc/apt", map_to = target_root},
 		{prefix = tools, use_orig_path = true},
 		{path = "/", use_orig_path = true},
 		{prefix = "/", map_to = tools}

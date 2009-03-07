@@ -47,10 +47,7 @@ simple_chain = {
 		{prefix = "/home/user", map_to = target_root},
 		{prefix = "/home", use_orig_path = true},
 		{prefix = "/host_usr", map_to = target_root},
-
-		{prefix = session_dir, use_orig_path = true},
-		{prefix = "/tmp", map_to = session_dir},
-
+		{prefix = "/tmp", use_orig_path = true},
 		{prefix = "/dev", use_orig_path = true},
 		{prefix = "/proc", custom_map_funct = sb2_procfs_mapper,
 		 virtual_path = true},
@@ -69,10 +66,7 @@ qemu_chain = {
 		{prefix = "/lib", map_to = target_root},
 		{prefix = "/usr/lib", map_to = target_root},
 		{prefix = "/usr/local/lib", map_to = target_root},
-
-		{prefix = session_dir, use_orig_path = true},
-		{prefix = "/tmp", map_to = session_dir},
-
+		{prefix = "/tmp", use_orig_path = true},
 		{prefix = "/dev", use_orig_path = true},
 		{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
 		 virtual_path = true},

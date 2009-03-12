@@ -13,9 +13,6 @@
 -- 1. Reverse rules won't be created if the forward rules use "func_name"
 -- conditions. It might be possible to fix that, but "func_names" certainly
 -- complicate sorting of the generated reversing rules.
---
--- 2. Rule chains with "next_chain" set to something else than 'nil'
--- are not currently supported.
 
 allow_reversing = true	-- default = create reverse rules.
 reversing_disabled_message = ""
@@ -283,20 +280,29 @@ end
 function process_chains(chains_table)
         local n
 
+	-- ensure that all chains have names
         for n=1,table.maxn(chains_table) do
+		if chains_table[n].name then
+			chains_table[n].rev_name = string.format(
+				"reverse_chain__%s", chains_table[n].name)
+		else
+			chains_table[n].rev_name = string.format(
+				"reverse_chain_%d", n)
+		end
+	end
+
+        for n=table.maxn(chains_table),1,-1 do
 		if chains_table[n].noentry then
 			print("-- ========== ",n)
 			print("-- noentry")
 		else
-			print(string.format("-- ======= Chain %d =======",n))
-			print(string.format("reverse_chain_%d = {",n))
+			print(string.format("-- ======= %s =======",
+				chains_table[n].rev_name))
+			print(string.format("%s = {", chains_table[n].rev_name))
 
 			if chains_table[n].next_chain then
-				-- FIXME: Handle next_chain!!!
-				print("    -- NOTE: next_chain is not nil,")
-				print("    -- can't create reversing rules")
-				allow_reversing = false
-				reversing_disabled_message = "next_chain is not nil"
+				print(string.format("    next_chain=%s,",
+					chains_table[n].next_chain.rev_name))
 			else
 				print("    next_chain=nil,")
 			end

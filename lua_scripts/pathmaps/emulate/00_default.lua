@@ -61,7 +61,11 @@ mapall_chain = {
 		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
 		 readonly = true},
 
+		-- 
 		-- Scratchbox 1 compatibility rules:
+		-- Note that when you add/remove these, check
+		-- also that dpkg_chain rules match these.
+		--
 		{ prefix = "/targets/", map_to = sb1_compat_dir,
 		  readonly = target_root_is_readonly},
 		{ path = "/usr/bin/scratchbox-launcher.sh",
@@ -134,7 +138,26 @@ mapall_chain = {
 	}
 }
 
+--
+-- Special case for dpkg: we don't want to use wrapped
+-- launcher scripts here because we might be installing
+-- (over) them.
+--
+local dpkg_chain = {
+	next_chain = mapall_chain,
+	binary = "dpkg",
+	rules = {
+		{ path = "/usr/bin/scratchbox-launcher.sh",
+		    map_to = target_root,
+		    readonly = target_root_is_readonly },
+		{ path = "/etc/osso-af-init/dbus-systembus.sh",
+		    map_to = target_root,
+		    readonly = target_root_is_readonly },
+	},
+}
+
 export_chains = {
+	dpkg_chain,
 	mapall_chain
 }
 

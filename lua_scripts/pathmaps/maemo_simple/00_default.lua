@@ -20,6 +20,10 @@ simple_chain = {
 	binary = nil,
 	rules = {
 		-- -----------------------------------------------
+		-- 1. The session directory
+		{dir = session_dir, use_orig_path = true},
+
+		-- -----------------------------------------------
 		-- 2. Development environment special destinations:
 
 		{prefix = "/sb2/wrappers",
@@ -57,7 +61,6 @@ simple_chain = {
 		{prefix = "/home", use_orig_path = true},
 		{prefix = "/host_usr", map_to = target_root},
 
-		{prefix = session_dir, use_orig_path = true},
 		{prefix = "/tmp", map_to = session_dir},
 
 		{prefix = "/dev", use_orig_path = true},
@@ -76,11 +79,12 @@ qemu_chain = {
 	next_chain = nil,
 	binary = basename(sbox_cputransparency_method),
 	rules = {
+		{prefix = session_dir, use_orig_path = true},
+
 		{prefix = "/lib", map_to = target_root},
 		{prefix = "/usr/lib", map_to = target_root},
 		{prefix = "/usr/local/lib", map_to = target_root},
 
-		{prefix = session_dir, use_orig_path = true},
 		{prefix = "/tmp", map_to = session_dir},
 
 		{prefix = "/dev", use_orig_path = true},

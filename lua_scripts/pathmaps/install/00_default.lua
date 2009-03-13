@@ -21,6 +21,7 @@ default_chain = {
 	next_chain = nil,
 	binary = nil,
 	rules = {
+		{ dir = session_dir, use_orig_path = true },
 		{ prefix = tools_source, use_orig_path = true, readonly = true },
 
 		{ path = "/bin/sh",   func_name = ".*exec.*", replace_by = interp_wrapper },
@@ -35,7 +36,6 @@ default_chain = {
 		 virtual_path = true},
 		{ prefix = "/sys", use_orig_path = true },
 
-		{ prefix = session_dir, use_orig_path = true },
 		{ prefix = "/tmp", map_to = session_dir },
 
 		{ prefix = sbox_user_home_dir, use_orig_path = true },

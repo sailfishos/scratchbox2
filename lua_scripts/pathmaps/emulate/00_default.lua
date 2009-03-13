@@ -43,6 +43,8 @@ mapall_chain = {
 	next_chain = nil,
 	binary = nil,
 	rules = {
+		{dir = session_dir, use_orig_path = true},
+
 		{path = sbox_cputransparency_method, use_orig_path = true,
 		 readonly = true},
 
@@ -101,7 +103,6 @@ mapall_chain = {
 		{prefix = "/var/run", map_to = session_dir},
 
 		-- 
-		{prefix = session_dir, use_orig_path = true},
 		{prefix = "/tmp", replace_by = tmp_dir_dest},
 
 		-- 

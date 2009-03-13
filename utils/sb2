@@ -899,6 +899,8 @@ function initialize_new_sb2_session()
 			exit_error "Failed to create directory for session (problems with /tmp ?)"
 		fi
 	fi
+	# resolve possible symlinks in SBOX_SESSION_DIR
+	SBOX_SESSION_DIR=`readlink -f $SBOX_SESSION_DIR`
 
 	mkdir -p $SBOX_SESSION_DIR
 	if [ $? != 0 ]; then

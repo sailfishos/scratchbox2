@@ -20,6 +20,10 @@ simple_chain = {
 	binary = nil,
 	rules = {
 		-- -----------------------------------------------
+		-- 1. The session directory
+		{dir = session_dir, use_orig_path = true},
+
+		-- -----------------------------------------------
 		-- 2. Development environment special destinations:
 
 		{prefix = "/sb2/wrappers",

@@ -617,6 +617,9 @@ simple_chain = {
 	next_chain = nil,
 	binary = nil,
 	rules = {
+		-- -----------------------------------------------
+		-- 1. The session directory
+		{dir = session_dir, use_orig_path = true},
 
 		-- -----------------------------------------------
 		-- 2. Development environment special destinations:
@@ -686,7 +689,6 @@ simple_chain = {
 
 		-- -----------------------------------------------
 		-- 85. /tmp
-		{prefix = session_dir, use_orig_path = true},
 		{prefix = "/tmp", map_to = session_dir},
 
 		-- -----------------------------------------------

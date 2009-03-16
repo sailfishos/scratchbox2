@@ -548,14 +548,9 @@ GATE: int setrlimit64(SETRLIMIT_ARG1_TYPE resource, const struct rlimit64 *rlp)
 --
 -- We solve this by wrapping all gettext functions that take domainname
 -- and call explicitly bindtextdomain(3). This way message catalog
--- directories will get mapped to correct place.  These paths are
+-- directories will get mapped to correct place.  Are then mapped normally
+-- using mapping engine and conditional rules based on active exec policy.
 -- specified in exec_policy as follows:
--- 	{
---		...
---		native_app_message_catalog_prefix = <prefix>
---	}
--- When this variable is set, we map '/path/to/locales' to
--- '<prefix>/path/to/locales'.
 --
 -- TODO: should we wrap also plain gettext() and ngettext()?
 --

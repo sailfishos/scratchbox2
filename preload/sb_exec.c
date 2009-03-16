@@ -721,6 +721,15 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 				sbox_session_varname_prefix_len) == 0) {
 			/* this is user-provided SBOX_SESSION_*, skip it. */
 			continue;
+		} else if ((strncmp(*p, "NLSPATH=", 8) == 0) ||
+		    		(strncmp(*p, "LOCPATH=", 8) == 0)) {
+			/*
+			 * We need to drop any previously set locale
+			 * paths (set in argvenvp.lua) so that they
+			 * won't get inherited accidentally to child
+			 * process who don't need them.
+			 */
+			continue;
 		}
 		my_envp[i++] = strdup(*p);
 	}

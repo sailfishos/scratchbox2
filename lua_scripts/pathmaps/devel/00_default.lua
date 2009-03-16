@@ -28,7 +28,6 @@ devel_mode_tools_ld_so = nil		-- default = not needed
 devel_mode_tools_ld_library_path = nil	-- default = not needed
 -- localization support for tools
 devel_mode_locale_path = nil
-devel_mode_message_catalog_prefix = nil
 
 if ((tools_root ~= nil) and conf_tools_sb2_installed) then
 	if (conf_tools_ld_so ~= nil) then
@@ -39,8 +38,6 @@ if ((tools_root ~= nil) and conf_tools_sb2_installed) then
 	if (conf_tools_locale_path ~= nil) then
 		-- use locales from tools
 		devel_mode_locale_path = conf_tools_locale_path
-		devel_mode_message_catalog_prefix =
-		    conf_tools_message_catalog_prefix
 	end
 end
 
@@ -59,7 +56,6 @@ exec_policy_tools = {
 	native_app_ld_so_supports_argv0 = conf_tools_ld_so_supports_argv0,
 	native_app_ld_library_path = devel_mode_tools_ld_library_path,
 	native_app_locale_path = devel_mode_locale_path,
-	native_app_message_catalog_prefix = devel_model_message_catalog_prefix,
 
 	script_log_level = "debug",
 	script_log_message = "SCRIPT from tools",
@@ -73,7 +69,6 @@ exec_policy_tools_perl = {
 	native_app_ld_so_supports_argv0 = conf_tools_ld_so_supports_argv0,
 	native_app_ld_library_path = devel_mode_tools_ld_library_path,
 	native_app_locale_path = devel_mode_locale_path,
-	native_app_message_catalog_prefix = devel_model_message_catalog_prefix,
 
 	script_log_level = "debug",
 	script_log_message = "SCRIPT from tools (t.p)",
@@ -87,7 +82,6 @@ exec_policy_tools_python = {
 	native_app_ld_so_supports_argv0 = conf_tools_ld_so_supports_argv0,
 	native_app_ld_library_path = devel_mode_tools_ld_library_path,
 	native_app_locale_path = devel_mode_locale_path,
-	native_app_message_catalog_prefix = devel_model_message_catalog_prefix,
 
 	script_log_level = "debug",
 	script_log_message = "SCRIPT from tools (t.p)",
@@ -124,7 +118,8 @@ exec_policy_target = {
 	name = "Rootstrap",
 	native_app_ld_so = devel_mode_target_ld_so,
 	native_app_ld_so_supports_argv0 = conf_target_ld_so_supports_argv0,
-	native_app_ld_library_path = devel_mode_target_ld_library_path
+	native_app_ld_library_path = devel_mode_target_ld_library_path,
+	native_app_locale_path = conf_target_locale_path,
 }
 
 --
@@ -202,6 +197,20 @@ python_lib_test = {
 }
 
 terminfo_test = {
+	{ if_active_exec_policy_is = "Tools",
+	  map_to = tools, readonly = true },
+	{ if_active_exec_policy_is = "Rootstrap",
+	  map_to = target_root, readonly = true },
+	{ if_active_exec_policy_is = "Host",
+	  use_orig_path = true, readonly = true },
+	{ map_to = target_root, readonly = true }
+}
+
+--
+-- Message catalogs (LC_MESSAGES) are taken based on
+-- active exec policy.
+--
+message_catalog_test = {
 	{ if_active_exec_policy_is = "Tools",
 	  map_to = tools, readonly = true },
 	{ if_active_exec_policy_is = "Rootstrap",
@@ -299,6 +308,8 @@ devel_mode_rules_usr_share = {
 		 readonly = true},
 
 		{prefix = "/usr/share/terminfo", actions = terminfo_test},
+		{prefix = "/usr/share/locale",
+		 actions = message_catalog_test},
 
 		-- /usr/share/hildon* (this is a real prefix):
 		-- (was added to map hildon-theme-layout-4)

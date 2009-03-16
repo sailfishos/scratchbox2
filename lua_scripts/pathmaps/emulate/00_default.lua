@@ -223,7 +223,6 @@ local exec_policy_target = {
 	native_app_ld_library_path_suffix = emulate_mode_target_ld_library_path_suffix,
 
 	native_app_locale_path = conf_target_locale_path,
-	native_app_message_catalog_prefix = conf_target_message_catalog_prefix,
 }
 
 -- Note that the real path (mapped path) is used when looking up rules!

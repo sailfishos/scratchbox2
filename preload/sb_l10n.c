@@ -24,96 +24,29 @@
 #include "libsb2.h"
 #include "exported.h"
 
-static char *message_catalog_prefix = NULL;
-static int message_catalog_prefix_retrieved = 0;
-
-static const char *get_message_catalog_prefix(void);
 static void check_textdomain(const char *);
 
-/*
- * Returns message catalog prefix for this binary.  This value
- * can be used to map text domain paths under target_root or
- * tools_root.  Returns NULL if there is no such specified.
- */
-static const char *get_message_catalog_prefix(void)
-{
-	if (message_catalog_prefix_retrieved)
-		return (message_catalog_prefix);
-
-	if (!sb2_global_vars_initialized__)
-		sb2_initialize_global_variables();
-
-	/*
-	 * There might be situations when sb2 starts where
-	 * $__SB2_REAL_BINARYNAME is not set.  This happens
-	 * on very first exec so we cannot apply any exec
-	 * policy.
-	 */
-	if (sbox_real_binary_name == NULL)
-		return (message_catalog_prefix);
-
-	/*
-	 * Now, try to fetch configured message catalog prefix
-	 * from exec policy.  This is normally set to target_root
-	 * or tools_root.  Note that we leak memory here as we
-	 * never free the returned string (it could be NULL, though).
-	 */
-	message_catalog_prefix =
-	    sb_query_exec_policy("native_app_message_catalog_prefix",
-	    sbox_binary_name, sbox_real_binary_name);
-
-	if (message_catalog_prefix != NULL) {
-		SB_LOG(SB_LOGLEVEL_DEBUG,
-		    "native_app_message_catalog_prefix='%s'",
-		    message_catalog_prefix);
-	}
-
-	message_catalog_prefix_retrieved = 1;
-	return (message_catalog_prefix);
-}
-
-/*ARGSUSED*/
 char *bindtextdomain_gate(char *(*realfn)(const char *, const char *),
     const char *realfn_name, const char *domainname, const char *dirname)
 {
+	mapping_results_t res;
 	const char *mapped_dirname = dirname;
-	const char *message_catalog_prefix = NULL;
-	char *message_catalog_path = NULL;
 	char *result = NULL;
 
-	(void)realfn_name;
+	clear_mapping_results_struct(&res);
 
-	if (dirname == NULL)
-		goto out;
-	if ((message_catalog_prefix = get_message_catalog_prefix()) == NULL)
-		goto out;
+	if (dirname != NULL) { 
+		sbox_map_path(realfn_name, dirname, 0, &res);
+		assert(res.mres_result_path != NULL);
 
-	/* is it already mapped? */
-	if (strstr(dirname, message_catalog_prefix) != NULL)
-		goto out; /* don't remap */
+		mapped_dirname = res.mres_result_path;
 
-	/*
-	 * Got message catalog prefix for this binary.  Next we
-	 * bind given text domain under that prefix:
-	 *     <prefix>/usr/share
-	 * or whatever is was before.
-	 */
-	if (dirname[0] == '/') {
-		(void) asprintf(&message_catalog_path, "%s%s",
-		    message_catalog_prefix, dirname);
-	} else {
-		/* TODO: should we even allow relative paths? */
-		(void) asprintf(&message_catalog_path, "%s/%s",
-		    message_catalog_prefix, dirname);
+		SB_LOG(SB_LOGLEVEL_DEBUG, "binding domain %s to %s",
+		    domainname, mapped_dirname);
 	}
-	
-	SB_LOG(SB_LOGLEVEL_DEBUG, "binding domain %s to %s",
-	    domainname, message_catalog_path);
-	mapped_dirname = message_catalog_path;
 
-out:
 	result = (*realfn)(domainname, mapped_dirname);
-	free(message_catalog_path);
+	free_mapping_results(&res);
 	return (result);
 }
 

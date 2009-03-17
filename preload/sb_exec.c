@@ -123,28 +123,19 @@
 # error Invalid __BYTE_ORDER
 #endif
 
-#ifdef __i386__
-# define HOST_ELF_MACHINE EM_386
-#elif defined(__x86_64__)
-# define HOST_ELF_MACHINE EM_X86_64
+#if defined(__i386__) || defined(__x86_64__)
+/*
+ * We support exec'ing 64-bit programs from 32-bit programs
+ * as tools distribution might be 32-bit even in 64-bit machine.
+ */
+# define HOST_ELF_MACHINE_32 EM_386
+# define HOST_ELF_MACHINE_64 EM_X86_64
 #elif defined(__ia64__)
-# define HOST_ELF_MACHINE EM_IA_64
+# define HOST_ELF_MACHINE_64 EM_IA_64
 #elif defined(__powerpc__)
-# define HOST_ELF_MACHINE EM_PPC
+# define HOST_ELF_MACHINE_32 EM_PPC
 #else
 # error Unsupported host CPU architecture
-#endif
-
-#ifndef PAGE_MASK
-# define PAGE_MASK sysconf(_SC_PAGE_SIZE)
-#endif
-
-#ifdef __x86_64__
-typedef Elf64_Ehdr Elf_Ehdr;
-typedef Elf64_Phdr Elf_Phdr;
-#else
-typedef Elf32_Ehdr Elf_Ehdr;
-typedef Elf32_Phdr Elf_Phdr;
 #endif
 
 struct target_info {
@@ -161,7 +152,8 @@ static const struct target_info target_table[] = {
 	{ "sh",		EM_SH, 		ELFDATA2LSB,	1 },
 };
 
-static int elf_hdr_match(Elf_Ehdr *ehdr, uint16_t match, int ei_data);
+static int elf_hdr_match(const char *region, uint16_t match, int ei_data);
+static enum binary_type inspect_elf_binary(const char *);
 
 static int prepare_exec(const char *exec_fn_name,
 	const char *orig_file, int file_has_been_mapped,
@@ -263,8 +255,13 @@ char **split_to_tokens(char *str)
 	return tokens;
 }
 
-static int elf_hdr_match(Elf_Ehdr *ehdr, uint16_t match, int ei_data)
+static int elf_hdr_match(const char *region, uint16_t match, int ei_data)
 {
+	/*
+	 * It is OK to use Elf32_Ehdr here because fields accessed
+	 * in this function are same in both 64-bit and 32-bit ELF formats.
+	 */
+	Elf32_Ehdr *ehdr = (Elf32_Ehdr *)region;
 	int swap;
 
 	if (ehdr->e_ident[EI_DATA] != ei_data)
@@ -285,21 +282,65 @@ static int elf_hdr_match(Elf_Ehdr *ehdr, uint16_t match, int ei_data)
 	return 0;
 }
 
+static enum binary_type inspect_elf_binary(const char *region)
+{
+	assert(region != NULL);
+
+	/* check for hashbang */
+	if (region[EI_MAG0] == '#' && region[EI_MAG1] == '!')
+		return (BIN_HASHBANG);
+
+	/*
+	 * We go through ELF program headers one by one and check
+	 * whether there is interpreter (PT_INTERP) section.
+	 * In that case this is dynamically linked, otherwise
+	 * it is statically linked.
+	 */
+#ifdef HOST_ELF_MACHINE_32
+	if (elf_hdr_match(region, HOST_ELF_MACHINE_32, HOST_ELF_DATA)) {
+		Elf32_Ehdr *eh = (Elf32_Ehdr *)region;
+		Elf32_Phdr *ph;
+		size_t ph_entsize = eh->e_phentsize;
+		int i;
+
+		for (i = 0; i < eh->e_phnum; i++) {
+			ph = (Elf32_Phdr *)
+			    (region + eh->e_phoff + (i * ph_entsize));
+			if (ph->p_type == PT_INTERP)
+				return (BIN_HOST_DYNAMIC);
+		}
+		return (BIN_HOST_STATIC);
+	}
+#endif
+#ifdef HOST_ELF_MACHINE_64
+	if (elf_hdr_match(region, HOST_ELF_MACHINE_64, HOST_ELF_DATA)) {
+		Elf64_Ehdr *eh = (Elf64_Ehdr *)region;
+		Elf64_Phdr *ph;
+		size_t ph_entsize = eh->e_phentsize;
+		int i;
+
+		for (i = 0; i < eh->e_phnum; i++) {
+			ph = (Elf64_Phdr *)
+			    (region + eh->e_phoff + (i * ph_entsize));
+			if (ph->p_type == PT_INTERP)
+				return (BIN_HOST_DYNAMIC);
+		}
+		return (BIN_HOST_STATIC);
+	}
+#endif
+	/* could not identify as host binary */
+	return (BIN_UNKNOWN);
+}
+
 static enum binary_type inspect_binary(const char *filename)
 {
+	static char *target_cpu = NULL;
 	enum binary_type retval;
-	int fd, phnum, j;
+	int fd, j;
 	struct stat status;
 	char *region;
-	unsigned int ph_base, ph_frag, ei_data;
+	unsigned int ei_data;
 	uint16_t e_machine;
-#ifdef __x86_64__
-	int64_t reloc0;
-#else
-	int reloc0;
-#endif
-	Elf_Ehdr *ehdr;
-	Elf_Phdr *phdr;
 
 	retval = BIN_NONE; /* assume it doesn't exist, until proven otherwise */
 	if (access_nomap_nolog(filename, X_OK) < 0) {
@@ -394,82 +435,58 @@ static enum binary_type inspect_binary(const char *filename)
 		goto _out_close;
 	}
 
-	/* check for hashbang */
-
-	if (region[0] == '#' && region[1] == '!') {
-		retval = BIN_HASHBANG;
+	retval = inspect_elf_binary(region);
+	switch (retval) {
+	case BIN_HASHBANG:
+	case BIN_HOST_STATIC:
+	case BIN_HOST_DYNAMIC:
+		/* host binary, lets go out of here */
 		goto _out_munmap;
+
+	default:
+		break;
 	}
 
-	ehdr = (Elf_Ehdr *) region;
+	/*
+	 * Target binary.  Find out whether it is supported
+	 * by scratchbox2.
+	 */
+	if (!target_cpu) {
+		target_cpu = sb2__read_string_variable_from_lua__(
+			"sbox_cpu");
 
-#ifdef __x86_64__
-	if (elf_hdr_match(ehdr, EM_386, HOST_ELF_DATA) ||
-		elf_hdr_match(ehdr, EM_X86_64, HOST_ELF_DATA)) {
-#else
-	if (elf_hdr_match(ehdr, HOST_ELF_MACHINE, HOST_ELF_DATA)) {
-#endif
-		retval = BIN_HOST_STATIC;
-
-		phnum = ehdr->e_phnum;
-		reloc0 = ~0;
-		ph_base = ehdr->e_phoff & PAGE_MASK;
-		ph_frag = ehdr->e_phoff - ph_base;
-
-		phdr = (Elf_Phdr *) (region + ph_base + ph_frag);
-
-		for (j = phnum; --j >= 0; ++phdr)
-			if (PT_LOAD == phdr->p_type && ~0 == reloc0)
-				reloc0 = phdr->p_vaddr - phdr->p_offset;
-
-		phdr -= phnum;
-
-		for (j = phnum; --j >= 0; ++phdr) {
-			if (PT_DYNAMIC != phdr->p_type)
-				continue;
-
-			retval = BIN_HOST_DYNAMIC;
-		}
-	} else {
-		static char *target_cpu = NULL;
-
-		if (!target_cpu) {
-			target_cpu = sb2__read_string_variable_from_lua__(
-				"sbox_cpu");
-
-			if (!target_cpu)
-				target_cpu = "arm";
-		}
-
-		ei_data = ELFDATANONE;
-		e_machine = EM_NONE;
-
-		for (j = 0; (size_t) j < ARRAY_SIZE(target_table); j++) {
-			const struct target_info *ti = &target_table[j];
-
-			if (strncmp(target_cpu, ti->name, strlen(ti->name)))
-				continue;
-
-			ei_data = ti->default_byteorder;
-			e_machine = ti->machine;
-
-			if (ti->multi_byteorder &&
-			    strlen(target_cpu) >= strlen(ti->name) + 2) {
-				size_t len = strlen(target_cpu);
-				const char *tail = target_cpu + len - 2;
-
-				if (strcmp(tail, "eb") == 0)
-					ei_data = ELFDATA2MSB;
-				else if (strcmp(tail, "el") == 0)
-					ei_data = ELFDATA2LSB;
-			}
-
-			break;
-		}
-
-		if (elf_hdr_match(ehdr, e_machine, ei_data))
-			retval = BIN_TARGET;
+		if (!target_cpu)
+			target_cpu = "arm";
 	}
+
+	ei_data = ELFDATANONE;
+	e_machine = EM_NONE;
+
+	for (j = 0; (size_t) j < ARRAY_SIZE(target_table); j++) {
+		const struct target_info *ti = &target_table[j];
+
+		if (strncmp(target_cpu, ti->name, strlen(ti->name)))
+			continue;
+
+		ei_data = ti->default_byteorder;
+		e_machine = ti->machine;
+
+		if (ti->multi_byteorder &&
+		    strlen(target_cpu) >= strlen(ti->name) + 2) {
+			size_t len = strlen(target_cpu);
+			const char *tail = target_cpu + len - 2;
+
+			if (strcmp(tail, "eb") == 0)
+				ei_data = ELFDATA2MSB;
+			else if (strcmp(tail, "el") == 0)
+				ei_data = ELFDATA2LSB;
+		}
+
+		break;
+	}
+
+	if (elf_hdr_match(region, e_machine, ei_data))
+		retval = BIN_TARGET;
 
 _out_munmap:
 	munmap(region, status.st_size);

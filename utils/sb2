@@ -726,7 +726,7 @@ END
 			$HOME/.scratchbox2/$tools_basename/locales \
 			conf_tools_locale_path
 
-		if [ ld_so_found != "yes" ]; then
+		if [ $ld_so_found != "yes" ]; then
 			# ld.so from tools can not be used. Add tools' shared
 			# library locations to the normal LD_LIBRARY_PATH;	
 			# this is risky but the best what we can do now
@@ -1169,12 +1169,7 @@ fi
 
 # set the initial binary name for the mapping engine
 export __SB2_BINARYNAME="bash"
-
-if [ -n "$SBOX_TOOLS_ROOT" ]; then
-	SHELL=$SBOX_TOOLS_ROOT/bin/bash
-else
-	SHELL=/bin/bash
-fi
+SHELL=/bin/bash
 
 # Final addition to LD_LIBRARY_PATH, if needed
 if [ -f $SBOX_SESSION_DIR/ld_library_path_extras ]; then
@@ -1248,14 +1243,25 @@ unset SBOX_TOOLS_ROOT
 
 # ------------
 
+#
+# We need to start "trampoline" host shell that is run under
+# influence of libsb2.so.1.  When it exec's real shell, we can
+# be sure that all mappings and exec rules are in place.
+#
 if [ $# -gt 0 -o "$STDIN" = true ]; then
 	binary="$1"
 	shift 1
 	args="$@"
-	exec $SBOX_FAKEROOT_PREFIX sb2-monitor -L $SBOX_LIBSB2 -x $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
-		-- $SHELL -c "$binary $args"
+	exec $SBOX_FAKEROOT_PREFIX sb2-monitor \
+		-L $SBOX_LIBSB2 \
+		-x $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
+		-- \
+		$SHELL -c "exec $SHELL -c '$binary $args'"
 else
-	exec $SBOX_FAKEROOT_PREFIX sb2-monitor -L $SBOX_LIBSB2 -x $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
-		-- $SHELL --noprofile --norc
+	exec $SBOX_FAKEROOT_PREFIX sb2-monitor \
+		-L $SBOX_LIBSB2 \
+		-x $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
+		-- \
+		$SHELL -c \
+		"export PS1='$PS1'; exec $SHELL --noprofile --norc"
 fi
-

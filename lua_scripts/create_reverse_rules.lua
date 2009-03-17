@@ -251,6 +251,9 @@ function print_rules(rules)
 		if (rule.path) then
 			print("\t path=\""..rule.path.."\",")
 		end
+		if (rule.dir) then
+			print("\t dir=\""..rule.dir.."\",")
+		end
 
 		if (rule.use_orig_path) then
 			print("\t use_orig_path=true,")

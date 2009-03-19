@@ -515,6 +515,10 @@ devel_mode_rules_etc = {
 		{prefix = "/etc/apt", map_to = target_root, readonly = true},
 		{prefix = "/etc/terminfo", actions = terminfo_test},
 
+		-- Perl & Python:
+		{prefix = "/etc/perl", actions = perl_lib_test},
+		{prefix = "/etc/python", actions = python_lib_test},
+
 		-- Files that must not be mapped:
 		{prefix = "/etc/resolvconf", use_orig_path = true,
 		 readonly = true},

@@ -6,7 +6,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "20"
+rule_file_interface_version = "21"
 ----------------------------------
 
 tools = tools_root

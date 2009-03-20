@@ -10,12 +10,11 @@ debug_messages_enabled = sb.debug_messages_enabled()
 
 -- This version string is used to check that the lua scripts offer 
 -- what the C files expect, and v.v.
--- Increment the serial number (first number) and update the initials
--- and date whenever the interface beween Lua and C is changed.
+-- Increment the number whenever the interface beween Lua and C is changed.
 --
 -- NOTE: the corresponding identifier for C is in include/sb2.h,
 -- see that file for description about differences
-sb2_lua_c_interface_version = "62"
+sb2_lua_c_interface_version = "63"
 
 function do_file(filename)
 	if (debug_messages_enabled) then

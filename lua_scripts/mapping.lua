@@ -135,6 +135,8 @@ function load_and_check_rules()
 	-- exec mapping code (argvenp.lua) and the
 	-- rule files:
 	--
+	-- Version 21: native_app_message_catalog_prefix has
+	-- been removed (it was an exec policy attribute.)
 	-- Version 20 changed "script_interpreter_rule" field in
 	-- exec policies to "script_interpreter_rules"; find_rule()
 	-- is now used to select the rule (there may be more than one!)
@@ -154,7 +156,7 @@ function load_and_check_rules()
 	--   (previously only one was expected)
 	-- - variables "esc_tools_root" and "esc_target_root"
 	--   were removed
-	local current_rule_interface_version = "20"
+	local current_rule_interface_version = "21"
 
 	do_file(rule_file_path)
 

@@ -606,17 +606,22 @@ function sb_execve_postprocess_cpu_transparency_executable(rule, exec_policy,
 		local new_argv = {}
 		local new_filename = sbox_cputransparency_method
 
-		new_argv[1] = sbox_cputransparency_method
+		table.insert(new_argv, sbox_cputransparency_method)
 		-- drop LD_PRELOAD env.var.
-		new_argv[2] = "-drop-ld-preload"
+		if conf_cputransparency_qemu_has_env_control_flags then
+			table.insert(new_argv, "-U")
+			table.insert(new_argv, "LD_PRELOAD")
+		else
+			table.insert(new_argv, "-drop-ld-preload")
+		end
 		-- target runtime linker comes from /
-		new_argv[3] = "-L"
-		new_argv[4] = "/"
+		table.insert(new_argv, "-L")
+		table.insert(new_argv, "/")
 
 		if conf_cputransparency_has_argv0_flag then
 			-- set target argv[0]
-			new_argv[5] = "-0"
-			new_argv[6] = argv[1] 
+			table.insert(new_argv, "-0")
+			table.insert(new_argv, argv[1])
 		end
 
 		if conf_cputransparency_qemu_has_libattr_hack_flag then
@@ -634,7 +639,7 @@ function sb_execve_postprocess_cpu_transparency_executable(rule, exec_policy,
 				-- drop LD_TRACE_ from target environment
 				if not string.match(envp[i], "^LD_TRACE_.*") then
 					table.insert(new_envp, envp[i])
-				else                    
+				else
 					-- .. and move it to qemu command line 
 					table.insert(new_argv, "-E")
 					table.insert(new_argv, envp[i])

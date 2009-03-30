@@ -205,6 +205,13 @@ function load_configuration()
 	if [ -f $HOME/.scratchbox2/$TARGET/sb2.config.d/gcc.config.sh ]; then
 		. $HOME/.scratchbox2/$TARGET/sb2.config.d/gcc.config.sh
 	fi
+	# attempt to make SBOX_CPUTRANSPARENCY_METHOD path absolute
+	if [ -n "$SBOX_CPUTRANSPARENCY_METHOD" ]; then
+		_cputransp=$(which $SBOX_CPUTRANSPARENCY_METHOD)
+		if [ -e $_cputransp ]; then
+			SBOX_CPUTRANSPARENCY_METHOD=$_cputransp
+		fi
+	fi
 }
 
 function clone_target_root_dir_from()
@@ -238,6 +245,9 @@ function sboxify_environment()
 	fi
 
 	# Check that tools exist (or at least the directory exists)
+	if [ -z "$SBOX_TOOLS_ROOT" ]; then
+		SBOX_TOOLS_ROOT="/"
+	fi
 	if [ ! -d "$SBOX_TOOLS_ROOT" ]; then
 		exit_error "Tools directory '$SBOX_TOOLS_ROOT' does not exist."
 	fi
@@ -784,7 +794,7 @@ END
 			$HOME/.scratchbox2/$SBOX_TARGET/locales \
 			conf_target_locale_path
 	else
-		# SBOX_CPUTRANSPARENCY_METHOD is set empty,
+		# SBOX_CPUTRANSPARENCY_METHOD is not empty,
 		# host CPU != target CPU
 		cat <<END >>$SBOX_SESSION_DIR/exec_config.lua
 conf_target_ld_so_library_path = nil

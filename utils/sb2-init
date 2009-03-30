@@ -282,7 +282,7 @@ fi
 
 if [ -z "$MAPPING_MODE" ]; then
 	MAPPING_MODE="simple"
-	echo "Warning: Mapping mode not specified, using default ($MAPPING_MODE)"
+	echo "Info: Mapping mode not specified, using default ($MAPPING_MODE)"
 fi
 
 if [ ! -d $SBOX_DIR/share/scratchbox2/lua_scripts/pathmaps/$MAPPING_MODE ]; then
@@ -324,6 +324,10 @@ if echo "$HOST_ARCH" | grep -q "^i.86*"; then
 	HOST_ARCH="i[3456]86"
 fi
 echo "sb2-init: Host architecture is '$HOST_ARCH'"
+
+if [ "$HOST_ARCH" != "$ARCH" -a -z "$SB2INIT_CPUTRANSP" ]; then
+	SB2INIT_CPUTRANSP="qemu-$ARCH"
+fi
 
 case "$ARCH" in
 	$HOST_ARCH*) ;;

@@ -118,6 +118,10 @@ WRAP: int openat(int dirfd, const char *pathname, int flags, ...) : \
 	map_at(dirfd,pathname) optional_arg_is_create_mode(flags&O_CREAT) \
 	postprocess(pathname) \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
+WRAP: int __openat_2(int dirfd, const char *pathname, int flags) : \
+ 	map_at(dirfd,pathname) \
+ 	postprocess(pathname) \
+ 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
 WRAP: int openat64(int dirfd, const char *pathname, int flags, ...) : \
 	map_at(dirfd,pathname) optional_arg_is_create_mode(flags&O_CREAT) \
 	postprocess(pathname) \

@@ -227,6 +227,15 @@ extern void openat_postprocess_pathname(
 	fdpathdb_register_mapping_result(realfnname, ret_fd, res, pathname);
 }
 
+extern void __openat_2_postprocess_pathname(
+	const char *realfnname, int ret_fd, mapping_results_t *res,
+	int dirfd, const char *pathname, int flags)
+{
+	(void)dirfd;
+	(void)flags;
+	fdpathdb_register_mapping_result(realfnname, ret_fd, res, pathname);
+}
+
 extern void openat64_postprocess_pathname(
 	const char *realfnname, int ret_fd, mapping_results_t *res,
 	int dirfd, const char *pathname, int flags, int mode)

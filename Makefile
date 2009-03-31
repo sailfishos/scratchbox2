@@ -130,6 +130,7 @@ install-noarch: regular
 	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/tools
 	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/simple
 	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/devel
+	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/nomap
 	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/install
 
 	# "scripts" and "wrappers" are visible to the user in some 
@@ -175,6 +176,7 @@ install-noarch: regular
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/tools/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/tools/
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/simple/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/simple/
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/devel/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/devel/
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/nomap/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/nomap/
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/install/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/install/
 	$(Q)(set -e; cd $(prefix)/share/scratchbox2/lua_scripts/pathmaps; ln -sf devel maemo)
 

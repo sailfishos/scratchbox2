@@ -81,6 +81,8 @@ Options:
     -C "options"      add extra options for the compiler, for example:
                       "-fgnu89-inline"
     -A arch           manually override target architecture
+    -M arch           manually override machine name (see uname(2)). This
+                      defaults to the target architecture (see option -A)
     -v                display version
 
 Examples:
@@ -117,7 +119,7 @@ SBOX_TARGET_ROOT=$SBOX_TARGET_ROOT
 
 SBOX_CPU=$ARCH
 SBOX_CPUTRANSPARENCY_METHOD="$SB2INIT_CPUTRANSP"
-SBOX_UNAME_MACHINE=$ARCH
+SBOX_UNAME_MACHINE=$MACHINE_ARCH
 
 DEB_BUILD_ARCH=$SB2INIT_DEB_BUILD_ARCH
 DEB_BUILD_ARCH_CPU=$SB2INIT_DEB_BUILD_ARCH_CPU
@@ -317,6 +319,14 @@ else
 fi
 echo "sb2-init: Target architecture is '$ARCH'"
 
+if [ -z "$SB2INIT_MACHINE_ARCH" ]; then
+	MACHINE_ARCH=$ARCH
+else
+	# forced by a command-line option.
+	MACHINE_ARCH=$SB2INIT_MACHINE_ARCH
+	echo "sb2-init: Target machine is '$SB2INIT_MACHINE_ARCH'"
+fi
+
 DEBIAN_CPU=$ARCH
 
 HOST_ARCH="$(uname -m)"
@@ -349,6 +359,7 @@ case "$ARCH" in
 	i486*) ;;
 	i586*) ;;
 	i686*) ;;
+	amd64*) ;;
 	*)
 		echo "Unsupported target architecture: '$ARCH'"
 		echo "You must add support for it into preload/sb_exec.c"

@@ -2,7 +2,7 @@ Source: scratchbox2
 Maintainer: Riku Voipio <riku.voipio@iki.fi>
 Section: utils
 Priority: extra
-Standards-Version: 3.7.3
+Standards-Version: 3.8.0
 Build-Depends: debhelper (>=5), automake1.10, autoconf, gcc-multilib [amd64], libc6-dev-i386 [amd64], g++-multilib [amd64]
 XS-Vcs-Git: git://anongit.freedesktop.org/git/sbox2
 XS-Vcs-Browser: http://gitweb.freedesktop.org/?p=sbox2.git
@@ -10,7 +10,7 @@ Homepage: http://www.freedesktop.org/wiki/Software/sbox2
 
 Package: scratchbox2
 Architecture: i386 amd64 powerpc ia64
-Depends: ${shlibs:Depends}
+Depends: ${shlibs:Depends}, libsb2 (= ${binary:Version})
 Recommends: qemu, fakeroot
 Suggests: sbrsh
 Description: Transparent cross compiling environment

@@ -1,5 +1,7 @@
 #!/bin/sh
 #
+#DEBHELPER#
+#
 # This scripts checks whether
 # /usr/share/scratchbox2/lua_scripts/pathmaps/maemo is
 # empty directory and if it is, it replaces it with

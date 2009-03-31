@@ -1,6 +1,20 @@
-scratchbox2 (1.99.0.30) unstable; urgency=low
-  * fill me up
- -- Lauri Aarnio <lauri.aarnio@iki.fi>  Tue, 09 Dec 2008 11:52:14 +0200
+scratchbox2 (2.0-1) unstable; urgency=low
+
+  * scratchbox 2.0 release!
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Wed, 01 Apr 2009 00:17:49 +0300
+
+scratchbox2 (1.99.0.31-2) unstable; urgency=low
+
+  * split libsb2 to a separate package
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Mon, 23 Feb 2009 15:22:26 +0200
+
+scratchbox2 (1.99.0.31-1) unstable; urgency=low
+
+  * New upstream version
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Mon, 23 Feb 2009 14:39:35 +0200
 
 scratchbox2 (1.99.0.27-1) unstable; urgency=low
 

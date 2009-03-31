@@ -39,7 +39,8 @@ install: build
 	# make lintian happy
 	rm -f debian/scratchbox2/usr/share/scratchbox2/host_usr
 	ln -sf ../.. debian/scratchbox2/usr/share/scratchbox2/host_usr
-	cp -P debian/scratchbox2/usr/lib/libsb2/* debian/libsb2/usr/lib/libsb2
+	mv debian/scratchbox2/usr/lib/libsb2/* debian/libsb2/usr/lib/libsb2
+	rm -rf debian/scratchbox2/usr/lib/
 
 binary-arch: install
 	dh_testdir -a
@@ -51,7 +52,7 @@ binary-arch: install
 	dh_fixperms -a
 	# FIXME, do in postinst
 	dh_installdeb -a
-	LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:debian/scratchbox2/usr/lib/libsb2/ dh_shlibdeps -a
+	dh_shlibdeps -Llibsb2 -l/usr/lib/libsb2 -- --ignore-missing-info
 	dh_gencontrol -a
 	dh_md5sums -a
 	dh_builddeb -a

@@ -114,6 +114,12 @@ fi
 # read in the values that were used when sb2-init was executed:
 . $SBOX_CONFIG_DIR/sb2-init-args
 
+if [ -z "$SB2INIT_MAPPING_MODE" ]; then
+	# Mapping mode was not specified when sb2-init was executed
+	# => use the default mode.
+	SB2INIT_MAPPING_MODE="simple"
+fi
+
 #==============================================
 # Finally:
 

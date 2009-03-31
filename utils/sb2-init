@@ -335,12 +335,9 @@ if echo "$HOST_ARCH" | grep -q "^i.86*"; then
 fi
 echo "sb2-init: Host architecture is '$HOST_ARCH'"
 
-if [ "$HOST_ARCH" != "$ARCH" -a -z "$SB2INIT_CPUTRANSP" ]; then
-	SB2INIT_CPUTRANSP="qemu-$ARCH"
-fi
-
 case "$ARCH" in
 	$HOST_ARCH*) ;;
+
 	arm*) 
 		# SBOX_GCC_TARGET from gcc.config.sh..
 		if [ -z "$SBOX_GCC_TARGET" ]; then
@@ -351,15 +348,20 @@ case "$ARCH" in
 				DEBIAN_CPU=armel
 			fi
 		fi
+		DEFAULT_CPUTRANSP="qemu-$ARCH"
 		;;
-	ppc*) ;;
-	mips*) ;;
-	sh*) ;;
+
+	ppc*)	DEFAULT_CPUTRANSP="qemu-$ARCH" ;;
+	mips*)	DEFAULT_CPUTRANSP="qemu-$ARCH" ;;
+	sh*)	DEFAULT_CPUTRANSP="qemu-$ARCH" ;;
+
+	# No DEFAULT_CPUTRANSP for any of the x86 architectures:
 	i386*) ;;
 	i486*) ;;
 	i586*) ;;
 	i686*) ;;
 	amd64*) ;;
+
 	*)
 		echo "Unsupported target architecture: '$ARCH'"
 		echo "You must add support for it into preload/sb_exec.c"
@@ -368,6 +370,34 @@ case "$ARCH" in
 		;;
 
 esac
+
+if [ "$HOST_ARCH" != "$ARCH" -a -z "$SB2INIT_CPUTRANSP" ]; then
+	# Host arch. != target arch, and CPU transparency was not specified...
+
+	if [ -z "$DEFAULT_CPUTRANSP" ]; then
+		# ...and there is no default CPU transparency method.
+		# This may be an error, or may not be: If one has a 64-bit host,
+		# but develops for an 32-bit Intel target, the architecture 
+		# strings are different but Qemu is not needed.
+		echo "sb2-init: WARNING:"
+		echo "sb2-init: *******  Host architecture is different than target architecture,"
+		echo "sb2-init: *******  but CPU transparency was not set. This may not be what"
+		echo "sb2-init: *******  you want (maybe you should run sb2-init again and"
+		echo "sb2-init: *******  specify 'qemu-$ARCH' as the CPU transparency method?)"
+	else
+		# ...try to use the default CPU transparency.
+		_cputransp=$(which $DEFAULT_CPUTRANSP)
+		if [ -n "$_cputransp" -a -e "$_cputransp" ]; then
+			SB2INIT_CPUTRANSP=$_cputransp
+		else
+			echo "sb2-init: WARNING:"
+			echo "sb2-init: *******  default CPU transparency ($DEFAULT_CPUTRANSP) can not"
+			echo "sb2-init: *******  be located or executed. Maybe you should run sb2-init "
+			echo "sb2-init: *******  again and specify a working CPU transparency method"
+			echo "sb2-init: *******  with the '-c' option?"
+		fi
+	fi
+fi
 
 # defaults for SB2_INIT_DEB_BUILD_GNU_TYPE, SB2_INIT_DEB_HOST_GNU_TYPE, etc,
 # and the cross-gcc prefix list:

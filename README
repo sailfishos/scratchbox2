@@ -24,6 +24,8 @@ You need git to work with sbox2, get it from http://git.or.cz/.
 
 Clone the scratchbox 2 repository:
 $ git clone git://anongit.freedesktop.org/git/sbox2
+or if behind a corporate firewall, use http:
+$ git clone http://anongit.freedesktop.org/git/sbox2.git
 
 For x86_64 hosts Scratchbox 2 automatically builds both i386
 and x86_64 versions of libsb2.so, for this reason you need
@@ -36,9 +38,10 @@ $ cd sbox2
 $ ./autogen.sh
 $ make install prefix=$HOME/sb2
 
-You need Qemu for cpu-transparency. As of 2008-10, the SVN version of qemu
-seems to work pretty well even with modern codesourcery toolchains (2008q3).
-Get the latest Qemu with: 
+You need Qemu for cpu-transparency. As of 2009-03, qemu-0.10.1 seems to work
+pretty well.
+
+Latest Qemu can be retrieved with: 
 
 $ svn co svn://svn.savannah.nongnu.org/qemu/trunk qemu
 $ cd qemu
@@ -63,8 +66,7 @@ To complete sb2 target setup:
 $ mkdir $HOME/buildroot
 $ cd $HOME/buildroot
 $ cp -a $HOME/arm-2008q3/arm-none-linux-gnueabi/libc/{lib,etc,usr} .
-$ $HOME/sb2/bin/sb2-init -c /abs/path/to/qemu-arm my_target \
-	arm-none-linux-gnueabi-gcc
+$ $HOME/sb2/bin/sb2-init my_target arm-none-linux-gnueabi-gcc
 
 That will automatically generate a working target config for the compiler
 given on the command line and run sb2-build-libtool script to get you a
@@ -86,7 +88,12 @@ export PATH=$PATH:$HOME/sb2/bin
 -- snip --
 
 After that you can run sb2 easily from anywhere and it'll just do its magic.
+Continuing the above examples, here's how to compile and run a simple
+hello-world program:
 
+$ sb2 gcc -o hello hello.c
+$ sb2 ./hello
+Hello, World!
 
 
 MAEMO DEVELOPMENT
@@ -142,6 +149,12 @@ the actual, possibly modified, arguments. The result depends on how sb2
 was configured (see notes about sb2-init above)
 
 
+KNOWN ISSUES
+
+1. Dmalloc is utterly and completely incompatible with Scratchbox 2.
+2. Performance is not as good as it could be.
+3. Memory leaks exist, but they have not posed significant problems
+   so far.
 
 -- 
 That's all folks, enjoy!

@@ -1,4 +1,3 @@
 * Cleanup lua_scripts/argvenvp.lua, there's duplicate code in it at the
   moment. Naming should be changed to indicate it's really about
   controlling execve.
-* sb2-init -c needs a full path to the qemu-arm, fix it to find it from PATH

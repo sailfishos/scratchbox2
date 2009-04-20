@@ -368,6 +368,10 @@ devel_mode_rules_usr_share = {
 		{path = "/usr/share/pkgconfig/shared-mime-info.pc",
 		 map_to = target_root, readonly = true},
 
+		-- for "icu":
+		{dir = "/usr/share/icu", map_to = target_root,
+		 readonly = true},
+
 		-- debhelper scripts, now from rootstrap (maping changed due to
 		-- upstart-dev's requirements)
 		{dir = "/usr/share/debhelper/autoscripts",

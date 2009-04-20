@@ -65,6 +65,10 @@ GATE: char * getwd (char *buf) : returns_string
 GATE: char *realpath(const char *name, char *resolved) : \
 	map(name) returns_string
 
+GATE: char *__realpath_chk(__const char *__restrict __name, \
+	char *__restrict __resolved, size_t __resolvedlen) : \
+	map(__name) returns_string
+
 GATE: int uname(struct utsname *buf)
 
 #ifdef HAVE_FTS_H

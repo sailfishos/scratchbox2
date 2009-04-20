@@ -583,7 +583,45 @@ char *realpath_gate(
 			}
 		} /* else not reversed, just return rp */
 	}
-SB_LOG(SB_LOGLEVEL_DEBUG, "REALPATH: returns '%s'", rp);
+	SB_LOG(SB_LOGLEVEL_NOISE, "REALPATH: returns '%s'", rp);
+	return(rp);
+}
+
+/* gate for 
+ *     char *__realpath_chk (__const char *__restrict __name,
+ *		char *__restrict __resolved, size_t __resolvedlen)
+ * (__realpath_chk is yet another ugly trick from the creators of glibc)
+*/
+char *__realpath_chk_gate(
+	char *(*real__realpath_chk_ptr)(__const char *__restrict __name,
+		char *__restrict __resolved, size_t __resolvedlen),
+        const char *realfnname,
+	__const char *__restrict name,	/* name, already mapped */
+	char *__restrict __resolved,
+	size_t __resolvedlen)
+{
+	char *sbox_path = NULL;
+	char *rp;
+	
+	if ((rp = (*real__realpath_chk_ptr)(name,__resolved,__resolvedlen)) == NULL) {
+		return NULL;
+	}
+	if (*rp != '\0') {
+		sbox_path = scratchbox_reverse_path(realfnname, rp);
+		if (sbox_path) {
+			if (__resolved) {
+				strncpy(__resolved, sbox_path, __resolvedlen);
+				rp = __resolved;
+				free(sbox_path);
+			} else {
+				/* resolved was null - assume that glibc 
+				 * allocated memory */
+				free(rp);
+				rp = sbox_path;
+			}
+		} /* else not reversed, just return rp */
+	}
+	SB_LOG(SB_LOGLEVEL_NOISE, "REALPATH: returns '%s'", rp);
 	return(rp);
 }
 

@@ -590,6 +590,12 @@ devel_mode_rules_scratchbox1 = {
 		 log_level = "warning",
 		 readonly = true, virtual_path = true},
 
+		-- compiler tools:
+		{prefix = "/scratchbox/compilers/bin",
+		 replace_by = "/usr/bin",
+		 log_level = "warning",
+		 readonly = true, virtual_path = true},
+
 		-- Scratchbox 1 tools/bin
 		--
 		-- set exec_policy for perl & python:

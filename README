@@ -40,7 +40,7 @@ You need Qemu for cpu-transparency. As of 2008-10, the SVN version of qemu
 seems to work pretty well even with modern codesourcery toolchains (2008q3).
 Get the latest Qemu with: 
 
-$ svn co svn://svn.savannah.nongnu.org/qemu/trunk qemu
+$ git clone git://git.savannah.nongnu.org/qemu.git
 $ cd qemu
 $ ./configure --prefix=$HOME/sb2 --target-list=arm-linux-user
 $ make && make install

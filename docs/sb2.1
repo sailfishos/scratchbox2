@@ -75,10 +75,6 @@ target_root (rootstrap). Note that this can be really slow. See alse option -c.
 \-T DIRECTORY
 Use DIRECTORY as tools_root (override the value which was specified to sb2-init when the target specification was created).
 
-.SH ENVIRONMENT
-There are quite many environment variables being used. Since sb2 is still
-very volatile, the best documentation is in the source of sb2 script itself.
-
 .SH EXAMPLES
 .TP
 sb2 ./configure
@@ -96,7 +92,7 @@ To configure sb2, do something like this:
 mkdir $HOME/buildroot
 cd $HOME/buildroot
 [fetch a rootfs from somewhere and extract it here]
-sb2-init -c /abs/path/to/qemu-arm TARGET /path/to/cross-compiler/bin/arm-linux-gcc
+sb2-init -c qemu-arm TARGET /path/to/cross-compiler/bin/arm-linux-gcc
 .fi
 
 To change default scratchbox2 target:
@@ -107,9 +103,8 @@ sb2-config -d another_target
 .P
 .I ~/.scratchbox2/config
 .SH SEE ALSO
-.BR gcc (1),
-.BR ld (1),
 .BR fakeroot (1),
+.BR qemu (1)
 No known bugs at this time.
 .SH AUTHOR
 .nf

@@ -439,6 +439,11 @@ WRAP: int setxattr(const char *path, const char *name, const void *value, \
 	map(path) fail_if_readonly(path,-1,EROFS)
 #endif
 #endif
+
+WRAP: int statfs(const char *path, struct statfs *buf) : map(path)
+WRAP: int statfs64(const char *path, struct statfs64 *buf) : map(path)
+WRAP: int statvfs(const char *path, struct statvfs *buf) : map(path)
+
 WRAP: int stat(const char *file_name, struct stat *buf) : map(file_name)
 #ifdef HAVE_STAT64
 WRAP: int stat64(const char *file_name, struct stat64 *buf) : map(file_name)

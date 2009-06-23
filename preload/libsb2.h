@@ -72,6 +72,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/resource.h>
+#include <sys/vfs.h>
+#include <sys/statvfs.h>
 
 #include <glob.h>
 

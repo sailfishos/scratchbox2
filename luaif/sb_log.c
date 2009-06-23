@@ -41,6 +41,8 @@
 #include <fcntl.h>
 #include <string.h>
 #include <sys/resource.h>
+#include <sys/vfs.h>
+#include <sys/statvfs.h>
 
 #include <sb2.h>
 #include <config.h>

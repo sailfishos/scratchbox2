@@ -14,6 +14,8 @@
 #include <sys/socket.h>
 #include <sys/resource.h>
 #include <sys/time.h>
+#include <sys/vfs.h>
+#include <sys/statvfs.h>
 
 #include "exported.h"
 #include "sb2.h"

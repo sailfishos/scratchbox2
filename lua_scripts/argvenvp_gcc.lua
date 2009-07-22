@@ -60,16 +60,28 @@ function register_gcc_component_path(tmp, gccrule)
 	-- 2. note that cross_gcc_dir is not empty, this file
 	--    won't be loaded at all if it is (see argvenvp.lua),
 	-- 3. Wrappers for host-* tools live in /sb2/wrappers.
-	if gccrule == nil or gccrule.cross_gcc_dir == nil then
-		tmp.path_prefixes = generic_gcc_tools_path_prefixes
-	else
-		local gcc_tools_path_prefixes = {
-			"/usr/bin/",
-			gccrule.cross_gcc_dir,
-			"/sb2/"
-		}
-		tmp.path_prefixes = gcc_tools_path_prefixes
+	local gcc_tools_path_prefixes = {}
+
+    -- lua array copy wtf
+	for j,x in ipairs(generic_gcc_tools_path_prefixes) do
+		table.insert(gcc_tools_path_prefixes, x)
 	end
+
+	if gccrule == nil then
+		return
+	end
+
+	if gccrule.cross_gcc_dir ~= nil then
+		table.insert(gcc_tools_path_prefixes, gccrule.cross_gcc_dir)
+	end
+
+	if gccrule.cross_gcc_progs_path ~= nil then
+		for path in string.gmatch(gccrule.cross_gcc_progs_path,"[^:]+") do
+			table.insert(gcc_tools_path_prefixes, path)
+		end
+	end
+
+	tmp.path_prefixes = gcc_tools_path_prefixes
 	argvmods[tmp.name] = tmp
 end
 

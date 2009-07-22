@@ -94,6 +94,7 @@ gcc_config$gcc_version_id = {
 
 	cross_gcc_prefix_list="$SBOX_CROSS_GCC_PREFIX_LIST",
 	cross_gcc_dir="$SBOX_CROSS_GCC_DIR",
+	cross_gcc_progs_path="$SBOX_CROSS_GCC_PROGS_PATH",
 	cross_gcc_version="$SBOX_CROSS_GCC_VERSION",
 	cross_gcc_shortversion="$SBOX_CROSS_GCC_SHORTVERSION",
 
@@ -256,6 +257,9 @@ else
 		echo "Target architecture set to $ARCH"
 	fi
 fi
+
+# Path where gcc searches for sub-tools (ld, as, cc1,..)
+SBOX_CROSS_GCC_PROGS_PATH=$($GCC -print-search-dirs|grep ^programs:|sed 's/programs: =//')
 
 # default for the cross-gcc prefix list:
 # these may be changed by sb2rc.$MAPPING_MODE

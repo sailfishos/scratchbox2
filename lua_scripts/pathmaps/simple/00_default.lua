@@ -45,6 +45,7 @@ simple_chain = {
 		-- -----------------------------------------------
 		-- 99. Other rules.
 		{prefix = "/usr/lib/perl", map_to = tools},
+		{prefix = "/usr/lib/gcc", map_to = tools},
 		{prefix = "/usr/lib", map_to = target_root},
 		{prefix = "/usr/include", map_to = target_root},
 		{prefix = "/home/user", map_to = target_root},

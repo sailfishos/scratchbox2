@@ -61,6 +61,8 @@ mapall_chain = {
 		 readonly = true},
 		{path = "/usr/bin/sb2-qemu-gdbserver-prepare",
 		    use_orig_path = true, readonly = true},
+		{path = "/usr/bin/sb2-session", use_orig_path = true,
+		 readonly = true},
 
 		{prefix = target_root, use_orig_path = true,
 		 readonly = target_root_is_readonly},

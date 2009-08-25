@@ -560,6 +560,15 @@ simple_chain = {
 		-- Other rules are in /etc and /usr/share rules above.
 		--
 		{prefix = "/lib/terminfo", actions = terminfo_test},
+
+		-- Next one is needed, because at some point someone
+		-- decided to make /etc/resolvconf/run to be yet another 
+		-- symlink in some newer Linux distros, pointing to /lib... 
+		-- (other resolver-related rules can be found in /var 
+		-- and /etc rules)
+		{dir = "/lib/init/rw/resolvconf", use_orig_path = true,
+		 readonly = true},
+
 		{prefix = "/lib", map_to = target_root, readonly = true},
 
 		-- -----------------------------------------------

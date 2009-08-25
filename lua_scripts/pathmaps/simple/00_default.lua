@@ -44,7 +44,6 @@ simple_chain = {
 
 		-- -----------------------------------------------
 		-- 99. Other rules.
-		{prefix = "/lib", map_to = target_root},
 		{prefix = "/usr/lib/perl", map_to = tools},
 		{prefix = "/usr/lib", map_to = target_root},
 		{prefix = "/usr/include", map_to = target_root},
@@ -56,7 +55,28 @@ simple_chain = {
 		{prefix = "/proc", custom_map_funct = sb2_procfs_mapper,
 		 virtual_path = true},
 		{prefix = "/sys", use_orig_path = true},
-		{prefix = "/etc/resolv.conf", use_orig_path = true},
+
+		--
+		-- Following 3 (or 4) rules are needed because package
+		-- "resolvconf" makes resolv.conf to be symlink that
+		-- points to /etc/resolvconf/run/resolv.conf and
+		-- we want them all to come from host.
+		--
+		{prefix = "/var/run/resolvconf", use_orig_path = true,
+		 readonly = true},
+		{prefix = "/etc/resolvconf", use_orig_path = true,
+		 readonly = true},
+		{prefix = "/etc/resolv.conf", use_orig_path = true,
+		 readonly = true},
+		-- ...and this one is needed, because at some point someone
+		-- decided to make /etc/resolvconf/run to be yet another 
+		-- symlink in some newer Linux distros, pointing to /lib... 
+		{dir = "/lib/init/rw/resolvconf", use_orig_path = true,
+		 readonly = true},
+
+		{prefix = "/lib", map_to = target_root},
+		--
+
 		{prefix = tools, use_orig_path = true},
 		{path = "/", use_orig_path = true},
 		{prefix = "/", map_to = tools}
@@ -67,7 +87,6 @@ qemu_chain = {
 	next_chain = nil,
 	binary = basename(sbox_cputransparency_method),
 	rules = {
-		{prefix = "/lib", map_to = target_root},
 		{prefix = "/usr/lib", map_to = target_root},
 		{prefix = "/usr/local/lib", map_to = target_root},
 		{prefix = "/tmp", use_orig_path = true},
@@ -75,7 +94,28 @@ qemu_chain = {
 		{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
 		 virtual_path = true},
 		{prefix = "/sys", use_orig_path = true},
-		{prefix = "/etc/resolv.conf", use_orig_path = true},
+
+		--
+		-- Following 3 (or 4) rules are needed because package
+		-- "resolvconf" makes resolv.conf to be symlink that
+		-- points to /etc/resolvconf/run/resolv.conf and
+		-- we want them all to come from host.
+		--
+		{prefix = "/var/run/resolvconf", use_orig_path = true,
+		 readonly = true},
+		{prefix = "/etc/resolvconf", use_orig_path = true,
+		 readonly = true},
+		{prefix = "/etc/resolv.conf", use_orig_path = true,
+		 readonly = true},
+		-- ...and this one is needed, because at some point someone
+		-- decided to make /etc/resolvconf/run to be yet another 
+		-- symlink in some newer Linux distros, pointing to /lib... 
+		{dir = "/lib/init/rw/resolvconf", use_orig_path = true,
+		 readonly = true},
+
+		{prefix = "/lib", map_to = target_root},
+		--
+
 		{prefix = tools, use_orig_path = true},
 		{path = "/", use_orig_path = true},
 		{prefix = "/", map_to = tools}

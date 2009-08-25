@@ -81,8 +81,25 @@ mapall_chain = {
 		{prefix = sbox_dir .. "/share/scratchbox2",
 		 use_orig_path = true},
 
+		--
+		-- Following 3 (or 4) rules are needed because package
+		-- "resolvconf" makes resolv.conf to be symlink that
+		-- points to /etc/resolvconf/run/resolv.conf and
+		-- we want them all to come from host.
+		--
+		{prefix = "/var/run/resolvconf", use_orig_path = true,
+		 readonly = true},
+		{prefix = "/etc/resolvconf", use_orig_path = true,
+		 readonly = true},
 		{prefix = "/etc/resolv.conf", use_orig_path = true,
 		 readonly = true},
+		-- ...and this one is needed, because at some point someone
+		-- decided to make /etc/resolvconf/run to be yet another 
+		-- symlink in some newer Linux distros, pointing to /lib... 
+		{dir = "/lib/init/rw/resolvconf", use_orig_path = true,
+		 readonly = true},
+
+		--
 		{path = "/etc/passwd",
 		 use_orig_path = true, readonly = true},
 

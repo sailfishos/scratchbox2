@@ -245,7 +245,7 @@ static void print_exec(void *priv,
 	    (readonly_flag ? " (readonly)" : ""));
 
 	for (i = 0; new_argv[i]; i++) {
-		printf("argv[%d]\t%s\n", i, new_argv[i]);
+		printf("argv[%d]\t'%s'\n", i, new_argv[i]);
 	}
 
 	/* compare orig. and new envs. a very simple diff. */

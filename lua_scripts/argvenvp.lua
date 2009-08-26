@@ -391,6 +391,14 @@ function sb_execve_postprocess_native_executable(rule, exec_policy,
 			table.insert(new_argv, ld_lib_path)
 		end
 
+		-- Ignore RPATH and RUNPATH information:
+		-- This will prevent accidental use of host's libraries,
+		-- if the binary has been set to use RPATHs. 
+		-- (it would be nice if we could log warnings about them,
+		-- but currently there is no easy way to do that)
+		table.insert(new_argv, "--inhibit-rpath")
+		table.insert(new_argv, "") -- empty "LIST" == the binary itself
+
 		-- NOTE/WARNING: The default ld.so (ld-linux.so) will loose
 		-- argv[0], when the binary is executed by ld.so's
 		-- command line (which we will be doing). It will always copy 

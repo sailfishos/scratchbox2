@@ -7,6 +7,15 @@ rule_file_interface_version = "21"
 ----------------------------------
 
 sb1_compat_dir = sbox_target_root .. "/scratchbox1-compat"
+--
+-- scratchbox1-compat is symlink that points to
+-- the real sb1 compat directory.  To avoid mapping
+-- problems later, we resolve this symlink right now.
+--
+local resolved_compat_dir = sb.readlink(sb1_compat_dir)
+if resolved_compat_dir ~= nil then
+	sb1_compat_dir = resolved_compat_dir
+end
 
 -- Don't map the working directory where sb2 was started, unless
 -- that happens to be the root directory.
@@ -80,6 +89,14 @@ mapall_chain = {
 		-- to detect if it is running inside scratchbox..
 		{prefix = "/scratchbox/etc/scratchbox-version",
 		 replace_by = "/usr/share/scratchbox2/version",
+		 readonly = true, virtual_path = true},
+
+		--
+		-- Some of the scripts that starts up fremantle
+		-- GUI test existense of /scratchbox so we point
+		-- it to sb1_compat_dir.
+		--
+		{prefix = "/scratchbox", replace_by = sb1_compat_dir,
 		 readonly = true, virtual_path = true},
 
 		-- gdb wants to have access to our dynamic linker also.

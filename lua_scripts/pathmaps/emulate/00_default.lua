@@ -96,7 +96,7 @@ mapall_chain = {
 		-- GUI test existense of /scratchbox so we point
 		-- it to sb1_compat_dir.
 		--
-		{prefix = "/scratchbox", replace_by = sb1_compat_dir,
+		{dir = "/scratchbox", replace_by = sb1_compat_dir,
 		 readonly = true, virtual_path = true},
 
 		-- gdb wants to have access to our dynamic linker also.

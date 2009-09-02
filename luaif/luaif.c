@@ -235,7 +235,7 @@ static struct lua_instance *alloc_lua(void)
 		return(NULL);
 	}
 		
-	SB_LOG(SB_LOGLEVEL_DEBUG, "Loading '%s'", main_lua_script);
+	SB_LOG(SB_LOGLEVEL_INFO, "Loading '%s'", main_lua_script);
 
 	tmp->lua = luaL_newstate();
 
@@ -265,7 +265,7 @@ static struct lua_instance *alloc_lua(void)
 	}
 	free(lua_if_version);
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "lua initialized.");
+	SB_LOG(SB_LOGLEVEL_INFO, "lua initialized.");
 	SB_LOG(SB_LOGLEVEL_NOISE, "gettop=%d", lua_gettop(tmp->lua));
 
 	free(main_lua_script);

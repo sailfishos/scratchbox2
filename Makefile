@@ -184,7 +184,10 @@ install-noarch: regular
 
 	$(Q)install -c -m 644 $(SRCDIR)/modeconf/* $(prefix)/share/scratchbox2/modeconf/
 	$(Q)(set -e; cd $(prefix)/share/scratchbox2/modeconf; for f in *.devel; do \
-		b=$(basename $$f .devel); ln -sf $$f $$b.maemo; \
+		b=`basename $$f .devel`; ln -sf $$f $$b.maemo; \
+	done)
+	$(Q)(set -e; cd $(prefix)/share/scratchbox2/modeconf; for f in *-*.devel; do \
+		b=`basename $$f .devel`; ln -sf $$f $$b.accel; \
 	done)
 	$(Q)install -c -m 644 $(SRCDIR)/tests/* $(prefix)/share/scratchbox2/tests
 	$(Q)chmod a+x $(prefix)/share/scratchbox2/tests/run.sh

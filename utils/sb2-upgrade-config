@@ -128,10 +128,12 @@ fi
 # version "12" version-specific specs files for gcc compilers:
 # version "13" version- and architecture-specific specs files for gcc compilers:
 # version "14" fixes a bug in previous ones; "-A" was not relayed to gcc config
-if [ ! -f $SBOX_CONFIG_DIR/config-stamp.14 ]; then
+# version "15" just forces a reconfiguration (to check that the "specs" file is
+#              used, due to a bug in the top-level Makefile of scratchbox2)
+if [ ! -f $SBOX_CONFIG_DIR/config-stamp.15 ]; then
 	update_toolchain_configs $SB2INIT_COMPILERS
 fi
 
-log_config_action "Config updated to version #14"
-touch $SBOX_CONFIG_DIR/config-stamp.14
+log_config_action "Config updated to version #15"
+touch $SBOX_CONFIG_DIR/config-stamp.15
 

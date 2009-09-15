@@ -235,6 +235,7 @@ WRAP: int eaccess(const char *pathname, int mode) : \
 
 #ifdef AT_SYMLINK_NOFOLLOW
 WRAP: int faccessat(int dirfd, const char *pathname, int mode, int flags) : \
+	create_nomap_nolog_version \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname) \
 	check_and_fail_if_readonly(mode&W_OK,pathname,-1,EROFS)

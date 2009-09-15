@@ -573,7 +573,7 @@ function sbox_get_mapping_requirements(binary_name, func_name, full_path)
 	end
 
 	local call_translate_for_all = false
-	if (rule.custom_map_funct) then
+	if (rule.custom_map_funct or rule.actions) then
 		call_translate_for_all = true
 	end
 

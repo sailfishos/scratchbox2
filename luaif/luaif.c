@@ -582,7 +582,7 @@ static int lua_sb_path_exists(lua_State *l)
 		int	result = 0;
 		SB_LOG(SB_LOGLEVEL_DEBUG, "lua_sb_path_exists testing '%s'",
 			path);
-		if (access_nomap_nolog(path, F_OK) == 0) {
+		if (faccessat_nomap_nolog(AT_FDCWD, path, F_OK, AT_SYMLINK_NOFOLLOW) == 0) {
 			/* target exists */
 			lua_pushboolean(l, 1);
 			result=1;

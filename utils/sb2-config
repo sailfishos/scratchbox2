@@ -45,7 +45,7 @@ function list_targets()
 		exit 1
 	fi
 	list=$(find $HOME/.scratchbox2/ -maxdepth 2 -mindepth 2 \
-		-type f -and -name "sb2.config" 2>/dev/null)
+		-type f -and -name "sb2.config" 2>/dev/null | sort)
 	if [ $? != 0 ]; then
 		echo "Error occured while getting list of targets" >&2
 		exit 2

@@ -56,7 +56,8 @@ case "$sb2rc_mode" in
 		#    /usr/share/aclocal/glib-gettext.m4
 		#
 		# Note: now there are special mapping rules for perl & python,
-		# /usr/lib/perl* and /usr/lib/python* can be ignored here,
+		# /usr/lib/perl*, /usr/share/perl*, /usr/lib/python*,
+		# /usr/share/python* and /usr/share/pygobject* can be ignored here,
 		# because the mapping rules select correct versions for
 		# the binaries automatically.
 		#
@@ -64,8 +65,8 @@ case "$sb2rc_mode" in
 			@require-both: \
 			/usr/bin /usr/sbin /sbin \
 			@ignore: \
-			/usr/lib/perl \
-			/usr/lib/python \
+			/usr/lib/perl /usr/share/perl \
+			/usr/lib/python /usr/share/python /usr/share/pygobject \
 			/etc \
 			/usr/share/man /usr/share/doc /usr/share/gtk-doc \
 			/usr/share/doc-base \

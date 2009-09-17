@@ -4,7 +4,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "21"
+rule_file_interface_version = "22"
 ----------------------------------
 
 if (tools_root and tools_root ~= "/") then

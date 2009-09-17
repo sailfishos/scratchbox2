@@ -72,4 +72,21 @@ extern char *scratchbox_reverse_path(
 
 extern const char *fdpathdb_find_path(int fd);
 
+/* ---- internal constants: ---- */
+
+/* "flags", returned from mapping.lua to the C code: */
+#define SB2_MAPPING_RULE_FLAGS_READONLY			01
+#define SB2_MAPPING_RULE_FLAGS_CALL_TRANSLATE_FOR_ALL	02
+#define SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH		04
+/* list of all known flags: The preload library will log a warning, if 
+ * the mapping code (in Lua) returns unknown flags. This is important
+ * because it provides some kind of notification if/when new flags are
+ * added in the future, but the preload libraries which are installed to 
+ * the targets/tools are not properly updated.
+*/
+#define SB2_MAPPING_RULE_ALL_FLAGS \
+	(SB2_MAPPING_RULE_FLAGS_READONLY | \
+	 SB2_MAPPING_RULE_FLAGS_CALL_TRANSLATE_FOR_ALL | \
+	 SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH)
+
 #endif

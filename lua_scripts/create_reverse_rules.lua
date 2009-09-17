@@ -117,6 +117,9 @@ function reverse_one_rule_xxxx(output_rules, rule, n, forward_path)
 		if (rule.use_orig_path) then
 			new_rule.use_orig_path = true
 			d_path = forward_path
+		elseif (rule.force_orig_path) then
+			new_rule.force_orig_path = true
+			d_path = forward_path
 		elseif (rule.actions) then
 			reverse_conditional_actions(output_rules, new_rule.name,
 				rule, n, forward_path)
@@ -257,6 +260,9 @@ function print_rules(rules)
 
 		if (rule.use_orig_path) then
 			print("\t use_orig_path=true,")
+		end
+		if (rule.force_orig_path) then
+			print("\t force_orig_path=true,")
 		end
 		-- FIXME: To be implemented. See the "TODO" list at top.
 		-- elseif (rule.actions) then

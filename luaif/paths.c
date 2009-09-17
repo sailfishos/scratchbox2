@@ -338,6 +338,15 @@ static char last_char_in_str(const char *str)
 	return(*str);
 }
 
+static void check_mapping_flags(int flags, const char *fn)
+{
+	if (flags & (~SB2_MAPPING_RULE_ALL_FLAGS)) {
+		SB_LOG(SB_LOGLEVEL_WARNING,
+			"%s returned unknown flags (0%o)",
+			fn, flags & (~SB2_MAPPING_RULE_ALL_FLAGS));
+	}
+}
+
 /* ========== Interfaces to Lua functions: ========== */
 
 /* note: this expects that the lua stack already contains the mapping rule,
@@ -350,9 +359,9 @@ static char *call_lua_function_sbox_translate_path(
 	const char *binary_name,
 	const char *func_name,
 	const char *decolon_path,
-	int *ro_flagp)
+	int *flagsp)
 {
-	int ro_flag;
+	int flags;
 	char *translate_result = NULL;
 
 	SB_LOG(SB_LOGLEVEL_NOISE, "calling sbox_translate_path for %s(%s)",
@@ -373,7 +382,7 @@ static char *call_lua_function_sbox_translate_path(
 	lua_pushstring(luaif->lua, binary_name);
 	lua_pushstring(luaif->lua, func_name);
 	lua_pushstring(luaif->lua, decolon_path);
-	 /* 4 arguments, returns rule,policy,path,ro_flag */
+	 /* 4 arguments, returns rule,policy,path,flags */
 	lua_call(luaif->lua, 4, 4);
 
 	translate_result = (char *)lua_tostring(luaif->lua, -2);
@@ -385,8 +394,9 @@ static char *call_lua_function_sbox_translate_path(
 	} else if (translate_result) {
 		translate_result = strdup(translate_result);
 	}
-	ro_flag = lua_toboolean(luaif->lua, -1);
-	if (ro_flagp) *ro_flagp = ro_flag;
+	flags = lua_tointeger(luaif->lua, -1);
+	check_mapping_flags(flags, "sbox_translate_path");
+	if (flagsp) *flagsp = flags;
 	lua_pop(luaif->lua, 2); /* leave rule and policy to the stack */
 
 	if (translate_result) {
@@ -416,7 +426,7 @@ static char *call_lua_function_sbox_translate_path(
 			*/
 			SB_LOG(result_log_level, "pass: %s '%s'%s",
 				func_name, decolon_path,
-				(ro_flag ? " (readonly)" : ""));
+				((flags & SB2_MAPPING_RULE_FLAGS_READONLY) ? " (readonly)" : ""));
 		} else {
 			/* NOTE: Following SB_LOG() call is used by the log
 			 *       postprocessor script "sb2logz". Do not change
@@ -425,7 +435,7 @@ static char *call_lua_function_sbox_translate_path(
 			*/
 			SB_LOG(result_log_level, "mapped: %s '%s' -> '%s'%s",
 				func_name, decolon_path, cleaned_path,
-				(ro_flag ? " (readonly)" : ""));
+				((flags & SB2_MAPPING_RULE_FLAGS_READONLY) ? " (readonly)" : ""));
 		}
 		translate_result = cleaned_path;
 	}
@@ -458,7 +468,7 @@ static int call_lua_function_sbox_get_mapping_requirements(
 {
 	int rule_found;
 	int min_path_len;
-	int call_translate_for_all;
+	int flags;
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"calling sbox_get_mapping_requirements for %s(%s)",
@@ -473,21 +483,23 @@ static int call_lua_function_sbox_get_mapping_requirements(
 	lua_pushstring(luaif->lua, func_name);
 	lua_pushstring(luaif->lua, full_path_for_rule_selection);
 	/* 3 arguments, returns 4: (rule, rule_found_flag,
-	 * min_path_len, call_translate_for_all) */
+	 * min_path_len, flags) */
 	lua_call(luaif->lua, 3, 4);
 
 	rule_found = lua_toboolean(luaif->lua, -3);
 	min_path_len = lua_tointeger(luaif->lua, -2);
-	call_translate_for_all = lua_toboolean(luaif->lua, -1);
+	flags = lua_tointeger(luaif->lua, -1);
+	check_mapping_flags(flags, "sbox_get_mapping_requirements");
 	if (min_path_lenp) *min_path_lenp = min_path_len;
 	if (call_translate_for_all_p)
-		*call_translate_for_all_p = call_translate_for_all;
+		*call_translate_for_all_p =
+			(flags & SB2_MAPPING_RULE_FLAGS_CALL_TRANSLATE_FOR_ALL);
 
 	/* remove last 3 values; leave "rule" to the stack */
 	lua_pop(luaif->lua, 3);
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "sbox_get_mapping_requirements -> %d,%d,%d",
-		rule_found, min_path_len, call_translate_for_all);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "sbox_get_mapping_requirements -> %d,%d,0%o",
+		rule_found, min_path_len, flags);
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"call_lua_function_sbox_get_mapping_requirements:"
@@ -503,6 +515,7 @@ static char *call_lua_function_sbox_reverse_path(
 	const char *full_path)
 {
 	char *orig_path = NULL;
+	int flags;
 
 	SB_LOG(SB_LOGLEVEL_NOISE, "calling sbox_reverse_path for %s(%s)",
 		func_name, full_path);
@@ -511,14 +524,19 @@ static char *call_lua_function_sbox_reverse_path(
 	lua_pushstring(luaif->lua, binary_name);
 	lua_pushstring(luaif->lua, func_name);
 	lua_pushstring(luaif->lua, full_path);
-	 /* 3 arguments, returns orig_path */
-	lua_call(luaif->lua, 3, 1);
+	 /* 3 arguments, returns orig_path and flags */
+	lua_call(luaif->lua, 3, 2);
 
-	orig_path = (char *)lua_tostring(luaif->lua, -1);
+	orig_path = (char *)lua_tostring(luaif->lua, -2);
 	if (orig_path) {
 		orig_path = strdup(orig_path);
 	}
-	lua_pop(luaif->lua, 1); /* remove return value */
+
+	flags = lua_tointeger(luaif->lua, -1);
+	check_mapping_flags(flags, "sbox_reverse_path");
+	/* Note: "flags" is not yet used for anything, intentionally */
+ 
+	lua_pop(luaif->lua, 2); /* remove return values */
 
 	if (orig_path) {
 		SB_LOG(SB_LOGLEVEL_DEBUG, "orig_path='%s'", orig_path);
@@ -570,7 +588,7 @@ static char *sb_path_resolution(
 	char	*decolon_tmp;
 	char	*prefix_mapping_result;
 	struct path_entry_list prefix_path_list;
-	int	ro_tmp;
+	int	prefix_mapping_result_flags;
 	char	*path_copy;
 	int	call_translate_for_all = 0;
 
@@ -642,7 +660,7 @@ static char *sb_path_resolution(
 	prefix_mapping_result = call_lua_function_sbox_translate_path(
 		SB_LOGLEVEL_NOISE,
 		luaif, binary_name, "PATH_RESOLUTION",
-		decolon_tmp, &ro_tmp);
+		decolon_tmp, &prefix_mapping_result_flags);
 	free(decolon_tmp);
 	drop_policy_from_lua_stack(luaif);
 
@@ -655,6 +673,15 @@ static char *sb_path_resolution(
 	while (work) {
 		char	link_dest[PATH_MAX+1];
 		int	link_len;
+
+		if (prefix_mapping_result_flags &
+		    SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH) {
+			/* "force_orig_path" is set when symlinks MUST NOT
+			 * be followed. */
+			SB_LOG(SB_LOGLEVEL_NOISE,
+				"force_orig_path set => path resolution finished");
+			break;
+		}
 
 		if (dont_resolve_final_symlink && (work->pe_next == NULL)) {
 			/* this is last component, but here a final symlink
@@ -828,7 +855,7 @@ static char *sb_path_resolution(
 						SB_LOGLEVEL_NOISE,
 						luaif, binary_name,
 						"PATH_RESOLUTION/2",
-						work->pe_full_path, &ro_tmp);
+						work->pe_full_path, &prefix_mapping_result_flags);
 				drop_policy_from_lua_stack(luaif);
 			} else {
 				/* "standard mapping", based on prefix or
@@ -1061,6 +1088,8 @@ static void sbox_map_path_internal(
 				lua_pushnil(luaif->lua);
 			}
 		} else {
+			int	flags;
+
 			SB_LOG(SB_LOGLEVEL_NOISE2,
 				"sbox_map_path_internal: decolon_path='%s'",
 				decolon_path);
@@ -1068,7 +1097,9 @@ static void sbox_map_path_internal(
 			mapping_result = call_lua_function_sbox_translate_path(
 				SB_LOGLEVEL_INFO,
 				luaif, binary_name, func_name,
-				decolon_path, &(res->mres_readonly));
+				decolon_path, &flags);
+			res->mres_readonly = (flags & SB2_MAPPING_RULE_FLAGS_READONLY);
+
 			if (process_path_for_exec == 0) {
 				/* ...and remove rule and policy from stack */
 				drop_policy_from_lua_stack(luaif);

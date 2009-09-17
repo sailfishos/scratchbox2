@@ -4,6 +4,11 @@
 
 local forced_modename = sb.get_forced_mapmode()
 
+-- These must match the flag definitions in mapping.h:
+local RULE_FLAGS_READONLY = 1
+local RULE_FLAGS_CALL_TRANSLATE_FOR_ALL = 2
+local RULE_FLAGS_FORCE_ORIG_PATH = 4
+
 -- rule_file_path and rev_rule_file_path are global varibales
 if forced_modename == nil then
 	rule_file_path = session_dir .. "/rules/Default.lua"
@@ -59,11 +64,11 @@ function sb2_procfs_mapper(binary_name, func_name, rp, path, rule)
 
 	local mapped = sb.procfs_mapping_request(path)
 
-	-- Returns exec_policy, path, readonly_flag
+	-- Returns exec_policy, path, flags
 	if (mapped) then
 		ret_path = mapped
 	end
-	return nil, ret_path, false
+	return nil, ret_path, 0
 end
 
 -- all_exec_policies is a table, defined by the mapping rule file
@@ -135,6 +140,9 @@ function load_and_check_rules()
 	-- exec mapping code (argvenp.lua) and the
 	-- rule files:
 	--
+	-- Version 22:
+	-- - interface to custom_map_func was modified again:
+	--   Last return value is now a bitmask (was a boolean)
 	-- Version 21: native_app_message_catalog_prefix has
 	-- been removed (it was an exec policy attribute.)
 	-- Version 20 changed "script_interpreter_rule" field in
@@ -156,7 +164,7 @@ function load_and_check_rules()
 	--   (previously only one was expected)
 	-- - variables "esc_tools_root" and "esc_target_root"
 	--   were removed
-	local current_rule_interface_version = "21"
+	local current_rule_interface_version = "22"
 
 	do_file(rule_file_path)
 
@@ -294,7 +302,7 @@ function sbox_execute_replace_rule(path, replacement, rule)
 	return ret
 end
 
--- returns exec_policy, path and readonly_flag
+-- returns exec_policy, path, flags
 function sbox_execute_conditional_actions(binary_name,
 		func_name, rp, path, rule)
 	local actions = rule.actions
@@ -310,9 +318,9 @@ function sbox_execute_conditional_actions(binary_name,
 		-- candidate for the rule which will be applied
 		local rule_cand = actions[a]
 
-		local ret_ro = false
+		local ret_flags = 0
 		if (rule_cand.readonly) then
-			ret_ro = rule_cand.readonly
+			ret_flags = RULE_FLAGS_READONLY
 		end
 
 		if (rule_cand.if_exists_then_map_to or
@@ -334,7 +342,7 @@ function sbox_execute_conditional_actions(binary_name,
 				if (rule_cand.exec_policy ~= nil) then
 					ret_exec_policy = rule_cand.exec_policy
 				end
-				return ret_exec_policy, tmp_dest, ret_ro
+				return ret_exec_policy, tmp_dest, ret_flags
 			end
 		elseif (rule_cand.if_active_exec_policy_is) then
 			local ep = get_active_exec_policy()
@@ -361,7 +369,7 @@ function sbox_execute_conditional_actions(binary_name,
 			end
 		else
 			-- there MUST BE unconditional actions:
-			if (rule_cand.use_orig_path 
+			if (rule_cand.use_orig_path or rule_cand.force_orig_path 
 			    or rule_cand.map_to or rule_cand.replace_by) then
 				return sbox_execute_rule(binary_name,
 					 func_name, rp, path, rule_cand)
@@ -376,18 +384,18 @@ function sbox_execute_conditional_actions(binary_name,
 	-- no valid action found. This should not happen.
 	sb.log("error", string.format("mapping rule for '%s': execution of conditional actions failed", path))
 
-	return ret_exec_policy, path, false
+	return ret_exec_policy, path, 0
 end
 
 -- returns exec_policy, path and readonly_flag
 function sbox_execute_rule(binary_name, func_name, rp, path, rule)
 	local ret_exec_policy = nil
 	local ret_path = nil
-	local ret_ro = false
+	local ret_flags = 0
 	local rule_name
 
-	if (rule.readonly ~= nil) then
-		ret_ro = rule.readonly
+	if (rule.readonly) then
+		ret_flags = RULE_FLAGS_READONLY
 	end
 	if (rule.exec_policy ~= nil) then
 		ret_exec_policy = rule.exec_policy
@@ -395,7 +403,7 @@ function sbox_execute_rule(binary_name, func_name, rp, path, rule)
 	if (rule.use_orig_path) then
 		ret_path = path
 	elseif (rule.actions) then
-		ret_exec_policy, ret_path, ret_ro = 
+		ret_exec_policy, ret_path, ret_flags = 
 			sbox_execute_conditional_actions(binary_name,
 				func_name, rp, path, rule)
 	elseif (rule.map_to) then
@@ -406,6 +414,9 @@ function sbox_execute_rule(binary_name, func_name, rp, path, rule)
 		end
 	elseif (rule.replace_by) then
 		ret_path = sbox_execute_replace_rule(path, rule.replace_by, rule)
+	elseif (rule.force_orig_path) then
+		ret_path = path
+		ret_flags = ret_flags + RULE_FLAGS_FORCE_ORIG_PATH
 	else
 		ret_path = path
 		if (rule.name) then
@@ -417,7 +428,7 @@ function sbox_execute_rule(binary_name, func_name, rp, path, rule)
 			"have any valid actions, path=%s", rule_name, path))
 	end
 	
-	return ret_exec_policy, ret_path, ret_ro
+	return ret_exec_policy, ret_path, ret_flags
 end
 
 -- returns rule and min_path_len, minimum length which is needed for
@@ -491,17 +502,17 @@ end
 --   1. the rule used to perform the mapping
 --   2. exec_policy
 --   3. path (mapping result)
---   4. "readonly" flag
+--   4. Flags (bitmask)
 function sbox_translate_path(rule, binary_name, func_name, path)
 	local ret = path
 	local rp = path
-	local readonly_flag = false
+	local ret_flags = 0
 	local exec_policy = nil
 
 	if (not rule) then
 		-- error, not even a default rule found
 		sb.log("error", string.format("Unable to find a match at all: %s(%s)", func_name, path))
-		return nil, nil, path, readonly_flag
+		return nil, nil, path, ret_flags
 	end
 
 	if (debug_messages_enabled) then
@@ -519,17 +530,17 @@ function sbox_translate_path(rule, binary_name, func_name, path)
 	end
 
 	if (rule.custom_map_funct ~= nil) then
-		exec_policy, ret, readonly_flag = rule.custom_map_funct(
+		exec_policy, ret, ret_flags = rule.custom_map_funct(
 			binary_name, func_name, rp, path, rule)
-		if (rule.readonly ~= nil) then
-			readonly_flag = rule.readonly
+		if (rule.readonly) then
+			ret_flags = RULE_FLAGS_READONLY
 		end
 	else
-		exec_policy, ret, readonly_flag = sbox_execute_rule(
+		exec_policy, ret, ret_flags = sbox_execute_rule(
 			binary_name, func_name, rp, path, rule)
 	end
 
-	return rule, exec_policy, ret, readonly_flag
+	return rule, exec_policy, ret, ret_flags
 end
 
 function find_chain(chains_table, binary_name)
@@ -548,8 +559,9 @@ end
 -- path resolution takes place. The primary purpose of this is to
 -- determine where to start resolving symbolic links; shorter paths than
 -- "min_path_len" should not be given to sbox_translate_path()
--- returns "rule", "rule_found", "min_path_len", "call_translate_for_all"
--- ("call_translate_for_all" is a flag which controls optimizations in
+-- returns "rule", "rule_found", "min_path_len", "flags"
+-- ("flags" may contain "call_translate_for_all", which
+-- is a flag which controls optimizations in
 -- the path resolution code)
 function sbox_get_mapping_requirements(binary_name, func_name, full_path)
 	-- loop through the chains, first match is used
@@ -562,22 +574,22 @@ function sbox_get_mapping_requirements(binary_name, func_name, full_path)
 		sb.log("error", string.format("Unable to find chain for: %s(%s)",
 			func_name, full_path))
 
-		return nil, false, 0, false
+		return nil, false, 0, 0
 	end
 
 	rule, min_path_len = find_rule(chain, func_name, full_path)
 	if (not rule) then
 		-- error, not even a default rule found
 		sb.log("error", string.format("Unable to find rule for: %s(%s)", func_name, full_path))
-		return nil, false, 0, false
+		return nil, false, 0, 0
 	end
 
-	local call_translate_for_all = false
+	local ret_flags = 0
 	if (rule.custom_map_funct or rule.actions) then
-		call_translate_for_all = true
+		ret_flags = RULE_FLAGS_CALL_TRANSLATE_FOR_ALL
 	end
 
-	return rule, true, min_path_len, call_translate_for_all
+	return rule, true, min_path_len, ret_flags
 end
 
 --
@@ -605,7 +617,7 @@ function sb_find_exec_policy(binaryname, mapped_file)
 end
 
 -- sbox_reverse_path is called from libsb2.so
--- returns "orig_path"
+-- returns "orig_path", "flags"
 function sbox_reverse_path(binary_name, func_name, full_path)
 	-- loop through the chains, first match is used
 	local min_path_len = 0
@@ -622,20 +634,20 @@ function sbox_reverse_path(binary_name, func_name, full_path)
 		sb.log("info", string.format("Unable to find REVERSE chain for: %s(%s)",
 			func_name, full_path))
 
-		return nil
+		return nil, 0
 	end
 
 	rule, min_path_len = find_rule(chain, func_name, full_path)
 	if (not rule) then
 		-- not even a default rule found
 		sb.log("info", string.format("Unable to find REVERSE rule for: %s(%s)", func_name, full_path))
-		return nil
+		return nil, 0
 	end
 
-	local rule2, exec_policy2, orig_path, ro2
-	rule2, exec_policy2, orig_path, ro2 = sbox_translate_path(rule, 
+	local rule2, exec_policy2, orig_path, flags2
+	rule2, exec_policy2, orig_path, flags2 = sbox_translate_path(rule, 
 		binary_name, func_name, full_path)
 
-	return orig_path
+	return orig_path, flags2
 end
 

@@ -8,7 +8,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "21"
+rule_file_interface_version = "22"
 ----------------------------------
 
 tools = tools_root
@@ -524,10 +524,11 @@ devel_mode_rules_etc = {
 		{prefix = "/etc/python", actions = python_lib_test},
 
 		-- Files that must not be mapped:
-		{prefix = "/etc/resolvconf", use_orig_path = true,
+		{prefix = "/etc/resolvconf", force_orig_path = true,
 		 readonly = true},
 		{prefix = "/etc/resolv.conf",
-		 use_orig_path = true, readonly = true},
+		 force_orig_path = true, readonly = true},
+
 		{path = "/etc/passwd",
 		 use_orig_path = true, readonly = true},
 		{path = "/etc/shadow",
@@ -543,7 +544,7 @@ devel_mode_rules_var = {
 		-- -----------------------------------------------
 		-- 80. /var/*
 
-		{prefix = "/var/run/resolvconf", use_orig_path = true,
+		{prefix = "/var/run/resolvconf", force_orig_path = true,
 		 readonly = true},
 
 		{prefix = "/var/run", map_to = session_dir},
@@ -697,14 +698,6 @@ simple_chain = {
 		-- Other rules are in /etc and /usr/share rules above.
 		--
 		{prefix = "/lib/terminfo", actions = terminfo_test},
-
-		-- Next one is needed, because at some point someone
-		-- decided to make /etc/resolvconf/run to be yet another 
-		-- symlink in some newer Linux distros, pointing to /lib... 
-		-- (other resolver-related rules can be found in /var 
-		-- and /etc rules)
-		{dir = "/lib/init/rw/resolvconf", use_orig_path = true,
-		 readonly = true},
 
 		{prefix = "/lib", map_to = target_root, readonly = true},
 

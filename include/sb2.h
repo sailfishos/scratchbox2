@@ -54,10 +54,15 @@ struct lua_instance {
  *   - added sb.test_if_listed_in_envvar()
  * * Differences between "63" and "62"
  *   - sb_find_exec_policy() has been removed.
+ * * Differences between "65" and "63"
+ *   - The Lua side of the mapping engine now returns "flags" (bitmask) 
+ *     to the C code; functions used to return separate booleans.
+ *   - (Additionally, due to a previous bugfix in path_exists(), forcing 
+ *     the library to be upgraded is a good thing to do in any case!)
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "63"
+#define SB2_LUA_C_INTERFACE_VERSION "65"
 
 extern struct lua_instance *get_lua(void);
 extern void release_lua(struct lua_instance *ptr);

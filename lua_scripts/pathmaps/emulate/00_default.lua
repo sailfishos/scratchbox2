@@ -3,7 +3,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "21"
+rule_file_interface_version = "22"
 ----------------------------------
 
 sb1_compat_dir = sbox_target_root .. "/scratchbox1-compat"
@@ -104,21 +104,16 @@ mapall_chain = {
 		 readonly = true},
 
 		--
-		-- Following 3 (or 4) rules are needed because package
+		-- Following 3 rules are needed because package
 		-- "resolvconf" makes resolv.conf to be symlink that
 		-- points to /etc/resolvconf/run/resolv.conf and
 		-- we want them all to come from host.
 		--
-		{prefix = "/var/run/resolvconf", use_orig_path = true,
+		{prefix = "/var/run/resolvconf", force_orig_path = true,
 		 readonly = true},
-		{prefix = "/etc/resolvconf", use_orig_path = true,
+		{prefix = "/etc/resolvconf", force_orig_path = true,
 		 readonly = true},
-		{prefix = "/etc/resolv.conf", use_orig_path = true,
-		 readonly = true},
-		-- ...and this one is needed, because at some point someone
-		-- decided to make /etc/resolvconf/run to be yet another 
-		-- symlink in some newer Linux distros, pointing to /lib... 
-		{dir = "/lib/init/rw/resolvconf", use_orig_path = true,
+		{prefix = "/etc/resolv.conf", force_orig_path = true,
 		 readonly = true},
 
 		--

@@ -21,7 +21,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "21"
+rule_file_interface_version = "22"
 ----------------------------------
 
 -- disable the gcc toolchain tricks.

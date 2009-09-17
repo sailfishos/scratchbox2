@@ -186,7 +186,7 @@ install-noarch: regular
 	$(Q)(set -e; cd $(prefix)/share/scratchbox2/modeconf; for f in *.devel; do \
 		b=`basename $$f .devel`; ln -sf $$f $$b.maemo; \
 	done)
-	$(Q)(set -e; cd $(prefix)/share/scratchbox2/modeconf; for f in *-*.devel; do \
+	$(Q)(set -e; cd $(prefix)/share/scratchbox2/modeconf; for f in sb2rc.devel *-*.devel; do \
 		b=`basename $$f .devel`; ln -sf $$f $$b.accel; \
 	done)
 	$(Q)install -c -m 644 $(SRCDIR)/tests/* $(prefix)/share/scratchbox2/tests

@@ -60,6 +60,7 @@ static void usage_exit(const char *progname, const char *errmsg, int exitstatus)
 	fprintf(stderr, "Commands:\n");
 	fprintf(stderr,
 	    "\tpath [path1] [path2].. show mappings of pathnames\n"
+	    "\twhich [path1] [path2].. (like the 'path' command, but less verbose)\n"
 	    "\trealcwd                show real current working directory\n"
 	    "\texec file argv0 [argv1] [argv2]..\n"
 	    "\t                       show execve() modifications\n"
@@ -334,8 +335,8 @@ static void command_show_exec(
 	}
 }
 
-static void command_show_path(const char *binary_name,
-	const char *fn_name,  char **argv)
+static void command_show_path(const char *binary_name, const char *fn_name,
+	int show_destination_only, char **argv)
 {
 	char	*mapped_path = NULL;
 	int	readonly_flag;
@@ -343,9 +344,13 @@ static void command_show_path(const char *binary_name,
 	while (*argv) {
 		mapped_path = sb2show__map_path2__(binary_name, "", 
 			fn_name, *argv, &readonly_flag);
-		printf("%s => %s%s\n", 
-			*argv, mapped_path,
-			(readonly_flag ? " (readonly)" : ""));
+		if (show_destination_only) {
+			printf("%s\n", mapped_path);
+		} else {
+			printf("%s => %s%s\n", 
+				*argv, mapped_path,
+				(readonly_flag ? " (readonly)" : ""));
+		}
 		argv++;
 	}
 }
@@ -601,7 +606,10 @@ int main(int argc, char *argv[])
 		command_show_libraryinterface();
 	} else if (!strcmp(argv[optind], "path")) {
 		command_show_path(binary_name, function_name, 
-			argv + optind + 1);
+			0/*verbose output*/, argv + optind + 1);
+	} else if (!strcmp(argv[optind], "which")) {
+		command_show_path(binary_name, function_name, 
+			1/*show only dest.path*/, argv + optind + 1);
 	} else if (!strcmp(argv[optind], "realcwd")) {
 		command_show_realcwd(binary_name, function_name);
 	} else if (!strcmp(argv[optind], "exec")) {

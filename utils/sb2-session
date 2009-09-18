@@ -94,8 +94,12 @@ die()
 
 attach_session()
 {
-	session="$1"
-	shift
+	if [ "$#" -eq 0 ]; then
+		session="--"
+	else
+		session="$1"
+		shift
+	fi
 
 	if [ -z "$session" -o "$session" = "--" ]; then
 		#
@@ -103,10 +107,13 @@ attach_session()
 		# only be one session and we should use that.
 		#
 		count=$( ls $session_save_dir/session.* 2>/dev/null | wc -l )
-		if [ "$count" != "1" ]; then
+		if [ "$count" -eq 1 ]; then
+			session_file=$( ls $session_save_dir/session.* )
+		elif [ "$count" -eq 0 ]; then
+			die "No saved sessions available!" 1
+		else
 			die "You must specify session as parameter!" 1
 		fi
-		session_file=$( ls $session_save_dir/session.* )
 	else
 		session_file="$session_save_dir/$session"
 		if [ ! -e "$session_file" ]; then

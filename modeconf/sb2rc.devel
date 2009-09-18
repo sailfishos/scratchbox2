@@ -28,6 +28,11 @@ case "$sb2rc_mode" in
 		# switch to the "tools" mode; call add_map_mode to
 		# make "tools" available for this session.
 		add_map_mode tools
+		# Also, be prepared to switch to "emulate".
+		# (because then we can later on join the session and use
+		# the mode even when it was not specified when the session
+		# was created.
+		add_map_mode emulate
 
 		# If $CREATE_ARGVMODS_USR_BIN_RULES is not empty, some 
 		# mapping rules will be automatically generated for

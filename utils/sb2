@@ -1252,6 +1252,16 @@ unset SBOX_CLONED_TARGET_ROOT
 unset SBOX_TOOLS_ROOT
 
 # ------------
+# Get values for environment variables that were stored by sb2-session
+# (if any; there might be stored variables only when we are joining
+# to an existing session [see the "sb2-session" tool])
+if [ -d "$SBOX_SESSION_DIR/env_vars" ]; then
+	for evfile in $SBOX_SESSION_DIR/env_vars/*; do
+		evname=`basename $evfile`
+		. $evfile
+		export $evname
+	done
+fi
 
 #
 # We need to start "trampoline" host shell that is run under

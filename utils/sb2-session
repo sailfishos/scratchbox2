@@ -23,6 +23,8 @@ Usage:	$progbase help
 	$progbase list
 	$progbase delete SESSION
 	$progbase attach [SESSION] [PARAMETERS]
+	$progbase setenv VARIABLE VALUE
+	$progbase showenv
 
 Commands:
 	help		shows this help
@@ -30,6 +32,8 @@ Commands:
 	list		lists detached sb2 sessions
 	delete		deletes given session
 	attach		attaches to saved sb2 session
+	setenv		store a value for an environment variable
+	showenv		show stored environment variables
 
 This helper program can be used to create attachable scratchbox2 sessions.
 You can save session even when you haven't done '-S session' during
@@ -62,6 +66,18 @@ Here we pass '-eR' to sb2 and we only have one saved session:
 
 '--' is marks end of parameter list for sb2-session.
 
+
+About environment variables:
+
+"$progbase setenv VARIABLE VALUE" can be used to add environment variables,
+that will become active when a saved session is later taken into use (either
+by "sb2-session attach" or by "sb -J")
+
+"$progbase setenv VARIABLE VALUE" does not change environment of sessions that
+are already active.
+
+"$progbase showenv" lists environment variable settings which have been stored
+with this tool. It does not show environment variables from other sources.
 EOF
 	exit 1
 }
@@ -156,6 +172,34 @@ delete_session()
 	sb2 -D "$session_save_dir/$session"
 }
 
+set_env_var()
+{
+	varname="$1"
+	[ -z "$varname" ] && usage
+
+	shift
+	value="$*"
+
+	if [ $inside_sb2 -eq 1 ]; then
+		mkdir -p "$SBOX_SESSION_DIR/env_vars"
+		echo "$varname=\"$value\"" >$SBOX_SESSION_DIR/env_vars/$varname
+	else
+		die "'sb2-session setenv' must be used inside existing session!" $?
+	fi
+}
+
+show_env_vars()
+{
+	if [ $inside_sb2 -eq 1 ]; then
+		count=$( ls $SBOX_SESSION_DIR/env_vars/* 2>/dev/null | wc -l )
+		if [ "$count" -gt 0 ]; then
+			cat $SBOX_SESSION_DIR/env_vars/*
+		fi
+	else
+		die "'sb2-session showenv' must be used inside existing session!" $?
+	fi
+}
+
 if [ $# -lt 1 ]; then
 	usage
 fi
@@ -217,6 +261,14 @@ case "$command" in
 		fi
 
 		delete_session "$1"
+		;;
+
+	setenv)
+		set_env_var $*
+		;;
+
+	showenv)
+		show_env_vars
 		;;
 
 	*)

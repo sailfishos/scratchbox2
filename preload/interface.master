@@ -413,7 +413,7 @@ WRAP: int rmdir(const char *pathname) : \
 #ifdef HAVE_LINUX_SCANDIR
 WRAP: int scandir(const char *dir, struct dirent ***namelist, \
 	int(*filter)(const struct dirent *), \
-	int(*compar)(const void *, const void *)) : \
+	int(*compar)(scandir_arg_t *, scandir_arg_t *)) : \
 	map(dir)
 #endif
 #ifdef HAVE_OSX_SCANDIR
@@ -426,7 +426,7 @@ WRAP: int scandir(const char *dirname, struct dirent ***namelist, \
 #ifdef HAVE_SCANDIR64
 WRAP: int scandir64(const char *dir, struct dirent64 ***namelist, \
 	int(*filter)(const struct dirent64 *), \
-	int(*compar)(const void *, const void *)) : \
+	int(*compar)(scandir64_arg_t *, scandir64_arg_t *)) : \
 	map(dir)
 #endif
 #ifdef HAVE_SETXATTR

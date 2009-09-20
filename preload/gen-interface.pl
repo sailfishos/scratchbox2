@@ -847,6 +847,14 @@ my $export_h_buffer =
 
 #include \"mapping.h\"
 
+#ifdef PROPER_DIRENT
+typedef const struct dirent *scandir_arg_t;
+typedef const struct dirent64 *scandir64_arg_t;
+#else
+typedef const void scandir_arg_t;
+typedef const void scandir64_arg_t;
+#endif
+
 ";
 
 # Handle "WRAP" and "GATE" commands.

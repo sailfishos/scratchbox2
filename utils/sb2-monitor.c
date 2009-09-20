@@ -32,7 +32,6 @@
 #include <string.h>
 
 #include <config.h>
-#include <config_hardcoded.h>
 
 #ifdef __APPLE__
  #include <signal.h>

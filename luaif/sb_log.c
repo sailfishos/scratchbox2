@@ -46,7 +46,6 @@
 
 #include <sb2.h>
 #include <config.h>
-#include <config_hardcoded.h>
 
 #include "exported.h"
 

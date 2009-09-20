@@ -30,7 +30,6 @@
 #define LIBSB2_H_INCLUDED_
 
 #include "config.h"
-#include "config_hardcoded.h"
 
 #define __BSD_VISIBLE
 

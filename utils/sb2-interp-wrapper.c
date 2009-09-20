@@ -25,7 +25,6 @@
 #include <dlfcn.h>
 #include <unistd.h>
 #include <config.h>
-#include <config_hardcoded.h>
 #include <sys/socket.h>
 #include <sys/resource.h>
 #include <sys/vfs.h>

@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <config.h>
-#include <config_hardcoded.h>
 #include <ctype.h>
 #include "libsb2.h"
 #include "exported.h"

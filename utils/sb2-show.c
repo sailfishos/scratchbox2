@@ -9,7 +9,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <config.h>
-#include <config_hardcoded.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/resource.h>

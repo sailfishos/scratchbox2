@@ -173,6 +173,17 @@ ssize_t readlink(const char *path, char *buf, size_t bufsize)
 readlink_type="ssize_t", readlink_type="int")
 AC_DEFINE_UNQUOTED(READLINK_TYPE, ${readlink_type})
 
+AH_TEMPLATE([PROPER_DIRENT], [True if you have proper scandir* functions])
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+#include <dirent.h>
+extern int scandir(const char *dir,
+                   struct dirent ***namelist,
+                   int(*filter)(const struct dirent *),
+                   int(*compar)(const struct dirent **, const struct dirent **));
+]])],
+[proper_dirent=1],[proper_dirent=0])
+AC_DEFINE_UNQUOTED(PROPER_DIRENT, ${proper_dirent})
+
 AH_TEMPLATE([SUPPORT_XATTRS],
 [Define to 1 to add support for extended attributes])
 

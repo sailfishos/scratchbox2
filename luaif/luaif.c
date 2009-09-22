@@ -567,7 +567,7 @@ static int lua_sb_setenv(lua_State *luastate)
 }
 
 /* "sb.path_exists", to be called from lua code
- * returns true if file or directory exists at the specified real path,
+ * returns true if file, directory or symlink exists at the specified real path,
  * false if not.
 */
 static int lua_sb_path_exists(lua_State *l)
@@ -582,14 +582,40 @@ static int lua_sb_path_exists(lua_State *l)
 		int	result = 0;
 		SB_LOG(SB_LOGLEVEL_DEBUG, "lua_sb_path_exists testing '%s'",
 			path);
+#ifdef AT_FDCWD
+		/* this is easy, can use faccessat() */
 		if (faccessat_nomap_nolog(AT_FDCWD, path, F_OK, AT_SYMLINK_NOFOLLOW) == 0) {
 			/* target exists */
-			lua_pushboolean(l, 1);
 			result=1;
-		} else {
-			lua_pushboolean(l, 0);
-			result=0;
 		}
+#else
+		/* Not so easy. The OS does not have faccessat() [it has
+		 * been added to Linux 2.6.16 - older systems don't have it]
+		 * so the operation must make the check by two separate calls:
+		 * First check if the target is symlink (by readlink()),
+		 * next check if it is an ordinary file or directoy.
+		 * N.B. the result is that this returns 'true' if a symlink
+		 * exists, even if the target of the symlink does not
+		 * exist. Plain access() returns 'false' if it is a symlink
+		 * which points to a non-existent destination)
+		 * N.B.2. we'll use readlink because lstat() can't be used, 
+		 * full explanation for this can be found in paths.c.
+		*/
+		{
+			char	link_dest[PATH_MAX+1];
+			int link_len;
+
+			link_len = readlink_nomap(path, link_dest, PATH_MAX);
+			if (link_len > 0) {
+				/* was a symlink */
+				result = 1;
+			} else {
+				if (access_nomap_nolog(path, F_OK) == 0)
+					result = 1;
+			}
+		}
+#endif
+		lua_pushboolean(l, result);
 		SB_LOG(SB_LOGLEVEL_DEBUG, "lua_sb_path_exists got %d",
 			result);
 		free(path);

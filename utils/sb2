@@ -181,7 +181,10 @@ function load_configuration()
 	# part of the configuration is still stored in the "old format"
 	# configuration file, "sb2.config". It is created by "sb2-init"
 
+	saved_LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 	. ~/.scratchbox2/$SBOX_TARGET/sb2.config
+	LD_LIBRARY_PATH=$saved_LD_LIBRARY_PATH
+
 	# Remember where SBOX_TARGET_ROOT was in the configuration file
 	SBOX_TARGET_ROOT_in_config_file=$SBOX_TARGET_ROOT
 
@@ -191,7 +194,7 @@ function load_configuration()
 	# upgraded whenever needed:
 	
 	# check if we need to upgrade configuration:
-	if [ ! -f ~/.scratchbox2/$SBOX_TARGET/sb2.config.d/config-stamp.15 ]; then
+	if [ ! -f ~/.scratchbox2/$SBOX_TARGET/sb2.config.d/config-stamp.16 ]; then
 		$SBOX_DIR/share/scratchbox2/scripts/sb2-upgrade-config \
 			$SBOX_TARGET
 		if [ $? != 0 ]; then
@@ -212,6 +215,29 @@ function load_configuration()
 			SBOX_CPUTRANSPARENCY_METHOD=$_cputransp
 		fi
 	fi
+
+	#-----------
+	# Time to set LD_LIBRARY_PATH for host-compatible programs:
+
+	# The config file must exist now (sb2-upgrade-config created it)
+	if [ ! -f $HOME/.scratchbox2/$SBOX_TARGET/sb2.config.d/host-ld_library_path.conf ]; then
+		echo "Fatal: Failed to get components of LD_LIBRARY_PATH"
+		exit 1
+	fi
+	
+	if [ -n "$SBOX_FAKEROOT_PREFIX" ]; then
+		# First determine what fakeroot wants to add to it:
+		HOST_LD_LIBRARY_PATH_LIBFAKEROOT=`LD_LIBRARY_PATH="" $SBOX_FAKEROOT_PREFIX sh -c 'echo $LD_LIBRARY_PATH'`
+		if [ -n "$HOST_LD_LIBRARY_PATH_LIBFAKEROOT" ]; then
+			# Add a trailing colon
+			HOST_LD_LIBRARY_PATH_LIBFAKEROOT="$HOST_LD_LIBRARY_PATH_LIBFAKEROOT:"
+		fi
+	else
+		HOST_LD_LIBRARY_PATH_LIBFAKEROOT=""
+	fi
+
+	. $HOME/.scratchbox2/$SBOX_TARGET/sb2.config.d/host-ld_library_path.conf
+	LD_LIBRARY_PATH="$HOST_LD_LIBRARY_PATH_PREFIX$HOST_LD_LIBRARY_PATH_LIBSB2$HOST_LD_LIBRARY_PATH_LIBFAKEROOT$HOST_LD_LIBRARY_PATH_SUFFIX"
 }
 
 function clone_target_root_dir_from()
@@ -234,7 +260,6 @@ function clone_target_root_dir_from()
 
 function sboxify_environment()
 {
-	LD_LIBRARY_PATH=$SBOX_DIR/lib/libsb2:$SBOX_DIR/lib64/libsb2:$SBOX_DIR/lib32/libsb2:/emul/lib64/libsb2:/emul/lib32/libsb2
 	SBOX_LIBSB2="libsb2.so.1"
 	
 	load_configuration
@@ -1115,6 +1140,7 @@ fi
 
 # if SBOX_SESSION_PERM is set, export it. It may enable special permissions
 # in some mapping modes (e.g. see the "emulate" mode)
+SBOX_FAKEROOT_PREFIX=""
 if [ -n "$SBOX_SESSION_PERM" ]; then
 	export SBOX_SESSION_PERM
 	SBOX_FAKEROOT_PREFIX="fakeroot"

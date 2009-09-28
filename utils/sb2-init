@@ -152,12 +152,6 @@ fi
 
 SBOX_TOOLS_ROOT=$SB2INIT_TOOLS_ROOT
 
-if [ -n "\$SBOX_TOOLS_ROOT" ]; then
-	LD_LIBRARY_PATH=/usr/local/lib:/usr/lib/:/usr/lib64:/lib:/lib64:\$SBOX_TOOLS_ROOT/usr/lib/libfakeroot:\$SBOX_TOOLS_ROOT/usr/lib64/libfakeroot:\$SBOX_TOOLS_ROOT/usr/lib32/libfakeroot:\$LD_LIBRARY_PATH
-else
-	# SBOX_TOOLS_ROOT not set, include the fakeroot lib path in any case.
-	LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/lib/libfakeroot:/usr/lib64/libfakeroot:/usr/lib32/libfakeroot
-fi
 EOF
 	echo "Finished writing sb2.config"
 }

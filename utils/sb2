@@ -1114,6 +1114,21 @@ fi
 
 #----------- Check parameters
 
+# First set that we are not running under "fakeroot"; LD_LIBRARY_PATH
+# will be set by this script, and trying to externally start "fakeroot"
+# will just mess up things..
+case "$LD_PRELOAD" in
+	(*fakeroot*)
+		exit_error "LD_PRELOAD refers to fakeroot. Do not use 'fakeroot' directly, use option '-R'"
+		;;
+	("")
+		# Empty, ok.
+		;;
+	(*)
+		echo "Warning: LD_PRELOAD was not empty at startup"
+		;;
+esac
+
 if [ "$SBOX_MAPPING_DEBUG" == "1" ]; then
 	# check that loglevel is valid
 	case $SBOX_MAPPING_LOGLEVEL in

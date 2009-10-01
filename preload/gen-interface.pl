@@ -847,7 +847,7 @@ my $export_h_buffer =
 
 #include \"mapping.h\"
 
-#ifdef PROPER_DIRENT
+#if (defined(PROPER_DIRENT) && (PROPER_DIRENT == 1))
 typedef const struct dirent *scandir_arg_t;
 typedef const struct dirent64 *scandir64_arg_t;
 #else

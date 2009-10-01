@@ -225,19 +225,12 @@ function load_configuration()
 		exit 1
 	fi
 	
-	if [ -n "$SBOX_FAKEROOT_PREFIX" ]; then
-		# First determine what fakeroot wants to add to it:
-		HOST_LD_LIBRARY_PATH_LIBFAKEROOT=`LD_LIBRARY_PATH="" $SBOX_FAKEROOT_PREFIX sh -c 'echo $LD_LIBRARY_PATH'`
-		if [ -n "$HOST_LD_LIBRARY_PATH_LIBFAKEROOT" ]; then
-			# Add a trailing colon
-			HOST_LD_LIBRARY_PATH_LIBFAKEROOT="$HOST_LD_LIBRARY_PATH_LIBFAKEROOT:"
-		fi
-	else
-		HOST_LD_LIBRARY_PATH_LIBFAKEROOT=""
-	fi
-
 	. $HOME/.scratchbox2/$SBOX_TARGET/sb2.config.d/host-ld_library_path.conf
-	LD_LIBRARY_PATH="$HOST_LD_LIBRARY_PATH_PREFIX$HOST_LD_LIBRARY_PATH_LIBSB2$HOST_LD_LIBRARY_PATH_LIBFAKEROOT$HOST_LD_LIBRARY_PATH_SUFFIX"
+
+	# Note: we don't add fakeroot's component (HOST_LD_LIBRARY_PATH_LIBFAKEROOT)
+	# to LD_LIBRARY_PATH here. Fakeroot will take care of adding it the
+	# the head, if it has been activated.
+	LD_LIBRARY_PATH="$HOST_LD_LIBRARY_PATH_PREFIX$HOST_LD_LIBRARY_PATH_LIBSB2$HOST_LD_LIBRARY_PATH_SUFFIX"
 }
 
 function clone_target_root_dir_from()
@@ -841,6 +834,12 @@ END
 conf_cputransparency_has_argv0_flag=$conf_cputransparency_has_argv0_flag
 conf_cputransparency_qemu_has_env_control_flags=$conf_cputransparency_qemu_has_env_control_flags
 conf_cputransparency_qemu_has_libattr_hack_flag=$conf_cputransparency_qemu_has_libattr_hack_flag
+
+host_ld_library_path_prefix="$HOST_LD_LIBRARY_PATH_PREFIX"
+host_ld_library_path_libsb2="$HOST_LD_LIBRARY_PATH_LIBSB2"
+host_ld_library_path_suffix="$HOST_LD_LIBRARY_PATH_SUFFIX"
+host_ld_library_path_libfakeroot="$HOST_LD_LIBRARY_PATH_LIBFAKEROOT"
+host_ld_library_path="$HOST_LD_LIBRARY_PATH_LIBFAKEROOT$HOST_LD_LIBRARY_PATH_PREFIX$HOST_LD_LIBRARY_PATH_LIBSB2$HOST_LD_LIBRARY_PATH_SUFFIX"
 END
 }
 
@@ -1159,6 +1158,15 @@ SBOX_FAKEROOT_PREFIX=""
 if [ -n "$SBOX_SESSION_PERM" ]; then
 	export SBOX_SESSION_PERM
 	SBOX_FAKEROOT_PREFIX="fakeroot"
+fi
+
+# determine what fakeroot wants to add to LD_LIBRARY_PATH
+HOST_LD_LIBRARY_PATH_LIBFAKEROOT=`LD_LIBRARY_PATH="" fakeroot sh -c 'echo $LD_LIBRARY_PATH'`
+if [ -n "$HOST_LD_LIBRARY_PATH_LIBFAKEROOT" ]; then
+	# Add a trailing colon
+	HOST_LD_LIBRARY_PATH_LIBFAKEROOT="$HOST_LD_LIBRARY_PATH_LIBFAKEROOT:"
+else
+	HOST_LD_LIBRARY_PATH_LIBFAKEROOT=""
 fi
 
 if [ -n "$SBOX_FORCED_TOOLS_ROOT" ]; then

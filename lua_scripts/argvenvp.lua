@@ -211,18 +211,43 @@ function setenv_native_app_ld_library_path(exec_policy, envp)
 	local new_path = get_native_app_ld_library_path(exec_policy, envp)
 
 	-- Set the value:
-	if (new_path ~= nil) then
-		if (ld_library_path_index > 0) then
-			envp[ld_library_path_index] =
-				"LD_LIBRARY_PATH=" .. new_path
-			sb.log("debug", "Replaced LD_LIBRARY_PATH")
+	if (new_path == nil) then
+		if ld_library_path_index < 0 then
+			sb.log("debug", "No value for LD_LIBRARY_PATH, using orig.value")
+			-- Use host's original value
+			new_path = "LD_LIBRARY_PATH=" .. host_ld_library_path
 		else
-			table.insert(envp, "LD_LIBRARY_PATH=" .. new_path)
-			sb.log("debug", "Added LD_LIBRARY_PATH")
+			-- LD_LIBRARY_PATH exists, check contents.
+			-- It must start with host's LD_LIBRARY_PATH.
+			libpath = string.gsub(envp[ld_library_path_index],
+				"^LD_LIBRARY_PATH=", "", 1)
+
+			if string.sub(libpath,1,string.len(host_ld_library_path)) ==
+				   host_ld_library_path then
+				-- good, it contains the original value.
+				-- no need to update anything, env.is OK
+				sb.log("debug", "LD_LIBRARY_PATH is "..envp[ld_library_path_index])
+				return false
+			end
+
+			-- Host's LD_LIBRARY_PATH was not found. Add it:
+			envp[ld_library_path_index] = "LD_LIBRARY_PATH=" ..
+				host_ld_library_path .. ":" .. libpath
+			sb.log("debug", "Added host's part to LD_LIBRARY_PATH:"..
+				envp[ld_library_path_index])
+			return true
 		end
-	else
-		sb.log("debug", "No value for LD_LIBRARY_PATH")
 	end
+
+	if (ld_library_path_index > 0) then
+		envp[ld_library_path_index] =
+			"LD_LIBRARY_PATH=" .. new_path
+		sb.log("debug", "Replaced LD_LIBRARY_PATH")
+	else
+		table.insert(envp, "LD_LIBRARY_PATH=" .. new_path)
+		sb.log("debug", "Added LD_LIBRARY_PATH")
+	end
+	return true
 end
 
 -- ------------------------------------
@@ -421,12 +446,14 @@ function sb_execve_postprocess_native_executable(rule, exec_policy,
 		first_argv_element_to_copy = 2
 
 		updated_args = 1
-	elseif ((exec_policy.native_app_ld_library_path ~= nil) or
-	        (exec_policy.native_app_ld_library_path_prefix ~= nil) or
-	        (exec_policy.native_app_ld_library_path_suffix ~= nil)) then
-		-- Start the binary with a nonstandard LD_LIBRARY_PATH
-		setenv_native_app_ld_library_path(exec_policy, new_envp)
-		updated_args = 1
+	else
+		-- Ensure that the binary has a LD_LIBRARY_PATH,
+		-- either a non-standard one from the policy,
+		-- or the original host's LD_LIBRARY_PATH. It
+		-- won't work without any.
+		if setenv_native_app_ld_library_path(exec_policy, new_envp) then
+			updated_args = 1
+		end
 	end
 
 	--
@@ -644,18 +671,34 @@ function sb_execve_postprocess_cpu_transparency_executable(rule, exec_policy,
 
 		if conf_cputransparency_qemu_has_env_control_flags then
 			for i = 1, #envp do
-				-- drop LD_TRACE_ from target environment
-				if not string.match(envp[i], "^LD_TRACE_.*") then
-					table.insert(new_envp, envp[i])
-				else
-					-- .. and move it to qemu command line 
+				-- drop LD_TRACE_* and LD_LIBRARY_PATH from target environment
+				if string.match(envp[i], "^LD_TRACE_.*") then
+					-- .. and move to qemu command line 
 					table.insert(new_argv, "-E")
 					table.insert(new_argv, envp[i])
+				elseif string.match(envp[i], "^LD_LIBRARY_PATH=.*") then
+					local h_ldlbrpath = "LD_LIBRARY_PATH=" .. host_ld_library_path
+					if envp[i] == h_ldlbrpath then
+						-- same LD_LIBRARY_PATH as for host; not to be used inside qemu
+						table.insert(new_argv, "-U")
+						table.insert(new_argv, "LD_LIBRARY_PATH")
+						sb.log("debug", "Added -U LD_LIBRARY_PATH for qemu")
+					else
+						-- not the same. Assume that it is meant for the binary:
+						table.insert(new_argv, "-E")
+						table.insert(new_argv, envp[i])
+						sb.log("debug", "Passed LD_LIBRARY_PATH to qemu")
+					end
+					-- but use host's original LD_LIBRARY_PATH for qemu itself:
+					table.insert(new_envp, h_ldlbrpath)
+				else
+					table.insert(new_envp, envp[i])
 				end
 			end
 		else
 			-- copy environment. Some things will be broken with
-			-- this qemu (for example, prelinking won't work)
+			-- this qemu (for example, prelinking won't work, LD_LIBRARY_PATH
+			-- may be totally incorrect, etc)
 			new_envp = envp
 		end
 

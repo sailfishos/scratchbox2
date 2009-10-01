@@ -967,6 +967,11 @@ function link_wrappers_for_mapmode()
 {
 	w_mode=$1
 
+	if [ -d $SBOX_SESSION_DIR/wrappers.$w_mode ]; then
+		# already done
+		return
+	fi
+
 	if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$w_mode ]; then
 		# Get list of wrappers:
 		SBOX_WRAPPERS=""

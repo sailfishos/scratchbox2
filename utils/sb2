@@ -241,6 +241,11 @@ function clone_target_root_dir_from()
 	# cp -Rp does not preserve hard links, but cpio does
 	(cd $source_directory; find . -depth -print |
 		cpio -pamd $SBOX_SESSION_DIR/target_root)
+	# There is a bug in gnu cpio: timestamps of directories
+	# will not be set correctly on the first run,
+	# but they will be corrected by another round:
+	(cd $source_directory; find . -depth -type d -print |
+		cpio -pamd $SBOX_SESSION_DIR/target_root)
 	#
 	# We store path of the original target root here.  It
 	# is used later on when libsb2 search path is being formed.

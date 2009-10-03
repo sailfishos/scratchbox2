@@ -68,6 +68,14 @@ case "$progbase" in
 			esac
 		done
 	fi
+	case "$1" in
+	--print-architecture)
+		if [ -n "$DEB_HOST_ARCH" ]; then
+			echo "$DEB_HOST_ARCH"
+			exit 0
+		fi
+		;;
+	esac
 	;;
 (apt-get)
 	realtool=/usr/bin/apt-get

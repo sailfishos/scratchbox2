@@ -1000,9 +1000,9 @@ static int prepare_exec(const char *exec_fn_name,
 
 		clear_mapping_results_struct(&mapping_result);
 		sbox_map_path_for_exec("do_exec", my_file, &mapping_result);
-		if (mapping_result.mres_result_buf) {
-			mapped_file = strdup(mapping_result.mres_result_buf);
-		}
+		mapped_file = (mapping_result.mres_result_buf ?
+			strdup(mapping_result.mres_result_buf) : NULL);
+			
 		free_mapping_results(&mapping_result);
 
 		SB_LOG(SB_LOGLEVEL_DEBUG,
@@ -1155,6 +1155,8 @@ int sb2show__execve_mods__(
 	if (!sb2_global_vars_initialized__) sb2_initialize_global_variables();
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s '%s'", __func__, orig_argv[0]);
+
+	if (!file) return(ret);
 
 	tmp = strdup(file);
 	binaryname = strdup(basename(tmp)); /* basename may modify *tmp */

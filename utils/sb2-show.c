@@ -328,9 +328,13 @@ static void command_show_exec(
 		mapped_path = sb2show__map_path2__(binary_name,
 		    "", fn_name, new_file, &readonly_flag);
 
-		/* call the actual print function */
-		(*print_exec_fn)(priv, new_file, mapped_path,
-		    readonly_flag, new_argv, orig_env, new_envp, verbose);
+		if (!mapped_path) {
+			printf("Mapping failed (%s)\n", strerror(errno));
+		} else {
+			/* call the actual print function */
+			(*print_exec_fn)(priv, new_file, mapped_path,
+			    readonly_flag, new_argv, orig_env, new_envp, verbose);
+		}
 	}
 }
 
@@ -343,7 +347,9 @@ static void command_show_path(const char *binary_name, const char *fn_name,
 	while (*argv) {
 		mapped_path = sb2show__map_path2__(binary_name, "", 
 			fn_name, *argv, &readonly_flag);
-		if (show_destination_only) {
+		if (!mapped_path) {
+			printf("%s: Mapping failed\n", *argv);
+		} else if (show_destination_only) {
 			printf("%s\n", mapped_path);
 		} else {
 			printf("%s => %s%s\n", 
@@ -359,20 +365,23 @@ static void command_show_binarytype(const char *binary_name,
 {
 	char	*mapped_path = NULL;
 	int	readonly_flag;
-	char	*type;
 
 	while (*argv) {
 		/* sb2show__binary_type__() operates on
 		 * real paths; map the path first.. */
 		mapped_path = sb2show__map_path2__(binary_name, "",
 			fn_name, *argv, &readonly_flag);
-		type = sb2show__binary_type__(mapped_path);
-		if (verbose) {
-			printf("%s: %s\n", mapped_path, type);
+		if (!mapped_path) {
+			printf("%s: Mapping failed\n", *argv);
 		} else {
-			printf("%s\n", type);
+			char *type = sb2show__binary_type__(mapped_path);
+			if (verbose) {
+				printf("%s: %s\n", mapped_path, type);
+			} else {
+				printf("%s\n", type);
+			}
+			free(type);
 		}
-		free(type);
 		argv++;
 	}
 }
@@ -465,6 +474,11 @@ static int command_verify_pathlist_mappings(
 
 		mapped_path = sb2show__map_path2__(binary_name, "",
 				fn_name, path_buf, &readonly_flag);
+		if (!mapped_path) {
+			if (verbose)
+				printf("%s: Mapping failed\n", path_buf);
+			continue;
+		}
 
 		if (ignore_directories) {
 			struct stat statbuf;

@@ -332,7 +332,11 @@ function sboxify_environment()
 
 	# LD_PRELOAD will be set to SBOX_LIBSB2 by sb2-monitor.
 
-	export PS1="[SB2 $SBOX_MAPMODE $SBOX_TARGET] \u@\h \W \$ "
+	if [ -n "$SBOX_SESSION_PERM" ]; then
+		export PS1="[SB2 $SBOX_MAPMODE $SBOX_TARGET] \u@\h \W # "
+	else
+		export PS1="[SB2 $SBOX_MAPMODE $SBOX_TARGET] \u@\h \W \$ "
+	fi
 }
 
 

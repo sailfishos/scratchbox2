@@ -115,7 +115,7 @@ mapall_chain = {
 		 readonly = true},
 		{prefix = "/etc/resolvconf", force_orig_path = true,
 		 readonly = true},
-		{prefix = "/etc/resolv.conf", force_orig_path = true,
+		{path = "/etc/resolv.conf", force_orig_path = true,
 		 readonly = true},
 
 		--

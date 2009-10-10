@@ -48,6 +48,16 @@ end
 -- under cpu transparency = very slowly..)
 enable_cross_gcc_toolchain = false
 
+rootdir_rules = {
+	rules = {
+		{path = "/", func_name = ".*stat.*",
+                    map_to = target_root, readonly = target_root_is_readonly },
+		{path = "/", func_name = ".*open.*",
+                    map_to = target_root, readonly = target_root_is_readonly },
+		{path = "/", use_orig_path = true},
+	}
+}
+
 mapall_chain = {
 	next_chain = nil,
 	binary = nil,
@@ -152,7 +162,7 @@ mapall_chain = {
 		-- sb2 was started.
 		{prefix = unmapped_workdir, use_orig_path = true},
 
-		{path = "/", use_orig_path = true},
+		{path = "/", chain = rootdir_rules},
 		{prefix = "/", map_to = target_root,
 		 readonly = target_root_is_readonly}
 	}

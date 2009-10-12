@@ -107,10 +107,15 @@ function reverse_one_rule_xxxx(output_rules, rule, n, forward_path)
 		end
 
 		if (rule.func_name ~= nil) then
-			allow_reversing = false
-			reversing_disabled_message = string.format(
-				"Rule '%s' has 'func_name' attribute",
-				new_rule.name)
+			if (rule.path == "/") then
+				-- allow reversion of func_name rules
+				-- for the root directory:
+			else
+				allow_reversing = false
+				reversing_disabled_message = string.format(
+					"Rule '%s' has 'func_name' attribute",
+					new_rule.name)
+			end
 		end
 
 		local d_path = nil

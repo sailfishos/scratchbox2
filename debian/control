@@ -24,6 +24,7 @@ Description: Transparent cross compiling environment
 Package: libsb2
 Architecture: i386 amd64 powerpc ia64
 Depends: ${shlibs:Depends}
+Replaces: scratchbox2 (<= 1.99.0.31-2)
 Description: Scratchbox2 libraries
  This package contains sole Scratchbox2 libraries that can be
  used from inside target filesystem.

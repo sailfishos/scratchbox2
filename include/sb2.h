@@ -22,6 +22,10 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+#ifdef DMALLOC
+#include <dmalloc.h>
+#endif
+
 struct lua_instance {
 	lua_State *lua;
 	int mapping_disabled;

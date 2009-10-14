@@ -369,9 +369,11 @@ struct lua_instance *get_lua(void)
  * so this isn't really too useful. Lua initialization was
  * moved to get_lua() because of this.
 */
+#ifndef SB2_TESTER
 #ifdef __GNUC__
 void sb2_preload_library_constructor(void) __attribute((constructor));
 #endif
+#endif /* SB2_TESTER */
 void sb2_preload_library_constructor(void)
 {
 	SB_LOG(SB_LOGLEVEL_DEBUG, "sb2_preload_library_constructor called");

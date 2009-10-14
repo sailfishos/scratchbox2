@@ -9,10 +9,15 @@
 # binaries; this wrapper first detects the type of the binary,
 # and then
 #  - runs the "ldd" from /target_root for target binaries
-#  - runs the binary with LD_TRACE_LOADED_OBJECTS=yes if
+#  - If host CPU architecture != target CPU architecture,
+#    runs the binary with LD_TRACE_LOADED_OBJECTS=yes if
 #    it is a host binary (there were to be problems running
 #    the real "ldd" from inside sb2, but running ld.so
 #    with that env.variable produces the required result)
+#  - If host CPU architecture == target CPU architecture,
+#    assumes that all binaries belong to the target.
+#    runs the binary with LD_TRACE_LOADED_OBJECTS=yes 
+#    with target's ld.so.
 #
 # FIXME: Command line options only work with target binaries!
 #
@@ -31,6 +36,31 @@ function error_not_inside_sb2()
 	echo "SB2: $progbase wrapper: This wrapper can only be used from inside"
 	echo "the scratchbox 2'ed environment"
 	exit 1
+}
+
+# Some dynamic libraries are reported as "host/dynamic", 
+# some as "host/static" by # "sb2-show binarytype".
+# If the target CPU arch. is 
+# ompatible with the host, try to resolve 
+function host_compatible_binary()
+{
+	if [ -z "$conf_target_ld_so" ]; then
+		target_ld_so=`grep '^conf_target_ld_so=' $SBOX_SESSION_DIR/exec_config.lua`
+		eval $target_ld_so
+		target_libpath=`grep '^conf_target_ld_so_library_path=' $SBOX_SESSION_DIR/exec_config.lua`
+		eval $target_libpath
+	fi
+	case "$conf_target_ld_so" in
+	"")	# Failed to read from config file
+		;;
+	nil)	# not set; assume that it belongs to the host.
+		LD_TRACE_LOADED_OBJECTS=yes $1
+		;;
+	*)
+		mapped_file=`sb2-show which $1`
+		LD_TRACE_LOADED_OBJECTS=yes $conf_target_ld_so --library-path $conf_target_ld_so_library_path $mapped_file
+		;;
+	esac
 }
 
 if [ -z "$SBOX_SESSION_DIR" ]
@@ -78,7 +108,7 @@ do
 	type=`sb2-show binarytype $f`
 	case "$type" in
 	target*) /target_root/usr/bin/ldd $OPTIONS $f;;
-	host/dynamic*) LD_TRACE_LOADED_OBJECTS=yes $f;;
+	host/*) host_compatible_binary $f;;
 	*) echo "ldd wrapper: Don't know how to handle $f (type=$type)"
 	esac
 done

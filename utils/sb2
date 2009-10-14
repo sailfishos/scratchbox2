@@ -510,27 +510,26 @@ function write_ld_library_path_replacement_to_exec_config()
 	fi
 
 	# Create the variable.
-	echo "$varname =" >>$SBOX_SESSION_DIR/exec_config.lua
 	colon=""
+	ldpathvalue=""
 	if [ -n "$libsb2_dirname" ]; then
-		echo " \"$colon$libsb2_dirname\" .." >>$SBOX_SESSION_DIR/exec_config.lua
+		ldpathvalue="$ldpathvalue$colon$libsb2_dirname"
 		colon=":"
 	fi
 	for l in $liblocations; do
 		if [ -d $rootdir$l ]; then
-			echo " \"$colon$rootdir$l\" .." >>$SBOX_SESSION_DIR/exec_config.lua
+			ldpathvalue="$ldpathvalue$colon$rootdir$l"
 			colon=":"
 		fi
 	done
 
 	# Last, the default locations:
 	# (these may be already included by the previous step)
-	echo " \"$colon$rootdir/lib\" .." >>$SBOX_SESSION_DIR/exec_config.lua
+	ldpathvalue="$ldpathvalue$colon$rootdir/lib"
 	colon=":"
-	echo " \"$colon$rootdir/usr/lib\" .." >>$SBOX_SESSION_DIR/exec_config.lua
+	ldpathvalue="$ldpathvalue$colon$rootdir/usr/lib"
 
-	# Finalize the library search path.
-	echo " \"\"" >>$SBOX_SESSION_DIR/exec_config.lua
+	echo "$varname=\"$ldpathvalue\"" >>$SBOX_SESSION_DIR/exec_config.lua
 }
 
 # Test if qemu has "-0 argv0" and "-E envvar=value" flags, and/or
@@ -608,17 +607,17 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 	if [ -f $libsb2_path ]; then
 		libsb2_dir=`/usr/bin/dirname $libsb2_path`
 		echo "-- $libsb2_path" >>$SBOX_SESSION_DIR/exec_config.lua
-		echo "$libsb2_dir_varname = \"$libsb2_dir\"" \
+		echo "$libsb2_dir_varname=\"$libsb2_dir\"" \
 		    >>$SBOX_SESSION_DIR/exec_config.lua
-		echo "$sb2_installed_varname = true" \
+		echo "$sb2_installed_varname=true" \
 		    >>$SBOX_SESSION_DIR/exec_config.lua
 		ld_so_found="yes"
 	else
-		echo "$sb2_installed_varname = false" >>$SBOX_SESSION_DIR/exec_config.lua
+		echo "$sb2_installed_varname=false" >>$SBOX_SESSION_DIR/exec_config.lua
 		ld_so_found="no"
 	fi
 
-	echo "$sbox_dir_varname = \"$sbox_dir_2\"" >>$SBOX_SESSION_DIR/exec_config.lua
+	echo "$sbox_dir_varname=\"$sbox_dir_2\"" >>$SBOX_SESSION_DIR/exec_config.lua
 
 	# check the dynamic linker:
 
@@ -691,12 +690,12 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 	fi
 
 	if [ -n "$ld_so_candidate" ]; then
-		echo "$ld_so_path_varname = \"$ld_so_candidate\"" >>$SBOX_SESSION_DIR/exec_config.lua
-		echo "$ld_so_supports_argv0_varname = $ld_so_argv_flag_works" >>$SBOX_SESSION_DIR/exec_config.lua
+		echo "$ld_so_path_varname=\"$ld_so_candidate\"" >>$SBOX_SESSION_DIR/exec_config.lua
+		echo "$ld_so_supports_argv0_varname=$ld_so_argv_flag_works" >>$SBOX_SESSION_DIR/exec_config.lua
 
 	else
-		echo "$ld_so_path_varname = nil" >>$SBOX_SESSION_DIR/exec_config.lua
-		echo "$ld_so_supports_argv0_varname = false" >>$SBOX_SESSION_DIR/exec_config.lua
+		echo "$ld_so_path_varname=nil" >>$SBOX_SESSION_DIR/exec_config.lua
+		echo "$ld_so_supports_argv0_varname=false" >>$SBOX_SESSION_DIR/exec_config.lua
 	fi
 }
 
@@ -726,10 +725,10 @@ function write_locale_paths_to_exec_config()
 			# need to use generated files
 			locale_path="$generated_locale_path"
 		fi
-		echo "$locale_path_varname = \"$locale_path\"" \
+		echo "$locale_path_varname=\"$locale_path\"" \
 		    >> $SBOX_SESSION_DIR/exec_config.lua
 	else
-		echo "$locale_path_varname = nil" \
+		echo "$locale_path_varname=nil" \
 		    >> $SBOX_SESSION_DIR/exec_config.lua
 	fi
 }
@@ -778,13 +777,13 @@ END
 		# SBOX_TOOLS_ROOT was empty, tools will be used from
 		# host environment.
 		cat <<END >>$SBOX_SESSION_DIR/exec_config.lua
-conf_tools_ld_so_library_path = nil
-conf_tools_sb2_installed = false
-conf_tools_sbox_dir = ""
-conf_tools_ld_so = nil
-conf_tools_ld_so_supports_argv0 = false
-conf_tools_libsb2_dir = nil
-conf_tools_locale_path = nil
+conf_tools_ld_so_library_path=nil
+conf_tools_sb2_installed=false
+conf_tools_sbox_dir=""
+conf_tools_ld_so=nil
+conf_tools_ld_so_supports_argv0=false
+conf_tools_libsb2_dir=nil
+conf_tools_locale_path=nil
 END
 	fi
 
@@ -824,13 +823,13 @@ END
 		# SBOX_CPUTRANSPARENCY_METHOD is not empty,
 		# host CPU != target CPU
 		cat <<END >>$SBOX_SESSION_DIR/exec_config.lua
-conf_target_ld_so_library_path = nil
-conf_target_sb2_installed = false
-conf_target_sbox_dir = ""
-conf_target_ld_so = nil
-conf_target_ld_so_supports_argv0 = false
-conf_target_libsb2_dir = nil
-conf_target_locale_path = nil
+conf_target_ld_so_library_path=nil
+conf_target_sb2_installed=false
+conf_target_sbox_dir=""
+conf_target_ld_so=nil
+conf_target_ld_so_supports_argv0=false
+conf_target_libsb2_dir=nil
+conf_target_locale_path=nil
 END
 
 		case "$SBOX_CPUTRANSPARENCY_METHOD" in	

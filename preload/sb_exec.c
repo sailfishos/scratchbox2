@@ -332,7 +332,7 @@ static enum binary_type inspect_elf_binary(const char *region)
 	return (BIN_UNKNOWN);
 }
 
-static enum binary_type inspect_binary(const char *filename)
+static enum binary_type inspect_binary(const char *filename, int check_x_permission)
 {
 	static char *target_cpu = NULL;
 	enum binary_type retval;
@@ -343,7 +343,7 @@ static enum binary_type inspect_binary(const char *filename)
 	uint16_t e_machine;
 
 	retval = BIN_NONE; /* assume it doesn't exist, until proven otherwise */
-	if (access_nomap_nolog(filename, X_OK) < 0) {
+	if (check_x_permission && access_nomap_nolog(filename, X_OK) < 0) {
 		int saved_errno = errno;
 		char *sb1_bug_emulation_mode =
 			sb2__read_string_variable_from_lua__(
@@ -390,6 +390,13 @@ static enum binary_type inspect_binary(const char *filename)
 				filename);
 			retval = BIN_INVALID;
 			errno = saved_errno;
+			goto _out;
+		}
+	} else if(!check_x_permission) {
+		if (access_nomap_nolog(filename, F_OK) < 0) {
+			/* file is missing completely, or can't be accessed
+			 * at all.
+			 * errno has been set */
 			goto _out;
 		}
 	}
@@ -1020,7 +1027,7 @@ static int prepare_exec(const char *exec_fn_name,
 		"__SB2_REAL_BINARYNAME=", mapped_file);
 
 	/* inspect the completely mangled filename */
-	type = inspect_binary(mapped_file);
+	type = inspect_binary(mapped_file, 1/*check_x_permission*/);
 
 	switch (type) {
 		case BIN_HASHBANG:
@@ -1181,7 +1188,7 @@ int sb2show__execve_mods__(
 */
 char *sb2show__binary_type__(const char *filename)
 {
-	enum binary_type type = inspect_binary(filename);
+	enum binary_type type = inspect_binary(filename, 0/*check_x_permission*/);
 	char *result = NULL;
 
 	switch (type) {

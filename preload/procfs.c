@@ -25,6 +25,16 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#ifdef _GNU_SOURCE
+#undef _GNU_SOURCE
+#include <string.h>
+#include <libgen.h>
+#define _GNU_SOURCE
+#else
+#include <string.h>
+#include <libgen.h>
+#endif
+
 #include <mapping.h>
 #include <sb2.h>
 #include "libsb2.h"

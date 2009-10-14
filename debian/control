@@ -10,8 +10,8 @@ Homepage: http://www.freedesktop.org/wiki/Software/sbox2
 
 Package: scratchbox2
 Architecture: i386 amd64 powerpc ia64
-Depends: ${shlibs:Depends}, libsb2 (= ${binary:Version})
-Recommends: qemu, fakeroot
+Depends: ${shlibs:Depends}, libsb2 (= ${binary:Version}), fakeroot
+Recommends: qemu
 Suggests: sbrsh
 Description: Transparent cross compiling environment
  Scratchbox2 uses a LD_PRELOAD library to create a transparent cross compiling

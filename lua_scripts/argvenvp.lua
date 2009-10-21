@@ -421,8 +421,13 @@ function sb_execve_postprocess_native_executable(rule, exec_policy,
 		-- if the binary has been set to use RPATHs. 
 		-- (it would be nice if we could log warnings about them,
 		-- but currently there is no easy way to do that)
-		table.insert(new_argv, "--inhibit-rpath")
-		table.insert(new_argv, "") -- empty "LIST" == the binary itself
+		if (exec_policy.native_app_ld_so_supports_rpath_prefix) then
+			table.insert(new_argv, "--rpath-prefix")
+			table.insert(new_argv, exec_policy.native_app_ld_so_rpath_prefix)
+		else
+			table.insert(new_argv, "--inhibit-rpath")
+			table.insert(new_argv, "") -- empty "LIST" == the binary itself
+		end
 
 		-- NOTE/WARNING: The default ld.so (ld-linux.so) will loose
 		-- argv[0], when the binary is executed by ld.so's

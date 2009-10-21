@@ -562,20 +562,27 @@ function check_qemu_features()
 	fi
 }
 
-# Test if the "--argv0" flag is supported by the ld.so
-function check_ld_so_argv0_feature()
+# Test if the "--argv0" and/or "--rpath-prefix" flags are
+# supported by the ld.so
+function check_ld_so_features()
 {
 	rootdir=$1
 	ld_so_path=$2
 
 	ld_so_argv_flag_works="false" # the default
+	ld_so_rpath_prefix_flag_works="false"
 
 	# Executing ld.so without any arguments should print 
 	# usage information to stderr:
-	test_output=`$ld_so_path 2>&1 | grep 'argv0 STRING'`
-	if [ -n "$test_output" ]; then
+	test_argv0_opt=`$ld_so_path 2>&1 | grep 'argv0 STRING'`
+	if [ -n "$test_argv0_opt" ]; then
 		# description about --argv0 exists!
 		ld_so_argv_flag_works="true"
+	fi
+	test_rpath_prefix_opt=`$ld_so_path 2>&1 | grep 'rpath-prefix PREFIX'`
+	if [ -n "$test_rpath_prefix_opt" ]; then
+		# description about --rpath-prefix exists!
+		ld_so_rpath_prefix_flag_works="true"
 	fi
 }
 
@@ -587,6 +594,7 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 	ld_so_path_varname=$4
 	ld_so_supports_argv0_varname=$5
 	libsb2_dir_varname=$6
+	ld_so_supports_rpath_prefix_varname=$7
 
 	# Check if ld.so can be used from $rootdir by 
 	# checking that libsb2 has been installed to tools
@@ -624,7 +632,7 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 	# First try if the default linker can be used
 	ld_so_candidate=$rootdir/lib/ld-linux.so.2
 	if [ -f $ld_so_candidate ]; then
-		check_ld_so_argv0_feature $rootdir $ld_so_candidate
+		check_ld_so_features $rootdir $ld_so_candidate
 		if [ "$ld_so_argv_flag_works" != "true" ]; then
 			# the default ld.so does not support --argv0.
 			# Find out if a replacement has been installed for sb2.
@@ -634,7 +642,7 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 			# libsb2.so is:
 			ld_so_candidate2=$libsb2_dirname/$ld_so_with_version
 			if [ -n "$libsb2_dirname" -a -f $ld_so_candidate2 ]; then
-				check_ld_so_argv0_feature $rootdir \
+				check_ld_so_features $rootdir \
 					$ld_so_candidate2
 
 				if [ "$ld_so_argv_flag_works" == "true" ]; then
@@ -645,7 +653,7 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 			if [ "$ld_so_argv_flag_works" != "true" ]; then
 				ld_so_candidate2=$SBOX_DIR/lib/libsb2/$ld_so_with_version
 				if [ -f "$ld_so_candidate2" ]; then
-					check_ld_so_argv0_feature $rootdir \
+					check_ld_so_features $rootdir \
 						$ld_so_candidate2
 					if [ "$ld_so_argv_flag_works" == "true" ]; then
 						ld_so_candidate=$ld_so_candidate2
@@ -670,7 +678,7 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 		if [ -L $ld_so_candidate2 ]; then
 			ld_so_candidate2=`/bin/readlink -f $ld_so_candidate2`
 			# check also that it has --argv0 support
-			check_ld_so_argv0_feature $rootdir $ld_so_candidate2
+			check_ld_so_features $rootdir $ld_so_candidate2
 			if [ "$ld_so_argv_flag_works" == "true" ]; then
 				ld_so_candidate=$ld_so_candidate2
 				ld_so_argv_flag_works="true"
@@ -692,10 +700,12 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 	if [ -n "$ld_so_candidate" ]; then
 		echo "$ld_so_path_varname=\"$ld_so_candidate\"" >>$SBOX_SESSION_DIR/exec_config.lua
 		echo "$ld_so_supports_argv0_varname=$ld_so_argv_flag_works" >>$SBOX_SESSION_DIR/exec_config.lua
+		echo "$ld_so_supports_rpath_prefix_varname=$ld_so_rpath_prefix_flag_works" >>$SBOX_SESSION_DIR/exec_config.lua
 
 	else
 		echo "$ld_so_path_varname=nil" >>$SBOX_SESSION_DIR/exec_config.lua
 		echo "$ld_so_supports_argv0_varname=false" >>$SBOX_SESSION_DIR/exec_config.lua
+		echo "$ld_so_supports_rpath_prefix_varname=false" >>$SBOX_SESSION_DIR/exec_config.lua
 	fi
 }
 
@@ -755,7 +765,8 @@ END
 			$SBOX_TOOLS_ROOT \
 			conf_tools_sb2_installed conf_tools_sbox_dir \
 			conf_tools_ld_so conf_tools_ld_so_supports_argv0 \
-			conf_tools_libsb2_dir
+			conf_tools_libsb2_dir \
+			conf_tools_ld_so_supports_rpath_prefix
 
 		write_locale_paths_to_exec_config \
 			$SBOX_TOOLS_ROOT \
@@ -813,7 +824,8 @@ END
 			$SBOX_TARGET_ROOT \
 			conf_target_sb2_installed conf_target_sbox_dir \
 			conf_target_ld_so conf_target_ld_so_supports_argv0 \
-			conf_target_libsb2_dir
+			conf_target_libsb2_dir \
+			conf_target_ld_so_supports_rpath_prefix
 
 		write_locale_paths_to_exec_config \
 			$SBOX_TARGET_ROOT \

@@ -556,6 +556,8 @@ simple_chain = {
 
 		{path = "/bin/sh",
 		 replace_by = tools .. "/bin/bash", readonly = true},
+		{path = "/bin/ps",
+		 use_orig_path = true, readonly = true},
 
 		-- -----------------------------------------------
 		-- 30. /lib/*

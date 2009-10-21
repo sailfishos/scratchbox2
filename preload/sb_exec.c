@@ -1053,9 +1053,30 @@ static int prepare_exec(const char *exec_fn_name,
 			break;
 
 		case BIN_HOST_STATIC:
-			SB_LOG(SB_LOGLEVEL_WARNING, "Executing statically "
-					"linked native binary %s",
-					mapped_file);
+			/* don't print warning, if this static binary
+			 * has been allowed (see the wrapper for
+			 * ldconfig - we don't want to see warnings
+			 * every time when someone executes that)
+			*/
+			{
+				const char *allow_static_bin;
+
+				allow_static_bin = getenv(
+					"SBOX_ALLOW_STATIC_BINARY");
+				if (allow_static_bin &&
+				    !strcmp(allow_static_bin, mapped_file)) {
+					/* no warnning, just debug */
+					SB_LOG(SB_LOGLEVEL_DEBUG,
+						"statically linked "
+						"native binary %s (allowed)",
+						mapped_file);
+				}  else {
+					SB_LOG(SB_LOGLEVEL_WARNING,
+						"Executing statically "
+						"linked native binary %s",
+						mapped_file);
+				}
+			}
 			break;
 
 		case BIN_TARGET:

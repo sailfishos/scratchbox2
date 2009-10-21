@@ -1252,8 +1252,17 @@ if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 fi
 
 # set the initial binary name for the mapping engine
-export __SB2_BINARYNAME="bash"
-SHELL=/bin/bash
+if [ -f $SBOX_TARGET_ROOT/bin/bash ]; then
+	# Good, bash exists. Use that.
+	__SB2_BINARYNAME="bash"
+	SHELL=/bin/bash
+else
+	# Default to /bin/sh
+	__SB2_BINARYNAME="sh"
+	SHELL=/bin/sh
+fi
+
+export __SB2_BINARYNAME
 
 # Final addition to LD_LIBRARY_PATH, if needed
 if [ -f $SBOX_SESSION_DIR/ld_library_path_extras ]; then

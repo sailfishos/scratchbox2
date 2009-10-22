@@ -27,3 +27,17 @@ glibc-2.3.6-elf-rtld.c.patch, glibc-2.5-elf-rtld.c.patch
 	Note that this patch causes no harm in the default case, i.e.
 	when the dynamic linker is started "automatically" by the kernel.
 
+glibc-2.5-ld.so-rpath-prefix-option.patch
+-----------------------------------------
+	
+	This patch adds a new option "--rpath-prefix" to ld.so.
+	This makes it possible to add a prefix to all RPATH and
+	RUNPATH options from binaries and libraries; that way 
+	Scratchbox 2 can run also host-compatible binaries that
+	contain such options (without this, the RPATHs would
+	refer to the libraries on the host system and not to
+	the correct libraries under 'target_root').
+
+	Note that this patch causes no harm in the default case, i.e.
+	when the dynamic linker is started "automatically" by the kernel.
+

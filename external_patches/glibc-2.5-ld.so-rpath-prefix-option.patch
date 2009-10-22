@@ -1,0 +1,146 @@
+diff -ru glibc-2.5-ORIG/elf/dl-load.c glibc-2.5/elf/dl-load.c
+--- glibc-2.5-ORIG/elf/dl-load.c	2007-09-25 17:20:30.000000000 +0300
++++ glibc-2.5/elf/dl-load.c	2009-10-22 15:00:02.000000000 +0300
+@@ -388,7 +388,8 @@
+ 
+ static struct r_search_path_elem **
+ fillin_rpath (char *rpath, struct r_search_path_elem **result, const char *sep,
+-	      int check_trusted, const char *what, const char *where)
++	      int check_trusted, const char *what, const char *where,
++	      const char *rpath_prefix)
+ {
+   char *cp;
+   size_t nelems = 0;
+@@ -464,22 +465,43 @@
+ 	  size_t cnt;
+ 	  enum r_dir_status init_val;
+ 	  size_t where_len = where ? strlen (where) + 1 : 0;
++	  size_t rpath_prefix_len = 0;
++
++	  if (__builtin_expect (rpath_prefix != NULL, 0)
++	      && !INTUSE(__libc_enable_secure))
++	    {
++		rpath_prefix_len = strlen (rpath_prefix);
++		if (*cp != '/') rpath_prefix_len++; /* need to add a '/' */
++	    }
+ 
+ 	  /* It's a new directory.  Create an entry and add it.  */
+ 	  dirp = (struct r_search_path_elem *)
+ 	    malloc (sizeof (*dirp) + ncapstr * sizeof (enum r_dir_status)
+-		    + where_len + len + 1);
++		    + where_len + rpath_prefix_len + len + 1);
+ 	  if (dirp == NULL)
+ 	    _dl_signal_error (ENOMEM, NULL, NULL,
+ 			      N_("cannot create cache for search path"));
+ 
+ 	  dirp->dirname = ((char *) dirp + sizeof (*dirp)
+ 			   + ncapstr * sizeof (enum r_dir_status));
+-	  *((char *) __mempcpy ((char *) dirp->dirname, cp, len)) = '\0';
+-	  dirp->dirnamelen = len;
++	  if (rpath_prefix_len == 0)
++	    {
++		  *((char *) __mempcpy ((char *) dirp->dirname, cp, len)) = '\0';
++	    }
++	  else
++	    {
++		char *prefixend;
++
++		prefixend = (char *) __mempcpy ((char *) dirp->dirname,
++				rpath_prefix, rpath_prefix_len);
++		if (*cp != '/')
++		  prefixend[-1] = '/'; /* replace \0 */
++		*((char *) __mempcpy (prefixend, cp, len)) = '\0';
++	    }
++	  dirp->dirnamelen = len + rpath_prefix_len;
+ 
+-	  if (len > max_dirnamelen)
+-	    max_dirnamelen = len;
++	  if ((len + rpath_prefix_len) > max_dirnamelen)
++	    max_dirnamelen = len + rpath_prefix_len;
+ 
+ 	  /* We have to make sure all the relative directories are
+ 	     never ignored.  The current directory might change and
+@@ -490,7 +512,8 @@
+ 
+ 	  dirp->what = what;
+ 	  if (__builtin_expect (where != NULL, 1))
+-	    dirp->where = memcpy ((char *) dirp + sizeof (*dirp) + len + 1
++	    dirp->where = memcpy ((char *) dirp + sizeof (*dirp)
++				  + rpath_prefix_len + len + 1
+ 				  + (ncapstr * sizeof (enum r_dir_status)),
+ 				  where, where_len);
+ 	  else
+@@ -583,7 +606,7 @@
+       _dl_signal_error (ENOMEM, NULL, NULL, errstring);
+     }
+ 
+-  fillin_rpath (copy, result, ":", 0, what, where);
++  fillin_rpath (copy, result, ":", 0, what, where, GLRO(dl_rpath_prefix));
+ 
+   /* Free the copied RPATH string.  `fillin_rpath' make own copies if
+      necessary.  */
+@@ -782,7 +805,7 @@
+ 
+       (void) fillin_rpath (llp_tmp, env_path_list.dirs, ":;",
+ 			   INTUSE(__libc_enable_secure), "LD_LIBRARY_PATH",
+-			   NULL);
++			   NULL, NULL/*no prefix*/);
+ 
+       if (env_path_list.dirs[0] == NULL)
+ 	{
+diff -ru glibc-2.5-ORIG/elf/dl-support.c glibc-2.5/elf/dl-support.c
+--- glibc-2.5-ORIG/elf/dl-support.c	2007-09-25 17:20:30.000000000 +0300
++++ glibc-2.5/elf/dl-support.c	2009-10-22 14:51:01.000000000 +0300
+@@ -56,6 +56,9 @@
+    ignored.  */
+ const char *_dl_inhibit_rpath;
+ 
++/* prefix to be added to all RUNPATHs and RPATHs */
++const char *_dl_rpath_prefix = NULL;
++
+ /* The map for the object we will profile.  */
+ struct link_map *_dl_profile_map;
+ 
+diff -ru glibc-2.5-ORIG/elf/rtld.c glibc-2.5/elf/rtld.c
+--- glibc-2.5-ORIG/elf/rtld.c	2009-10-22 14:40:05.000000000 +0300
++++ glibc-2.5/elf/rtld.c	2009-10-22 14:50:47.000000000 +0300
+@@ -951,6 +951,15 @@
+ 	    _dl_argc -= 2;
+ 	    INTUSE(_dl_argv) += 2;
+ 	  }
++	else if (! strcmp (INTUSE(_dl_argv)[1], "--rpath-prefix")
++		 && _dl_argc > 2)
++	  {
++	    GLRO(dl_rpath_prefix) = INTUSE(_dl_argv)[2];
++
++	    _dl_skip_args += 2;
++	    _dl_argc -= 2;
++	    INTUSE(_dl_argv) += 2;
++	  }
+ 	else if (! strcmp (INTUSE(_dl_argv)[1], "--audit") && _dl_argc > 2)
+ 	  {
+ 	    process_dl_audit (INTUSE(_dl_argv)[2]);
+@@ -992,6 +1001,7 @@
+                         object we can handle\n\
+   --library-path PATH   use given PATH instead of content of the environment\n\
+                         variable LD_LIBRARY_PATH\n\
++  --rpath-prefix PREFIX add PREFIX to every RUNPATH and RPATH component\n\
+   --inhibit-rpath LIST  ignore RUNPATH and RPATH information in object names\n\
+                         in LIST\n\
+   --argv0 STRING        use STRING as argv[0]\n");
+diff -ru glibc-2.5-ORIG/sysdeps/generic/ldsodefs.h glibc-2.5/sysdeps/generic/ldsodefs.h
+--- glibc-2.5-ORIG/sysdeps/generic/ldsodefs.h	2007-09-25 17:19:58.000000000 +0300
++++ glibc-2.5/sysdeps/generic/ldsodefs.h	2009-10-22 14:50:15.000000000 +0300
+@@ -666,6 +666,12 @@
+   /* List of auditing interfaces.  */
+   struct audit_ifaces *_dl_audit;
+   unsigned int _dl_naudit;
++#endif
++
++  /* prefix for RPATH + RUNPATH components.  */
++  EXTERN const char *_dl_rpath_prefix;
++
++#ifdef SHARED
+ };
+ # define __rtld_global_attribute__
+ # ifdef IS_IN_rtld

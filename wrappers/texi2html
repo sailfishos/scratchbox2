@@ -48,7 +48,7 @@ then
 	exec $real_tool
 fi
 
-if [ -n "$SBOX_WRAPPER_TEXI2HTML_EMULATE_OLD_VERSION" ]
+if [ -z "$SBOX_WRAPPER_TEXI2HTML_EMULATE_OLD_VERSION" ]
 then
 	# texi2html emulation has not been requested,
 	# just go and do it..

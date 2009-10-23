@@ -423,7 +423,7 @@ sub process_readonly_check_modifier {
 		"\"%s returns (%s is readonly) ".
 		"$return_value, error_code=$error_code\", ".
 		"__func__, ($new_name ? $new_name : \"<empty path>\"));\n".
-		"\t\tif ($new_name) free($new_name);\n";
+		"\t\tfree_mapping_results(&res_mapped__".$param_to_be_mapped.");\n";
 	if ($error_code ne '') {
 		# set errno just before returning
 		$mods->{'path_ro_check_code'} .=

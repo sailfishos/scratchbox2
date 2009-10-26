@@ -39,6 +39,12 @@ typedef struct mapping_results_s {
 	/* Flag: set if the result has been marked read only */
 	int	mres_readonly;
 
+	/* errno: non-zero if an error was detected during
+	 * mapping. The interface code should then return
+	 * this value to the application (in the "standard"
+	 * errno variable) without calling the real function.
+	*/
+	int	mres_errno;
 } mapping_results_t;
 
 extern void clear_mapping_results_struct(mapping_results_t *res);

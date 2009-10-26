@@ -572,7 +572,8 @@ static void drop_from_lua_stack(struct lua_instance *luaif,
  *       used to do the path resolution. drop_rule_from_lua_stack() must
  *       be called after it is not needed anymore!
 */
-static char *sb_path_resolution(
+static void sb_path_resolution(
+	mapping_results_t *res,
 	int nest_count,
 	struct lua_instance *luaif,
 	const char *binary_name,
@@ -594,25 +595,19 @@ static char *sb_path_resolution(
 
 	if (nest_count > 16) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
-			"sb_path_resolution: too deep nesting "
-			"(too many symbolic links");
+			"Detected too deep nesting "
+			"(too many symbolic links, path='%s')",
+			abs_path);
 
-		/* FIXME: This should return ELOOP to the calling program,
-		 * but that does not happen currently, because there is no
-		 * proper way to signal this kind of failures in the mapping
-		 * phase. This is somewhat complex to fix; the fix requires
-		 * that the mapping engine interface and other places must
-		 * be changed, too (e.g. the interface generator, etc).
-		 * This is minor problem currently.
-		*/
-		errno = ELOOP;
-		return NULL;
+		/* return ELOOP to the calling program */
+		res->mres_errno = ELOOP;
+		return;
 	}
 
 	if (!abs_path || !*abs_path) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"sb_path_resolution called with NULL path");
-		return NULL;
+		return;
 	}
 	if (*abs_path != '/') {
 		SB_LOG(SB_LOGLEVEL_ERROR,
@@ -708,7 +703,6 @@ static char *sb_path_resolution(
 			/* was a symlink */
 			char	*new_path = NULL;
 			char	*rest_of_path;
-			char	*result_path;
 
 			link_dest[link_len] = '\0';
 			if (work->pe_next) {
@@ -826,13 +820,13 @@ static char *sb_path_resolution(
 			drop_rule_from_lua_stack(luaif);
 
 			/* Then the recursion */
-			result_path = sb_path_resolution(nest_count + 1,
+			sb_path_resolution(res, nest_count + 1,
 				luaif, binary_name, func_name,
 				new_path, dont_resolve_final_symlink);
 
 			/* and finally, cleanup */
 			free(new_path);
-			return(result_path);
+			return;
 		}
 		work = work->pe_next;
 		if (work) {
@@ -895,7 +889,7 @@ static char *sb_path_resolution(
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"sb_path_resolution returns '%s'", buf);
-	return buf;
+	res->mres_result_buf = res->mres_result_path = buf;
 }
 
 /* ========== Mapping & path resolution, internal implementation: ========== */
@@ -913,7 +907,7 @@ static void sbox_map_path_internal(
 	mapping_results_t *res)
 {
 	struct lua_instance *luaif = NULL;
-	char *mapping_result;
+	char *mapping_result = NULL;
 	const char *abs_path = NULL;
 	char *abs_path_buffer = NULL;
 	char real_cwd[PATH_MAX + 1]; /* used only if orig_path is relative */
@@ -1042,8 +1036,10 @@ static void sbox_map_path_internal(
 	disable_mapping(luaif);
 	{
 		/* Mapping disabled inside this block - do not use "return"!! */
-		char *decolon_path = NULL;
-		char *full_path_for_rule_selection = NULL;
+		mapping_results_t	decolon_path_result;
+		char			*full_path_for_rule_selection = NULL;
+
+		clear_mapping_results_struct(&decolon_path_result);
 
 		full_path_for_rule_selection = sb_clean_path(abs_path);
 
@@ -1069,12 +1065,21 @@ static void sbox_map_path_internal(
 			orig_path, full_path_for_rule_selection);
 
 		/* sb_path_resolution() leaves the rule to the stack... */
-		decolon_path = sb_path_resolution(0,
+		sb_path_resolution(&decolon_path_result, 0,
 			luaif, binary_name, func_name,
 			full_path_for_rule_selection,
 			dont_resolve_final_symlink);
 
-		if (!decolon_path) {
+		if (decolon_path_result.mres_errno) {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"path mapping fails, "
+				" errno = %d",
+				decolon_path_result.mres_errno);
+			res->mres_errno = decolon_path_result.mres_errno;
+			goto forget_mapping;
+		}
+
+		if (!decolon_path_result.mres_result_path) {
 			SB_LOG(SB_LOGLEVEL_ERROR,
 				"sbox_map_path_internal: "
 				"decolon_path failed [%s]",
@@ -1092,12 +1097,12 @@ static void sbox_map_path_internal(
 
 			SB_LOG(SB_LOGLEVEL_NOISE2,
 				"sbox_map_path_internal: decolon_path='%s'",
-				decolon_path);
+				decolon_path_result.mres_result_path);
 
 			mapping_result = call_lua_function_sbox_translate_path(
 				SB_LOGLEVEL_INFO,
 				luaif, binary_name, func_name,
-				decolon_path, &flags);
+				decolon_path_result.mres_result_path, &flags);
 			res->mres_readonly = (flags & SB2_MAPPING_RULE_FLAGS_READONLY);
 
 			if (process_path_for_exec == 0) {
@@ -1107,7 +1112,7 @@ static void sbox_map_path_internal(
 			}
 		}
 	forget_mapping:
-		if(decolon_path) free(decolon_path);
+		free_mapping_results(&decolon_path_result);
 		if(full_path_for_rule_selection) free(full_path_for_rule_selection);
 	}
 	enable_mapping(luaif);
@@ -1288,6 +1293,7 @@ void	clear_mapping_results_struct(mapping_results_t *res)
 	res->mres_result_buf = res->mres_result_path = NULL;
 	res->mres_readonly = 0;
 	res->mres_result_path_was_allocated = 0;
+	res->mres_errno = 0;
 }
 
 void	free_mapping_results(mapping_results_t *res)

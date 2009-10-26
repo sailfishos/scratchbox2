@@ -482,12 +482,29 @@ sub process_wrap_or_gate_modifiers {
 
 		# name of the function pointer variable
 		'real_fn_pointer_name' => "${fn_name}_next__",
+
+		# Default value to return if error
+		# (e.g. if path mapping returns an error,
+		# errno will be set and this value will be
+		# returned without calling the real function)
+		'return_value_if_error' => "-1",
 	};
 
 	my $r_param_names = $mods->{'parameter_names'};
 	my $r_param_types = $mods->{'parameter_types'};
 
 	my $varargs_handled = 0;
+
+	my $return_statement = "return;";
+	my $fn_return_type = $fn->{'fn_return_type'};
+	if($fn_return_type ne "void") {
+		$return_statement = "return(ret);";
+
+		if ($fn_return_type =~ m/\*/) {
+			# return value is a pointer, default to NULL
+			$mods->{'return_value_if_error'} = "NULL";
+		}
+	}
 
 	my $i;
 	for($i=0; $i < $num_modifiers; $i++) {
@@ -502,12 +519,20 @@ sub process_wrap_or_gate_modifiers {
 			$mods->{'mapping_results_by_orig_name'}->{$param_to_be_mapped} = "res_$new_name";
 			$mods->{'path_mapping_vars'} .= 
 				"\tmapping_results_t res_$new_name;\n";
+
 			$mods->{'path_mapping_code'} .=
 				"\tclear_mapping_results_struct(&res_$new_name);\n".
 				"\tsbox_map_path(__func__, ".
 					"$param_to_be_mapped, ".
 					"$no_symlink_resolve, ".
-					"&res_$new_name);\n";
+					"&res_$new_name);\n".
+				"\tif (res_$new_name.mres_errno) {\n".
+				"\t\tSB_LOG(SB_LOGLEVEL_DEBUG, \"mapping failed, errno %d\",".
+					" res_$new_name.mres_errno);\n".
+				"\t\terrno = res_$new_name.mres_errno;\n".
+				"\t\tfree_mapping_results(&res_$new_name);\n".
+				"\t\t$return_statement\n".
+				"\t}\n";
 			$mods->{'free_path_mapping_vars_code'} .=
 				"\tfree_mapping_results(&res_$new_name);\n";
 
@@ -547,7 +572,12 @@ sub process_wrap_or_gate_modifiers {
 					"$fd_param, ".
 					"$param_to_be_mapped, ".
 					"$no_symlink_resolve, ".
-					"&res_$new_name);\n";
+					"&res_$new_name);\n".
+				"\tif (res_$new_name.mres_errno) {\n".
+				"\t\terrno = res_$new_name.mres_errno;\n".
+				"\t\tfree_mapping_results(&res_$new_name);\n".
+				"\t\t$return_statement\n".
+				"\t}\n";
 			$mods->{'free_path_mapping_vars_code'} .=
 				"\tfree_mapping_results(&res_$new_name);\n";
 
@@ -915,9 +945,10 @@ sub command_wrap_or_gate {
 		$mods->{'local_vars_for_varargs_handler'};
 
 	if($fn_return_type ne "void") {
-		$wrapper_fn_c_code .=	"\t$fn_return_type ret;\n";
-		$nomap_fn_c_code .=	"\t$fn_return_type ret;\n";
-		$nomap_nolog_fn_c_code .= "\t$fn_return_type ret;\n";
+		my $default_return_value = $mods->{'return_value_if_error'};
+		$wrapper_fn_c_code .=	"\t$fn_return_type ret = $default_return_value;\n";
+		$nomap_fn_c_code .=	"\t$fn_return_type ret = $default_return_value;\n";
+		$nomap_nolog_fn_c_code .= "\t$fn_return_type ret = $default_return_value;\n";
 	}
 	$wrapper_fn_c_code .=	"\tint saved_errno = errno;\n".
 				"\terrno = 0;\n";

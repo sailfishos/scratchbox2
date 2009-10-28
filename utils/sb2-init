@@ -54,13 +54,14 @@ function usage()
 	cat <<EOF
 sb2-init - initialize a target root for scratchbox2
 Usage:
-	sb2-init [OPTION]... [TARGETNAME] [COMPILER] [SECONDARY_COMPILER...]
+	sb2-init [OPTION]... [TARGETNAME] [COMPILER[:SPECS]] [SECONDARY_COMPILER...]
 
 sb2-init is expected to be run in the directory you want
 to use as scratchbox 2 target root.
 
 TARGETNAME is what you want to call this target
 COMPILER is of the form $HOME/arm-2006q3/bin/arm-linux-gcc
+SPECS is path to the compiler scpecs file.
 If more than one compiler is specified, the additional compilers
 are available by version number (e.g. if the primary is known as
 "gcc" and "gcc-4.1", the secondary may be "gcc-3.4", etc)
@@ -88,7 +89,7 @@ Options:
 Examples:
     sb2-init -c qemu-arm ARM arm-linux-gcc
     sb2-init -c qemu-arm -m devel ARM arm-linux-gcc
-    sb2-init -sn -c sbrsh armel-debian /path/to/arm-linux-gcc
+    sb2-init -sn -c sbrsh armel-debian /path/to/arm-linux-gcc:/path/to/gcc-specs
 
 EOF
 	show_existing_config_info

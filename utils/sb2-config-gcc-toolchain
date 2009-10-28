@@ -152,7 +152,15 @@ do
 done
 shift $(($OPTIND - 1))
 
-GCC=$1
+case "$1" in
+*:*)	# Has a path to specs
+	GCC=`echo $1 | cut -d : -f 1`
+	GCC_SPECS=`echo $1 | cut -d : -f 2`
+	;;
+*)	GCC=$1
+	GCC_SPECS=""
+	;;
+esac
 
 # ---------- Check parameters
 
@@ -191,6 +199,20 @@ if [ -z "$GCC" ]; then
 	echo "Error: no compiler given"
 	exit 1
 fi
+
+case "$GCC_SPECS" in
+"")	# not specified, this is ok
+	;;
+/*)	# absolute path
+	if [ ! -f $GCC_SPECS ]; then
+		echo "Error: compiler specs file ($GCC_SPECS) does not exist."
+		exit 1
+	fi
+	;;
+*)	# relative path
+	echo "Error: path to specs file ($GCC_SPECS) is not absolute."
+	exit 1
+esac
 
 GCC_FULLPATH=$(which $GCC)
 # test that gcc exists and can be executed
@@ -252,7 +274,11 @@ fi
 SBOX_CROSS_GCC_SPECS_FILE=""
 SBOX_EXTRA_CROSS_COMPILER_STDINC=""
 
-if [ -f $SBOX_DIR/share/scratchbox2/modeconf/gcc-$SBOX_CROSS_GCC_VERSION-specs-$ARCH.$MAPPING_MODE ]; then
+if [ -n "$GCC_SPECS" ]; then
+	# the file was specified on the command line
+	SBOX_CROSS_GCC_SPECS_FILE="$GCC_SPECS"
+# else try to locate a specs file which was provided with gcc
+elif [ -f $SBOX_DIR/share/scratchbox2/modeconf/gcc-$SBOX_CROSS_GCC_VERSION-specs-$ARCH.$MAPPING_MODE ]; then
 	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modeconf/gcc-$SBOX_CROSS_GCC_VERSION-specs-$ARCH.$MAPPING_MODE"
 elif [ -f $SBOX_DIR/share/scratchbox2/modeconf/gcc-$SBOX_CROSS_GCC_VERSION-specs.$MAPPING_MODE ]; then
 	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modeconf/gcc-$SBOX_CROSS_GCC_VERSION-specs.$MAPPING_MODE"

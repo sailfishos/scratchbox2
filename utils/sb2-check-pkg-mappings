@@ -24,7 +24,9 @@ Options:
 		database, to be used by sb2's dpkg-checkbuilddeps
     -u          Update: check if the temporary DB is up to date,
                 activate option -a if needed
-    -v          verbose mode: Report all paths with mapping status
+    -v          verbose mode: Report package names when checking all,
+		even more verbose when checking named packages
+		(then reports all paths with mapping status)
     -f          use force: update timestamp of the temporary DB
                 if it exists, but don't check the contents. This may
                 be dangerous and may break your configuration!
@@ -59,7 +61,7 @@ check_if_out_of_date="no"
 update_timestamp_by_force="no"
 status_file=""
 bothreq_file=""
-VERBOSE_OPTION=""
+verbose=""
 
 while getopts auhvf foo
 do
@@ -68,11 +70,24 @@ do
 	(u) check_if_out_of_date="yes" ;;
 	(f) update_timestamp_by_force="yes" ;;
 	(h) usage ;;
-	(v) VERBOSE_OPTION="-v" ;;
+	(v) verbose="y" ;;
 	(*) usage ;;
 	esac
 done
 shift $(($OPTIND - 1))
+
+pkgs2check="$*"
+
+SB2_SHOW_VERBOSE_OPTION=""
+if [ -n "$pkgs2check" ]; then
+	# has a list of packages: 
+	# now "-v" means "extra verbose"
+	if [ -n "$verbose" ]; then
+		SB2_SHOW_VERBOSE_OPTION="-v"
+	fi
+	# activate "standard verbose" always.
+	verbose="y"
+fi
 
 # Target's real package db:
 TARGET_DPKG_ADMINDIR_ALL_PKGS=$sbox_target_root/var/lib/dpkg
@@ -125,11 +140,11 @@ if [ "$check_if_out_of_date" = "yes" ]; then
 	fi
 fi
 
-pkgs2check="$*"
 tstamp=`/bin/date +%Y%m%d-%H%M`
 
 if [ -z "$pkgs2check" -a "$check_all_pkgs" = "yes" ]; then
 	# check all installed packages
+	echo "Checking visibility of all files installed from all packages to target_root:"
 	pkgs2check=`dpkg --get-selections | grep 'install$' | sed -e 's/install$//'`
 	status_file=STATUS-NEW.$tstamp.$$
 	bothreq_file=BOTH_REQ-NEW.$tstamp.$$
@@ -175,7 +190,9 @@ fi
 # for all installed packages..
 for pkg in $pkgs2check; do
 	pkgnum=`expr $pkgnum + 1`
-	echo "=========== $pkgnum. Checking $pkg ==========="
+	if [ -n "$verbose" ]; then
+		echo "=========== $pkgnum. Checking $pkg ==========="
+	fi
 
 	# get list of files installed by this package (dpkg -L),
 	# and feed it to sb2-show to be verified (-D causes directories
@@ -185,24 +202,36 @@ for pkg in $pkgs2check; do
 	dpkg -L $pkg >$sb2_pkg_chk
 	if [ $? != 0 ]; then
 		num_failed=`expr $num_failed + 1`
-		echo "	$pkg is not available"
+		if [ -n "$verbose" ]; then
+			echo "	$pkg is not available"
+		else
+			echo -n "!"
+		fi
 	else
 		sed < $sb2_pkg_chk\
 		    -e 's/diverted by .* to: //' \
 		    -e 's/package diverts others to: //' |
 		sb2-show -D verify-pathlist-mappings \
-			$VERBOSE_OPTION \
+			$SB2_SHOW_VERBOSE_OPTION \
 			$sbox_target_root $SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST
 		pathlist_mappings_result=$?
 		if [ $pathlist_mappings_result == 0 ]; then
 			# package can be safely used, all mappings are OK:
-			echo "	$pkg = OK"
+			if [ -n "$verbose" ]; then
+				echo "	$pkg = OK"
+			else
+				echo -n "."
+			fi
 			num_ok=`expr $num_ok + 1`
 			add_pkg_to_status_file
 		elif [ $pathlist_mappings_result == 2 ]; then
 			# package can be used, as long as it is installed to 
 			# the target_root AND to the tools
-			echo "	$pkg : required also from tools"
+			if [ -n "$verbose" ]; then
+				echo "	$pkg : required also from tools"
+			else
+				echo -n "."
+			fi
 			num_both_required=`expr $num_both_required + 1`
 			add_pkg_to_status_file
 			if [ $check_all_pkgs = "yes" ]; then
@@ -210,12 +239,19 @@ for pkg in $pkgs2check; do
 			fi
 		else
 			num_failed=`expr $num_failed + 1`
-			echo "	$pkg can not be used in this mode ($sbox_mapmode)"
+			if [ -n "$verbose" ]; then
+				echo "	$pkg can not be used in this mode ($sbox_mapmode)"
+			else
+				echo -n "#"
+			fi
 		fi
 	fi
 	rm $sb2_pkg_chk
 done
 
+if [ -z "$verbose" ]; then
+	echo
+fi
 echo "Checked $pkgnum packages: Ok=$num_ok, unusable=$num_failed, both required=$num_both_required"
 
 if [ $check_all_pkgs = "yes" ]; then
@@ -224,5 +260,7 @@ if [ $check_all_pkgs = "yes" ]; then
 	fi
 	mv $status_file $sbox_temp_dpkg_admin_dir/status
 	mv $bothreq_file $sbox_temp_dpkg_admin_dir/both-required
-	echo "Results have been written to $sbox_temp_dpkg_admin_dir/status"
+	if [ -n "$verbose" ]; then
+		echo "Results have been written to $sbox_temp_dpkg_admin_dir/status"
+	fi
 fi

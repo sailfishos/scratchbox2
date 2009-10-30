@@ -643,6 +643,17 @@ static void drop_from_lua_stack(struct lua_instance *luaif,
 		lua_gettop(luaif->lua));
 }
 
+static void sb_path_resolution_resolve_symlink(
+	const char *link_dest,
+	const struct path_entry_list *virtual_source_path_list,
+	const struct path_entry *virtual_path_work_ptr,
+	mapping_results_t *resolved_virtual_path_res,
+	int nest_count,
+	struct lua_instance *luaif,
+	const char *binary_name,
+	const char *func_name,
+	int dont_resolve_final_symlink);
+
 /* sb_path_resolution():  This is the place where symlinks are followed.
  *
  * Returns an allocated buffer containing the resolved path (or NULL if error)
@@ -790,140 +801,25 @@ static void sb_path_resolution(
 
 		if (link_len > 0) {
 			/* was a symlink */
-			char	*new_abs_virtual_link_dest_path = NULL;
-			char	*rest_of_virtual_path;
+
+			SB_LOG(SB_LOGLEVEL_NOISE,
+				"Path resolution found symlink '%s' "
+				"-> '%s'",
+				prefix_mapping_result_host_path, link_dest);
+			free(prefix_mapping_result_host_path);
 
 			link_dest[link_len] = '\0';
-			if (virtual_path_work_ptr->pe_next) {
-				rest_of_virtual_path = path_entries_to_string(
-					virtual_path_work_ptr->pe_next);
-				SB_LOG(SB_LOGLEVEL_NOISE,
-					"symlink:more: rest='%s'", rest_of_virtual_path);
-			} else {
-				/* last component of the path was a symlink. */
-				rest_of_virtual_path = strdup("");
-				SB_LOG(SB_LOGLEVEL_NOISE,
-					"symlink:last: rest=''");
-			}
-
-			if (*link_dest == '/') {
-				/* absolute symlink.
-				 * This is easy: just join the symlink
-				 * and rest of path, and further mapping
-				 * operations will take care of the rest.
-				*/
-				SB_LOG(SB_LOGLEVEL_NOISE,
-					"absolute symlink at '%s' "
-					"points to '%s', restarting",
-					prefix_mapping_result_host_path, link_dest);
-
-				if (*rest_of_virtual_path) {
-					if (asprintf(&new_abs_virtual_link_dest_path, "%s%s%s",
-						link_dest, 
-						((last_char_in_str(link_dest) != '/')
-						    && (*rest_of_virtual_path != '/') ?
-							"/" : ""),
-						rest_of_virtual_path) < 0) {
-
-						SB_LOG(SB_LOGLEVEL_ERROR,
-							"asprintf failed");
-					}
-				} else {
-					new_abs_virtual_link_dest_path = strdup(link_dest);
-				}
-			} else {
-				/* A relative symlink. Somewhat complex:
-				 * "prefix_mapping_result_host_path" contains the
-				 * real location in the FS, but here we
-				 * must still build the full path from the
-				 * place where we pretend to be - otherwise
-				 * path mapping code would fail to find the
-				 * correct location. Hence "dirnam" is
-				 * based on what was mapped, and not based on
-				 * were the mapping took us.
-				*/
-				char *virtual_dirnam;
-				int last_in_dirnam_is_slash;
-
-				if (virtual_path_work_ptr->pe_prev) {
-					virtual_dirnam = path_entries_to_string_until(
-						virtual_source_path_list.pl_first,
-						virtual_path_work_ptr->pe_prev);
-				} else {
-					virtual_dirnam = strdup("/");
-				}
-
-				last_in_dirnam_is_slash =
-					(last_char_in_str(virtual_dirnam) == '/');
-
-				SB_LOG(SB_LOGLEVEL_NOISE,
-					"relative symlink at '%s' "
-					"points to '%s'",
-					prefix_mapping_result_host_path, link_dest);
-
-				if (*rest_of_virtual_path) {
-					int last_in_dest_is_slash =
-					    (last_char_in_str(link_dest)=='/');
-
-					if (asprintf(&new_abs_virtual_link_dest_path, "%s%s%s%s%s",
-						virtual_dirnam,
-						(last_in_dirnam_is_slash ?
-							"" : "/"),
-						link_dest,
-						(!last_in_dest_is_slash &&
-						 (*rest_of_virtual_path != '/') ?
-							"/" : ""),
-						rest_of_virtual_path) < 0) {
-
-						SB_LOG(SB_LOGLEVEL_ERROR,
-							"asprintf failed");
-					}
-				} else {
-					if (asprintf(&new_abs_virtual_link_dest_path, "%s%s%s",
-						virtual_dirnam,
-						(last_in_dirnam_is_slash ?
-							"" : "/"),
-						link_dest) < 0) {
-
-						SB_LOG(SB_LOGLEVEL_ERROR,
-							"asprintf failed");
-					}
-				}
-				free(virtual_dirnam);
-			}
-			free(prefix_mapping_result_host_path);
-			free(rest_of_virtual_path);
-			free_path_entries(&virtual_source_path_list);
-
-			/* double-check the result. We MUST use absolute
-			 * paths here.
-			*/
-			if (*new_abs_virtual_link_dest_path != '/') {
-				/* this should never happen */
-				SB_LOG(SB_LOGLEVEL_ERROR,
-					"FATAL: symlink resolved to "
-					"a relative path (internal error)");
-				assert(0);
-			}
-
-			/* recursively call myself to perform path
-			 * resolution steps for the symlink target.
-			*/
-
-			/* First, forget the old rule: */
-			drop_rule_from_lua_stack(luaif);
-
-			/* Then the recursion.
-			 * NOTE: new_abs_virtual_link_dest_path is not necessarily
-			 * a clean path, because the symlink may have pointed to .. */
-			sb_path_resolution(resolved_virtual_path_res, nest_count + 1,
+			sb_path_resolution_resolve_symlink(
+				link_dest,
+				&virtual_source_path_list, virtual_path_work_ptr,
+				resolved_virtual_path_res, nest_count,
 				luaif, binary_name, func_name,
-				new_abs_virtual_link_dest_path, dont_resolve_final_symlink);
-
-			/* and finally, cleanup */
-			free(new_abs_virtual_link_dest_path);
+				dont_resolve_final_symlink);
+			free_path_entries(&virtual_source_path_list);
 			return;
 		}
+
+		/* not a symlink */
 		virtual_path_work_ptr = virtual_path_work_ptr->pe_next;
 		if (virtual_path_work_ptr) {
 			if (call_translate_for_all) {
@@ -999,7 +895,226 @@ static void sb_path_resolution(
 	}
 }
 
+static void sb_path_resolution_resolve_symlink(
+	const char *link_dest,
+	const struct path_entry_list *virtual_source_path_list,
+	const struct path_entry *virtual_path_work_ptr,
+	mapping_results_t *resolved_virtual_path_res,
+	int nest_count,
+	struct lua_instance *luaif,
+	const char *binary_name,
+	const char *func_name,
+	int dont_resolve_final_symlink)
+{
+	char	*new_abs_virtual_link_dest_path = NULL;
+	char	*rest_of_virtual_path;
+
+	if (virtual_path_work_ptr->pe_next) {
+		rest_of_virtual_path = path_entries_to_string(
+			virtual_path_work_ptr->pe_next);
+		SB_LOG(SB_LOGLEVEL_NOISE,
+			"symlink:more: rest='%s'", rest_of_virtual_path);
+	} else {
+		/* last component of the path was a symlink. */
+		rest_of_virtual_path = strdup("");
+		SB_LOG(SB_LOGLEVEL_NOISE,
+			"symlink:last: rest=''");
+	}
+
+	if (*link_dest == '/') {
+		/* absolute symlink.
+		 * This is easy: just join the symlink
+		 * and rest of path, and further mapping
+		 * operations will take care of the rest.
+		*/
+		SB_LOG(SB_LOGLEVEL_NOISE, "absolute symlink");
+
+		if (*rest_of_virtual_path) {
+			if (asprintf(&new_abs_virtual_link_dest_path, "%s%s%s",
+				link_dest, 
+				((last_char_in_str(link_dest) != '/')
+				    && (*rest_of_virtual_path != '/') ?
+					"/" : ""),
+				rest_of_virtual_path) < 0) {
+
+				SB_LOG(SB_LOGLEVEL_ERROR,
+					"asprintf failed");
+			}
+		} else {
+			new_abs_virtual_link_dest_path = strdup(link_dest);
+		}
+	} else {
+		/* A relative symlink. Somewhat complex:
+		 * "prefix_mapping_result_host_path" contains the
+		 * real location in the FS, but here we
+		 * must still build the full path from the
+		 * place where we pretend to be - otherwise
+		 * path mapping code would fail to find the
+		 * correct location. Hence "dirnam" is
+		 * based on what was mapped, and not based on
+		 * were the mapping took us.
+		*/
+		char *virtual_dirnam;
+		int last_in_dirnam_is_slash;
+
+		if (virtual_path_work_ptr->pe_prev) {
+			virtual_dirnam = path_entries_to_string_until(
+				virtual_source_path_list->pl_first,
+				virtual_path_work_ptr->pe_prev);
+		} else {
+			virtual_dirnam = strdup("/");
+		}
+
+		last_in_dirnam_is_slash =
+			(last_char_in_str(virtual_dirnam) == '/');
+
+		SB_LOG(SB_LOGLEVEL_NOISE, "relative symlink");
+
+		if (*rest_of_virtual_path) {
+			int last_in_dest_is_slash =
+			    (last_char_in_str(link_dest)=='/');
+
+			if (asprintf(&new_abs_virtual_link_dest_path, "%s%s%s%s%s",
+				virtual_dirnam,
+				(last_in_dirnam_is_slash ?
+					"" : "/"),
+				link_dest,
+				(!last_in_dest_is_slash &&
+				 (*rest_of_virtual_path != '/') ?
+					"/" : ""),
+				rest_of_virtual_path) < 0) {
+
+				SB_LOG(SB_LOGLEVEL_ERROR,
+					"asprintf failed");
+			}
+		} else {
+			if (asprintf(&new_abs_virtual_link_dest_path, "%s%s%s",
+				virtual_dirnam,
+				(last_in_dirnam_is_slash ?
+					"" : "/"),
+				link_dest) < 0) {
+
+				SB_LOG(SB_LOGLEVEL_ERROR,
+					"asprintf failed");
+			}
+		}
+		free(virtual_dirnam);
+	}
+	free(rest_of_virtual_path);
+
+	/* double-check the result. We MUST use absolute
+	 * paths here.
+	*/
+	if (*new_abs_virtual_link_dest_path != '/') {
+		/* this should never happen */
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"FATAL: symlink resolved to "
+			"a relative path (internal error)");
+		assert(0);
+	}
+
+	/* recursively call sb_path_resolution() to perform path
+	 * resolution steps for the symlink target.
+	*/
+
+	/* First, forget the old rule: */
+	drop_rule_from_lua_stack(luaif);
+
+	/* Then the recursion.
+	 * NOTE: new_abs_virtual_link_dest_path is not necessarily
+	 * a clean path, because the symlink may have pointed to .. */
+	sb_path_resolution(resolved_virtual_path_res, nest_count + 1,
+		luaif, binary_name, func_name,
+		new_abs_virtual_link_dest_path, dont_resolve_final_symlink);
+
+	/* and finally, cleanup */
+	free(new_abs_virtual_link_dest_path);
+	return;
+}
+
 /* ========== Mapping & path resolution, internal implementation: ========== */
+
+static const char *relative_virtual_path_to_abs_path(
+	struct lua_instance *luaif,
+	char *host_cwd,
+	size_t host_cwd_size,
+	const char *relative_virtual_path,
+	char **abs_virtual_path_buffer_p,
+	const char *func_name)
+{
+	char *virtual_reversed_cwd = NULL;
+
+	if (!getcwd_nomap_nolog(host_cwd, host_cwd_size)) {
+		/* getcwd() returns NULL if the path is really long.
+		 * In this case the path can not be mapped.
+		 *
+		 * Added 2009-01-16: This actually happens sometimes;
+		 * there are configure scripts that find out MAX_PATH 
+		 * the hard way. So, if this process has already
+		 * logged this error, we'll suppress further messages.
+		 * [decided to add this check after I had seen 3686
+		 * error messages from "conftest" :-) /LTA]
+		*/
+		static int absolute_path_failed_message_logged = 0;
+
+		if (!absolute_path_failed_message_logged) {
+			absolute_path_failed_message_logged = 1;
+			SB_LOG(SB_LOGLEVEL_ERROR,
+			    "absolute_path failed to get current dir");
+		}
+		return(NULL);
+	}
+	SB_LOG(SB_LOGLEVEL_DEBUG,
+		"sbox_map_path_internal: converting to abs.path cwd=%s",
+		host_cwd);
+	
+	/* reversing of paths is expensive...try if a previous
+	 * result can be used, and call the reversing logic only if
+	 * CWD has been changed.
+	*/
+	if (luaif->host_cwd && luaif->virtual_reversed_cwd &&
+	    !strcmp(host_cwd, luaif->host_cwd)) {
+		/* "cache hit" */
+		virtual_reversed_cwd = luaif->virtual_reversed_cwd;
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"sbox_map_path_internal: using cached rev_cwd=%s",
+			virtual_reversed_cwd);
+	} else {
+		/* "cache miss" */
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"sbox_map_path_internal: reversing cwd:");
+		virtual_reversed_cwd = call_lua_function_sbox_reverse_path(
+			luaif,
+			(sbox_binary_name?sbox_binary_name:"UNKNOWN"),
+			func_name, host_cwd);
+		if (virtual_reversed_cwd == NULL) {
+			/*
+			 * In case reverse path couldn't be resolved
+			 * we fallback into host_cwd.  This is the
+			 * way it used to work before.
+			 */
+			virtual_reversed_cwd = strdup(host_cwd);
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+			    "unable to reverse, using reversed_cwd=%s",
+			    virtual_reversed_cwd);
+		}
+		/* put the reversed CWD to our one-slot cache: */
+		if (luaif->host_cwd) free(luaif->host_cwd);
+		if (luaif->virtual_reversed_cwd) free(luaif->virtual_reversed_cwd);
+		luaif->host_cwd = strdup(host_cwd);
+		luaif->virtual_reversed_cwd = virtual_reversed_cwd;
+	}
+	if (asprintf(abs_virtual_path_buffer_p, "%s/%s",
+	     virtual_reversed_cwd, relative_virtual_path) < 0) {
+		/* asprintf failed */
+		abort();
+	}
+	SB_LOG(SB_LOGLEVEL_DEBUG,
+		"sbox_map_path_internal: abs.path is '%s'",
+		*abs_virtual_path_buffer_p);
+
+	return(*abs_virtual_path_buffer_p);
+}
 
 /* make sure to use disable_mapping(m); 
  * to prevent recursive calls to this function.
@@ -1068,77 +1183,12 @@ static void sbox_map_path_internal(
 		abs_virtual_path = virtual_orig_path;
 	} else {
 		/* convert to absolute path. */
-		char *virtual_reversed_cwd = NULL;
-
-		if (!getcwd_nomap_nolog(host_cwd, sizeof(host_cwd))) {
-			/* getcwd() returns NULL if the path is really long.
-			 * In this case the path can not be mapped.
-			 *
-			 * Added 2009-01-16: This actually happens sometimes;
-			 * there are configure scripts that find out MAX_PATH 
-			 * the hard way. So, if this process has already
-			 * logged this error, we'll suppress further messages.
-			 * [decided to add this check after I had seen 3686
-			 * error messages from "conftest" :-) /LTA]
-			*/
-			static int absolute_path_failed_message_logged = 0;
-
-			if (!absolute_path_failed_message_logged) {
-				absolute_path_failed_message_logged = 1;
-				SB_LOG(SB_LOGLEVEL_ERROR,
-				    "absolute_path failed to get current dir");
-			}
+		abs_virtual_path = relative_virtual_path_to_abs_path(
+			luaif, host_cwd, sizeof(host_cwd),
+			virtual_orig_path, &abs_virtual_path_buffer,
+			func_name);
+		if (!abs_virtual_path)
 			goto use_orig_path_as_result_and_exit;
-		}
-		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"sbox_map_path_internal: converting to abs.path cwd=%s",
-			host_cwd);
-		
-		/* reversing of paths is expensive...try if a previous
-		 * result can be used, and call the reversing logic only if
-		 * CWD has been changed.
-		*/
-		if (luaif->host_cwd && luaif->virtual_reversed_cwd &&
-		    !strcmp(host_cwd, luaif->host_cwd)) {
-			/* "cache hit" */
-			virtual_reversed_cwd = luaif->virtual_reversed_cwd;
-			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"sbox_map_path_internal: using cached rev_cwd=%s",
-				virtual_reversed_cwd);
-		} else {
-			/* "cache miss" */
-			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"sbox_map_path_internal: reversing cwd:");
-			virtual_reversed_cwd = call_lua_function_sbox_reverse_path(
-				luaif,
-				(sbox_binary_name?sbox_binary_name:"UNKNOWN"),
-				func_name, host_cwd);
-			if (virtual_reversed_cwd == NULL) {
-				/*
-				 * In case reverse path couldn't be resolved
-				 * we fallback into host_cwd.  This is the
-				 * way it used to work before.
-				 */
-				virtual_reversed_cwd = strdup(host_cwd);
-				SB_LOG(SB_LOGLEVEL_DEBUG,
-				    "unable to reverse, using reversed_cwd=%s",
-				    virtual_reversed_cwd);
-			}
-			/* put the reversed CWD to our one-slot cache: */
-			if (luaif->host_cwd) free(luaif->host_cwd);
-			if (luaif->virtual_reversed_cwd) free(luaif->virtual_reversed_cwd);
-			luaif->host_cwd = strdup(host_cwd);
-			luaif->virtual_reversed_cwd = virtual_reversed_cwd;
-		}
-		if (asprintf(&abs_virtual_path_buffer, "%s/%s",
-		     virtual_reversed_cwd, virtual_orig_path) < 0) {
-			/* asprintf failed */
-			abort();
-		}
-		abs_virtual_path = abs_virtual_path_buffer;
-		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"sbox_map_path_internal: abs.path is '%s'",
-			abs_virtual_path);
 	}
 
 	disable_mapping(luaif);

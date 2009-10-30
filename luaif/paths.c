@@ -271,6 +271,47 @@ static void remove_dots_and_dotdots_from_path_entries(
 	}
 }
 
+static int is_clean_path(const char *path)
+{
+	const char	*cp;
+
+	/* check if there are double slashes */
+	if (*path == '/') cp = path;
+	else cp = strchr(path, '/');
+	while(cp) {
+		if (cp[1] == '/') {
+			/* found "//" */
+			SB_LOG(SB_LOGLEVEL_NOISE,
+				"is_clean_path: false; double slash '%s'",
+				path);
+			return(0);
+		}
+		cp = strchr(cp+1, '/');
+	}
+
+	/* check if the path contains "." or ".." as components */
+	cp = path;
+	while (*cp == '/') cp++;
+	while (cp) {
+		if (*cp == '.') {
+			if ((cp[1] == '/') ||
+			    (cp[1] == '\0') ||
+			    (cp[1] == '.' && cp[2] == '/') ||
+			    (cp[1] == '.' && cp[2] == '\0')) {
+				/* found "." or ".." */
+				SB_LOG(SB_LOGLEVEL_NOISE,
+					"is_clean_path: false; dots '%s'",
+					path);
+				return(0);
+			}
+		}
+		cp = strchr(cp+1, '/');
+	}
+
+	SB_LOG(SB_LOGLEVEL_NOISE, "is_clean_path: true; '%s'", path);
+	return(1);
+}
+
 /* returns an allocated buffer containing a cleaned ("decolonized")
  * version of "path" (double slashes, dots and dotdots etc. have been removed)
 */
@@ -285,6 +326,9 @@ static char *sb_clean_path(const char *path)
 		return NULL;
 	}
 
+	if (is_clean_path(path)) return(strdup(path));
+
+	/* path needs cleaning */
 	split_path_to_path_entries(path, &list);
 	remove_dots_and_dotdots_from_path_entries(&list);
 

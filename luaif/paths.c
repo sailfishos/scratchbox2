@@ -92,8 +92,13 @@
 struct path_entry {
 	struct path_entry *pe_prev;
 	struct path_entry *pe_next;
-	char *pe_last_component_name;
-	char *pe_full_path;
+
+	int	pe_path_component_len;
+
+	/* pe_path_component MUST BE the last member of this
+	 * struct, this is really a larger string buffer:
+	 * pe_path_component[pe_path_component_len+1] */
+	char	pe_path_component[1];
 };
 
 struct path_entry_list {
@@ -101,7 +106,9 @@ struct path_entry_list {
 };
 
 /* returns an allocated buffer */
-static char *path_entries_to_string(struct path_entry *p_entry)
+static char *path_entries_to_string_until(
+	struct path_entry *p_entry,
+	struct path_entry *last_path_entry_to_include)
 {
 	char *buf;
 	struct path_entry *work;
@@ -117,7 +124,8 @@ static char *path_entries_to_string(struct path_entry *p_entry)
 	len = 0;
 	while (work) {
 		len++; /* "/" */
-		len += strlen(work->pe_last_component_name);
+		len += work->pe_path_component_len;
+		if (work == last_path_entry_to_include) break;
 		work = work->pe_next;
 	}
 	len++; /* for trailing \0 */
@@ -129,11 +137,17 @@ static char *path_entries_to_string(struct path_entry *p_entry)
 	work = p_entry;
 	while (work) {
 		strcat(buf, "/");
-		strcat(buf, work->pe_last_component_name);
+		strcat(buf, work->pe_path_component);
+		if (work == last_path_entry_to_include) break;
 		work = work->pe_next;
 	}
 
 	return(buf);
+}
+
+static char *path_entries_to_string(struct path_entry *p_entry)
+{
+	return(path_entries_to_string_until(p_entry, NULL));
 }
 
 static void free_path_entries(struct path_entry_list *listp)
@@ -146,7 +160,6 @@ static void free_path_entries(struct path_entry_list *listp)
 		struct path_entry *tmp;
 		tmp = work;
 		work = work->pe_next;
-		if (tmp->pe_full_path) free(tmp->pe_full_path);
 		free(tmp);
 	}
 
@@ -174,30 +187,29 @@ static void split_path_to_path_entries(
 		/* ignore empty strings resulting from // */
 		if (next_slash != start) {
 			struct path_entry *new;
+			int	len;
 
-			/* add an entry to our path_entry list */
-			if (!(new = calloc(1,sizeof(struct path_entry))))
-				abort();
+			if (next_slash) {
+				len = next_slash - start;
+			} else {
+				/* no more slashes */
+				len = strlen(start);
+			}
+			new = malloc(sizeof(struct path_entry) + len);
+			if (!new) abort();
+			memset(new, 0, sizeof(struct path_entry));
+			strncpy(new->pe_path_component, start, len);
+			new->pe_path_component[len] = '\0';
+			new->pe_path_component_len = len;
 
 			new->pe_prev = work;
 			if(work) work->pe_next = new;
-
 			new->pe_next = NULL;
-			if (next_slash) {
-				int len = next_slash - cpath;
-				new->pe_full_path = malloc(len + 1);
-				strncpy(new->pe_full_path, cpath, len);
-				new->pe_full_path[len] = '\0';
-			} else {
-				/* no more slashes */
-				new->pe_full_path = strdup(cpath);
-			}
-			new->pe_last_component_name = new->pe_full_path + (start-cpath);
 			work = new;
 			if(!listp->pl_first) listp->pl_first = work;
 			SB_LOG(SB_LOGLEVEL_NOISE2,
-				"created entry 0x%X '%s' '%s'",
-				(unsigned long int)work, work->pe_full_path, start);
+				"created entry 0x%X '%s'",
+				(unsigned long int)work, start);
 		}
 		if (next_slash) start = next_slash + 1;
 	} while (next_slash != NULL);
@@ -206,6 +218,53 @@ static void split_path_to_path_entries(
 		char *tmp_path_buf = path_entries_to_string(listp->pl_first);
 
 		SB_LOG(SB_LOGLEVEL_NOISE2, "split->'%s'", tmp_path_buf);
+		free(tmp_path_buf);
+	}
+}
+
+static void	duplicate_path_entries_until(
+	const struct path_entry *duplicate_until_this_component,
+	struct path_entry_list *new_path_list,
+	struct path_entry_list *source_path_list)
+{
+	const struct path_entry *src_path_ptr = NULL;
+	struct path_entry *dest_path_ptr = NULL;
+
+	SB_LOG(SB_LOGLEVEL_NOISE2, "Duplicating path:");
+
+	new_path_list->pl_first = NULL;
+
+	src_path_ptr = source_path_list->pl_first;
+
+	while (src_path_ptr) {
+		struct path_entry *new;
+		int	len = src_path_ptr->pe_path_component_len;
+
+		new = malloc(sizeof(struct path_entry) + len);
+		if (!new) abort();
+		memset(new, 0, sizeof(struct path_entry) + len);
+
+		strncpy(new->pe_path_component, src_path_ptr->pe_path_component, len);
+		new->pe_path_component[len] = '\0';
+		new->pe_path_component_len = len;
+
+		new->pe_prev = dest_path_ptr;
+		if (dest_path_ptr) dest_path_ptr->pe_next = new;
+		new->pe_next = NULL;
+		dest_path_ptr = new;
+		if(!new_path_list->pl_first)
+			new_path_list->pl_first = dest_path_ptr;
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"dup: entry 0x%X '%s'",
+			(unsigned long int)dest_path_ptr, new->pe_path_component);
+		if (duplicate_until_this_component == src_path_ptr) break;
+		src_path_ptr = src_path_ptr->pe_next;
+	}
+
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE2)) {
+		char *tmp_path_buf = path_entries_to_string(new_path_list->pl_first);
+
+		SB_LOG(SB_LOGLEVEL_NOISE2, "dup->'%s'", tmp_path_buf);
 		free(tmp_path_buf);
 	}
 }
@@ -231,24 +290,8 @@ static struct path_entry *remove_path_entry(
 		if(p_entry->pe_next)
 			p_entry->pe_next->pe_prev = NULL;
 	}
-	if (p_entry->pe_full_path) free(p_entry->pe_full_path);
 	free(p_entry);
 	return(ret);
-}
-
-static void remove_last_path_entry(struct path_entry_list *listp)
-{
-	struct path_entry *work;
-
-	work = listp->pl_first;
-
-	while (work && work->pe_next) {
-		work = work->pe_next;
-	}
-	if (work) {
-		/* now "work" points to last element in the list */
-		remove_path_entry(listp, work);
-	}
 }
 
 static void remove_dots_and_dotdots_from_path_entries(
@@ -266,8 +309,8 @@ static void remove_dots_and_dotdots_from_path_entries(
 	while (work) {
 		SB_LOG(SB_LOGLEVEL_NOISE2,
 			"remove_dots_and_dotdots: work=0x%X examine '%s'",
-			(unsigned long int)work, work?work->pe_last_component_name:"");
-		if (strcmp(work->pe_last_component_name, "..") == 0) {
+			(unsigned long int)work, work?work->pe_path_component:"");
+		if (strcmp(work->pe_path_component, "..") == 0) {
 			struct path_entry *dotdot = work;
 			struct path_entry *preventry = work->pe_prev;
 
@@ -280,7 +323,7 @@ static void remove_dots_and_dotdots_from_path_entries(
 				assert(work == listp->pl_first);
 			}
 			work = remove_path_entry(listp, dotdot);
-		} else if (strcmp(work->pe_last_component_name, ".") == 0) {
+		} else if (strcmp(work->pe_path_component, ".") == 0) {
 			/* ignore this node */
 			work = remove_path_entry(listp, work);
 		} else {
@@ -361,32 +404,6 @@ static char *sb_clean_path(const char *path)
 	free_path_entries(&list);
 
 	SB_LOG(SB_LOGLEVEL_NOISE, "sb_clean_path returns '%s'", buf);
-	return buf;
-}
-
-/* dirname() is not thread safe (may return pointer to static buffer),
- * so we'll have our own version. This requires that the parameter
- * is an absolute path, always:
-*/
-static char *sb_abs_dirname(const char *abs_path)
-{
-	struct path_entry_list list;
-	char *buf = NULL;
-
-	if (!abs_path || (*abs_path != '/')) {
-		SB_LOG(SB_LOGLEVEL_ERROR,
-			"FATAL internal error: sb_abs_dirname called with"
-			" illegal parameter (%s)", abs_path);
-		assert(0);
-	}
-
-	split_path_to_path_entries(abs_path, &list);
-	remove_last_path_entry(&list);
-
-	buf = path_entries_to_string(list.pl_first);
-	free_path_entries(&list);
-
-	SB_LOG(SB_LOGLEVEL_NOISE, "sb_abs_dirname '%s' => '%s'", abs_path, buf);
 	return buf;
 }
 
@@ -689,16 +706,22 @@ static void sb_path_resolution(
 		 * skip over path components that we are not supposed to check,
 		 * because otherwise rule recognition & execution could fail.
 		*/
-		while ((int)strlen(virtual_path_work_ptr->pe_full_path) < min_path_len_to_check) {
+		int	skipped_len = 1; /* start from 1, abs path has '/' in the beginning */
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"min_path_len_to_check=%d", min_path_len_to_check);
+
+		while (skipped_len < min_path_len_to_check) {
 			SB_LOG(SB_LOGLEVEL_NOISE2, "skipping [%d] '%s'",
-				component_index, virtual_path_work_ptr->pe_last_component_name);
+				component_index, virtual_path_work_ptr->pe_path_component);
 			component_index++;
+			skipped_len += virtual_path_work_ptr->pe_path_component_len;
+			skipped_len++; /* add one due to the slash which lays between components */
 			virtual_path_work_ptr = virtual_path_work_ptr->pe_next;
 		}
 	}
 
-	SB_LOG(SB_LOGLEVEL_NOISE, "Map prefix [%d] '%s'",
-		component_index, virtual_path_work_ptr->pe_full_path);
+	SB_LOG(SB_LOGLEVEL_NOISE, "Path resolutions starts from [%d] '%s'",
+		component_index, virtual_path_work_ptr->pe_path_component);
 
 	/* abs_virtual_source_path is not necessarily clean.
 	 * it may contain . or .. as a result of symbolic link expansion
@@ -708,7 +731,8 @@ static void sb_path_resolution(
 		struct path_entry_list virtual_prefix_path_list;
 
 		virtual_prefix_path_list.pl_first = NULL;
-		split_path_to_path_entries(virtual_path_work_ptr->pe_full_path, &virtual_prefix_path_list);
+		duplicate_path_entries_until(virtual_path_work_ptr,
+			&virtual_prefix_path_list, &virtual_source_path_list);
 		remove_dots_and_dotdots_from_path_entries(&virtual_prefix_path_list);
 		clean_virtual_path_prefix_tmp = path_entries_to_string(virtual_prefix_path_list.pl_first);
 		free_path_entries(&virtual_prefix_path_list);
@@ -750,7 +774,7 @@ static void sb_path_resolution(
 			*/
 			SB_LOG(SB_LOGLEVEL_NOISE2,
 				"Won't check last component [%d] '%s'",
-				component_index, virtual_path_work_ptr->pe_full_path);
+				component_index, virtual_path_work_ptr->pe_path_component);
 			break;
 		}
 
@@ -821,8 +845,13 @@ static void sb_path_resolution(
 				char *virtual_dirnam;
 				int last_in_dirnam_is_slash;
 
-				/* virtual_path_work_ptr->pe_full_path is an absolute path */
-				virtual_dirnam = sb_abs_dirname(virtual_path_work_ptr->pe_full_path);
+				if (virtual_path_work_ptr->pe_prev) {
+					virtual_dirnam = path_entries_to_string_until(
+						virtual_source_path_list.pl_first,
+						virtual_path_work_ptr->pe_prev);
+				} else {
+					virtual_dirnam = strdup("/");
+				}
 
 				last_in_dirnam_is_slash =
 					(last_char_in_str(virtual_dirnam) == '/');
@@ -908,16 +937,21 @@ static void sb_path_resolution(
 				 * mapping function looks at the suffix, and
 				 * not at the prefix...
 				*/
+				char *virtual_path_prefix_to_map;
 				if (prefix_mapping_result_host_path) {
 					free(prefix_mapping_result_host_path);
 				}
+				virtual_path_prefix_to_map = path_entries_to_string_until(
+						virtual_source_path_list.pl_first,
+						virtual_path_work_ptr);
 				prefix_mapping_result_host_path =
 					call_lua_function_sbox_translate_path(
 						SB_LOGLEVEL_NOISE,
 						luaif, binary_name,
 						"PATH_RESOLUTION/2",
-						virtual_path_work_ptr->pe_full_path,
+						virtual_path_prefix_to_map,
 						&prefix_mapping_result_host_path_flags);
+				free (virtual_path_prefix_to_map);
 				drop_policy_from_lua_stack(luaif);
 			} else {
 				/* "standard mapping", based on prefix or
@@ -930,7 +964,7 @@ static void sb_path_resolution(
 
 				if (asprintf(&next_dir, "%s/%s",
 					prefix_mapping_result_host_path,
-					virtual_path_work_ptr->pe_last_component_name) < 0) {
+					virtual_path_work_ptr->pe_path_component) < 0) {
 					SB_LOG(SB_LOGLEVEL_ERROR,
 						"asprintf failed");
 				}

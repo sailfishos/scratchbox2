@@ -16,6 +16,31 @@
  * intermediate symbolic links (i.e. "a" or "b" is a symlink), the path
  * mapping engine must be called for those all of those symbolic links.
  *
+ * TERMINOLOGY:
+ *
+ * - an _absolute path_ is a path which begins with a slash '/'
+ *
+ * - a _relative path_ is a path which does not begin with a slash '/',
+ *   instead it is relative to the current working directory
+ *
+ * - a _clean path_ is a path which does not contain a dot ('.',
+ *   referring to the current directory), a doubled dot (parent
+ *   directory) or doubled slashes (redundant) as a component.
+ *
+ * - a _virtual path_ is a path that has not been mapped.
+ *
+ * - a _host path_ is a path that refers to the real filesystem
+ *   (i.e. a mapped path)
+ *
+ * - a _real path_ is an absolute path where none of components is a 
+ *   symbolic link and it does not have any . or .. inside
+ *   (see realpath(3) for details).
+ *   NOTE that within Scratchbox 2 we may have both "host realpaths"
+ *   and "virtual realpaths!"
+ *
+ * - a _resolved path_ is otherwise like a _real path_, but the
+ *   last component of a _resolved path_ may be a symbolic link.
+ *
  * The division between Lua and C code is that
  * - C has been used for parts that must follow "standardized" or "fixed"
  *   approach, and the implementation is not expected to be changed, in other
@@ -394,14 +419,14 @@ static char *call_lua_function_sbox_translate_path(
 	struct lua_instance *luaif,
 	const char *binary_name,
 	const char *func_name,
-	const char *decolon_path,
+	const char *abs_clean_virtual_path,
 	int *flagsp)
 {
 	int flags;
-	char *translate_result = NULL;
+	char *host_path = NULL;
 
 	SB_LOG(SB_LOGLEVEL_NOISE, "calling sbox_translate_path for %s(%s)",
-		func_name, decolon_path);
+		func_name, abs_clean_virtual_path);
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"call_lua_function_sbox_translate_path: gettop=%d",
 		lua_gettop(luaif->lua));
@@ -417,51 +442,51 @@ static char *call_lua_function_sbox_translate_path(
 	/* add other parameters */
 	lua_pushstring(luaif->lua, binary_name);
 	lua_pushstring(luaif->lua, func_name);
-	lua_pushstring(luaif->lua, decolon_path);
+	lua_pushstring(luaif->lua, abs_clean_virtual_path);
 	 /* 4 arguments, returns rule,policy,path,flags */
 	lua_call(luaif->lua, 4, 4);
 
-	translate_result = (char *)lua_tostring(luaif->lua, -2);
-	if (translate_result && (*translate_result != '/')) {
+	host_path = (char *)lua_tostring(luaif->lua, -2);
+	if (host_path && (*host_path != '/')) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"Mapping failed: Result is not absolute ('%s'->'%s')",
-			decolon_path, translate_result);
-		translate_result = NULL;
-	} else if (translate_result) {
-		translate_result = strdup(translate_result);
+			abs_clean_virtual_path, host_path);
+		host_path = NULL;
+	} else if (host_path) {
+		host_path = strdup(host_path);
 	}
 	flags = lua_tointeger(luaif->lua, -1);
 	check_mapping_flags(flags, "sbox_translate_path");
 	if (flagsp) *flagsp = flags;
 	lua_pop(luaif->lua, 2); /* leave rule and policy to the stack */
 
-	if (translate_result) {
+	if (host_path) {
 		/* sometimes a mapping rule may create paths that contain
 		 * doubled slashes ("//") or end with a slash. We'll
 		 * need to clean the path here.
 		*/
-		char *cleaned_path;
+		char *cleaned_host_path;
 
-		cleaned_path = sb_clean_path(translate_result);
+		cleaned_host_path = sb_clean_path(host_path);
 
-		if (*cleaned_path != '/') {
+		if (*cleaned_host_path != '/') {
 			/* oops, got a relative path. CWD is too long. */
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"OOPS, call_lua_function_sbox_translate_path:"
 				" relative");
 		}
-		free(translate_result);
-		translate_result = NULL;
+		free(host_path);
+		host_path = NULL;
 
 		/* log the result */
-		if (strcmp(cleaned_path, decolon_path) == 0) {
+		if (strcmp(cleaned_host_path, abs_clean_virtual_path) == 0) {
 			/* NOTE: Following SB_LOG() call is used by the log
 			 *       postprocessor script "sb2logz". Do not change
 			 *       without making a corresponding change to
 			 *       the script!
 			*/
 			SB_LOG(result_log_level, "pass: %s '%s'%s",
-				func_name, decolon_path,
+				func_name, abs_clean_virtual_path,
 				((flags & SB2_MAPPING_RULE_FLAGS_READONLY) ? " (readonly)" : ""));
 		} else {
 			/* NOTE: Following SB_LOG() call is used by the log
@@ -470,15 +495,15 @@ static char *call_lua_function_sbox_translate_path(
 			 *       the script!
 			*/
 			SB_LOG(result_log_level, "mapped: %s '%s' -> '%s'%s",
-				func_name, decolon_path, cleaned_path,
+				func_name, abs_clean_virtual_path, cleaned_host_path,
 				((flags & SB2_MAPPING_RULE_FLAGS_READONLY) ? " (readonly)" : ""));
 		}
-		translate_result = cleaned_path;
+		host_path = cleaned_host_path;
 	}
-	if (!translate_result) {
+	if (!host_path) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"No result from sbox_translate_path for: %s '%s'",
-			func_name, decolon_path);
+			func_name, abs_clean_virtual_path);
 	}
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"call_lua_function_sbox_translate_path: at exit, gettop=%d",
@@ -487,7 +512,7 @@ static char *call_lua_function_sbox_translate_path(
 		dump_lua_stack("call_lua_function_sbox_translate_path exit",
 			luaif->lua);
 	}
-	return(translate_result);
+	return(host_path);
 }
 
 /* - returns 1 if ok (then *min_path_lenp is valid)
@@ -498,7 +523,7 @@ static int call_lua_function_sbox_get_mapping_requirements(
 	struct lua_instance *luaif,
 	const char *binary_name,
 	const char *func_name,
-	const char *full_path_for_rule_selection,
+	const char *abs_virtual_source_path,
 	int *min_path_lenp,
 	int *call_translate_for_all_p)
 {
@@ -508,7 +533,7 @@ static int call_lua_function_sbox_get_mapping_requirements(
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"calling sbox_get_mapping_requirements for %s(%s)",
-		func_name, full_path_for_rule_selection);
+		func_name, abs_virtual_source_path);
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"call_lua_function_sbox_get_mapping_requirements: gettop=%d",
 		lua_gettop(luaif->lua));
@@ -517,7 +542,7 @@ static int call_lua_function_sbox_get_mapping_requirements(
 		"sbox_get_mapping_requirements");
 	lua_pushstring(luaif->lua, binary_name);
 	lua_pushstring(luaif->lua, func_name);
-	lua_pushstring(luaif->lua, full_path_for_rule_selection);
+	lua_pushstring(luaif->lua, abs_virtual_source_path);
 	/* 3 arguments, returns 4: (rule, rule_found_flag,
 	 * min_path_len, flags) */
 	lua_call(luaif->lua, 3, 4);
@@ -544,28 +569,29 @@ static int call_lua_function_sbox_get_mapping_requirements(
 	return(rule_found);
 }
 
+/* returns virtual_path */
 static char *call_lua_function_sbox_reverse_path(
 	struct lua_instance *luaif,
 	const char *binary_name,
 	const char *func_name,
-	const char *full_path)
+	const char *abs_host_path)
 {
-	char *orig_path = NULL;
+	char *virtual_path = NULL;
 	int flags;
 
 	SB_LOG(SB_LOGLEVEL_NOISE, "calling sbox_reverse_path for %s(%s)",
-		func_name, full_path);
+		func_name, abs_host_path);
 
 	lua_getfield(luaif->lua, LUA_GLOBALSINDEX, "sbox_reverse_path");
 	lua_pushstring(luaif->lua, binary_name);
 	lua_pushstring(luaif->lua, func_name);
-	lua_pushstring(luaif->lua, full_path);
-	 /* 3 arguments, returns orig_path and flags */
+	lua_pushstring(luaif->lua, abs_host_path);
+	 /* 3 arguments, returns virtual_path and flags */
 	lua_call(luaif->lua, 3, 2);
 
-	orig_path = (char *)lua_tostring(luaif->lua, -2);
-	if (orig_path) {
-		orig_path = strdup(orig_path);
+	virtual_path = (char *)lua_tostring(luaif->lua, -2);
+	if (virtual_path) {
+		virtual_path = strdup(virtual_path);
 	}
 
 	flags = lua_tointeger(luaif->lua, -1);
@@ -574,14 +600,14 @@ static char *call_lua_function_sbox_reverse_path(
  
 	lua_pop(luaif->lua, 2); /* remove return values */
 
-	if (orig_path) {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "orig_path='%s'", orig_path);
+	if (virtual_path) {
+		SB_LOG(SB_LOGLEVEL_DEBUG, "virtual_path='%s'", virtual_path);
 	} else {
 		SB_LOG(SB_LOGLEVEL_INFO,
 			"No result from sbox_reverse_path for: %s '%s'",
-			func_name, full_path);
+			func_name, abs_host_path);
 	}
-	return(orig_path);
+	return(virtual_path);
 }
 
 /* ========== Path resolution: ========== */
@@ -609,100 +635,106 @@ static void drop_from_lua_stack(struct lua_instance *luaif,
  *       be called after it is not needed anymore!
 */
 static void sb_path_resolution(
-	mapping_results_t *res,
+	mapping_results_t *resolved_virtual_path_res,
 	int nest_count,
 	struct lua_instance *luaif,
 	const char *binary_name,
 	const char *func_name,
-	const char *abs_path,		/* MUST be an absolute path! */
+	const char *abs_virtual_source_path,	/* MUST be an absolute path! */
 	int dont_resolve_final_symlink)
 {
-	struct path_entry_list orig_path_list;
-	char *buf = NULL;
-	struct path_entry *work;
+	struct path_entry_list virtual_source_path_list;
+	struct path_entry *virtual_path_work_ptr;
 	int	component_index = 0;
 	int	min_path_len_to_check;
-	char	*decolon_tmp;
-	char	*prefix_mapping_result;
-	struct path_entry_list prefix_path_list;
-	int	prefix_mapping_result_flags;
+	char	*prefix_mapping_result_host_path;
+	int	prefix_mapping_result_host_path_flags;
 	int	call_translate_for_all = 0;
 
 	if (nest_count > 16) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"Detected too deep nesting "
 			"(too many symbolic links, path='%s')",
-			abs_path);
+			abs_virtual_source_path);
 
 		/* return ELOOP to the calling program */
-		res->mres_errno = ELOOP;
+		resolved_virtual_path_res->mres_errno = ELOOP;
 		return;
 	}
 
-	if (!abs_path || !*abs_path) {
+	if (!abs_virtual_source_path || !*abs_virtual_source_path) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"sb_path_resolution called with NULL path");
 		return;
 	}
-	if (*abs_path != '/') {
+	if (*abs_virtual_source_path != '/') {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"FATAL: sb_path_resolution called with relative path");
 		assert(0);
 	}
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
-		"sb_path_resolution %d '%s'", nest_count, abs_path);
+		"sb_path_resolution %d '%s'", nest_count, abs_virtual_source_path);
 
-	orig_path_list.pl_first = NULL;
+	virtual_source_path_list.pl_first = NULL;
 
-	split_path_to_path_entries(abs_path, &orig_path_list);
+	split_path_to_path_entries(abs_virtual_source_path, &virtual_source_path_list);
 
-	work = orig_path_list.pl_first;
+	virtual_path_work_ptr = virtual_source_path_list.pl_first;
 
 	if (call_lua_function_sbox_get_mapping_requirements(
-		luaif, binary_name, func_name, abs_path,
+		luaif, binary_name, func_name, abs_virtual_source_path,
 		&min_path_len_to_check, &call_translate_for_all)) {
 		/* has requirements:
 		 * skip over path components that we are not supposed to check,
 		 * because otherwise rule recognition & execution could fail.
 		*/
-		while ((int)strlen(work->pe_full_path) < min_path_len_to_check) {
+		while ((int)strlen(virtual_path_work_ptr->pe_full_path) < min_path_len_to_check) {
 			SB_LOG(SB_LOGLEVEL_NOISE2, "skipping [%d] '%s'",
-				component_index, work->pe_last_component_name);
+				component_index, virtual_path_work_ptr->pe_last_component_name);
 			component_index++;
-			work = work->pe_next;
+			virtual_path_work_ptr = virtual_path_work_ptr->pe_next;
 		}
 	}
 
 	SB_LOG(SB_LOGLEVEL_NOISE, "Map prefix [%d] '%s'",
-		component_index, work->pe_full_path);
+		component_index, virtual_path_work_ptr->pe_full_path);
 
-	prefix_path_list.pl_first = NULL;
-	split_path_to_path_entries(work->pe_full_path, &prefix_path_list);
-	remove_dots_and_dotdots_from_path_entries(&prefix_path_list);
-	decolon_tmp = path_entries_to_string(prefix_path_list.pl_first);
-	free_path_entries(&prefix_path_list);
+	/* abs_virtual_source_path is not necessarily clean.
+	 * it may contain . or .. as a result of symbolic link expansion
+	 * (i.e. when this function is called recursively) */
+	{
+		char	*clean_virtual_path_prefix_tmp;
+		struct path_entry_list virtual_prefix_path_list;
 
-	SB_LOG(SB_LOGLEVEL_NOISE, "decolon_tmp => %s", decolon_tmp);
+		virtual_prefix_path_list.pl_first = NULL;
+		split_path_to_path_entries(virtual_path_work_ptr->pe_full_path, &virtual_prefix_path_list);
+		remove_dots_and_dotdots_from_path_entries(&virtual_prefix_path_list);
+		clean_virtual_path_prefix_tmp = path_entries_to_string(virtual_prefix_path_list.pl_first);
+		free_path_entries(&virtual_prefix_path_list);
 
-	prefix_mapping_result = call_lua_function_sbox_translate_path(
-		SB_LOGLEVEL_NOISE,
-		luaif, binary_name, "PATH_RESOLUTION",
-		decolon_tmp, &prefix_mapping_result_flags);
-	free(decolon_tmp);
-	drop_policy_from_lua_stack(luaif);
+		SB_LOG(SB_LOGLEVEL_NOISE, "clean_virtual_path_prefix_tmp => %s",
+			clean_virtual_path_prefix_tmp);
 
-	SB_LOG(SB_LOGLEVEL_NOISE, "prefix_mapping_result before loop => %s",
-		prefix_mapping_result);
+		prefix_mapping_result_host_path = call_lua_function_sbox_translate_path(
+			SB_LOGLEVEL_NOISE,
+			luaif, binary_name, "PATH_RESOLUTION",
+			clean_virtual_path_prefix_tmp, &prefix_mapping_result_host_path_flags);
+		drop_policy_from_lua_stack(luaif);
+		free(clean_virtual_path_prefix_tmp);
+	}
+
+	SB_LOG(SB_LOGLEVEL_NOISE, "prefix_mapping_result_host_path before loop => %s",
+		prefix_mapping_result_host_path);
 
 	/* Path resolution loop = walk thru directories, and if a symlink
 	 * is found, recurse..
 	*/
-	while (work) {
+	while (virtual_path_work_ptr) {
 		char	link_dest[PATH_MAX+1];
 		int	link_len;
 
-		if (prefix_mapping_result_flags &
+		if (prefix_mapping_result_host_path_flags &
 		    SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH) {
 			/* "force_orig_path" is set when symlinks MUST NOT
 			 * be followed. */
@@ -711,41 +743,41 @@ static void sb_path_resolution(
 			break;
 		}
 
-		if (dont_resolve_final_symlink && (work->pe_next == NULL)) {
+		if (dont_resolve_final_symlink && (virtual_path_work_ptr->pe_next == NULL)) {
 			/* this is last component, but here a final symlink
 			 * must not be resolved (calls like lstat(), rename(),
 			 * etc)
 			*/
 			SB_LOG(SB_LOGLEVEL_NOISE2,
 				"Won't check last component [%d] '%s'",
-				component_index, work->pe_full_path);
+				component_index, virtual_path_work_ptr->pe_full_path);
 			break;
 		}
 
 		SB_LOG(SB_LOGLEVEL_NOISE, "path_resolution: test if symlink [%d] '%s'",
-			component_index, prefix_mapping_result);
+			component_index, prefix_mapping_result_host_path);
 
-		/* determine if "prefix_mapping_result" is a symbolic link.
+		/* determine if "prefix_mapping_result_host_path" is a symbolic link.
 		 * this can't be done with lstat(), because lstat() does not
 		 * exist as a function on Linux => lstat_nomap() can not be
 		 * used eiher. fortunately readlink() is an ordinary function.
 		*/
-		link_len = readlink_nomap(prefix_mapping_result, link_dest, PATH_MAX);
+		link_len = readlink_nomap(prefix_mapping_result_host_path, link_dest, PATH_MAX);
 
 		if (link_len > 0) {
 			/* was a symlink */
-			char	*new_path = NULL;
-			char	*rest_of_path;
+			char	*new_abs_virtual_link_dest_path = NULL;
+			char	*rest_of_virtual_path;
 
 			link_dest[link_len] = '\0';
-			if (work->pe_next) {
-				rest_of_path = path_entries_to_string(
-					work->pe_next);
+			if (virtual_path_work_ptr->pe_next) {
+				rest_of_virtual_path = path_entries_to_string(
+					virtual_path_work_ptr->pe_next);
 				SB_LOG(SB_LOGLEVEL_NOISE,
-					"symlink:more: rest='%s'", rest_of_path);
+					"symlink:more: rest='%s'", rest_of_virtual_path);
 			} else {
 				/* last component of the path was a symlink. */
-				rest_of_path = strdup("");
+				rest_of_virtual_path = strdup("");
 				SB_LOG(SB_LOGLEVEL_NOISE,
 					"symlink:last: rest=''");
 			}
@@ -759,25 +791,25 @@ static void sb_path_resolution(
 				SB_LOG(SB_LOGLEVEL_NOISE,
 					"absolute symlink at '%s' "
 					"points to '%s', restarting",
-					prefix_mapping_result, link_dest);
+					prefix_mapping_result_host_path, link_dest);
 
-				if (*rest_of_path) {
-					if (asprintf(&new_path, "%s%s%s",
+				if (*rest_of_virtual_path) {
+					if (asprintf(&new_abs_virtual_link_dest_path, "%s%s%s",
 						link_dest, 
 						((last_char_in_str(link_dest) != '/')
-						    && (*rest_of_path != '/') ?
+						    && (*rest_of_virtual_path != '/') ?
 							"/" : ""),
-						rest_of_path) < 0) {
+						rest_of_virtual_path) < 0) {
 
 						SB_LOG(SB_LOGLEVEL_ERROR,
 							"asprintf failed");
 					}
 				} else {
-					new_path = strdup(link_dest);
+					new_abs_virtual_link_dest_path = strdup(link_dest);
 				}
 			} else {
 				/* A relative symlink. Somewhat complex:
-				 * "prefix_mapping_result" contains the
+				 * "prefix_mapping_result_host_path" contains the
 				 * real location in the FS, but here we
 				 * must still build the full path from the
 				 * place where we pretend to be - otherwise
@@ -786,40 +818,40 @@ static void sb_path_resolution(
 				 * based on what was mapped, and not based on
 				 * were the mapping took us.
 				*/
-				char *dirnam;
+				char *virtual_dirnam;
 				int last_in_dirnam_is_slash;
 
-				/* work->pe_full_path is an absolute path */
-				dirnam = sb_abs_dirname(work->pe_full_path);
+				/* virtual_path_work_ptr->pe_full_path is an absolute path */
+				virtual_dirnam = sb_abs_dirname(virtual_path_work_ptr->pe_full_path);
 
 				last_in_dirnam_is_slash =
-					(last_char_in_str(dirnam) == '/');
+					(last_char_in_str(virtual_dirnam) == '/');
 
 				SB_LOG(SB_LOGLEVEL_NOISE,
 					"relative symlink at '%s' "
 					"points to '%s'",
-					prefix_mapping_result, link_dest);
+					prefix_mapping_result_host_path, link_dest);
 
-				if (*rest_of_path) {
+				if (*rest_of_virtual_path) {
 					int last_in_dest_is_slash =
 					    (last_char_in_str(link_dest)=='/');
 
-					if (asprintf(&new_path, "%s%s%s%s%s",
-						dirnam,
+					if (asprintf(&new_abs_virtual_link_dest_path, "%s%s%s%s%s",
+						virtual_dirnam,
 						(last_in_dirnam_is_slash ?
 							"" : "/"),
 						link_dest,
 						(!last_in_dest_is_slash &&
-						 (*rest_of_path != '/') ?
+						 (*rest_of_virtual_path != '/') ?
 							"/" : ""),
-						rest_of_path) < 0) {
+						rest_of_virtual_path) < 0) {
 
 						SB_LOG(SB_LOGLEVEL_ERROR,
 							"asprintf failed");
 					}
 				} else {
-					if (asprintf(&new_path, "%s%s%s",
-						dirnam,
+					if (asprintf(&new_abs_virtual_link_dest_path, "%s%s%s",
+						virtual_dirnam,
 						(last_in_dirnam_is_slash ?
 							"" : "/"),
 						link_dest) < 0) {
@@ -828,16 +860,16 @@ static void sb_path_resolution(
 							"asprintf failed");
 					}
 				}
-				free(dirnam);
+				free(virtual_dirnam);
 			}
-			free(prefix_mapping_result);
-			free(rest_of_path);
-			free_path_entries(&orig_path_list);
+			free(prefix_mapping_result_host_path);
+			free(rest_of_virtual_path);
+			free_path_entries(&virtual_source_path_list);
 
 			/* double-check the result. We MUST use absolute
 			 * paths here.
 			*/
-			if (*new_path != '/') {
+			if (*new_abs_virtual_link_dest_path != '/') {
 				/* this should never happen */
 				SB_LOG(SB_LOGLEVEL_ERROR,
 					"FATAL: symlink resolved to "
@@ -852,17 +884,19 @@ static void sb_path_resolution(
 			/* First, forget the old rule: */
 			drop_rule_from_lua_stack(luaif);
 
-			/* Then the recursion */
-			sb_path_resolution(res, nest_count + 1,
+			/* Then the recursion.
+			 * NOTE: new_abs_virtual_link_dest_path is not necessarily
+			 * a clean path, because the symlink may have pointed to .. */
+			sb_path_resolution(resolved_virtual_path_res, nest_count + 1,
 				luaif, binary_name, func_name,
-				new_path, dont_resolve_final_symlink);
+				new_abs_virtual_link_dest_path, dont_resolve_final_symlink);
 
 			/* and finally, cleanup */
-			free(new_path);
+			free(new_abs_virtual_link_dest_path);
 			return;
 		}
-		work = work->pe_next;
-		if (work) {
+		virtual_path_work_ptr = virtual_path_work_ptr->pe_next;
+		if (virtual_path_work_ptr) {
 			if (call_translate_for_all) {
 				/* call_translate_for_all is set when
 				 * path resolution must call
@@ -874,55 +908,61 @@ static void sb_path_resolution(
 				 * mapping function looks at the suffix, and
 				 * not at the prefix...
 				*/
-				if (prefix_mapping_result) {
-					free(prefix_mapping_result);
+				if (prefix_mapping_result_host_path) {
+					free(prefix_mapping_result_host_path);
 				}
-				prefix_mapping_result =
+				prefix_mapping_result_host_path =
 					call_lua_function_sbox_translate_path(
 						SB_LOGLEVEL_NOISE,
 						luaif, binary_name,
 						"PATH_RESOLUTION/2",
-						work->pe_full_path, &prefix_mapping_result_flags);
+						virtual_path_work_ptr->pe_full_path,
+						&prefix_mapping_result_host_path_flags);
 				drop_policy_from_lua_stack(luaif);
 			} else {
 				/* "standard mapping", based on prefix or
 				 * exact match. Ok to skip sbox_translate_path()
-				* because here it would just add the component
+				 * because here it would just add the component
 				 * to end of the path; instead we'll do that
 				 * here. This is a performance optimization.
 				*/
 				char	*next_dir = NULL;
 
 				if (asprintf(&next_dir, "%s/%s",
-					prefix_mapping_result,
-					work->pe_last_component_name) < 0) {
+					prefix_mapping_result_host_path,
+					virtual_path_work_ptr->pe_last_component_name) < 0) {
 					SB_LOG(SB_LOGLEVEL_ERROR,
 						"asprintf failed");
 				}
-				if (prefix_mapping_result) {
-					free(prefix_mapping_result);
+				if (prefix_mapping_result_host_path) {
+					free(prefix_mapping_result_host_path);
 				}
-				prefix_mapping_result = next_dir;
+				prefix_mapping_result_host_path = next_dir;
 			}
 		} else {
-			free(prefix_mapping_result);
+			free(prefix_mapping_result_host_path);
 		}
 		component_index++;
 	}
 
 	/* All symbolic links have been resolved.
 	 *
-	 * Since there are no symlinks in "orig_path_list", "." and ".."
+	 * Since there are no symlinks in "virtual_source_path_list", "." and ".."
 	 * entries can be safely removed:
 	*/
-	remove_dots_and_dotdots_from_path_entries(&orig_path_list);
+	{
+		char	*resolved_virtual_path_buf = NULL;
 
-	buf = path_entries_to_string(orig_path_list.pl_first);
-	free_path_entries(&orig_path_list);
+		remove_dots_and_dotdots_from_path_entries(&virtual_source_path_list);
+		resolved_virtual_path_buf = path_entries_to_string(virtual_source_path_list.pl_first);
+		free_path_entries(&virtual_source_path_list);
 
-	SB_LOG(SB_LOGLEVEL_NOISE,
-		"sb_path_resolution returns '%s'", buf);
-	res->mres_result_buf = res->mres_result_path = buf;
+		SB_LOG(SB_LOGLEVEL_NOISE,
+			"sb_path_resolution returns '%s'", resolved_virtual_path_buf);
+		resolved_virtual_path_res->mres_result_buf =
+			resolved_virtual_path_res->mres_result_path =
+			resolved_virtual_path_buf;
+	}
 }
 
 /* ========== Mapping & path resolution, internal implementation: ========== */
@@ -934,18 +974,18 @@ static void sb_path_resolution(
 static void sbox_map_path_internal(
 	const char *binary_name,
 	const char *func_name,
-	const char *orig_path,
+	const char *virtual_orig_path,
 	int dont_resolve_final_symlink,
 	int process_path_for_exec,
 	mapping_results_t *res)
 {
 	struct lua_instance *luaif = NULL;
 	char *mapping_result = NULL;
-	const char *abs_path = NULL;
-	char *abs_path_buffer = NULL;
-	char real_cwd[PATH_MAX + 1]; /* used only if orig_path is relative */
+	const char *abs_virtual_path = NULL;
+	char *abs_virtual_path_buffer = NULL;
+	char host_cwd[PATH_MAX + 1]; /* used only if virtual_orig_path is relative */
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "sbox_map_path_internal: %s(%s)", func_name, orig_path);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "sbox_map_path_internal: %s(%s)", func_name, virtual_orig_path);
 
 #ifdef EXTREME_DEBUGGING
 	#define SIZE 100
@@ -958,7 +998,7 @@ static void sbox_map_path_internal(
 	for (i = 0; i < nptrs; i++)
 		SB_LOG(SB_LOGLEVEL_DEBUG, "%s\n", strings[i]);
 #endif
-	if (!orig_path || !*orig_path) {
+	if (!virtual_orig_path || !*virtual_orig_path) {
 		/* an empty path shall always remain empty */
 		res->mres_result_buf = res->mres_result_path = strdup("");
 		return;
@@ -970,7 +1010,7 @@ static void sbox_map_path_internal(
 		 *       without making a corresponding change to the script!
 		*/
 		SB_LOG(SB_LOGLEVEL_INFO, "disabled(E): %s '%s'",
-			func_name, orig_path);
+			func_name, virtual_orig_path);
 		goto use_orig_path_as_result_and_exit;
 	}
 
@@ -985,18 +1025,18 @@ static void sbox_map_path_internal(
 		 *       without making a corresponding change to the script!
 		*/
 		SB_LOG(SB_LOGLEVEL_INFO, "disabled(%d): %s '%s'",
-			luaif->mapping_disabled, func_name, orig_path);
+			luaif->mapping_disabled, func_name, virtual_orig_path);
 		goto use_orig_path_as_result_and_exit;
 	}
 
 	/* Going to map it. The mapping logic must get absolute paths: */
-	if (*orig_path == '/') {
-		abs_path = orig_path;
+	if (*virtual_orig_path == '/') {
+		abs_virtual_path = virtual_orig_path;
 	} else {
 		/* convert to absolute path. */
-		char *reversed_cwd = NULL;
+		char *virtual_reversed_cwd = NULL;
 
-		if (!getcwd_nomap_nolog(real_cwd, sizeof(real_cwd))) {
+		if (!getcwd_nomap_nolog(host_cwd, sizeof(host_cwd))) {
 			/* getcwd() returns NULL if the path is really long.
 			 * In this case the path can not be mapped.
 			 *
@@ -1018,71 +1058,72 @@ static void sbox_map_path_internal(
 		}
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"sbox_map_path_internal: converting to abs.path cwd=%s",
-			real_cwd);
+			host_cwd);
 		
 		/* reversing of paths is expensive...try if a previous
 		 * result can be used, and call the reversing logic only if
 		 * CWD has been changed.
 		*/
-		if (luaif->real_cwd && luaif->reversed_cwd &&
-		    !strcmp(real_cwd, luaif->real_cwd)) {
+		if (luaif->host_cwd && luaif->virtual_reversed_cwd &&
+		    !strcmp(host_cwd, luaif->host_cwd)) {
 			/* "cache hit" */
-			reversed_cwd = luaif->reversed_cwd;
+			virtual_reversed_cwd = luaif->virtual_reversed_cwd;
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"sbox_map_path_internal: using cached rev_cwd=%s",
-				reversed_cwd);
+				virtual_reversed_cwd);
 		} else {
 			/* "cache miss" */
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"sbox_map_path_internal: reversing cwd:");
-			reversed_cwd = call_lua_function_sbox_reverse_path(
+			virtual_reversed_cwd = call_lua_function_sbox_reverse_path(
 				luaif,
 				(sbox_binary_name?sbox_binary_name:"UNKNOWN"),
-				func_name, real_cwd);
-			if (reversed_cwd == NULL) {
+				func_name, host_cwd);
+			if (virtual_reversed_cwd == NULL) {
 				/*
 				 * In case reverse path couldn't be resolved
-				 * we fallback into real_cwd.  This is the
+				 * we fallback into host_cwd.  This is the
 				 * way it used to work before.
 				 */
-				reversed_cwd = strdup(real_cwd);
+				virtual_reversed_cwd = strdup(host_cwd);
 				SB_LOG(SB_LOGLEVEL_DEBUG,
 				    "unable to reverse, using reversed_cwd=%s",
-				    reversed_cwd);
+				    virtual_reversed_cwd);
 			}
 			/* put the reversed CWD to our one-slot cache: */
-			if (luaif->real_cwd) free(luaif->real_cwd);
-			if (luaif->reversed_cwd) free(luaif->reversed_cwd);
-			luaif->real_cwd = strdup(real_cwd);
-			luaif->reversed_cwd = reversed_cwd;
+			if (luaif->host_cwd) free(luaif->host_cwd);
+			if (luaif->virtual_reversed_cwd) free(luaif->virtual_reversed_cwd);
+			luaif->host_cwd = strdup(host_cwd);
+			luaif->virtual_reversed_cwd = virtual_reversed_cwd;
 		}
-		if (asprintf(&abs_path_buffer, "%s/%s", reversed_cwd, orig_path) < 0) {
+		if (asprintf(&abs_virtual_path_buffer, "%s/%s",
+		     virtual_reversed_cwd, virtual_orig_path) < 0) {
 			/* asprintf failed */
 			abort();
 		}
-		abs_path = abs_path_buffer;
+		abs_virtual_path = abs_virtual_path_buffer;
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"sbox_map_path_internal: abs.path is '%s'",
-			abs_path);
+			abs_virtual_path);
 	}
 
 	disable_mapping(luaif);
 	{
 		/* Mapping disabled inside this block - do not use "return"!! */
-		mapping_results_t	decolon_path_result;
-		char			*full_path_for_rule_selection = NULL;
+		mapping_results_t	resolved_virtual_path_res;
+		char			*clean_abs_virtual_path_for_rule_selection = NULL;
 
-		clear_mapping_results_struct(&decolon_path_result);
+		clear_mapping_results_struct(&resolved_virtual_path_res);
 
-		full_path_for_rule_selection = sb_clean_path(abs_path);
+		clean_abs_virtual_path_for_rule_selection = sb_clean_path(abs_virtual_path);
 
-		if (!full_path_for_rule_selection ||
-		    (*full_path_for_rule_selection != '/')) {
+		if (!clean_abs_virtual_path_for_rule_selection ||
+		    (*clean_abs_virtual_path_for_rule_selection != '/')) {
 			SB_LOG(SB_LOGLEVEL_ERROR,
 				"sbox_map_path_internal: sb_clean_path()"
 				" failed to return absolute path (can't"
 				" map this)");
-			mapping_result = strdup(abs_path);
+			mapping_result = strdup(abs_virtual_path);
 			if (process_path_for_exec) {
 				/* can't map, but still need to leave "rule"
 				 * (string) and "policy" (nil) to the stack */
@@ -1095,47 +1136,47 @@ static void sbox_map_path_internal(
 
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"sbox_map_path_internal: process '%s', n='%s'",
-			orig_path, full_path_for_rule_selection);
+			virtual_orig_path, clean_abs_virtual_path_for_rule_selection);
 
 		/* sb_path_resolution() leaves the rule to the stack... */
-		sb_path_resolution(&decolon_path_result, 0,
+		sb_path_resolution(&resolved_virtual_path_res, 0,
 			luaif, binary_name, func_name,
-			full_path_for_rule_selection,
+			clean_abs_virtual_path_for_rule_selection,
 			dont_resolve_final_symlink);
 
-		if (decolon_path_result.mres_errno) {
+		if (resolved_virtual_path_res.mres_errno) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"path mapping fails, "
 				" errno = %d",
-				decolon_path_result.mres_errno);
-			res->mres_errno = decolon_path_result.mres_errno;
+				resolved_virtual_path_res.mres_errno);
+			res->mres_errno = resolved_virtual_path_res.mres_errno;
 			goto forget_mapping;
 		}
 
-		if (!decolon_path_result.mres_result_path) {
+		if (!resolved_virtual_path_res.mres_result_path) {
 			SB_LOG(SB_LOGLEVEL_ERROR,
 				"sbox_map_path_internal: "
-				"decolon_path failed [%s]",
+				"path resolution failed [%s]",
 				func_name);
 			mapping_result = NULL;
 			if (process_path_for_exec) {
 				/* can't map, but still need to leave "rule"
 				 * (string) and "policy" (nil) to the stack */
 				lua_pushstring(luaif->lua, 
-					"mapping failed (decolon path failed)");
+					"mapping failed (path resolution path failed)");
 				lua_pushnil(luaif->lua);
 			}
 		} else {
 			int	flags;
 
 			SB_LOG(SB_LOGLEVEL_NOISE2,
-				"sbox_map_path_internal: decolon_path='%s'",
-				decolon_path_result.mres_result_path);
+				"sbox_map_path_internal: resolved_virtua='%s'",
+				resolved_virtual_path_res.mres_result_path);
 
 			mapping_result = call_lua_function_sbox_translate_path(
 				SB_LOGLEVEL_INFO,
 				luaif, binary_name, func_name,
-				decolon_path_result.mres_result_path, &flags);
+				resolved_virtual_path_res.mres_result_path, &flags);
 			res->mres_readonly = (flags & SB2_MAPPING_RULE_FLAGS_READONLY);
 
 			if (process_path_for_exec == 0) {
@@ -1145,8 +1186,9 @@ static void sbox_map_path_internal(
 			}
 		}
 	forget_mapping:
-		free_mapping_results(&decolon_path_result);
-		if(full_path_for_rule_selection) free(full_path_for_rule_selection);
+		free_mapping_results(&resolved_virtual_path_res);
+		if(clean_abs_virtual_path_for_rule_selection)
+			free(clean_abs_virtual_path_for_rule_selection);
 	}
 	enable_mapping(luaif);
 
@@ -1159,28 +1201,28 @@ static void sbox_map_path_internal(
 	 * relative (abs.path is still available in mres_result_buf).
 	*/
 	if ((process_path_for_exec == 0) &&
-	    (orig_path[0] != '/') &&
+	    (virtual_orig_path[0] != '/') &&
 	    mapping_result &&
 	    (*mapping_result == '/')) {
-		/* orig_path was relative. real_cwd has been filled above */
-		int	real_cwd_len = strlen(real_cwd);
+		/* virtual_orig_path was relative. host_cwd has been filled above */
+		int	host_cwd_len = strlen(host_cwd);
 		int	result_len = strlen(mapping_result);
 
-		if ((result_len == real_cwd_len) &&
-		    !strcmp(real_cwd, mapping_result)) {
+		if ((result_len == host_cwd_len) &&
+		    !strcmp(host_cwd, mapping_result)) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"sbox_map_path_internal: result==CWD");
 			res->mres_result_path = strdup(".");
 			res->mres_result_path_was_allocated = 1;
-		} else if ((result_len > real_cwd_len) &&
-			   (mapping_result[real_cwd_len] == '/') &&
-			   (mapping_result[real_cwd_len+1] != '/') &&
-			   (mapping_result[real_cwd_len+1] != '\0') &&
-			   !strncmp(real_cwd, mapping_result, real_cwd_len)) {
-			/* real_cwd is a prefix of result; convert result
+		} else if ((result_len > host_cwd_len) &&
+			   (mapping_result[host_cwd_len] == '/') &&
+			   (mapping_result[host_cwd_len+1] != '/') &&
+			   (mapping_result[host_cwd_len+1] != '\0') &&
+			   !strncmp(host_cwd, mapping_result, host_cwd_len)) {
+			/* host_cwd is a prefix of result; convert result
 			 * back to a relative path
 			*/
-			char *relative_result = mapping_result+real_cwd_len+1;
+			char *relative_result = mapping_result+host_cwd_len+1;
 			res->mres_result_path = relative_result;
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"sbox_map_path_internal: result==relative (%s) (%s)",
@@ -1191,12 +1233,12 @@ static void sbox_map_path_internal(
 	SB_LOG(SB_LOGLEVEL_NOISE, "sbox_map_path_internal: mapping_result='%s'",
 		mapping_result ? mapping_result : "<No result>");
 	release_lua(luaif);
-	if (abs_path_buffer) free(abs_path_buffer);
+	if (abs_virtual_path_buffer) free(abs_virtual_path_buffer);
 	return;
 
     use_orig_path_as_result_and_exit:
 	if(luaif) release_lua(luaif);
-	res->mres_result_buf = res->mres_result_path = strdup(orig_path);
+	res->mres_result_buf = res->mres_result_path = strdup(virtual_orig_path);
 	return;
 }
 
@@ -1205,50 +1247,50 @@ static void sbox_map_path_internal(
 void sbox_map_path_for_sb2show(
 	const char *binary_name,
 	const char *func_name,
-	const char *path,
+	const char *virtual_path,
 	mapping_results_t *res)
 {
-	if (!path) {
+	if (!virtual_path) {
 		res->mres_result_buf = res->mres_result_path = NULL;
 		res->mres_readonly = 1;
 	} else {
-		sbox_map_path_internal(binary_name, func_name, path,
+		sbox_map_path_internal(binary_name, func_name, virtual_path,
 			0/*dont_resolve_final_symlink*/, 0, res);
 	}
 }
 
 void sbox_map_path(
 	const char *func_name,
-	const char *path,
+	const char *virtual_path,
 	int dont_resolve_final_symlink,
 	mapping_results_t *res)
 {
-	if (!path) {
+	if (!virtual_path) {
 		res->mres_result_buf = res->mres_result_path = NULL;
 		res->mres_readonly = 1;
 	} else {
 		sbox_map_path_internal(
 			(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
-			func_name, path, dont_resolve_final_symlink, 0, res);
+			func_name, virtual_path, dont_resolve_final_symlink, 0, res);
 	}
 }
 
 void sbox_map_path_at(
 	const char *func_name,
 	int dirfd,
-	const char *path,
+	const char *virtual_path,
 	int dont_resolve_final_symlink,
 	mapping_results_t *res)
 {
 	const char *dirfd_path;
 
-	if (!path) {
+	if (!virtual_path) {
 		res->mres_result_buf = res->mres_result_path = NULL;
 		res->mres_readonly = 1;
 		return;
 	}
 
-	if ((*path == '/')
+	if ((*virtual_path == '/')
 #ifdef AT_FDCWD
 	    || (dirfd == AT_FDCWD)
 #endif
@@ -1257,7 +1299,7 @@ void sbox_map_path_at(
 		sbox_map_path_internal(
 			(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
 			func_name,
-			path, dont_resolve_final_symlink, 0, res);
+			virtual_path, dont_resolve_final_symlink, 0, res);
 		return;
 	}
 
@@ -1266,21 +1308,21 @@ void sbox_map_path_at(
 
 	if (dirfd_path) {
 		/* pathname found */
-		char *at_full_path = NULL;
+		char *virtual_abs_path_at_fd = NULL;
 
-		if (asprintf(&at_full_path, "%s/%s", dirfd_path, path) < 0) {
+		if (asprintf(&virtual_abs_path_at_fd, "%s/%s", dirfd_path, virtual_path) < 0) {
 			/* asprintf failed */
 			abort();
 		}
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"Synthetic path for %s(%d,'%s') => '%s'",
-			func_name, dirfd, path, at_full_path);
+			func_name, dirfd, virtual_path, virtual_abs_path_at_fd);
 
 		sbox_map_path_internal(
 			(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
 			func_name,
-			at_full_path, dont_resolve_final_symlink, 0, res);
-		free(at_full_path);
+			virtual_abs_path_at_fd, dont_resolve_final_symlink, 0, res);
+		free(virtual_abs_path_at_fd);
 
 		return;
 	}
@@ -1289,8 +1331,8 @@ void sbox_map_path_at(
 	 * the original relative path. That will work if we are lucky, but
 	 * not always..  */
 	SB_LOG(SB_LOGLEVEL_WARNING, "Path not found for FD %d, for %s(%s)",
-		dirfd, func_name, path);
-	res->mres_result_buf = res->mres_result_path = strdup(path);
+		dirfd, func_name, virtual_path);
+	res->mres_result_buf = res->mres_result_path = strdup(virtual_path);
 	res->mres_readonly = 0;
 }
 
@@ -1299,26 +1341,26 @@ void sbox_map_path_at(
 */
 void sbox_map_path_for_exec(
 	const char *func_name,
-	const char *path,
+	const char *virtual_path,
 	mapping_results_t *res)
 {
 	sbox_map_path_internal(
 		(sbox_binary_name ? sbox_binary_name : "UNKNOWN"), func_name,
-		path, 0/*dont_resolve_final_symlink*/, 1/*exec mode*/, res);
+		virtual_path, 0/*dont_resolve_final_symlink*/, 1/*exec mode*/, res);
 }
 
 char *scratchbox_reverse_path(
 	const char *func_name,
-	const char *full_path)
+	const char *abs_host_path)
 {
 	struct lua_instance *luaif = get_lua();
-	char *result;
+	char *virtual_path;
 
-	result = call_lua_function_sbox_reverse_path(luaif,
+	virtual_path = call_lua_function_sbox_reverse_path(luaif,
 		(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
-		func_name, full_path);
+		func_name, abs_host_path);
 	release_lua(luaif);
-	return(result);
+	return(virtual_path);
 }
 
 void	clear_mapping_results_struct(mapping_results_t *res)

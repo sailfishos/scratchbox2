@@ -32,8 +32,8 @@ struct lua_instance {
 	int lua_instance_in_use; /* used only if debug messages are active */
 
 	/* for path mapping logic: */
-	char *real_cwd;
-	char *reversed_cwd;
+	char *host_cwd;
+	char *virtual_reversed_cwd;
 };
 
 /* This version string is used to check that the lua scripts offer 

@@ -117,6 +117,7 @@ struct path_entry_list {
 };
 
 #define PATH_FLAGS_ABSOLUTE	01
+#define PATH_FLAGS_HAS_TRAILING_SLASH	02
 
 #define clear_path_entry_list(p) {memset((p),0,sizeof(*(p)));}
 
@@ -161,7 +162,7 @@ static char *path_entries_to_string_until(
 		if (work == last_path_entry_to_include) break;
 		work = work->pe_next;
 	}
-	len++; /* for trailing \0 */
+	len += 2; /* for trailing (optional) '/' and \0 */
 
 	buf = malloc(len);
 	*buf = '\0';
@@ -178,6 +179,9 @@ static char *path_entries_to_string_until(
 		if (work) {
 			strcat(buf, "/");
 		}
+	}
+	if (flags & PATH_FLAGS_HAS_TRAILING_SLASH) {
+		strcat(buf, "/");
 	}
 
 	return(buf);
@@ -239,6 +243,10 @@ static struct path_entry *split_path_to_path_entries(
 
 			if (next_slash) {
 				len = next_slash - start;
+				if (!next_slash[1]) {
+					flags |= PATH_FLAGS_HAS_TRAILING_SLASH;
+					next_slash = NULL;
+				}
 			} else {
 				/* no more slashes */
 				len = strlen(start);

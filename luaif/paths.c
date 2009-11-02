@@ -112,8 +112,13 @@ struct path_entry {
 };
 
 struct path_entry_list {
-	struct path_entry *pl_first;
+	struct path_entry	*pl_first;
+	int			pl_flags;
 };
+
+#define PATH_FLAGS_ABSOLUTE	01
+
+#define clear_path_entry_list(p) {memset((p),0,sizeof(*(p)));}
 
 static struct path_entry *append_path_entries(
 	struct path_entry *head,
@@ -135,7 +140,8 @@ static struct path_entry *append_path_entries(
 /* returns an allocated buffer */
 static char *path_entries_to_string_until(
 	const struct path_entry *p_entry,
-	const struct path_entry *last_path_entry_to_include)
+	const struct path_entry *last_path_entry_to_include,
+	int flags)
 {
 	char *buf;
 	const struct path_entry *work;
@@ -162,24 +168,32 @@ static char *path_entries_to_string_until(
 
 	/* add path components to the buffer */
 	work = p_entry;
-	while (work) {
+	if (flags & PATH_FLAGS_ABSOLUTE) {
 		strcat(buf, "/");
+	}
+	while (work) {
 		strcat(buf, work->pe_path_component);
 		if (work == last_path_entry_to_include) break;
 		work = work->pe_next;
+		if (work) {
+			strcat(buf, "/");
+		}
 	}
 
 	return(buf);
 }
 
-static char *path_entries_to_string(const struct path_entry *p_entry)
+static char *path_entries_to_string(
+	const struct path_entry *p_entry,
+	int flags)
 {
-	return(path_entries_to_string_until(p_entry, NULL));
+	return(path_entries_to_string_until(p_entry, NULL, flags));
 }
 
 static char *path_list_to_string(const struct path_entry_list *listp)
 {
-	return(path_entries_to_string_until(listp->pl_first, NULL));
+	return(path_entries_to_string_until(listp->pl_first, NULL,
+		listp->pl_flags));
 }
 
 static void free_path_entries(struct path_entry *work)
@@ -194,22 +208,26 @@ static void free_path_entries(struct path_entry *work)
 static void free_path_list(struct path_entry_list *listp)
 {
 	free_path_entries(listp->pl_first);
-	listp->pl_first = NULL;
+	clear_path_entry_list(listp);
 }
 
 
 static struct path_entry *split_path_to_path_entries(
-	const char *cpath)
+	const char *cpath, int *flagsp)
 {
 	struct path_entry *first = NULL;
 	struct path_entry *work = NULL;
 	const char *start;
 	const char *next_slash;
+	int flags = 0;
 
 	SB_LOG(SB_LOGLEVEL_NOISE2, "going to split '%s'", cpath);
 
 	start = cpath;
-	while(*start == '/') start++;	/* ignore leading '/' */
+	if (*start == '/') {
+		while(*start == '/') start++;	/* ignore leading '/' */
+		flags |= PATH_FLAGS_ABSOLUTE;
+	}
 
 	do {
 		next_slash = strchr(start, '/');
@@ -239,11 +257,12 @@ static struct path_entry *split_path_to_path_entries(
 			work = new;
 			SB_LOG(SB_LOGLEVEL_NOISE2,
 				"created entry 0x%X '%s'",
-				(unsigned long int)work, start);
+				(unsigned long int)work, new->pe_path_component);
 		}
 		if (next_slash) start = next_slash + 1;
 	} while (next_slash != NULL);
 
+	if (flagsp) *flagsp = flags;
 	return (first);
 }
 
@@ -251,7 +270,7 @@ static void split_path_to_path_list(
 	const char *cpath,
 	struct path_entry_list	*listp)
 {
-	listp->pl_first = split_path_to_path_entries(cpath);
+	listp->pl_first = split_path_to_path_entries(cpath, &(listp->pl_flags));
 
 	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE2)) {
 		char *tmp_path_buf = path_list_to_string(listp);
@@ -295,7 +314,7 @@ static struct path_entry *duplicate_path_entries_until(
 	}
 
 	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE2)) {
-		char *tmp_path_buf = path_entries_to_string(first);
+		char *tmp_path_buf = path_entries_to_string(first, 0);
 
 		SB_LOG(SB_LOGLEVEL_NOISE2, "dup->'%s'", tmp_path_buf);
 		free(tmp_path_buf);
@@ -314,6 +333,7 @@ static void	duplicate_path_list_until(
 		duplicate_until_this_component, source_path_list->pl_first);
 
 	new_path_list->pl_first = duplicate;
+	new_path_list->pl_flags = source_path_list->pl_flags;
 }
 
 /* remove a path_entry from list, return pointer to the next
@@ -456,12 +476,14 @@ static char *sb_clean_path(const char *path)
 
 /* ========== Other helper functions: ========== */
 
+#if 0
 static char last_char_in_str(const char *str)
 {
 	if (!str || !*str) return('\0');
 	while (str[1]) str++;
 	return(*str);
 }
+#endif
 
 static void check_mapping_flags(int flags, const char *fn)
 {
@@ -584,7 +606,7 @@ static char *call_lua_function_sbox_translate_path(
 */
 static int call_lua_function_sbox_get_mapping_requirements(
 	const path_mapping_context_t *ctx,
-	const char *abs_virtual_source_path,
+	const struct path_entry_list *abs_virtual_source_path_list,
 	int *min_path_lenp,
 	int *call_translate_for_all_p)
 {
@@ -592,10 +614,13 @@ static int call_lua_function_sbox_get_mapping_requirements(
 	int rule_found;
 	int min_path_len;
 	int flags;
+	char	*abs_virtual_source_path_string;
+
+	abs_virtual_source_path_string = path_list_to_string(abs_virtual_source_path_list);
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"calling sbox_get_mapping_requirements for %s(%s)",
-		ctx->pmc_func_name, abs_virtual_source_path);
+		ctx->pmc_func_name, abs_virtual_source_path_string);
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"call_lua_function_sbox_get_mapping_requirements: gettop=%d",
 		lua_gettop(luaif->lua));
@@ -604,7 +629,7 @@ static int call_lua_function_sbox_get_mapping_requirements(
 		"sbox_get_mapping_requirements");
 	lua_pushstring(luaif->lua, ctx->pmc_binary_name);
 	lua_pushstring(luaif->lua, ctx->pmc_func_name);
-	lua_pushstring(luaif->lua, abs_virtual_source_path);
+	lua_pushstring(luaif->lua, abs_virtual_source_path_string);
 	/* 3 arguments, returns 4: (rule, rule_found_flag,
 	 * min_path_len, flags) */
 	lua_call(luaif->lua, 3, 4);
@@ -628,6 +653,7 @@ static int call_lua_function_sbox_get_mapping_requirements(
 		"call_lua_function_sbox_get_mapping_requirements:"
 		" at exit, gettop=%d",
 		lua_gettop(luaif->lua));
+	free(abs_virtual_source_path_string);
 	return(rule_found);
 }
 
@@ -707,9 +733,8 @@ static void sb_path_resolution(
 	const path_mapping_context_t *ctx,
 	mapping_results_t *resolved_virtual_path_res,
 	int nest_count,
-	const char *abs_virtual_source_path)	/* MUST be an absolute path! */
+	struct path_entry_list *abs_virtual_source_path_list)
 {
-	struct path_entry_list virtual_source_path_list;
 	struct path_entry *virtual_path_work_ptr;
 	int	component_index = 0;
 	int	min_path_len_to_check;
@@ -717,39 +742,34 @@ static void sb_path_resolution(
 	int	prefix_mapping_result_host_path_flags;
 	int	call_translate_for_all = 0;
 
+	if (!abs_virtual_source_path_list) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"sb_path_resolution called with NULL path");
+		return;
+	}
+
 	if (nest_count > 16) {
+		char *avsp = path_list_to_string(abs_virtual_source_path_list);
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"Detected too deep nesting "
 			"(too many symbolic links, path='%s')",
-			abs_virtual_source_path);
+			avsp);
+		free(avsp);
 
 		/* return ELOOP to the calling program */
 		resolved_virtual_path_res->mres_errno = ELOOP;
 		return;
 	}
-
-	if (!abs_virtual_source_path || !*abs_virtual_source_path) {
-		SB_LOG(SB_LOGLEVEL_ERROR,
-			"sb_path_resolution called with NULL path");
-		return;
-	}
-	if (*abs_virtual_source_path != '/') {
+	if (!(abs_virtual_source_path_list->pl_flags & PATH_FLAGS_ABSOLUTE)) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"FATAL: sb_path_resolution called with relative path");
 		assert(0);
 	}
 
-	SB_LOG(SB_LOGLEVEL_NOISE,
-		"sb_path_resolution %d '%s'", nest_count, abs_virtual_source_path);
-
-	virtual_source_path_list.pl_first = NULL;
-
-	split_path_to_path_list(abs_virtual_source_path, &virtual_source_path_list);
-
-	virtual_path_work_ptr = virtual_source_path_list.pl_first;
+	virtual_path_work_ptr = abs_virtual_source_path_list->pl_first;
 
 	if (call_lua_function_sbox_get_mapping_requirements(
-		ctx, abs_virtual_source_path,
+		ctx, abs_virtual_source_path_list,
 		&min_path_len_to_check, &call_translate_for_all)) {
 		/* has requirements:
 		 * skip over path components that we are not supposed to check,
@@ -784,7 +804,7 @@ static void sb_path_resolution(
 
 		virtual_prefix_path_list.pl_first = NULL;
 		duplicate_path_list_until(virtual_path_work_ptr,
-			&virtual_prefix_path_list, &virtual_source_path_list);
+			&virtual_prefix_path_list, abs_virtual_source_path_list);
 		remove_dots_and_dotdots_from_path_entries(&virtual_prefix_path_list);
 		clean_virtual_path_prefix_tmp = path_list_to_string(&virtual_prefix_path_list);
 		free_path_list(&virtual_prefix_path_list);
@@ -850,9 +870,8 @@ static void sb_path_resolution(
 				"-> '%s'",
 				prefix_mapping_result_host_path, link_dest);
 			sb_path_resolution_resolve_symlink(ctx, link_dest,
-				&virtual_source_path_list, virtual_path_work_ptr,
+				abs_virtual_source_path_list, virtual_path_work_ptr,
 				resolved_virtual_path_res, nest_count);
-			free_path_list(&virtual_source_path_list);
 			return;
 		}
 
@@ -878,8 +897,9 @@ static void sb_path_resolution(
 					free(prefix_mapping_result_host_path);
 				}
 				virtual_path_prefix_to_map = path_entries_to_string_until(
-						virtual_source_path_list.pl_first,
-						virtual_path_work_ptr);
+						abs_virtual_source_path_list->pl_first,
+						virtual_path_work_ptr,
+						abs_virtual_source_path_list->pl_flags);
 				prefix_mapping_result_host_path =
 					call_lua_function_sbox_translate_path(
 						&ctx_copy, SB_LOGLEVEL_NOISE,
@@ -921,9 +941,8 @@ static void sb_path_resolution(
 	{
 		char	*resolved_virtual_path_buf = NULL;
 
-		remove_dots_and_dotdots_from_path_entries(&virtual_source_path_list);
-		resolved_virtual_path_buf = path_list_to_string(&virtual_source_path_list);
-		free_path_list(&virtual_source_path_list);
+		remove_dots_and_dotdots_from_path_entries(abs_virtual_source_path_list);
+		resolved_virtual_path_buf = path_list_to_string(abs_virtual_source_path_list);
 
 		SB_LOG(SB_LOGLEVEL_NOISE,
 			"sb_path_resolution returns '%s'", resolved_virtual_path_buf);
@@ -941,8 +960,10 @@ static void sb_path_resolution_resolve_symlink(
 	mapping_results_t *resolved_virtual_path_res,
 	int nest_count)
 {
-	char	*new_abs_virtual_link_dest_path = NULL;
 	struct path_entry *rest_of_virtual_path = NULL;
+	struct path_entry_list new_abs_virtual_link_dest_path_list;
+
+	new_abs_virtual_link_dest_path_list.pl_first = NULL;
 
 	if (virtual_path_work_ptr->pe_next) {
 		/* path has components after the symlink:
@@ -954,7 +975,7 @@ static void sb_path_resolution_resolve_symlink(
 	} /* else last component of the path was a symlink. */
 
 	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE) && rest_of_virtual_path) {
-		char *tmp_path_buf = path_entries_to_string(rest_of_virtual_path);
+		char *tmp_path_buf = path_entries_to_string(rest_of_virtual_path, 0);
 		SB_LOG(SB_LOGLEVEL_NOISE2, "resolve_symlink: rest='%s'", tmp_path_buf);
 		free(tmp_path_buf);
 	}
@@ -965,19 +986,17 @@ static void sb_path_resolution_resolve_symlink(
 		 * and rest of path, and further mapping
 		 * operations will take care of the rest.
 		*/
-		if (rest_of_virtual_path) {
-			struct path_entry *symlink_entries = NULL;
+		struct path_entry *symlink_entries = NULL;
+		int flags = 0;
 
-			SB_LOG(SB_LOGLEVEL_NOISE, "absolute symlink");
-			symlink_entries = split_path_to_path_entries(link_dest);
+		SB_LOG(SB_LOGLEVEL_NOISE, "absolute symlink");
+		symlink_entries = split_path_to_path_entries(link_dest, &flags);
+		if (rest_of_virtual_path) {
 			append_path_entries(symlink_entries, rest_of_virtual_path);
 			rest_of_virtual_path = NULL;
-			new_abs_virtual_link_dest_path = path_entries_to_string(
-				symlink_entries);
-			free_path_entries(symlink_entries);
-		} else {
-			new_abs_virtual_link_dest_path = strdup(link_dest);
 		}
+		new_abs_virtual_link_dest_path_list.pl_first = symlink_entries;
+		new_abs_virtual_link_dest_path_list.pl_flags = flags;
 	} else {
 		/* A relative symlink. Somewhat complex:
 		 * "prefix_mapping_result_host_path" contains the
@@ -989,27 +1008,30 @@ static void sb_path_resolution_resolve_symlink(
 		 * based on what was mapped, and not based on
 		 * were the mapping took us.
 		*/
-		struct path_entry *symlink_entries;
+		struct path_entry *symlink_entries = NULL;
+		struct path_entry *dirnam_entries;
 		struct path_entry *link_dest_entries;
+		int flags = 0;
 
 		SB_LOG(SB_LOGLEVEL_NOISE, "relative symlink");
-		/* first, set symlink_entries to be
+		/* first, set dirnam_entries to be
 		 * the path to the parent directory.
 		*/
 		if (virtual_path_work_ptr->pe_prev) {
-			symlink_entries = duplicate_path_entries_until(
+			dirnam_entries = duplicate_path_entries_until(
 				virtual_path_work_ptr->pe_prev,
 				virtual_source_path_list->pl_first);
 		} else {
 			/* else parent directory = rootdir, 
-			 * symlink_entries=NULL signifies that. */
-			symlink_entries = NULL;
+			 * dirnam_entries=NULL signifies that. */
+			dirnam_entries = NULL;
 		}
 
-		link_dest_entries = split_path_to_path_entries(link_dest);
+		link_dest_entries = split_path_to_path_entries(link_dest, &flags);
 		symlink_entries = append_path_entries(
-			symlink_entries, link_dest_entries);
+			dirnam_entries, link_dest_entries);
 		link_dest_entries = NULL;
+		dirnam_entries = NULL;
 
 		if (rest_of_virtual_path) {
 			symlink_entries = append_path_entries(
@@ -1017,15 +1039,15 @@ static void sb_path_resolution_resolve_symlink(
 			rest_of_virtual_path = NULL;;
 		}
 
-		new_abs_virtual_link_dest_path = path_entries_to_string(
-			symlink_entries);
-		free_path_entries(symlink_entries);
+		new_abs_virtual_link_dest_path_list.pl_first = symlink_entries;
+		new_abs_virtual_link_dest_path_list.pl_flags =
+			virtual_source_path_list->pl_flags | flags;
 	}
 
 	/* double-check the result. We MUST use absolute
 	 * paths here.
 	*/
-	if (*new_abs_virtual_link_dest_path != '/') {
+	if (!(new_abs_virtual_link_dest_path_list.pl_flags & PATH_FLAGS_ABSOLUTE)) {
 		/* this should never happen */
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"FATAL: symlink resolved to "
@@ -1044,11 +1066,10 @@ static void sb_path_resolution_resolve_symlink(
 	 * NOTE: new_abs_virtual_link_dest_path is not necessarily
 	 * a clean path, because the symlink may have pointed to .. */
 	sb_path_resolution(ctx, resolved_virtual_path_res, nest_count + 1,
-		new_abs_virtual_link_dest_path);
+		&new_abs_virtual_link_dest_path_list);
 
 	/* and finally, cleanup */
-	free(new_abs_virtual_link_dest_path);
-	return;
+	free_path_list(&new_abs_virtual_link_dest_path_list);
 }
 
 /* ========== Mapping & path resolution, internal implementation: ========== */
@@ -1218,10 +1239,16 @@ static void sbox_map_path_internal(
 		/* Mapping disabled inside this block - do not use "return"!! */
 		mapping_results_t	resolved_virtual_path_res;
 		char			*clean_abs_virtual_path_for_rule_selection = NULL;
+		/* FIXME: This routine should use path_entry_list internally,
+		 * and not strings as in the past. To be fixed... */
+		struct path_entry_list	clean_abs_virtual_path_for_rule_selection_list;
 
 		clear_mapping_results_struct(&resolved_virtual_path_res);
 
 		clean_abs_virtual_path_for_rule_selection = sb_clean_path(abs_virtual_path);
+		clean_abs_virtual_path_for_rule_selection_list.pl_first = 
+			split_path_to_path_entries(clean_abs_virtual_path_for_rule_selection,
+				&clean_abs_virtual_path_for_rule_selection_list.pl_flags);
 
 		if (!clean_abs_virtual_path_for_rule_selection ||
 		    (*clean_abs_virtual_path_for_rule_selection != '/')) {
@@ -1246,7 +1273,8 @@ static void sbox_map_path_internal(
 
 		/* sb_path_resolution() leaves the rule to the stack... */
 		sb_path_resolution(&ctx, &resolved_virtual_path_res, 0,
-			clean_abs_virtual_path_for_rule_selection);
+			&clean_abs_virtual_path_for_rule_selection_list);
+		free_path_list(&clean_abs_virtual_path_for_rule_selection_list);
 
 		if (resolved_virtual_path_res.mres_errno) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,

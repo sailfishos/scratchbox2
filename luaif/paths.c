@@ -103,6 +103,9 @@ struct path_entry {
 	struct path_entry *pe_prev;
 	struct path_entry *pe_next;
 
+	int	pe_flags;
+	char	*pe_link_dest;	/* used only for symlinks */
+
 	int	pe_path_component_len;
 
 	/* pe_path_component MUST BE the last member of this
@@ -119,7 +122,18 @@ struct path_entry_list {
 #define PATH_FLAGS_ABSOLUTE	01
 #define PATH_FLAGS_HAS_TRAILING_SLASH	02
 
+#define PATH_FLAGS_NOT_SYMLINK	010
+#define PATH_FLAGS_IS_SYMLINK	020
+
 #define clear_path_entry_list(p) {memset((p),0,sizeof(*(p)));}
+
+static void set_flags_in_path_entries(struct path_entry *pep, int flags)
+{
+	while (pep) {
+		pep->pe_flags |= flags;
+		pep = pep->pe_next;
+	}
+}
 
 static struct path_entry *append_path_entries(
 	struct path_entry *head,
@@ -200,11 +214,17 @@ static char *path_list_to_string(const struct path_entry_list *listp)
 		listp->pl_flags));
 }
 
+static void free_path_entry(struct path_entry *work)
+{
+	if (work->pe_link_dest) free(work->pe_link_dest);
+	free(work);
+}
+
 static void free_path_entries(struct path_entry *work)
 {
 	while (work) {
 		struct path_entry *next = work->pe_next;
-		free(work);
+		free_path_entry(work);
 		work = next;
 	}
 }
@@ -310,6 +330,9 @@ static struct path_entry *duplicate_path_entries_until(
 		new->pe_path_component[len] = '\0';
 		new->pe_path_component_len = len;
 
+		if (source_path->pe_link_dest)
+			new->pe_link_dest = strdup(source_path->pe_link_dest);
+
 		new->pe_prev = dest_path_ptr;
 		if (dest_path_ptr) dest_path_ptr->pe_next = new;
 		new->pe_next = NULL;
@@ -365,14 +388,15 @@ static struct path_entry *remove_path_entry(
 		if(p_entry->pe_next)
 			p_entry->pe_next->pe_prev = NULL;
 	}
-	free(p_entry);
+	free_path_entry(p_entry);
 	return(ret);
 }
 
 /* remove_dots_from_path_list(), "easy" path cleaning:
  * - all dots, i.e. "." as components, can be safely removed,
  *   BUT if the last component is a dot, then the path will be
- *   marked as having a trailing slash (it has the same meaning)
+ *   marked as having a trailing slash (it has the same meaning,
+ *   see the man page about path_resolution)
  * - doubled slashes ("//") have already been removed, when
  *   the path was split to components.
 */
@@ -836,18 +860,37 @@ static void sb_path_resolution(
 	 * it may contain . or .. as a result of symbolic link expansion
 	 * (i.e. when this function is called recursively) */
 	{
-		char	*clean_virtual_path_prefix_tmp;
+		char	*clean_virtual_path_prefix_tmp = NULL;
 		struct path_entry_list virtual_prefix_path_list;
 		path_mapping_context_t	ctx_copy = *ctx;
 
 		ctx_copy.pmc_binary_name = "PATH_RESOLUTION";
+		clear_path_entry_list(&virtual_prefix_path_list);
 
-		virtual_prefix_path_list.pl_first = NULL;
-		duplicate_path_list_until(virtual_path_work_ptr,
-			&virtual_prefix_path_list, abs_virtual_source_path_list);
-		remove_dots_and_dotdots_from_path_entries(&virtual_prefix_path_list);
-		clean_virtual_path_prefix_tmp = path_list_to_string(&virtual_prefix_path_list);
-		free_path_list(&virtual_prefix_path_list);
+		switch (is_clean_path(abs_virtual_source_path_list)) {
+		case 0: /* clean */
+			clean_virtual_path_prefix_tmp = path_list_to_string(
+				abs_virtual_source_path_list);
+			break;
+		case 1: /* . */
+			duplicate_path_list_until(virtual_path_work_ptr,
+				&virtual_prefix_path_list,
+				abs_virtual_source_path_list);
+			remove_dots_from_path_list(&virtual_prefix_path_list);
+			clean_virtual_path_prefix_tmp =
+				path_list_to_string(&virtual_prefix_path_list);
+			break;
+		case 2: /* .. */
+			duplicate_path_list_until(virtual_path_work_ptr,
+				&virtual_prefix_path_list,
+				abs_virtual_source_path_list);
+			remove_dots_and_dotdots_from_path_entries(&virtual_prefix_path_list);
+			clean_virtual_path_prefix_tmp =
+				path_list_to_string(&virtual_prefix_path_list);
+			break;
+		}
+		if (virtual_prefix_path_list.pl_first)
+			free_path_list(&virtual_prefix_path_list);
 
 		SB_LOG(SB_LOGLEVEL_NOISE, "clean_virtual_path_prefix_tmp => %s",
 			clean_virtual_path_prefix_tmp);
@@ -867,7 +910,6 @@ static void sb_path_resolution(
 	*/
 	while (virtual_path_work_ptr) {
 		char	link_dest[PATH_MAX+1];
-		int	link_len;
 
 		if (prefix_mapping_result_host_path_flags &
 		    SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH) {
@@ -901,24 +943,36 @@ static void sb_path_resolution(
 		SB_LOG(SB_LOGLEVEL_NOISE, "path_resolution: test if symlink [%d] '%s'",
 			component_index, prefix_mapping_result_host_path);
 
-		/* determine if "prefix_mapping_result_host_path" is a symbolic link.
-		 * this can't be done with lstat(), because lstat() does not
-		 * exist as a function on Linux => lstat_nomap() can not be
-		 * used eiher. fortunately readlink() is an ordinary function.
-		*/
-		link_len = readlink_nomap(prefix_mapping_result_host_path, link_dest, PATH_MAX);
+		if ((virtual_path_work_ptr->pe_flags & 
+		     (PATH_FLAGS_IS_SYMLINK | PATH_FLAGS_NOT_SYMLINK)) == 0) {
+			/* status unknow.
+			 * determine if "prefix_mapping_result_host_path" is a symbolic link.
+			 * this can't be done with lstat(), because lstat() does not
+			 * exist as a function on Linux => lstat_nomap() can not be
+			 * used eiher. fortunately readlink() is an ordinary function.
+			*/
+			int	link_len;
 
-		if (link_len > 0) {
-			/* was a symlink */
+			link_len = readlink_nomap(prefix_mapping_result_host_path, link_dest, PATH_MAX);
+
+			if (link_len > 0) {
+				/* was a symlink */
+				link_dest[link_len] = '\0';
+				virtual_path_work_ptr->pe_link_dest = strdup(link_dest);
+			}
+		}
+
+		if (virtual_path_work_ptr->pe_flags & PATH_FLAGS_IS_SYMLINK) {
+			/* symlink */
 
 			free(prefix_mapping_result_host_path);
 
-			link_dest[link_len] = '\0';
 			SB_LOG(SB_LOGLEVEL_NOISE,
 				"Path resolution found symlink '%s' "
 				"-> '%s'",
 				prefix_mapping_result_host_path, link_dest);
-			sb_path_resolution_resolve_symlink(ctx, link_dest,
+			sb_path_resolution_resolve_symlink(ctx,
+				virtual_path_work_ptr->pe_link_dest,
 				abs_virtual_source_path_list, virtual_path_work_ptr,
 				resolved_virtual_path_res, nest_count);
 			return;
@@ -1197,6 +1251,11 @@ static int relative_virtual_path_to_abs_path(
 		luaif->virtual_reversed_cwd = virtual_reversed_cwd;
 	}
 	cwd_entries = split_path_to_path_entries(virtual_reversed_cwd, &cwd_flags);
+	/* getcwd() always returns a real path. Assume that the
+	 * reversed path is also real (if it isn't, then the reversing
+	 * rules are buggy! the bug isn't here in that case!)
+	*/
+	set_flags_in_path_entries(cwd_entries, PATH_FLAGS_NOT_SYMLINK);
 	path_list->pl_first = append_path_entries(
 		cwd_entries, path_list->pl_first);
 	path_list->pl_flags |= cwd_flags;

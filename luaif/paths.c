@@ -353,6 +353,7 @@ static struct path_entry *duplicate_path_entries_until(
 	return(first);
 }
 
+#if 0
 static void	duplicate_path_list_until(
 	const struct path_entry *duplicate_until_this_component,
 	struct path_entry_list *new_path_list,
@@ -366,6 +367,7 @@ static void	duplicate_path_list_until(
 	new_path_list->pl_first = duplicate;
 	new_path_list->pl_flags = source_path_list->pl_flags;
 }
+#endif
 
 /* remove a path_entry from list, return pointer to the next
  * path_entry after the removed one (NULL if the removed entry was last)
@@ -792,7 +794,7 @@ static void sb_path_resolution(
 	const path_mapping_context_t *ctx,
 	mapping_results_t *resolved_virtual_path_res,
 	int nest_count,
-	struct path_entry_list *abs_virtual_source_path_list)
+	struct path_entry_list *abs_virtual_clean_source_path_list)
 {
 	struct path_entry *virtual_path_work_ptr;
 	int	component_index = 0;
@@ -802,14 +804,14 @@ static void sb_path_resolution(
 	int	call_translate_for_all = 0;
 	int	abs_virtual_source_path_has_trailing_slash;
 
-	if (!abs_virtual_source_path_list) {
+	if (!abs_virtual_clean_source_path_list) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"sb_path_resolution called with NULL path");
 		return;
 	}
 
 	if (nest_count > 16) {
-		char *avsp = path_list_to_string(abs_virtual_source_path_list);
+		char *avsp = path_list_to_string(abs_virtual_clean_source_path_list);
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"Detected too deep nesting "
 			"(too many symbolic links, path='%s')",
@@ -820,18 +822,25 @@ static void sb_path_resolution(
 		resolved_virtual_path_res->mres_errno = ELOOP;
 		return;
 	}
-	if (!(abs_virtual_source_path_list->pl_flags & PATH_FLAGS_ABSOLUTE)) {
+
+	if (!(abs_virtual_clean_source_path_list->pl_flags & PATH_FLAGS_ABSOLUTE)) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"FATAL: sb_path_resolution called with relative path");
 		assert(0);
 	}
 
-	virtual_path_work_ptr = abs_virtual_source_path_list->pl_first;
+	if (is_clean_path(abs_virtual_clean_source_path_list) != 0) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"FATAL: sb_path_resolution must be called with a clean path");
+		assert(0);
+	}
+
+	virtual_path_work_ptr = abs_virtual_clean_source_path_list->pl_first;
 	abs_virtual_source_path_has_trailing_slash =
-		(abs_virtual_source_path_list->pl_flags & PATH_FLAGS_HAS_TRAILING_SLASH);
+		(abs_virtual_clean_source_path_list->pl_flags & PATH_FLAGS_HAS_TRAILING_SLASH);
 
 	if (call_lua_function_sbox_get_mapping_requirements(
-		ctx, abs_virtual_source_path_list,
+		ctx, abs_virtual_clean_source_path_list,
 		&min_path_len_to_check, &call_translate_for_all)) {
 		/* has requirements:
 		 * skip over path components that we are not supposed to check,
@@ -856,41 +865,16 @@ static void sb_path_resolution(
 		component_index, (virtual_path_work_ptr ?
 			virtual_path_work_ptr->pe_path_component : ""));
 
-	/* abs_virtual_source_path is not necessarily clean.
-	 * it may contain . or .. as a result of symbolic link expansion
-	 * (i.e. when this function is called recursively) */
+	/* (the source path is clean.) */
 	{
 		char	*clean_virtual_path_prefix_tmp = NULL;
-		struct path_entry_list virtual_prefix_path_list;
 		path_mapping_context_t	ctx_copy = *ctx;
 
 		ctx_copy.pmc_binary_name = "PATH_RESOLUTION";
-		clear_path_entry_list(&virtual_prefix_path_list);
 
-		switch (is_clean_path(abs_virtual_source_path_list)) {
-		case 0: /* clean */
-			clean_virtual_path_prefix_tmp = path_list_to_string(
-				abs_virtual_source_path_list);
-			break;
-		case 1: /* . */
-			duplicate_path_list_until(virtual_path_work_ptr,
-				&virtual_prefix_path_list,
-				abs_virtual_source_path_list);
-			remove_dots_from_path_list(&virtual_prefix_path_list);
-			clean_virtual_path_prefix_tmp =
-				path_list_to_string(&virtual_prefix_path_list);
-			break;
-		case 2: /* .. */
-			duplicate_path_list_until(virtual_path_work_ptr,
-				&virtual_prefix_path_list,
-				abs_virtual_source_path_list);
-			remove_dots_and_dotdots_from_path_entries(&virtual_prefix_path_list);
-			clean_virtual_path_prefix_tmp =
-				path_list_to_string(&virtual_prefix_path_list);
-			break;
-		}
-		if (virtual_prefix_path_list.pl_first)
-			free_path_list(&virtual_prefix_path_list);
+		clean_virtual_path_prefix_tmp = path_entries_to_string_until(
+			abs_virtual_clean_source_path_list->pl_first,
+			virtual_path_work_ptr, PATH_FLAGS_ABSOLUTE);
 
 		SB_LOG(SB_LOGLEVEL_NOISE, "clean_virtual_path_prefix_tmp => %s",
 			clean_virtual_path_prefix_tmp);
@@ -959,6 +943,9 @@ static void sb_path_resolution(
 				/* was a symlink */
 				link_dest[link_len] = '\0';
 				virtual_path_work_ptr->pe_link_dest = strdup(link_dest);
+				virtual_path_work_ptr->pe_flags |= PATH_FLAGS_IS_SYMLINK;
+			} else {
+				virtual_path_work_ptr->pe_flags |= PATH_FLAGS_NOT_SYMLINK;
 			}
 		}
 
@@ -973,7 +960,7 @@ static void sb_path_resolution(
 				prefix_mapping_result_host_path, link_dest);
 			sb_path_resolution_resolve_symlink(ctx,
 				virtual_path_work_ptr->pe_link_dest,
-				abs_virtual_source_path_list, virtual_path_work_ptr,
+				abs_virtual_clean_source_path_list, virtual_path_work_ptr,
 				resolved_virtual_path_res, nest_count);
 			return;
 		}
@@ -1000,9 +987,9 @@ static void sb_path_resolution(
 					free(prefix_mapping_result_host_path);
 				}
 				virtual_path_prefix_to_map = path_entries_to_string_until(
-						abs_virtual_source_path_list->pl_first,
+						abs_virtual_clean_source_path_list->pl_first,
 						virtual_path_work_ptr,
-						abs_virtual_source_path_list->pl_flags);
+						abs_virtual_clean_source_path_list->pl_flags);
 				prefix_mapping_result_host_path =
 					call_lua_function_sbox_translate_path(
 						&ctx_copy, SB_LOGLEVEL_NOISE,
@@ -1036,16 +1023,11 @@ static void sb_path_resolution(
 		component_index++;
 	}
 
-	/* All symbolic links have been resolved.
-	 *
-	 * Since there are no symlinks in "virtual_source_path_list", "." and ".."
-	 * entries can be safely removed:
-	*/
+	/* All symbolic links have been resolved. */
 	{
 		char	*resolved_virtual_path_buf = NULL;
 
-		remove_dots_and_dotdots_from_path_entries(abs_virtual_source_path_list);
-		resolved_virtual_path_buf = path_list_to_string(abs_virtual_source_path_list);
+		resolved_virtual_path_buf = path_list_to_string(abs_virtual_clean_source_path_list);
 
 		SB_LOG(SB_LOGLEVEL_NOISE,
 			"sb_path_resolution returns '%s'", resolved_virtual_path_buf);
@@ -1164,6 +1146,21 @@ static void sb_path_resolution_resolve_symlink(
 
 	/* First, forget the old rule: */
 	drop_rule_from_lua_stack(ctx->pmc_luaif);
+
+	/* sb_path_resolution() needs to get clean path, but
+	 * new_abs_virtual_link_dest_path is not necessarily clean.
+	 * it may contain . or .. as a result of symbolic link expansion
+	*/
+	switch (is_clean_path(&new_abs_virtual_link_dest_path_list)) {
+	case 0: /* clean */
+		break;
+	case 1: /* . */
+		remove_dots_from_path_list(&new_abs_virtual_link_dest_path_list);
+		break;
+	case 2: /* .. */
+		remove_dots_and_dotdots_from_path_entries(&new_abs_virtual_link_dest_path_list);
+		break;
+	}
 
 	/* Then the recursion.
 	 * NOTE: new_abs_virtual_link_dest_path is not necessarily
@@ -1337,7 +1334,8 @@ static void sbox_map_path_internal(
 
 	split_path_to_path_list(virtual_orig_path,
 		&abs_virtual_path_for_rule_selection_list);
-	/* Going to map it. The mapping logic must get absolute paths: */
+
+	/* Going to map it. The mapping logic must get clean absolute paths: */
 	if (*virtual_orig_path != '/') {
 		/* convert to absolute path. */
 		if (relative_virtual_path_to_abs_path(

@@ -414,47 +414,30 @@ static void remove_dots_and_dotdots_from_path_entries(
 	}
 }
 
-static int is_clean_path(const char *path)
+static int is_clean_path(struct path_entry_list *listp)
 {
-	const char	*cp;
-
-	/* check if there are double slashes */
-	if (*path == '/') cp = path;
-	else cp = strchr(path, '/');
-	while(cp) {
-		if (cp[1] == '/') {
-			/* found "//" */
-			SB_LOG(SB_LOGLEVEL_NOISE,
-				"is_clean_path: false; double slash '%s'",
-				path);
-			return(0);
-		}
-		cp = strchr(cp+1, '/');
-	}
+	struct path_entry *work = listp->pl_first;
 
 	/* check if the path contains "." or ".." as components */
-	cp = path;
-	while (*cp == '/') cp++;
-	while (cp) {
+	while (work) {
+		const char	*cp = work->pe_path_component;
 		if (*cp == '.') {
-			if ((cp[1] == '/') ||
-			    (cp[1] == '\0') ||
-			    (cp[1] == '.' && cp[2] == '/') ||
+			if ((cp[1] == '\0') ||
 			    (cp[1] == '.' && cp[2] == '\0')) {
 				/* found "." or ".." */
 				SB_LOG(SB_LOGLEVEL_NOISE,
-					"is_clean_path: false; dots '%s'",
-					path);
+					"is_clean_path: false");
 				return(0);
 			}
 		}
-		cp = strchr(cp+1, '/');
+		work = work->pe_next;
 	}
 
-	SB_LOG(SB_LOGLEVEL_NOISE, "is_clean_path: true; '%s'", path);
+	SB_LOG(SB_LOGLEVEL_NOISE, "is_clean_path: true");
 	return(1);
 }
 
+#if 0
 /* returns an allocated buffer containing a cleaned ("decolonized")
  * version of "path" (double slashes, dots and dotdots etc. have been removed)
 */
@@ -481,6 +464,7 @@ static char *sb_clean_path(const char *path)
 	SB_LOG(SB_LOGLEVEL_NOISE, "sb_clean_path returns '%s'", buf);
 	return buf;
 }
+#endif
 
 /* ========== Other helper functions: ========== */
 
@@ -559,8 +543,14 @@ static char *call_lua_function_sbox_translate_path(
 		 * need to clean the path here.
 		*/
 		char *cleaned_host_path;
+		struct path_entry_list list;
 
-		cleaned_host_path = sb_clean_path(host_path);
+		split_path_to_path_list(host_path, &list);
+		if (!is_clean_path(&list)) {
+			remove_dots_and_dotdots_from_path_entries(&list);
+		}
+		cleaned_host_path = path_list_to_string(&list);
+		free_path_list(&list);
 
 		if (*cleaned_host_path != '/') {
 			/* oops, got a relative path. CWD is too long. */
@@ -788,8 +778,9 @@ static void sb_path_resolution(
 			"min_path_len_to_check=%d", min_path_len_to_check);
 
 		while (skipped_len < min_path_len_to_check) {
-			SB_LOG(SB_LOGLEVEL_NOISE2, "skipping [%d] '%s'",
-				component_index, virtual_path_work_ptr->pe_path_component);
+			SB_LOG(SB_LOGLEVEL_NOISE2, "skipping [%d] '%s' (%d,%d)",
+				component_index, virtual_path_work_ptr->pe_path_component,
+				skipped_len, virtual_path_work_ptr->pe_path_component_len);
 			component_index++;
 			skipped_len += virtual_path_work_ptr->pe_path_component_len;
 			skipped_len++; /* add one due to the slash which lays between components */
@@ -798,7 +789,8 @@ static void sb_path_resolution(
 	}
 
 	SB_LOG(SB_LOGLEVEL_NOISE, "Path resolutions starts from [%d] '%s'",
-		component_index, virtual_path_work_ptr->pe_path_component);
+		component_index, (virtual_path_work_ptr ?
+			virtual_path_work_ptr->pe_path_component : ""));
 
 	/* abs_virtual_source_path is not necessarily clean.
 	 * it may contain . or .. as a result of symbolic link expansion
@@ -1082,15 +1074,20 @@ static void sb_path_resolution_resolve_symlink(
 
 /* ========== Mapping & path resolution, internal implementation: ========== */
 
-static const char *relative_virtual_path_to_abs_path(
+/* path_list is relative in the beginning;
+ * returns -1 ir error,
+ * or 0 if OK and path_list has been converted to absolute.
+*/
+static int relative_virtual_path_to_abs_path(
 	const path_mapping_context_t *ctx,
 	char *host_cwd,
 	size_t host_cwd_size,
-	const char *relative_virtual_path,
-	char **abs_virtual_path_buffer_p)
+	struct path_entry_list *path_list)
 {
 	struct lua_instance	*luaif = ctx->pmc_luaif;
 	char *virtual_reversed_cwd = NULL;
+	struct path_entry	*cwd_entries;
+	int			cwd_flags;
 
 	if (!getcwd_nomap_nolog(host_cwd, host_cwd_size)) {
 		/* getcwd() returns NULL if the path is really long.
@@ -1110,7 +1107,7 @@ static const char *relative_virtual_path_to_abs_path(
 			SB_LOG(SB_LOGLEVEL_ERROR,
 			    "absolute_path failed to get current dir");
 		}
-		return(NULL);
+		return(-1);
 	}
 	SB_LOG(SB_LOGLEVEL_DEBUG,
 		"sbox_map_path_internal: converting to abs.path cwd=%s",
@@ -1150,16 +1147,16 @@ static const char *relative_virtual_path_to_abs_path(
 		luaif->host_cwd = strdup(host_cwd);
 		luaif->virtual_reversed_cwd = virtual_reversed_cwd;
 	}
-	if (asprintf(abs_virtual_path_buffer_p, "%s/%s",
-	     virtual_reversed_cwd, relative_virtual_path) < 0) {
-		/* asprintf failed */
-		abort();
-	}
+	cwd_entries = split_path_to_path_entries(virtual_reversed_cwd, &cwd_flags);
+	path_list->pl_first = append_path_entries(
+		cwd_entries, path_list->pl_first);
+	path_list->pl_flags |= cwd_flags;
+#if 0	
 	SB_LOG(SB_LOGLEVEL_DEBUG,
 		"sbox_map_path_internal: abs.path is '%s'",
 		*abs_virtual_path_buffer_p);
-
-	return(*abs_virtual_path_buffer_p);
+#endif
+	return(0);
 }
 
 /* make sure to use disable_mapping(m); 
@@ -1175,11 +1172,11 @@ static void sbox_map_path_internal(
 	mapping_results_t *res)
 {
 	char *mapping_result = NULL;
-	const char *abs_virtual_path = NULL;
-	char *abs_virtual_path_buffer = NULL;
 	path_mapping_context_t	ctx;
 	char host_cwd[PATH_MAX + 1]; /* used only if virtual_orig_path is relative */
+	struct path_entry_list	abs_virtual_path_for_rule_selection_list;
 
+	clear_path_entry_list(&abs_virtual_path_for_rule_selection_list);
 	clear_path_mapping_context(&ctx);
 	ctx.pmc_binary_name = binary_name;
 	ctx.pmc_func_name = func_name;
@@ -1230,41 +1227,37 @@ static void sbox_map_path_internal(
 		goto use_orig_path_as_result_and_exit;
 	}
 
+	split_path_to_path_list(virtual_orig_path,
+		&abs_virtual_path_for_rule_selection_list);
 	/* Going to map it. The mapping logic must get absolute paths: */
-	if (*virtual_orig_path == '/') {
-		abs_virtual_path = virtual_orig_path;
-	} else {
+	if (*virtual_orig_path != '/') {
 		/* convert to absolute path. */
-		abs_virtual_path = relative_virtual_path_to_abs_path(
+		if (relative_virtual_path_to_abs_path(
 			&ctx, host_cwd, sizeof(host_cwd),
-			virtual_orig_path, &abs_virtual_path_buffer);
-		if (!abs_virtual_path)
+			&abs_virtual_path_for_rule_selection_list) < 0)
 			goto use_orig_path_as_result_and_exit;
+	}
+
+	if (!is_clean_path(&abs_virtual_path_for_rule_selection_list)) {
+		remove_dots_and_dotdots_from_path_entries(
+			&abs_virtual_path_for_rule_selection_list);
 	}
 
 	disable_mapping(ctx.pmc_luaif);
 	{
 		/* Mapping disabled inside this block - do not use "return"!! */
 		mapping_results_t	resolved_virtual_path_res;
-		char			*clean_abs_virtual_path_for_rule_selection = NULL;
-		/* FIXME: This routine should use path_entry_list internally,
-		 * and not strings as in the past. To be fixed... */
-		struct path_entry_list	clean_abs_virtual_path_for_rule_selection_list;
 
 		clear_mapping_results_struct(&resolved_virtual_path_res);
 
-		clean_abs_virtual_path_for_rule_selection = sb_clean_path(abs_virtual_path);
-		clean_abs_virtual_path_for_rule_selection_list.pl_first = 
-			split_path_to_path_entries(clean_abs_virtual_path_for_rule_selection,
-				&clean_abs_virtual_path_for_rule_selection_list.pl_flags);
-
-		if (!clean_abs_virtual_path_for_rule_selection ||
-		    (*clean_abs_virtual_path_for_rule_selection != '/')) {
+		if (!(abs_virtual_path_for_rule_selection_list.pl_flags &
+				PATH_FLAGS_ABSOLUTE)) {
+			mapping_result = path_list_to_string(
+				&abs_virtual_path_for_rule_selection_list);
 			SB_LOG(SB_LOGLEVEL_ERROR,
-				"sbox_map_path_internal: sb_clean_path()"
-				" failed to return absolute path (can't"
-				" map this)");
-			mapping_result = strdup(abs_virtual_path);
+				"sbox_map_path_internal: "
+				"conversion to absolute path failed "
+				"(can't map '%s')", mapping_result);
 			if (process_path_for_exec) {
 				/* can't map, but still need to leave "rule"
 				 * (string) and "policy" (nil) to the stack */
@@ -1275,14 +1268,18 @@ static void sbox_map_path_internal(
 			goto forget_mapping;
 		}
 
-		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"sbox_map_path_internal: process '%s', n='%s'",
-			virtual_orig_path, clean_abs_virtual_path_for_rule_selection);
+		if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
+			char *tmp_path = path_list_to_string(
+				&abs_virtual_path_for_rule_selection_list);
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"sbox_map_path_internal: process '%s', n='%s'",
+				virtual_orig_path, tmp_path);
+			free(tmp_path);
+		}
 
 		/* sb_path_resolution() leaves the rule to the stack... */
 		sb_path_resolution(&ctx, &resolved_virtual_path_res, 0,
-			&clean_abs_virtual_path_for_rule_selection_list);
-		free_path_list(&clean_abs_virtual_path_for_rule_selection_list);
+			&abs_virtual_path_for_rule_selection_list);
 
 		if (resolved_virtual_path_res.mres_errno) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
@@ -1326,10 +1323,10 @@ static void sbox_map_path_internal(
 		}
 	forget_mapping:
 		free_mapping_results(&resolved_virtual_path_res);
-		if(clean_abs_virtual_path_for_rule_selection)
-			free(clean_abs_virtual_path_for_rule_selection);
 	}
 	enable_mapping(ctx.pmc_luaif);
+
+	free_path_list(&abs_virtual_path_for_rule_selection_list);
 
 	res->mres_result_buf = res->mres_result_path = mapping_result;
 
@@ -1372,7 +1369,6 @@ static void sbox_map_path_internal(
 	SB_LOG(SB_LOGLEVEL_NOISE, "sbox_map_path_internal: mapping_result='%s'",
 		mapping_result ? mapping_result : "<No result>");
 	release_lua(ctx.pmc_luaif);
-	if (abs_virtual_path_buffer) free(abs_virtual_path_buffer);
 	return;
 
     use_orig_path_as_result_and_exit:

@@ -369,8 +369,14 @@ static struct path_entry *remove_path_entry(
 	return(ret);
 }
 
-static void remove_dots_and_dotdots_from_path_entries(
-	struct path_entry_list *listp)
+/* remove_dots_from_path_list(), "easy" path cleaning:
+ * - all dots, i.e. "." as components, can be safely removed,
+ *   BUT if the last component is a dot, then the path will be
+ *   marked as having a trailing slash (it has the same meaning)
+ * - doubled slashes ("//") have already been removed, when
+ *   the path was split to components.
+*/
+static void remove_dots_from_path_list(struct path_entry_list *listp)
 {
 	struct path_entry *work = listp->pl_first;
 
@@ -378,12 +384,53 @@ static void remove_dots_and_dotdots_from_path_entries(
 		char *tmp_path_buf = path_list_to_string(listp);
 
 		SB_LOG(SB_LOGLEVEL_NOISE2,
-			"remove_dots_and_dotdots: Clean  ->'%s'", tmp_path_buf);
+			"remove_dots: '%s'", tmp_path_buf);
 		free(tmp_path_buf);
 	}
 	while (work) {
 		SB_LOG(SB_LOGLEVEL_NOISE2,
-			"remove_dots_and_dotdots: work=0x%X examine '%s'",
+			"remove_dots: work=0x%X examine '%s'",
+			(unsigned long int)work, work?work->pe_path_component:"");
+
+		if ((work->pe_path_component[0] == '.') &&
+		    (work->pe_path_component[1] == '\0')) {
+			if (!work->pe_next) {
+				/* last component */
+				listp->pl_flags |= PATH_FLAGS_HAS_TRAILING_SLASH;
+			}
+			/* remove this node */
+			work = remove_path_entry(listp, work);
+		} else {
+			work = work->pe_next;
+		}
+	}
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE2)) {
+		char *tmp_path_buf = path_list_to_string(listp);
+
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"remove_dots: result->'%s'", tmp_path_buf);
+		free(tmp_path_buf);
+	}
+}
+
+static void remove_dots_and_dotdots_from_path_entries(
+	struct path_entry_list *listp)
+{
+	struct path_entry *work = listp->pl_first;
+
+	
+	remove_dots_from_path_list(listp);
+
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE2)) {
+		char *tmp_path_buf = path_list_to_string(listp);
+
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"remove_dotdots: Clean  ->'%s'", tmp_path_buf);
+		free(tmp_path_buf);
+	}
+	while (work) {
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"remove_dotdots: work=0x%X examine '%s'",
 			(unsigned long int)work, work?work->pe_path_component:"");
 		if (strcmp(work->pe_path_component, "..") == 0) {
 			struct path_entry *dotdot = work;
@@ -398,9 +445,6 @@ static void remove_dots_and_dotdots_from_path_entries(
 				assert(work == listp->pl_first);
 			}
 			work = remove_path_entry(listp, dotdot);
-		} else if (strcmp(work->pe_path_component, ".") == 0) {
-			/* ignore this node */
-			work = remove_path_entry(listp, work);
 		} else {
 			work = work->pe_next;
 		}
@@ -409,62 +453,45 @@ static void remove_dots_and_dotdots_from_path_entries(
 		char *tmp_path_buf = path_list_to_string(listp);
 
 		SB_LOG(SB_LOGLEVEL_NOISE2,
-			"remove_dots_and_dotdots: cleaned->'%s'", tmp_path_buf);
+			"remove_dotdots: cleaned->'%s'", tmp_path_buf);
 		free(tmp_path_buf);
 	}
 }
 
+/* check if the path is clean:
+ * returns
+ *   0: path is clean = does not contain "." or ".."
+ *   1: path is not clean, contains one or more dots ("."), but no ".."
+ *   2: path is not clean, ".." (requires more complex cleanup)
+*/
 static int is_clean_path(struct path_entry_list *listp)
 {
 	struct path_entry *work = listp->pl_first;
+	int	found_dot = 0;
 
 	/* check if the path contains "." or ".." as components */
 	while (work) {
 		const char	*cp = work->pe_path_component;
 		if (*cp == '.') {
-			if ((cp[1] == '\0') ||
-			    (cp[1] == '.' && cp[2] == '\0')) {
-				/* found "." or ".." */
+			if (cp[1] == '\0') {
+				found_dot = 1;
+			} else if (cp[1] == '.' && cp[2] == '\0') {
+				/* found ".." */
 				SB_LOG(SB_LOGLEVEL_NOISE,
-					"is_clean_path: false");
-				return(0);
+					"is_clean_path: dirty, found ..");
+				return(2);
 			}
 		}
 		work = work->pe_next;
 	}
 
-	SB_LOG(SB_LOGLEVEL_NOISE, "is_clean_path: true");
-	return(1);
-}
-
-#if 0
-/* returns an allocated buffer containing a cleaned ("decolonized")
- * version of "path" (double slashes, dots and dotdots etc. have been removed)
-*/
-static char *sb_clean_path(const char *path)
-{
-	struct path_entry_list list;
-	char *buf = NULL;
-
-	if (!path) {
-		SB_LOG(SB_LOGLEVEL_ERROR,
-			"sb_clean_path called with NULL path");
-		return NULL;
+	if (found_dot) {
+		SB_LOG(SB_LOGLEVEL_NOISE, "is_clean_path: dirty, found .");
+		return(1);
 	}
-
-	if (is_clean_path(path)) return(strdup(path));
-
-	/* path needs cleaning */
-	split_path_to_path_list(path, &list);
-	remove_dots_and_dotdots_from_path_entries(&list);
-
-	buf = path_list_to_string(&list);
-	free_path_list(&list);
-
-	SB_LOG(SB_LOGLEVEL_NOISE, "sb_clean_path returns '%s'", buf);
-	return buf;
+	SB_LOG(SB_LOGLEVEL_NOISE, "is_clean_path: clean");
+	return(0);
 }
-#endif
 
 /* ========== Other helper functions: ========== */
 
@@ -546,8 +573,18 @@ static char *call_lua_function_sbox_translate_path(
 		struct path_entry_list list;
 
 		split_path_to_path_list(host_path, &list);
-		if (!is_clean_path(&list)) {
+		switch (is_clean_path(&list)) {
+		case 0: /* clean */
+			break;
+		case 1: /* . */
+			remove_dots_from_path_list(&list);
+			break;
+		case 2: /* .. */
+			/* FIXME. the rule inserted ".." to the path?
+			 * not very wise move, maybe we should even log
+			 * warning about this? */
 			remove_dots_and_dotdots_from_path_entries(&list);
+			break;
 		}
 		cleaned_host_path = path_list_to_string(&list);
 		free_path_list(&list);
@@ -739,6 +776,7 @@ static void sb_path_resolution(
 	char	*prefix_mapping_result_host_path;
 	int	prefix_mapping_result_host_path_flags;
 	int	call_translate_for_all = 0;
+	int	abs_virtual_source_path_has_trailing_slash;
 
 	if (!abs_virtual_source_path_list) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
@@ -765,6 +803,8 @@ static void sb_path_resolution(
 	}
 
 	virtual_path_work_ptr = abs_virtual_source_path_list->pl_first;
+	abs_virtual_source_path_has_trailing_slash =
+		(abs_virtual_source_path_list->pl_flags & PATH_FLAGS_HAS_TRAILING_SLASH);
 
 	if (call_lua_function_sbox_get_mapping_requirements(
 		ctx, abs_virtual_source_path_list,
@@ -838,15 +878,24 @@ static void sb_path_resolution(
 			break;
 		}
 
-		if (ctx->pmc_dont_resolve_final_symlink && (virtual_path_work_ptr->pe_next == NULL)) {
-			/* this is last component, but here a final symlink
-			 * must not be resolved (calls like lstat(), rename(),
-			 * etc)
+		if (abs_virtual_source_path_has_trailing_slash) {
+			/* a trailing slash and "/." at end of path
+			 * are equivalent; in both cases the last
+			 * real component of the path must be resolved.
 			*/
-			SB_LOG(SB_LOGLEVEL_NOISE2,
-				"Won't check last component [%d] '%s'",
-				component_index, virtual_path_work_ptr->pe_path_component);
-			break;
+		} else {
+			/* test if the last component must be resolved: */
+			if (ctx->pmc_dont_resolve_final_symlink &&
+			    (virtual_path_work_ptr->pe_next == NULL)) {
+				/* this is last component, but here a final symlink
+				 * must not be resolved (calls like lstat(), rename(),
+				 * etc)
+				*/
+				SB_LOG(SB_LOGLEVEL_NOISE2,
+					"Won't check last component [%d] '%s'",
+					component_index, virtual_path_work_ptr->pe_path_component);
+				break;
+			}
 		}
 
 		SB_LOG(SB_LOGLEVEL_NOISE, "path_resolution: test if symlink [%d] '%s'",
@@ -1238,9 +1287,15 @@ static void sbox_map_path_internal(
 			goto use_orig_path_as_result_and_exit;
 	}
 
-	if (!is_clean_path(&abs_virtual_path_for_rule_selection_list)) {
-		remove_dots_and_dotdots_from_path_entries(
-			&abs_virtual_path_for_rule_selection_list);
+	switch (is_clean_path(&abs_virtual_path_for_rule_selection_list)) {
+	case 0: /* clean */
+		break;
+	case 1: /* . */
+		remove_dots_from_path_list(&abs_virtual_path_for_rule_selection_list);
+		break;
+	case 2: /* .. */
+		remove_dots_and_dotdots_from_path_entries(&abs_virtual_path_for_rule_selection_list);
+		break;
 	}
 
 	disable_mapping(ctx.pmc_luaif);

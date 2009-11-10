@@ -255,6 +255,7 @@ local exec_policy_target = {
 
 	native_app_ld_so_supports_rpath_prefix = conf_target_ld_so_supports_rpath_prefix,
 	native_app_ld_so_rpath_prefix = target_root,
+	native_app_ld_so_supports_nodefaultdirs = conf_target_ld_so_supports_nodefaultdirs,
 }
 
 -- Note that the real path (mapped path) is used when looking up rules!

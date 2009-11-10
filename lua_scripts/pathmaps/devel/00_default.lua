@@ -58,6 +58,7 @@ exec_policy_tools = {
 	native_app_locale_path = devel_mode_locale_path,
 	native_app_ld_so_supports_rpath_prefix = conf_tools_ld_so_supports_rpath_prefix,
 	native_app_ld_so_rpath_prefix = tools,
+	native_app_ld_so_supports_nodefaultdirs = conf_tools_ld_so_supports_nodefaultdirs,
 
 	script_log_level = "debug",
 	script_log_message = "SCRIPT from tools",
@@ -73,6 +74,7 @@ exec_policy_tools_perl = {
 	native_app_locale_path = devel_mode_locale_path,
 	native_app_ld_so_supports_rpath_prefix = conf_tools_ld_so_supports_rpath_prefix,
 	native_app_ld_so_rpath_prefix = tools,
+	native_app_ld_so_supports_nodefaultdirs = conf_tools_ld_so_supports_nodefaultdirs,
 
 	script_log_level = "debug",
 	script_log_message = "SCRIPT from tools (t.p)",
@@ -88,6 +90,7 @@ exec_policy_tools_python = {
 	native_app_locale_path = devel_mode_locale_path,
 	native_app_ld_so_supports_rpath_prefix = conf_tools_ld_so_supports_rpath_prefix,
 	native_app_ld_so_rpath_prefix = tools,
+	native_app_ld_so_supports_nodefaultdirs = conf_tools_ld_so_supports_nodefaultdirs,
 
 	script_log_level = "debug",
 	script_log_message = "SCRIPT from tools (t.p)",
@@ -128,6 +131,7 @@ exec_policy_target = {
 	native_app_locale_path = conf_target_locale_path,
 	native_app_ld_so_supports_rpath_prefix = conf_target_ld_so_supports_rpath_prefix,
 	native_app_ld_so_rpath_prefix = target_root,
+	native_app_ld_so_supports_nodefaultdirs = conf_target_ld_so_supports_nodefaultdirs,
 }
 
 --

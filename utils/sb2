@@ -588,7 +588,7 @@ function check_qemu_features()
 	fi
 }
 
-# Test if the "--argv0" and/or "--rpath-prefix" flags are
+# Test if the "--argv0", "--nodefaultdirs" and "--rpath-prefix" flags are
 # supported by the ld.so
 function check_ld_so_features()
 {
@@ -597,6 +597,7 @@ function check_ld_so_features()
 
 	ld_so_argv_flag_works="false" # the default
 	ld_so_rpath_prefix_flag_works="false"
+	ld_so_nodefaultdirs_flag_works="false"
 
 	# Executing ld.so without any arguments should print 
 	# usage information to stderr:
@@ -610,6 +611,11 @@ function check_ld_so_features()
 		# description about --rpath-prefix exists!
 		ld_so_rpath_prefix_flag_works="true"
 	fi
+	test_nodefaultdirs_opt=`$ld_so_path 2>&1 | grep 'nodefaultdirs'`
+	if [ -n "$test_nodefaultdirs_opt" ]; then
+		# description about --nodefaultdirs exists!
+		ld_so_nodefaultdirs_flag_works="true"
+	fi
 }
 
 function write_libsb2_and_ld_so_state_to_exec_config()
@@ -621,6 +627,7 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 	ld_so_supports_argv0_varname=$5
 	libsb2_dir_varname=$6
 	ld_so_supports_rpath_prefix_varname=$7
+	ld_so_supports_nodefaultdirs_varname=$8
 
 	# Check if ld.so can be used from $rootdir by 
 	# checking that libsb2 has been installed to tools
@@ -727,11 +734,13 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 		echo "$ld_so_path_varname=\"$ld_so_candidate\"" >>$SBOX_SESSION_DIR/exec_config.lua
 		echo "$ld_so_supports_argv0_varname=$ld_so_argv_flag_works" >>$SBOX_SESSION_DIR/exec_config.lua
 		echo "$ld_so_supports_rpath_prefix_varname=$ld_so_rpath_prefix_flag_works" >>$SBOX_SESSION_DIR/exec_config.lua
+		echo "$ld_so_supports_nodefaultdirs_varname=$ld_so_nodefaultdirs_flag_works" >>$SBOX_SESSION_DIR/exec_config.lua
 
 	else
 		echo "$ld_so_path_varname=nil" >>$SBOX_SESSION_DIR/exec_config.lua
 		echo "$ld_so_supports_argv0_varname=false" >>$SBOX_SESSION_DIR/exec_config.lua
 		echo "$ld_so_supports_rpath_prefix_varname=false" >>$SBOX_SESSION_DIR/exec_config.lua
+		echo "$ld_so_supports_nodefaultdirs_varname=false" >>$SBOX_SESSION_DIR/exec_config.lua
 	fi
 }
 
@@ -792,7 +801,8 @@ END
 			conf_tools_sb2_installed conf_tools_sbox_dir \
 			conf_tools_ld_so conf_tools_ld_so_supports_argv0 \
 			conf_tools_libsb2_dir \
-			conf_tools_ld_so_supports_rpath_prefix
+			conf_tools_ld_so_supports_rpath_prefix \
+			conf_tools_ld_so_supports_nodefaultdirs
 
 		write_locale_paths_to_exec_config \
 			$SBOX_TOOLS_ROOT \
@@ -851,7 +861,8 @@ END
 			conf_target_sb2_installed conf_target_sbox_dir \
 			conf_target_ld_so conf_target_ld_so_supports_argv0 \
 			conf_target_libsb2_dir \
-			conf_target_ld_so_supports_rpath_prefix
+			conf_target_ld_so_supports_rpath_prefix \
+			conf_target_ld_so_supports_nodefaultdirs
 
 		write_locale_paths_to_exec_config \
 			$SBOX_TARGET_ROOT \

@@ -429,6 +429,10 @@ function sb_execve_postprocess_native_executable(rule, exec_policy,
 			table.insert(new_argv, "") -- empty "LIST" == the binary itself
 		end
 
+		if (exec_policy.native_app_ld_so_supports_nodefaultdirs) then
+			table.insert(new_argv, "--nodefaultdirs")
+		end
+
 		-- NOTE/WARNING: The default ld.so (ld-linux.so) will loose
 		-- argv[0], when the binary is executed by ld.so's
 		-- command line (which we will be doing). It will always copy 

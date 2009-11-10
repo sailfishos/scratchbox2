@@ -54,3 +54,17 @@ glibc-2.5-nscd-socket-location
 ------------------------------
 	This patch makes location of nscd's socket to be run-time
 	configurable via an environment variable.
+
+glibc-2.5-ldso-nodefaultdirs-option
+-----------------------------------
+	Adds a new option "--nodefaultdirs" to ld.so.
+
+	This option disables searching from the default directories
+	(/lib,/usr/lib) and also disables use of ld.so's search
+	cache.
+
+	This is recommended for correct operation with Scratchbox 2;
+	without this, libraries may be incorrectly loaded from the
+	host environment (such libraries that are missing from
+	the "scratchboxed" environment but are present in the host)
+

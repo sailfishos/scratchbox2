@@ -41,3 +41,12 @@ glibc-2.5-ld.so-rpath-prefix-option.patch
 	Note that this patch causes no harm in the default case, i.e.
 	when the dynamic linker is started "automatically" by the kernel.
 
+glibc-2.5-nsswitchconf-location.patch
+-------------------------------------
+	This patch makes location of the /etc/nsswitch.conf file
+	to be run-time configurable via an environment variable.
+
+	This is needed for correct operation with Scratchbox 2.
+	Without this, the sb2-virtualized environment will
+	always read /etc/nsswitch.conf from the host.
+

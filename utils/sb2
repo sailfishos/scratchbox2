@@ -372,11 +372,20 @@ function initialize_sb_logging()
 	args_param=$2
 	if [ "$SBOX_MAPPING_LOGLEVEL" != "" ]; then
 		tstamp=`SBOX_DISABLE_MAPPING=1 /bin/date +%Y%m%d-%H%M`
-		if [ ! -d $HOME/sb2_logs ]; then
-			SBOX_DISABLE_MAPPING=1 mkdir $HOME/sb2_logs 
-			echo "Created directory $HOME/sb2_logs for log files"
+
+		# put logs to ~/sb2_logs if debugging is enabled (-d or -L level),
+		# otherwise put the log to the session directory so that
+		# it will be deleted when the session is deleted.
+		if [ "$SBOX_MAPPING_DEBUG" == "1" ]; then
+			if [ ! -d $HOME/sb2_logs ]; then
+				SBOX_DISABLE_MAPPING=1 mkdir $HOME/sb2_logs 
+				echo "Created directory $HOME/sb2_logs for log files"
+			fi
+			MAPPING_LOGFILE=$HOME/sb2_logs/$cmd_param.$tstamp.$$.log
+			ln -s $MAPPING_LOGFILE $SBOX_SESSION_DIR/Log
+		else
+			MAPPING_LOGFILE=$SBOX_SESSION_DIR/Log
 		fi
-		MAPPING_LOGFILE=$HOME/sb2_logs/$cmd_param.$tstamp.$$.log
 		export SBOX_MAPPING_LOGFILE=$MAPPING_LOGFILE
 
 		if [ "$SBOX_MAPPING_DEBUG" == "1" ]; then

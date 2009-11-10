@@ -50,3 +50,7 @@ glibc-2.5-nsswitchconf-location.patch
 	Without this, the sb2-virtualized environment will
 	always read /etc/nsswitch.conf from the host.
 
+glibc-2.5-nscd-socket-location
+------------------------------
+	This patch makes location of nscd's socket to be run-time
+	configurable via an environment variable.

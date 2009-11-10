@@ -115,19 +115,29 @@ function create_reverse_rules()
 	done
 }
 
-# Determine location of the nsswitch.conf file we should use;
-# NSSWITCH_CONF_PATH environment variable is effective only if the
-# C library (glibc) has been patched (the patch is available in
-# "external_patches" subdirectory in Scratchbox 2 source tree)
+# Determine location of the nsswitch.conf file and nscd sockets that
+# we should use;
+# * NSSWITCH_CONF_PATH and NSCD_SOCKET_PATH environment variables are
+#   effective only if the C library (glibc) has been patched (the patches 
+#   are available in "external_patches" subdirectory in Scratchbox 2
+#   source tree)
 function locate_target_nsswitch_conf()
 {
 	sb2-monitor \
 		-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
 		which /etc/nsswitch.conf \
 		>$SBOX_SESSION_DIR/path_to_nsswitch.conf
+	sb2-monitor \
+		-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
+		which /var/run/nscd/socket \
+		>$SBOX_SESSION_DIR/path_to_nscd_socket.conf
 	NSSWITCH_CONF_PATH=`cat $SBOX_SESSION_DIR/path_to_nsswitch.conf`
+	NSCD_SOCKET_PATH=`cat $SBOX_SESSION_DIR/path_to_nscd_socket.conf`
 	if [ -n "NSSWITCH_CONF_PATH" ]; then
 		export NSSWITCH_CONF_PATH
+	fi
+	if [ -n "NSCD_SOCKET_PATH" ]; then
+		export NSCD_SOCKET_PATH
 	fi
 }
 

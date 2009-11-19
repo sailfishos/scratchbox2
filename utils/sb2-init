@@ -366,30 +366,34 @@ case "$ARCH" in
 
 esac
 
-if [ "$HOST_ARCH" != "$ARCH" -a -z "$SB2INIT_CPUTRANSP" ]; then
-	# Host arch. != target arch, and CPU transparency was not specified...
+if ! expr "$ARCH" : "$HOST_ARCH" > /dev/null ; then
+	# Host arch. != target arch
 
-	if [ -z "$DEFAULT_CPUTRANSP" ]; then
-		# ...and there is no default CPU transparency method.
-		# This may be an error, or may not be: If one has a 64-bit host,
-		# but develops for an 32-bit Intel target, the architecture 
-		# strings are different but Qemu is not needed.
-		echo "sb2-init: WARNING:"
-		echo "sb2-init: *******  Host architecture is different than target architecture,"
-		echo "sb2-init: *******  but CPU transparency was not set. This may not be what"
-		echo "sb2-init: *******  you want (maybe you should run sb2-init again and"
-		echo "sb2-init: *******  specify 'qemu-$ARCH' as the CPU transparency method?)"
-	else
-		# ...try to use the default CPU transparency.
-		_cputransp=$(which $DEFAULT_CPUTRANSP)
-		if [ -n "$_cputransp" -a -e "$_cputransp" ]; then
-			SB2INIT_CPUTRANSP=$_cputransp
-		else
+	if [ -z "$SB2INIT_CPUTRANSP" ]; then
+		# CPU transparency was not specified...
+
+		if [ -z "$DEFAULT_CPUTRANSP" ]; then
+			# ...and there is no default CPU transparency method.
+			# This may be an error, or may not be: If one has a 64-bit host,
+			# but develops for an 32-bit Intel target, the architecture 
+			# strings are different but Qemu is not needed.
 			echo "sb2-init: WARNING:"
-			echo "sb2-init: *******  default CPU transparency ($DEFAULT_CPUTRANSP) can not"
-			echo "sb2-init: *******  be located or executed. Maybe you should run sb2-init "
-			echo "sb2-init: *******  again and specify a working CPU transparency method"
-			echo "sb2-init: *******  with the '-c' option?"
+			echo "sb2-init: *******  Host architecture is different than target architecture,"
+			echo "sb2-init: *******  but CPU transparency was not set. This may not be what"
+			echo "sb2-init: *******  you want (maybe you should run sb2-init again and"
+			echo "sb2-init: *******  specify 'qemu-$ARCH' as the CPU transparency method?)"
+		else
+			# ...try to use the default CPU transparency.
+			_cputransp=$(which $DEFAULT_CPUTRANSP)
+			if [ -n "$_cputransp" -a -e "$_cputransp" ]; then
+				SB2INIT_CPUTRANSP=$_cputransp
+			else
+				echo "sb2-init: WARNING:"
+				echo "sb2-init: *******  default CPU transparency ($DEFAULT_CPUTRANSP) can not"
+				echo "sb2-init: *******  be located or executed. Maybe you should run sb2-init "
+				echo "sb2-init: *******  again and specify a working CPU transparency method"
+				echo "sb2-init: *******  with the '-c' option?"
+			fi
 		fi
 	fi
 fi

@@ -730,7 +730,7 @@ simple_chain = {
 
 		-- -----------------------------------------------
 		-- 85. /tmp
-		{prefix = "/tmp", map_to = session_dir},
+		{dir = "/tmp", map_to = session_dir},
 
 		-- -----------------------------------------------
 		-- 90. Top-level directories that must not be mapped:

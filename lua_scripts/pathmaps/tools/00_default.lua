@@ -68,7 +68,7 @@ mapall_chain = {
 		{prefix = "/var/run", map_to = session_dir},
 
 		--
-		{prefix = "/tmp", map_to = session_dir},
+		{dir = "/tmp", map_to = session_dir},
 
 		--
 		{prefix = "/dev", use_orig_path = true},

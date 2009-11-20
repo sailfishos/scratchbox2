@@ -1,6 +1,5 @@
-diff -ru glibc-2.5-ORIG/elf/dl-load.c glibc-2.5/elf/dl-load.c
---- glibc-2.5-ORIG/elf/dl-load.c	2007-09-25 17:20:30.000000000 +0300
-+++ glibc-2.5/elf/dl-load.c	2009-10-22 15:00:02.000000000 +0300
+--- a/elf/dl-load.c	2007-09-25 17:20:30.000000000 +0300
++++ b/elf/dl-load.c	2009-11-17 16:12:20.000000000 +0200
 @@ -388,7 +388,8 @@
  
  static struct r_search_path_elem **
@@ -11,6 +10,33 @@ diff -ru glibc-2.5-ORIG/elf/dl-load.c glibc-2.5/elf/dl-load.c
  {
    char *cp;
    size_t nelems = 0;
+@@ -445,9 +445,23 @@
+ 	}
+ 
+       /* See if this directory is already known.  */
+-      for (dirp = GL(dl_all_dirs); dirp != NULL; dirp = dirp->next)
+-	if (dirp->dirnamelen == len && memcmp (cp, dirp->dirname, len) == 0)
+-	  break;
++      if (__builtin_expect (rpath_prefix != NULL, 0))
++	{
++	  /* has rpath_prefix */
++	  size_t rpath_prefix_len = strlen (rpath_prefix);
++
++	  for (dirp = GL(dl_all_dirs); dirp != NULL; dirp = dirp->next)
++	    if (dirp->dirnamelen == (rpath_prefix_len+len) &&
++		(memcmp (cp, rpath_prefix, rpath_prefix_len) == 0) &&
++		(memcmp (cp+rpath_prefix_len, dirp->dirname, len) == 0))
++	      break;
++	}
++      else
++	{
++	  for (dirp = GL(dl_all_dirs); dirp != NULL; dirp = dirp->next)
++	    if (dirp->dirnamelen == len && memcmp (cp, dirp->dirname, len) == 0)
++	      break;
++	}
+ 
+       if (dirp != NULL)
+ 	{
 @@ -464,22 +465,43 @@
  	  size_t cnt;
  	  enum r_dir_status init_val;
@@ -88,9 +114,8 @@ diff -ru glibc-2.5-ORIG/elf/dl-load.c glibc-2.5/elf/dl-load.c
  
        if (env_path_list.dirs[0] == NULL)
  	{
-diff -ru glibc-2.5-ORIG/elf/dl-support.c glibc-2.5/elf/dl-support.c
---- glibc-2.5-ORIG/elf/dl-support.c	2007-09-25 17:20:30.000000000 +0300
-+++ glibc-2.5/elf/dl-support.c	2009-10-22 14:51:01.000000000 +0300
+--- a/elf/dl-support.c	2007-09-25 17:20:30.000000000 +0300
++++ b/elf/dl-support.c	2009-10-22 14:51:01.000000000 +0300
 @@ -56,6 +56,9 @@
     ignored.  */
  const char *_dl_inhibit_rpath;
@@ -101,9 +126,8 @@ diff -ru glibc-2.5-ORIG/elf/dl-support.c glibc-2.5/elf/dl-support.c
  /* The map for the object we will profile.  */
  struct link_map *_dl_profile_map;
  
-diff -ru glibc-2.5-ORIG/elf/rtld.c glibc-2.5/elf/rtld.c
---- glibc-2.5-ORIG/elf/rtld.c	2009-10-22 14:40:05.000000000 +0300
-+++ glibc-2.5/elf/rtld.c	2009-10-22 14:50:47.000000000 +0300
+--- a/elf/rtld.c	2009-10-22 14:40:05.000000000 +0300
++++ b/elf/rtld.c	2009-10-22 14:50:47.000000000 +0300
 @@ -951,6 +951,15 @@
  	    _dl_argc -= 2;
  	    INTUSE(_dl_argv) += 2;
@@ -128,9 +152,8 @@ diff -ru glibc-2.5-ORIG/elf/rtld.c glibc-2.5/elf/rtld.c
    --inhibit-rpath LIST  ignore RUNPATH and RPATH information in object names\n\
                          in LIST\n\
    --argv0 STRING        use STRING as argv[0]\n");
-diff -ru glibc-2.5-ORIG/sysdeps/generic/ldsodefs.h glibc-2.5/sysdeps/generic/ldsodefs.h
---- glibc-2.5-ORIG/sysdeps/generic/ldsodefs.h	2007-09-25 17:19:58.000000000 +0300
-+++ glibc-2.5/sysdeps/generic/ldsodefs.h	2009-10-22 14:50:15.000000000 +0300
+--- a/sysdeps/generic/ldsodefs.h	2007-09-25 17:19:58.000000000 +0300
++++ b/sysdeps/generic/ldsodefs.h	2009-10-22 14:50:15.000000000 +0300
 @@ -666,6 +666,12 @@
    /* List of auditing interfaces.  */
    struct audit_ifaces *_dl_audit;

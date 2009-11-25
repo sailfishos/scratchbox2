@@ -591,9 +591,18 @@ static void clean_dotdots_from_path(
 			char			*orig_path_to_parent;
 
 			clear_path_entry_list(&abs_path_to_parent);
-			duplicate_path_list_until(work->pe_prev,
-				&abs_path_to_parent,
-				abs_path);
+			if (work->pe_prev) {
+				duplicate_path_list_until(work->pe_prev,
+					&abs_path_to_parent,
+					abs_path);
+			} else {
+				/* else parent is the root directory;
+				 * abs_path_to_parent is now empty,
+				 * get flags from the parent (this 
+				 * will get the "absolute" flag, among
+				 * other things) */
+				abs_path_to_parent.pl_flags = abs_path->pl_flags;
+			}
 			orig_path_to_parent = path_list_to_string(&abs_path_to_parent);
 
 			SB_LOG(SB_LOGLEVEL_NOISE, "clean_dotdots_from_path: <3>: parent is '%s'",

@@ -590,10 +590,14 @@ static void clean_dotdots_from_path(
 			mapping_results_t	resolved_parent_location;
 			char			*orig_path_to_parent;
 
+			clear_path_entry_list(&abs_path_to_parent);
 			duplicate_path_list_until(work->pe_prev,
 				&abs_path_to_parent,
 				abs_path);
 			orig_path_to_parent = path_list_to_string(&abs_path_to_parent);
+
+			SB_LOG(SB_LOGLEVEL_NOISE, "clean_dotdots_from_path: <3>: parent is '%s'",
+				orig_path_to_parent);
 
 			/* abs_path_to_parent is clean, isn't it?
 			 * doublecheck to be sure.
@@ -623,6 +627,7 @@ static void clean_dotdots_from_path(
 				sb_path_resolution(ctx, &resolved_parent_location,
 					0, &abs_path_to_parent);
 			}
+			free_path_list(&abs_path_to_parent);
 
 			/* mres_result_buf contains an absolute path,
 			 * unless the result was longer than PATH_MAX */
@@ -982,7 +987,7 @@ static void sb_path_resolution(
 	struct path_entry *virtual_path_work_ptr;
 	int	component_index = 0;
 	int	min_path_len_to_check;
-	char	*prefix_mapping_result_host_path;
+	char	*prefix_mapping_result_host_path = NULL;
 	int	prefix_mapping_result_host_path_flags;
 	int	call_translate_for_all = 0;
 	int	abs_virtual_source_path_has_trailing_slash;
@@ -1144,6 +1149,8 @@ static void sb_path_resolution(
 				"-> '%s'",
 				prefix_mapping_result_host_path, link_dest);
 			free(prefix_mapping_result_host_path);
+			prefix_mapping_result_host_path = NULL;
+
 			sb_path_resolution_resolve_symlink(ctx,
 				virtual_path_work_ptr->pe_link_dest,
 				abs_virtual_clean_source_path_list, virtual_path_work_ptr,
@@ -1171,6 +1178,7 @@ static void sb_path_resolution(
 				ctx_copy.pmc_binary_name = "PATH_RESOLUTION/2";
 				if (prefix_mapping_result_host_path) {
 					free(prefix_mapping_result_host_path);
+					prefix_mapping_result_host_path = NULL;
 				}
 				virtual_path_prefix_to_map = path_entries_to_string_until(
 						abs_virtual_clean_source_path_list->pl_first,
@@ -1200,13 +1208,19 @@ static void sb_path_resolution(
 				}
 				if (prefix_mapping_result_host_path) {
 					free(prefix_mapping_result_host_path);
+					prefix_mapping_result_host_path = NULL;
 				}
 				prefix_mapping_result_host_path = next_dir;
 			}
 		} else {
 			free(prefix_mapping_result_host_path);
+			prefix_mapping_result_host_path = NULL;
 		}
 		component_index++;
+	}
+	if (prefix_mapping_result_host_path) {
+		free(prefix_mapping_result_host_path);
+		prefix_mapping_result_host_path = NULL;
 	}
 
 	/* All symbolic links have been resolved. */
@@ -1270,9 +1284,7 @@ static void sb_path_resolution_resolve_symlink(
 		new_abs_virtual_link_dest_path_list.pl_flags = flags;
 	} else {
 		/* A relative symlink. Somewhat complex:
-		 * "prefix_mapping_result_host_path" contains the
-		 * real location in the FS, but here we
-		 * must still build the full path from the
+		 * We must still build the full path from the
 		 * place where we pretend to be - otherwise
 		 * path mapping code would fail to find the
 		 * correct location. Hence "dirnam" is

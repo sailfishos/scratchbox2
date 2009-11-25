@@ -121,6 +121,7 @@ struct path_entry_list {
 
 #define PATH_FLAGS_ABSOLUTE	01
 #define PATH_FLAGS_HAS_TRAILING_SLASH	02
+#define PATH_FLAGS_HOST_PATH	04
 
 #define PATH_FLAGS_NOT_SYMLINK	010
 #define PATH_FLAGS_IS_SYMLINK	020
@@ -245,7 +246,7 @@ static struct path_entry *split_path_to_path_entries(
 	const char *next_slash;
 	int flags = 0;
 
-	SB_LOG(SB_LOGLEVEL_NOISE2, "going to split '%s'", cpath);
+	SB_LOG(SB_LOGLEVEL_NOISE3, "going to split '%s'", cpath);
 
 	start = cpath;
 	if (*start == '/') {
@@ -283,7 +284,7 @@ static struct path_entry *split_path_to_path_entries(
 			if(work) work->pe_next = new;
 			new->pe_next = NULL;
 			work = new;
-			SB_LOG(SB_LOGLEVEL_NOISE2,
+			SB_LOG(SB_LOGLEVEL_NOISE3,
 				"created entry 0x%X '%s'",
 				(unsigned long int)work, new->pe_path_component);
 		}
@@ -315,7 +316,7 @@ static struct path_entry *duplicate_path_entries_until(
 	struct path_entry *first = NULL;
 	struct path_entry *dest_path_ptr = NULL;
 
-	SB_LOG(SB_LOGLEVEL_NOISE2, "Duplicating path:");
+	SB_LOG(SB_LOGLEVEL_NOISE3, "Duplicating path:");
 
 	while (source_path) {
 		struct path_entry *new;
@@ -344,16 +345,15 @@ static struct path_entry *duplicate_path_entries_until(
 		source_path = source_path->pe_next;
 	}
 
-	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE2)) {
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE3)) {
 		char *tmp_path_buf = path_entries_to_string(first, 0);
 
-		SB_LOG(SB_LOGLEVEL_NOISE2, "dup->'%s'", tmp_path_buf);
+		SB_LOG(SB_LOGLEVEL_NOISE3, "dup->'%s'", tmp_path_buf);
 		free(tmp_path_buf);
 	}
 	return(first);
 }
 
-#if 0
 static void	duplicate_path_list_until(
 	const struct path_entry *duplicate_until_this_component,
 	struct path_entry_list *new_path_list,
@@ -367,7 +367,6 @@ static void	duplicate_path_list_until(
 	new_path_list->pl_first = duplicate;
 	new_path_list->pl_flags = source_path_list->pl_flags;
 }
-#endif
 
 /* remove a path_entry from list, return pointer to the next
  * path_entry after the removed one (NULL if the removed entry was last)
@@ -439,49 +438,22 @@ static void remove_dots_from_path_list(struct path_entry_list *listp)
 	}
 }
 
-static void remove_dots_and_dotdots_from_path_entries(
-	struct path_entry_list *listp)
+static struct path_entry *remove_dotdot_entry_and_prev_entry(
+	struct path_entry_list *listp,
+	struct path_entry *work)
 {
-	struct path_entry *work = listp->pl_first;
+	struct path_entry *dotdot = work;
+	struct path_entry *preventry = work->pe_prev;
 
-	
-	remove_dots_from_path_list(listp);
-
-	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE2)) {
-		char *tmp_path_buf = path_list_to_string(listp);
-
-		SB_LOG(SB_LOGLEVEL_NOISE2,
-			"remove_dotdots: Clean  ->'%s'", tmp_path_buf);
-		free(tmp_path_buf);
+	if (preventry) {
+		/* travel up, and eliminate previous name */
+		work = remove_path_entry(listp, preventry);
+		assert(work == dotdot);
+	} else {
+		/* no preventry, first component is .. */
+		assert(work == listp->pl_first);
 	}
-	while (work) {
-		SB_LOG(SB_LOGLEVEL_NOISE2,
-			"remove_dotdots: work=0x%X examine '%s'",
-			(unsigned long int)work, work?work->pe_path_component:"");
-		if (strcmp(work->pe_path_component, "..") == 0) {
-			struct path_entry *dotdot = work;
-			struct path_entry *preventry = work->pe_prev;
-
-			if (preventry) {
-				/* travel up, and eliminate previous name */
-				work = remove_path_entry(listp, preventry);
-				assert(work == dotdot);
-			} else {
-				/* no preventry, first component is .. */
-				assert(work == listp->pl_first);
-			}
-			work = remove_path_entry(listp, dotdot);
-		} else {
-			work = work->pe_next;
-		}
-	}
-	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE2)) {
-		char *tmp_path_buf = path_list_to_string(listp);
-
-		SB_LOG(SB_LOGLEVEL_NOISE2,
-			"remove_dotdots: cleaned->'%s'", tmp_path_buf);
-		free(tmp_path_buf);
-	}
+	return(remove_path_entry(listp, dotdot));
 }
 
 /* check if the path is clean:
@@ -517,6 +489,210 @@ static int is_clean_path(struct path_entry_list *listp)
 	}
 	SB_LOG(SB_LOGLEVEL_NOISE, "is_clean_path: clean");
 	return(0);
+}
+
+static void sb_path_resolution(
+	const path_mapping_context_t *ctx,
+	mapping_results_t *resolved_virtual_path_res,
+	int nest_count,
+	struct path_entry_list *abs_virtual_clean_source_path_list);
+
+/* "complex" path cleaning: cleans ".." components from the
+ * path. This may require resolving the parent entries, to
+ * be sure that symlinks in the path are not removed
+ * by accident.
+ * Can be used for both virtual paths and host paths.
+*/
+static void clean_dotdots_from_path(
+	const path_mapping_context_t *ctx,
+	struct path_entry_list *abs_path)
+{
+	struct path_entry *work;
+	int	path_has_nontrivial_dotdots = 0;
+
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE)) {
+		char *tmp_path_buf = path_list_to_string(abs_path);
+		SB_LOG(SB_LOGLEVEL_NOISE,
+			"clean_dotdots_from_path: '%s'", tmp_path_buf);
+		free(tmp_path_buf);
+	}
+	if (!(abs_path->pl_flags & PATH_FLAGS_ABSOLUTE)) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"FATAL: clean_dotdots_from_path called with relative path");
+		assert(0);
+	}
+
+	/* step 1: remove leading ".." entries, ".." in the
+	 * root directory points to itself.
+	*/
+	SB_LOG(SB_LOGLEVEL_NOISE, "clean_dotdots_from_path: <1>");
+	work = abs_path->pl_first;
+	while (work) {
+		if ((work->pe_path_component[0] == '.') &&
+		    (work->pe_path_component[1] == '.') &&
+		    (work->pe_path_component[2] == '\0')) {
+			if (!work->pe_next) {
+				/* last component */
+				abs_path->pl_flags |= PATH_FLAGS_HAS_TRAILING_SLASH;
+			}
+			/* remove this node */
+			work = remove_path_entry(abs_path, work);
+		} else {
+			/* now first component != ".." */
+			break;
+		}
+	}
+
+	if ((work == NULL) || is_clean_path(abs_path) < 2) goto done;
+
+	/* step 2: 
+	 * remove all ".." componets where the previous component
+	 * is already known to be a real directory (well, actually
+	 * known to be something else than a symlink)
+	*/
+	SB_LOG(SB_LOGLEVEL_NOISE, "clean_dotdots_from_path: <2>");
+	work = abs_path->pl_first;
+	while (work) {
+		if ((work->pe_path_component[0] == '.') &&
+		    (work->pe_path_component[1] == '.') &&
+		    (work->pe_path_component[2] == '\0')) {
+			if (work->pe_prev->pe_flags & PATH_FLAGS_NOT_SYMLINK) {
+				/* prev. is not a symlink, remove this node */
+				if (!work->pe_next) {
+					/* last component */
+					abs_path->pl_flags |= PATH_FLAGS_HAS_TRAILING_SLASH;
+				}
+				work = remove_dotdot_entry_and_prev_entry(abs_path, work);
+			} else {
+				/* keep it there, remove it later */
+				path_has_nontrivial_dotdots = 1;
+				work = work->pe_next;
+			}
+		} else {
+			work = work->pe_next;
+		}
+	}
+
+	if (path_has_nontrivial_dotdots == 0) goto done;
+
+	/* step 3: 
+	 * remove all remaining ".." componets.
+	 * the previous component might be a symlink, so
+	 * path resolution must be done.
+	*/
+	SB_LOG(SB_LOGLEVEL_NOISE, "clean_dotdots_from_path: <3>");
+	work = abs_path->pl_first;
+	while (work) {
+		if ((work->pe_path_component[0] == '.') &&
+		    (work->pe_path_component[1] == '.') &&
+		    (work->pe_path_component[2] == '\0')) {
+			struct path_entry_list	abs_path_to_parent;
+			mapping_results_t	resolved_parent_location;
+			char			*orig_path_to_parent;
+
+			duplicate_path_list_until(work->pe_prev,
+				&abs_path_to_parent,
+				abs_path);
+			orig_path_to_parent = path_list_to_string(&abs_path_to_parent);
+
+			/* abs_path_to_parent is clean, isn't it?
+			 * doublecheck to be sure.
+			*/
+			if (is_clean_path(&abs_path_to_parent) != 0) {
+				SB_LOG(SB_LOGLEVEL_ERROR,
+					"FATAL: clean_dotdots_from_path '%s' in not clean!",
+					orig_path_to_parent);
+				assert(0);
+			}
+
+			/* Now resolve the path. */
+			clear_mapping_results_struct(&resolved_parent_location);
+
+			if (abs_path->pl_flags & PATH_FLAGS_HOST_PATH) {
+				char	rp[PATH_MAX+1];
+				/* host path - enough to call realpath */
+				SB_LOG(SB_LOGLEVEL_NOISE,
+					"clean_dotdots_from_path: <3>: call realpath(%s)",
+					orig_path_to_parent);
+				realpath_nomap(orig_path_to_parent, rp);
+				resolved_parent_location.mres_result_buf =
+					resolved_parent_location.mres_result_path =
+					strdup(rp);
+			} else {
+				/* virtual path */
+				sb_path_resolution(ctx, &resolved_parent_location,
+					0, &abs_path_to_parent);
+			}
+
+			/* mres_result_buf contains an absolute path,
+			 * unless the result was longer than PATH_MAX */
+			if (strcmp(orig_path_to_parent,
+			    resolved_parent_location.mres_result_buf)) {
+				/* not same - a symlink was found & resolved */
+				struct path_entry *real_virtual_path_to_parent;
+				struct path_entry *prefix_to_be_removed;
+				struct path_entry *remaining_suffix;
+
+				SB_LOG(SB_LOGLEVEL_NOISE,
+					"clean_dotdots_from_path: <3>:orig='%s'",
+					orig_path_to_parent);
+				SB_LOG(SB_LOGLEVEL_NOISE,
+					"clean_dotdots_from_path: <3>:real='%s'",
+					resolved_parent_location.mres_result_buf);
+
+				real_virtual_path_to_parent = split_path_to_path_entries(
+					resolved_parent_location.mres_result_buf, NULL);
+
+				/* resolved_parent_location does not contain symlinks: */
+				set_flags_in_path_entries(real_virtual_path_to_parent,
+					PATH_FLAGS_NOT_SYMLINK);
+
+				/* work points to ".." inside abs_path;
+				 * cut abs_path to two:
+				*/
+				prefix_to_be_removed = abs_path->pl_first;
+				work->pe_prev->pe_next = NULL;
+
+				remaining_suffix = work;
+				remaining_suffix->pe_prev = NULL;
+
+				abs_path->pl_first = append_path_entries(
+					real_virtual_path_to_parent, remaining_suffix);
+
+				free_path_entries(prefix_to_be_removed);
+				free(orig_path_to_parent);
+				free_mapping_results(&resolved_parent_location);
+
+				/* restart from the beginning of the new path: */
+				clean_dotdots_from_path(ctx, abs_path);
+				return;
+			} 
+
+			SB_LOG(SB_LOGLEVEL_NOISE,
+				"clean_dotdots_from_path: <3>:same='%s'",
+				orig_path_to_parent);
+
+			free(orig_path_to_parent);
+			free_mapping_results(&resolved_parent_location);
+
+			if (!work->pe_next) {
+				/* last component */
+				abs_path->pl_flags |= PATH_FLAGS_HAS_TRAILING_SLASH;
+			}
+			work = remove_dotdot_entry_and_prev_entry(abs_path, work);
+		} else {
+			work = work->pe_next;
+		}
+	}
+
+    done:
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE)) {
+		char *tmp_path_buf = path_list_to_string(abs_path);
+
+		SB_LOG(SB_LOGLEVEL_NOISE,
+			"clean_dotdots_from_path: result->'%s'", tmp_path_buf);
+		free(tmp_path_buf);
+	}
 }
 
 /* ========== Other helper functions: ========== */
@@ -599,6 +775,8 @@ static char *call_lua_function_sbox_translate_path(
 		struct path_entry_list list;
 
 		split_path_to_path_list(host_path, &list);
+		list.pl_flags|= PATH_FLAGS_HOST_PATH;
+
 		switch (is_clean_path(&list)) {
 		case 0: /* clean */
 			break;
@@ -606,10 +784,15 @@ static char *call_lua_function_sbox_translate_path(
 			remove_dots_from_path_list(&list);
 			break;
 		case 2: /* .. */
-			/* FIXME. the rule inserted ".." to the path?
+			/* The rule inserted ".." to the path?
 			 * not very wise move, maybe we should even log
-			 * warning about this? */
-			remove_dots_and_dotdots_from_path_entries(&list);
+			 * warning about this? However, cleaning is
+			 * easy in this case; the result is a host
+			 * path => cleanup doesn't need to make
+			 * recursive calls to sb_path_resolution.
+			*/
+			remove_dots_from_path_list(&list);
+			clean_dotdots_from_path(ctx, &list);
 			break;
 		}
 		cleaned_host_path = path_list_to_string(&list);
@@ -824,14 +1007,18 @@ static void sb_path_resolution(
 	}
 
 	if (!(abs_virtual_clean_source_path_list->pl_flags & PATH_FLAGS_ABSOLUTE)) {
+		char *tmp_path_buf = path_list_to_string(abs_virtual_clean_source_path_list);
 		SB_LOG(SB_LOGLEVEL_ERROR,
-			"FATAL: sb_path_resolution called with relative path");
+			"FATAL: sb_path_resolution called with relative path (%s)",
+			tmp_path_buf);
 		assert(0);
 	}
 
 	if (is_clean_path(abs_virtual_clean_source_path_list) != 0) {
+		char *tmp_path_buf = path_list_to_string(abs_virtual_clean_source_path_list);
 		SB_LOG(SB_LOGLEVEL_ERROR,
-			"FATAL: sb_path_resolution must be called with a clean path");
+			"FATAL: sb_path_resolution must be called with a clean path (%s)",
+			tmp_path_buf);
 		assert(0);
 	}
 
@@ -952,12 +1139,11 @@ static void sb_path_resolution(
 		if (virtual_path_work_ptr->pe_flags & PATH_FLAGS_IS_SYMLINK) {
 			/* symlink */
 
-			free(prefix_mapping_result_host_path);
-
 			SB_LOG(SB_LOGLEVEL_NOISE,
 				"Path resolution found symlink '%s' "
 				"-> '%s'",
 				prefix_mapping_result_host_path, link_dest);
+			free(prefix_mapping_result_host_path);
 			sb_path_resolution_resolve_symlink(ctx,
 				virtual_path_work_ptr->pe_link_dest,
 				abs_virtual_clean_source_path_list, virtual_path_work_ptr,
@@ -1158,7 +1344,8 @@ static void sb_path_resolution_resolve_symlink(
 		remove_dots_from_path_list(&new_abs_virtual_link_dest_path_list);
 		break;
 	case 2: /* .. */
-		remove_dots_and_dotdots_from_path_entries(&new_abs_virtual_link_dest_path_list);
+		remove_dots_from_path_list(&new_abs_virtual_link_dest_path_list);
+		clean_dotdots_from_path(ctx, &new_abs_virtual_link_dest_path_list);
 		break;
 	}
 
@@ -1351,7 +1538,8 @@ static void sbox_map_path_internal(
 		remove_dots_from_path_list(&abs_virtual_path_for_rule_selection_list);
 		break;
 	case 2: /* .. */
-		remove_dots_and_dotdots_from_path_entries(&abs_virtual_path_for_rule_selection_list);
+		remove_dots_from_path_list(&abs_virtual_path_for_rule_selection_list);
+		clean_dotdots_from_path(&ctx, &abs_virtual_path_for_rule_selection_list);
 		break;
 	}
 

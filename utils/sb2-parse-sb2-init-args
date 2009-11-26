@@ -50,7 +50,7 @@ SB2INIT_COMPILERS=$*
 
 if [ -z "$SB2INIT_TARGET_ROOT" ]; then
 	# use current directory as the target root
-	SB2INIT_TARGET_ROOT=`pwd`
+	SB2INIT_TARGET_ROOT=$(readlink -f $PWD)
 fi
 
 # SB2INIT_INIT_* variables are used to record who initialized, and when and

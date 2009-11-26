@@ -186,8 +186,20 @@ local dpkg_chain = {
 	},
 }
 
+-- Special case for /bin/pwd: Some versions don't use getcwd(),
+-- but instead the use open() + fstat() + fchdir() + getdents()
+-- in a loop, and that fails if "/" is mapped to target_root.
+local pwd_chain = {
+	next_chain = mapall_chain,
+	binary = "pwd",
+	rules = {
+		{path = "/", use_orig_path = true},
+	},
+}
+
 export_chains = {
 	dpkg_chain,
+	pwd_chain,
 	mapall_chain
 }
 

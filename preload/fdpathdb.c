@@ -97,20 +97,14 @@ static void fdpathdb_register_mapped_path(
 
 	if (fd < 0) return;
 
-	/* FIXME: This should always record orig.(unmapped) paths,
-	 * but that is a bit complex currently because the CDW
-	 * is not available here if the orig path is relative.
-	 * Some restructuring must be done to fix this.
-	 * (of course, alternatively getcwd() + path reversing
-	 * could be called from here, but that is not the cheapest
-	 * possible operation.. To Be Fixed.)
-	*/
 	if (orig_path && mapped_path) {
 		if (*orig_path == '/') {
 			/* orig.path is an absolute path, use that directly */
 			path = orig_path;
 		} else {
-			/* mapped_path should be always absolute */
+			/* Oops. Should not come here; "orig_path"
+			 * should be absolute. But if it isn't, 
+			 * try to use mapped_path. */
 			if (*mapped_path == '/') {
 				path = mapped_path;
 			} else {
@@ -175,8 +169,38 @@ static void fdpathdb_register_mapping_result(const char *realfnname,
 	 * while "mres_result_path" may be relative or absolute.
 	 * (the path DB can not use relative paths)
 	*/
-	fdpathdb_register_mapped_path(realfnname, ret_fd,
-		res->mres_result_buf, pathname);
+	if (*pathname == '/') {
+		/* also the original virtual path is absolute */
+		fdpathdb_register_mapped_path(realfnname, ret_fd,
+			res->mres_result_buf, pathname);
+	} else {
+		/* orig. path is relative. */
+		char	*abs_virtual_path = NULL;
+
+		if (res->mres_virtual_cwd) {
+			/* good, virtual CWD is available */
+			if(asprintf(&abs_virtual_path, "%s/%s",
+			    res->mres_virtual_cwd, pathname) < 0) {
+				/* asprintf failed */
+				abort();
+			}
+			SB_LOG(SB_LOGLEVEL_NOISE,
+				"fdpathdb_register_mapping_result:"
+				" built abs.path '%s'",
+				abs_virtual_path);
+			fdpathdb_register_mapped_path(realfnname, ret_fd,
+				res->mres_result_buf, abs_virtual_path);
+			free(abs_virtual_path);
+		} else {
+			/* virtual path is relative, and it can't
+			 * be converted to absolute. 
+			 * fdpathdb_register_mapped_path() will try to
+			 * use the mapped path instead.
+			*/
+			fdpathdb_register_mapped_path(realfnname, ret_fd,
+				res->mres_result_buf, pathname);
+		}
+	}
 }
 
 /* Wrappers' postprocessors: these register paths to this DB */

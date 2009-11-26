@@ -1550,6 +1550,11 @@ static void sbox_map_path_internal(
 			&ctx, host_cwd, sizeof(host_cwd),
 			&abs_virtual_path_for_rule_selection_list) < 0)
 			goto use_orig_path_as_result_and_exit;
+
+		/* return the virtual cwd to the caller. It is needed
+		 * at least if the mapped path must be registered to
+		 * the fdpathdb. */
+		res->mres_virtual_cwd = strdup(ctx.pmc_luaif->virtual_reversed_cwd);
 	}
 
 	switch (is_clean_path(&abs_virtual_path_for_rule_selection_list)) {
@@ -1830,6 +1835,7 @@ void	clear_mapping_results_struct(mapping_results_t *res)
 	res->mres_readonly = 0;
 	res->mres_result_path_was_allocated = 0;
 	res->mres_errno = 0;
+	res->mres_virtual_cwd = NULL;
 }
 
 void	free_mapping_results(mapping_results_t *res)
@@ -1837,6 +1843,7 @@ void	free_mapping_results(mapping_results_t *res)
 	if (res->mres_result_buf) free(res->mres_result_buf);
 	if (res->mres_result_path_was_allocated && res->mres_result_path)
 		free(res->mres_result_path);
+	if (res->mres_virtual_cwd) free(res->mres_virtual_cwd);
 	clear_mapping_results_struct(res);
 }
 

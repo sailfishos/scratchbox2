@@ -45,6 +45,9 @@ typedef struct mapping_results_s {
 	 * errno variable) without calling the real function.
 	*/
 	int	mres_errno;
+
+	/* filled if orig.virtual path was relative: */
+	char	*mres_virtual_cwd;
 } mapping_results_t;
 
 extern void clear_mapping_results_struct(mapping_results_t *res);

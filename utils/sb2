@@ -112,6 +112,9 @@ function create_reverse_rules()
 			execluafile \
 			$SBOX_SESSION_DIR/lua_scripts/create_reverse_rules.lua \
 			>$SBOX_SESSION_DIR/rev_rules/$amm_base.lua
+		if [ $? != 0 ]; then
+			exit_error "Failed to create reverse rules ($amm_base)"
+		fi
 	done
 }
 
@@ -153,11 +156,17 @@ function create_argvmods_rules()
 	    execluafile \
 	    $SBOX_SESSION_DIR/lua_scripts/create_argvmods_rules.lua \
 	    >$SBOX_SESSION_DIR/argvmods/argvmods_misc.lua
+	if [ $? != 0 ]; then
+		exit_error "Failed to create 'argvmods_misc' rules"
+	fi
 	SBOX_ARGVMODS_SOURCE_FILE="argvenvp_gcc.lua" sb2-monitor \
 	    -L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
 	    execluafile \
 	    $SBOX_SESSION_DIR/lua_scripts/create_argvmods_rules.lua \
 	    >$SBOX_SESSION_DIR/argvmods/argvmods_gcc.lua
+	if [ $? != 0 ]; then
+		exit_error "Failed to create 'argvmods_gcc' rules"
+	fi
 }
 
 # Create some additional rules for the default mapping mode:
@@ -175,6 +184,9 @@ function create_argvmods_usr_bin_rules()
 			execluafile \
 			$SBOX_SESSION_DIR/lua_scripts/create_argvmods_usr_bin_rules.lua \
 			>$SBOX_SESSION_DIR/rules/$amm_base.ARGVMODS
+		if [ $? != 0 ]; then
+			exit_error "Failed to create 'argvmods' for /usr/bin ($amm_base)"
+		fi
 		# add the generated rules to the beginning of the rule file
 		cat $SBOX_SESSION_DIR/rules/$amm_base.ARGVMODS $ammf \
 		    >$SBOX_SESSION_DIR/rules/$amm_base.NEW
@@ -267,11 +279,17 @@ function clone_target_root_dir_from()
 	# cp -Rp does not preserve hard links, but cpio does
 	(cd $source_directory; find . -depth -print |
 		cpio -pamd $SBOX_SESSION_DIR/target_root)
+	if [ $? != 0 ]; then
+		exit_error "Failed to clone target_root"
+	fi
 	# There is a bug in gnu cpio: timestamps of directories
 	# will not be set correctly on the first run,
 	# but they will be corrected by another round:
 	(cd $source_directory; find . -depth -type d -print |
 		cpio -pamd $SBOX_SESSION_DIR/target_root)
+	if [ $? != 0 ]; then
+		exit_error "Failed to fix directory permissions in target_root clone"
+	fi
 	#
 	# We store path of the original target root here.  It
 	# is used later on when libsb2 search path is being formed.
@@ -1362,6 +1380,12 @@ if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 	else
 		echo "-- Reverse rules disabled by command line option -r" \
 			>$SBOX_SESSION_DIR/rev_rules.note
+	fi
+	# session setup ok, stamp it.
+	touch $SBOX_SESSION_DIR/.session_stamp
+else
+	if [ ! -f $SBOX_SESSION_DIR/.session_stamp ]; then
+		exit_error "Invalid session"
 	fi
 fi
 

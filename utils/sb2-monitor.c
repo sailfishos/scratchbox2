@@ -237,6 +237,7 @@ int main(int argc, char *argv[])
 	char	exit_status[100];
 	int	new_stdin;
 	char	*sbox_libsb2 = NULL;
+	int	resultcode;
 
 	progname = argv[0];
 	
@@ -413,10 +414,12 @@ int main(int argc, char *argv[])
 	*/
 	if (WIFEXITED(status)) {
 		exit_reason = "exit";
+		resultcode = WEXITSTATUS(status);
 		snprintf(exit_status, sizeof(exit_status), "%d",
-			WEXITSTATUS(status));
+			resultcode);
 	} else if (WIFSIGNALED(status)) {
 		exit_reason = "signal";
+		resultcode = 1;
 		snprintf(exit_status, sizeof(exit_status), "%d%s",
 			WTERMSIG(status),
 			(WCOREDUMP(status) ? " (core dumped)" : ""));
@@ -424,6 +427,7 @@ int main(int argc, char *argv[])
 		/* this should not be possible */
 		exit_reason = "UNKNOWN";
 		*exit_status = '\0';
+		resultcode = 1;
 	}
 	DEBUG_MSG("%s %s\n", exit_reason, exit_status);
 
@@ -436,6 +440,6 @@ int main(int argc, char *argv[])
 		DEBUG_MSG("Failed to execute %s\n", command_to_exec_at_end);
 		return(1);
 	}
-	return(0);
+	return(resultcode);
 }
 

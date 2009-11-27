@@ -88,7 +88,8 @@ case "$sb2rc_mode" in
 			/usr/share/zoneinfo/localtime \
 			/usr/share/aclocal/glib-2.0.m4 \
 			/usr/share/aclocal/glib-gettext.m4 \
-			/usr/lib/dpkg "
+			/usr/lib/dpkg \
+			/bin/ps"
 		;;
 
 	dpkg)

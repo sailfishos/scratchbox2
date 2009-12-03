@@ -79,19 +79,23 @@
 # from the scratchbox preload library. This does not create any wrapper
 # functions, but still puts the prototype to the include file and name of
 # the function to the export list.
+#
+# Command "EXPORT_SYMBOL" can be used to export other symbols than functions
+# (e.g. variables)
 
 use strict;
 
-our($opt_d, $opt_W, $opt_E, $opt_L);
+our($opt_d, $opt_W, $opt_E, $opt_L, $opt_M);
 use Getopt::Std;
 use File::Basename;
 
 # Process options:
-getopts("dW:E:L:");
+getopts("dW:E:L:M:");
 my $debug = $opt_d;
 my $wrappers_c_output_file = $opt_W;		# -W generated_c_filename
 my $export_h_output_file = $opt_E;		# -E generated_h_filename
 my $export_list_for_ld_output_file = $opt_L;	# -L generated_list_for_ld
+my $export_map_for_ld_output_file = $opt_M;	# -M generated_export_map_for_ld
 
 
 my $num_errors = 0;
@@ -1165,6 +1169,23 @@ sub command_export {
 	}
 }
 
+# Handle the "EXPORT_SYMBOL" command.
+sub command_export_symbol {
+	my @field = @_;
+
+	my $sym;
+	foreach $sym (@field) {
+		# Put the symbol to the symbol table.
+		# Main program will create the symbol list for ld, once everything
+		# else has been done => we don't need to do anything else here.
+		$all_function_names{$sym} = 1;
+
+		if($debug) {
+			print "Exports symbol: $sym\n";
+		}
+	}
+}
+
 
 #============================================
 # Main loop.
@@ -1223,6 +1244,10 @@ while ($line = <STDIN>) {
 	} elsif($field[0] eq 'EXPORT') {
 		# don't generate anything, but tell ld to export a function
 		command_export(@field);
+	} elsif($field[0] eq 'EXPORT_SYMBOL') {
+		# don't generate anything, but tell ld to export a symbol
+		# (e.g. used for variables)
+		command_export_symbol(@field);
 	} elsif($field[0] eq 'LOGLEVEL') {
 		if(!($field[1] =~ m/^SB_LOGLEVEL_/)) {
 			printf "ERROR: LOGLEVEL is not SB_LOGLEVEL_*\n";
@@ -1265,6 +1290,19 @@ if(defined $export_list_for_ld_output_file) {
 
 	write_output_file($export_list_for_ld_output_file,
 		$export_list_for_ld);
+}
+if(defined $export_map_for_ld_output_file) {
+	my $export_map = "{\n\tglobal: ";
+
+	my $sym;
+	foreach $sym (sort(keys(%all_function_names))) {
+		$export_map .= "$sym; ";
+	}
+	$export_map .= "\n\tlocal: *;\n";
+	$export_map .= "};\n";
+
+	write_output_file($export_map_for_ld_output_file,
+		$export_map);
 }
 
 exit(0);

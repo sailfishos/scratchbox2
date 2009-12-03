@@ -11,7 +11,7 @@ OS := $(shell uname -s)
 
 ifeq ($(OS),Linux)
 LIBSB2_LDFLAGS = -Wl,-soname=$(LIBSB2_SONAME) \
-		-Wl,--retain-symbols-file=preload/ldexportlist
+		-Wl,--version-script=preload/export.map
 
 SHLIBEXT = so
 else

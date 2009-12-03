@@ -3,7 +3,7 @@ objs := wrappers.o libsb2.o sb_exec.o sb_l10n.o glob.o glob64.o \
 
 ifeq ($(shell uname -s),Linux)
 LIBSB2_LDFLAGS = -Wl,-soname=$(LIBSB2_SONAME) \
-		-Wl,--retain-symbols-file=preload/ldexportlist
+		-Wl,--version-script=preload/export.map
 
 # DO NOT add any libraries that depend on libpthread to
 # LIBSB2_LIBS or LIBS!! see the comments in luaif.c.
@@ -33,7 +33,7 @@ $(D)/wrappers.c: preload/interface.master preload/gen-interface.pl
 	$(Q)$(SRCDIR)/preload/gen-interface.pl \
 		-W preload/wrappers.c \
 		-E preload/exported.h \
-		-L preload/ldexportlist \
+		-M preload/export.map \
 		<$(SRCDIR)/preload/interface.master
 
 generated := preload/wrappers.c preload/exported.h preload/ldexportlist

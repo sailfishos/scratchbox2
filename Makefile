@@ -100,6 +100,10 @@ do-all: $(targets)
 		echo $(PACKAGE_VERSION) > .version; \
 	fi)
 
+include/scratchbox2_version.h: .version
+	echo "/* Automatically generated file. Do not edit. */" >include/scratchbox2_version.h
+	echo '#define SCRATCHBOX2_VERSION "'`cat .version`'"' >>include/scratchbox2_version.h
+
 regular: .configure .version
 	@$(MAKE) -f $(SRCDIR)/Makefile --include-dir=$(SRCDIR) SRCDIR=$(SRCDIR) do-all
 

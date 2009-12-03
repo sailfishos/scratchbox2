@@ -19,6 +19,8 @@ lua_sources_expanded = $(foreach v,$(lua_sources),$(LUASRC)/$(v))
 
 lua_objs := $(lua_sources_expanded:.c=.o)
 
+luaif/sb_log.o: include/scratchbox2_version.h
+
 luaif/liblua.a: $(lua_objs)
 luaif/liblua.a: override CFLAGS := -O2 -g -fPIC -Wall -W $(CFLAGS)
 luaif/liblua.a: override LDFLAGS := $(LDFLAGS)

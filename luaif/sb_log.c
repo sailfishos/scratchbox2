@@ -48,6 +48,7 @@
 #include <config.h>
 
 #include "exported.h"
+#include "scratchbox2_version.h"
 
 /* ===================== Internal state variables =====================
  *
@@ -183,7 +184,9 @@ void sblog_init(void)
 		}
 
 		/* initialized, write a mark to logfile. */
-		SB_LOG(SB_LOGLEVEL_INFO, "---------- Starting ----------");
+		SB_LOG(SB_LOGLEVEL_INFO,
+			 "---------- Starting (" SCRATCHBOX2_VERSION ")"
+			" [" __DATE__ " " __TIME__ "] ----------");
 	}
 }
 

@@ -188,6 +188,19 @@ static void load_and_execute_lua_file(struct lua_instance *luaif, const char *fi
 	lua_call(luaif->lua, 0, 0);
 }
 
+/* Lua calls this at panic: */
+static int sb2_lua_panic(lua_State *l)
+{
+	fprintf(stderr,
+		"Scratchbox2: Lua interpreter PANIC: unprotected error in call to Lua API (%s)\n",
+		lua_tostring(l, -1));
+	sblog_init(); /* make sure the logger has been initialized */
+	SB_LOG(SB_LOGLEVEL_ERROR,
+		"Lua interpreter PANIC: unprotected error in call to Lua API (%s)\n",
+		lua_tostring(l, -1));
+	return 0;
+}
+
 static struct lua_instance *alloc_lua(void)
 {
 	struct lua_instance *tmp;
@@ -238,6 +251,7 @@ static struct lua_instance *alloc_lua(void)
 	SB_LOG(SB_LOGLEVEL_INFO, "Loading '%s'", main_lua_script);
 
 	tmp->lua = luaL_newstate();
+	lua_atpanic(tmp->lua, sb2_lua_panic);
 
 	disable_mapping(tmp);
 	luaL_openlibs(tmp->lua);

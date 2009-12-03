@@ -68,6 +68,9 @@
 #   - "return(expr)" can be used to alter the return value.
 #   - "create_nomap_nolog_version" creates a direct interface function to the
 #     next function (for internal use inside the preload library)
+#   - "no_libsb2_init_check" disables the call to sb2_initialize_global_variables()
+#   - "log_params(sb_log_params)" calls SB_LOG(sb_log_params); this can be
+#     used to log parameters of the call.
 # For "GATE" only:
 #   - "pass_va_list" is used for generic varargs processing: It passes a
 #     "va_list" to the gate function.
@@ -81,6 +84,7 @@ use strict;
 
 our($opt_d, $opt_W, $opt_E, $opt_L);
 use Getopt::Std;
+use File::Basename;
 
 # Process options:
 getopts("dW:E:L:");
@@ -97,12 +101,13 @@ my $num_errors = 0;
 my $generated_code_loglevel = "LOGLEVEL_statement_missing_from_interface_master";
 
 #============================================
-# This will be added to all generated interface functions:
-# (global variables need to be initialized by a function call
+# This will be added to all generated interface functions (unless
+# modifier 'no_libsb2_init_check' is present):
+# global variables need to be initialized by a function call
 # because the library constructor function seems to be unreliable:
 # it may not be the first executed function in a multithreaded
-# environment!)
-my $common_initcode_for_all_functions =
+# environment!
+my $libsb2_initialized_check_for_all_functions =
 	"\tif (!sb2_global_vars_initialized__)\n".
 	"\t\tsb2_initialize_global_variables();\n";
 
@@ -479,6 +484,8 @@ sub process_wrap_or_gate_modifiers {
 		'make_nomap_function' => 0,		# flag
 		'make_nomap_nolog_function' => 0,	# flag
 		'returns_string' => 0,			# flag
+		'check_libsb2_has_been_initialized' => 1, # flag
+		'log_params' => undef,
 
 		# name of the function pointer variable
 		'real_fn_pointer_name' => "${fn_name}_next__",
@@ -658,6 +665,10 @@ sub process_wrap_or_gate_modifiers {
 			$varargs_handled = 1;
 		} elsif($modifiers[$i] eq 'returns_string') {
 			$mods->{'returns_string'} = 1;
+		} elsif($modifiers[$i] =~ m/^log_params\((.*)\)$/) {
+			$mods->{'log_params'} = $1;
+		} elsif($modifiers[$i] eq 'no_libsb2_init_check') {
+			$mods->{'check_libsb2_has_been_initialized'} = 0;
 		} else {
 			printf "ERROR: unsupported modifier '%s'\n",
 				$modifiers[$i];
@@ -839,9 +850,11 @@ sub create_call_to_gate_fn {
 my $wrappers_c_buffer = "";	# buffers contents of the generated ".c" file
 
 # buffers contents of the generated ".h" file
+my $h_file_include_check_macroname = uc($export_h_output_file)."__";
+$h_file_include_check_macroname =~ s/\W/_/g;
 my $export_h_buffer =
-"#ifndef __EXPORT_H
-#define __EXPORT_H
+"#ifndef $h_file_include_check_macroname
+#define $h_file_include_check_macroname
 
 #include <sys/utsname.h>
 #include <sys/types.h>
@@ -917,7 +930,7 @@ sub command_wrap_or_gate {
 	my $fn_pointer_c_code .=
 		"static $fn_return_type ".
 		"(*$real_fn_pointer_name)(".
-		$fn->{'fn_parameter_list'}.");\n\n";
+		$fn->{'fn_parameter_list'}.") = NULL;\n\n";
 
 	# begin the function with the original name:
 	my $wrapper_fn_c_code .=
@@ -955,9 +968,15 @@ sub command_wrap_or_gate {
 	$nomap_fn_c_code .=	"\tint saved_errno = errno;\n";
 
 	# variables have been introduced, add the code:
-	$wrapper_fn_c_code .=		$common_initcode_for_all_functions;
-	$nomap_fn_c_code .=		$common_initcode_for_all_functions;
-	$nomap_nolog_fn_c_code .=	$common_initcode_for_all_functions;
+	if($mods->{'check_libsb2_has_been_initialized'} != 0) {
+		$wrapper_fn_c_code .=		$libsb2_initialized_check_for_all_functions;
+		$nomap_fn_c_code .=		$libsb2_initialized_check_for_all_functions;
+		$nomap_nolog_fn_c_code .=	$libsb2_initialized_check_for_all_functions;
+	}
+	if(defined $mods->{'log_params'}) {
+		$wrapper_fn_c_code .=		"\tSB_LOG(".$mods->{'log_params'}.");\n";
+		$nomap_fn_c_code .=		"\tSB_LOG(".$mods->{'log_params'}.");\n";
+	}
 
 	$wrapper_fn_c_code .=		$mods->{'path_mapping_code'}.
 					$mods->{'path_ro_check_code'};
@@ -1225,10 +1244,16 @@ if($num_errors) {
 my $file_header_comment = "/* Automatically generated file. Do not edit. */\n";
 
 if(defined $wrappers_c_output_file) {
+	my $include_h_file = "";
+	
+	if(defined $export_h_output_file) {
+		my $bn = basename($export_h_output_file);
+		$include_h_file = '#include "'.$bn.'"'."\n";
+	}
 	write_output_file($wrappers_c_output_file,
 		$file_header_comment.
 		'#include "libsb2.h"'."\n".
-		'#include "exported.h"'."\n".
+		$include_h_file.
 		$wrappers_c_buffer);
 }
 if(defined $export_h_output_file) {

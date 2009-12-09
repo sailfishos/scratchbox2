@@ -176,6 +176,7 @@ function check_host_pkg()
 	return 1
 }
 
+# This is now used only in "OLD_CHK" mode
 function check_gcc_dependency()
 {
 	required_gcc=$1
@@ -190,6 +191,12 @@ function check_gcc_dependency()
 			verbose_message "$prefix""SB2 provides gcc"
 			return 0
 		fi
+		if [ "$required_gcc" = "g++" ]
+		then
+			# requires G++, but does not depend on g++ version
+			verbose_message "$prefix""SB2 provides g++"
+			return 0
+		fi
 		#
 		# Find out if gcc version is suitable, try all configured
 		# toolchains
@@ -198,13 +205,14 @@ function check_gcc_dependency()
 		do
 			if [ -f $gcc_conf_file ]; then
 				. $gcc_conf_file
-				short_vrs="gcc-$SBOX_CROSS_GCC_SHORTVERSION"
-				full_vrs="gcc-$SBOX_CROSS_GCC_VERSION"
-				if [ "$required_gcc" = "$short_vrs" -o \
-				     "$required_gcc" = "$full_vrs" ]; then
+				short_vrs="g??-$SBOX_CROSS_GCC_SHORTVERSION"
+				full_vrs="g??-$SBOX_CROSS_GCC_VERSION"
+				case "$required_gcc" in
+				$short_vrs|$full_vrs)
 					verbose_message "$prefix""SB2 provides $required_gcc"
 					return 0
-				fi
+					;;
+				esac
 			fi
 		done
 	fi # else a cross-compiler is not available, gcc comes from tools
@@ -213,6 +221,7 @@ function check_gcc_dependency()
 	return 1
 }
 
+# This is now used only in "OLD_CHK" mode
 function check_sb2_builddeps()
 {
 	orig_missing="$1"
@@ -221,11 +230,12 @@ function check_sb2_builddeps()
 	new_missing=""
 	ret=0
 
-	# Currently, SB2 can fulfill "gcc" and "gcc-<version>"
+	# Currently, SB2 can fulfill "gcc", "gcc-<version>",
+	# "g++", "g++-<version>"
 	for m in $orig_missing
 	do
 		case $m in
-		gcc*)	check_gcc_dependency "$m" "$prefix"
+		gcc*|g++*)	check_gcc_dependency "$m" "$prefix"
 			if [ $? != 0 ]; then
 				# gcc check failed
 				new_missing="$new_missing $m"
@@ -412,7 +422,8 @@ function compare_target_and_host_results_with_new_tool()
 
 	verbose_message "SB2 Combining results from target and tools..."
 
-	$sbox_dir/share/scratchbox2/lib/sb2-cmp-checkbuilddeps-output.pl \
+	SBOX_TARGET=$sbox_target \
+		$sbox_dir/share/scratchbox2/lib/sb2-cmp-checkbuilddeps-output.pl \
 		"$t_missing" "$h_missing" "$both_required" "$host_accepted" "$host_ignored"
 	result2=$?
 	return $result2
@@ -483,9 +494,6 @@ function old_deps_checker()
 
 function new_deps_checker()
 {
-	check_sb2_builddeps "$missing_deps" ""
-	# $missing_deps has been updated
-
 	check_host_builddeps_by_real_tool
 	# $tools_missing_deps now contains a list of missing
 	# packages, liste by the real dpkg-checkbuilddeps

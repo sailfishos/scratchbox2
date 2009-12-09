@@ -25,7 +25,14 @@ my $both_required=$ARGV[2];
 my $accepted_from_tools=$ARGV[3];
 my $ignored_from_tools=$ARGV[4];
 
+my $scratchbox2_dir = $ENV{'HOME'}."/.scratchbox2";
+
 my $verbose_messages_env_var=$ENV{'SBOX_CHECKBUILDDEPS_VERBOSE'};
+my $sbox_target=$ENV{'SBOX_TARGET'};
+if (! defined $sbox_target) {
+	die "SBOX_TARGET not set"; 
+}
+
 my $verbose_messages = 0;
 if (defined $verbose_messages_env_var && $verbose_messages_env_var ne '') {
 	$verbose_messages = 1;
@@ -53,6 +60,134 @@ if ($debug) {
 	print "T: $target_missing_deps\n";
 	print "H: $host_missing_deps\n";
 	print "B: $both_required\n";
+}
+
+sub check_debian_vrs_req {
+	my $requirement = shift;
+	my $tool_version = shift;
+
+	if ($debug) {
+		print "check_debian_vrs_req: $requirement, $tool_version\n";
+	}
+	if ($requirement =~ m/\((\S+)\s*(\S+)\)/) {
+		my $condition = $1;
+		my $vrs = $2;
+
+		if ($debug) {
+			print "check_debian_vrs_req: test $condition, $vrs\n";
+		}
+		
+		if ($condition eq "=") {
+			return 1 if ($tool_version eq $vrs);
+			return 0;
+		}
+		# FIXME: Rest of the compares use alphanumeric cmps,
+		# which do not always produce correct results here.
+		if ($condition eq ">=") {
+			return 1 if ($tool_version ge $vrs);
+			return 0;
+		}
+		if ($condition eq ">>") {
+			return 1 if ($tool_version gt $vrs);
+			return 0;
+		}
+		if ($condition eq "<<") {
+			return 1 if ($tool_version lt $vrs);
+			return 0;
+		}
+		if ($condition eq "<=") {
+			return 1 if ($tool_version le $vrs);
+			return 0;
+		}
+	}
+	return 0;
+}
+
+sub check_gcc_dependency {
+	my $required_gcc = shift;
+	my $r_missing = shift;
+
+	my $version_req = $r_missing->{'version'};
+
+	if (defined($version_req) && ($version_req ne "")) {
+		if ($debug) {
+			print "$required_gcc vers must be $version_req\n";
+		}
+	}
+
+	if (-f "$scratchbox2_dir/$sbox_target/sb2.config.d/gcc.config.sh") {
+                # a cross compiler has been configured
+                if ((("$required_gcc" eq "gcc") || ("$required_gcc" eq "gcc")) &&
+		    (!defined($version_req))) {
+                        # requires gcc or g++, but does not depend on version
+			if ($debug) {
+				print "Requires $required_gcc, no version requirement,".
+					"SB2 has it => OK\n";
+			}
+                        return 1;
+                }
+                #
+                # Find out if gcc version is suitable, try all configured
+                # toolchains
+		my $gcc_conf_file;
+                foreach $gcc_conf_file (<$scratchbox2_dir/$sbox_target/sb2.config.d/gcc*.config.sh>) {
+			if ($debug) {
+				print "try $required_gcc, $gcc_conf_file..\n";
+			}
+
+			if (-f $gcc_conf_file) {
+				open GCC_CONF,"<$gcc_conf_file";
+				my $short_vrs = undef;
+				my $long_vrs = undef;
+				my $line;
+				while ($line = <GCC_CONF>) {
+					if ($line =~ m/SBOX_CROSS_GCC_SHORTVERSION="(.*)"/) {
+						$short_vrs = $1;
+					} elsif ($line =~ m/SBOX_CROSS_GCC_VERSION="(.*)"/) {
+						$long_vrs = $1;
+					}
+				}
+				close GCC_CONF;
+				if ($debug) {
+					print "vrs: '$short_vrs', '$long_vrs'\n";
+				}
+				if ((($required_gcc =~ m/g..-$short_vrs/) ||
+				     ($required_gcc =~ m/g..-$long_vrs/)) &&
+				    !defined ($version_req)) {
+					if ($debug) {
+						print "vrs: OK by name\n";
+					}
+					return 1;
+				}
+				if (defined ($version_req)) {
+					# Check the debian-style requirement.
+					if (check_debian_vrs_req($version_req,$short_vrs) ||
+					    check_debian_vrs_req($version_req,$long_vrs)) {
+						if ($debug) {
+							print "vrs: OK\n";
+						}
+						return 1;	
+					}
+				}
+			}
+		}
+        } # else a cross-compiler is not available, gcc must come from tools
+
+	if ($debug) {
+		print "\t$required_gcc: sb2 doesn't have it\n";
+	}
+	return(0);
+}
+
+sub provided_by_sb2 {
+	my $name = shift;
+	my $r_missing = shift;
+
+	if (($name =~ m/^gcc/) ||
+	    ($name =~ m/^g\+\+/)) {
+		return (check_gcc_dependency($name,$r_missing));
+	}
+	return(0);
 }
 
 sub is_accepted_from_tools {
@@ -224,6 +359,10 @@ foreach $n (@target_listed) {
 	if (defined $r_target_missing->{$n}->{'primary'}) {
 		if ($debug) {
 			print "(skipping alternative $n)\n";
+		}
+	} elsif (provided_by_sb2($n,$r_target_missing->{$n})) {
+		if ($verbose_messages) {
+			print "\t$n: provided by sb2.\n";
 		}
 	} elsif ($ignored_from_tools{$n}) {
 		if ($verbose_messages) {

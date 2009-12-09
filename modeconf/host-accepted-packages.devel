@@ -32,6 +32,8 @@ flex-old
 gawk
 gcc
 gcc-3.4
+gcc-4.2
+g++-4.2
 gzip
 m4
 make

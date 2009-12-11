@@ -14,12 +14,18 @@ case "$sb2rc_mode" in
 		;;
 
 	wrapper_list)
-		SBOX_WRAPPERS="ldconfig"
+		SBOX_WRAPPERS="ldconfig dpkg"
+		;;
+
+	dpkg)
+		# "dpkg" must use the real host architecture
+		# (for example, "i386") in tools mode even if
+		# the target is something else ("armel", etc)
+		unset DEB_HOST_ARCH
 		;;
 
 	*)
 		# Default.
 		;;
-
 esac
 

@@ -300,6 +300,24 @@ int execve_gate(
 	return do_exec(realfnname, filename, argv, envp);
 }
 
+/* return a new argv[] */
+static char **create_argv_for_script_exec(const char *file, char *const argv[])
+{
+	int	argc = 0;
+	char	**new_argv = NULL;
+
+	while (argv[argc++]);
+	new_argv = (char**)calloc(argc+2, sizeof(char*));
+
+	new_argv[0] = "/bin/sh";
+	new_argv[1] = (char *) file;
+	while (argc > 1) {
+		new_argv[argc] = argv[argc - 1];
+		argc--;
+	}
+	return(new_argv);
+}
+
 
 static int do_execvep(
 	const char *realfnname,
@@ -315,7 +333,17 @@ static int do_execvep(
 
 	if (strchr (file, '/') != NULL) {
 		/* Don't search when it contains a slash.  */
-		return execve_gate (NULL, realfnname, file, argv, envp);
+		execve_gate (NULL, realfnname, file, argv, envp);
+		if (errno == ENOEXEC) {
+			char **new_argv = create_argv_for_script_exec(
+				file, argv);
+			int err;
+			execve_gate (NULL, realfnname, new_argv[0], new_argv, envp);
+			err = errno;
+			free(new_argv);
+			errno = err;
+		}
+		return(-1);
 	} else {
 		int got_eacces = 0;
 		const char *p;
@@ -363,6 +391,16 @@ static int do_execvep(
 
 			/* Try to execute this name.  If it works, execv will not return.  */
 			execve_gate (NULL, realfnname, startp, argv, envp);
+
+			if (errno == ENOEXEC) {
+				char **new_argv = create_argv_for_script_exec(
+					startp, argv);
+				int err;
+				execve_gate (NULL, realfnname, new_argv[0], new_argv, envp);
+				err = errno;
+				free(new_argv);
+				errno = err;
+			}
 
 			switch (errno) {
 				case EACCES:

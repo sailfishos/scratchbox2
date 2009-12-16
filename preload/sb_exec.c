@@ -1133,8 +1133,10 @@ static int prepare_exec(const char *exec_fn_name,
 			break;
 
 		case BIN_UNKNOWN:
-			SB_LOG(SB_LOGLEVEL_ERROR,
-				"Unidentified executable detected (%s)",
+			errno = ENOEXEC;
+			ret = -1;
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"Unidentified executable detected (%s) => ENOEXEC",
 				mapped_file);
 			break;
 	}

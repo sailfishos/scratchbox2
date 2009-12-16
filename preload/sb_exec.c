@@ -637,14 +637,52 @@ static char **duplicate_argv(char *const *argv)
 	return(my_argv);
 }
 
+static int check_envp_has_ld_preload_and_ld_library_path(
+	char *const *envp)
+{
+	int	has_ld_preload = 0;
+	int	has_ld_library_path = 0;
+	char	**p;
+
+	for (p=(char **)envp; *p; p++) {
+		if (**p == 'L') {
+			if (strncmp("LD_PRELOAD=", *p, strlen("LD_PRELOAD=")) == 0) {
+				has_ld_preload = 1;
+			} else if (strncmp("LD_LIBRARY_PATH=", *p, strlen("LD_LIBRARY_PATH=")) == 0) {
+				has_ld_library_path = 1;
+			}
+		}
+	}
+	return (has_ld_preload && has_ld_library_path);
+}
+
+/* Prepare environment vector for do_exec() and other
+ * pieces of exec*() processing: This will add/check SB2's
+ * private variables and rename some user-specified
+ * variables:
+ * - LD_LIBRARY_PATH is expected to be the user's version.
+ *   contents of it will be moved to __SB2_LD_LIBRARY_PATH.
+ *   the new environment returned by this function does
+ *   not have LD_LIBRARY_PATH at all.
+ * - LD_PRELOAD gets the same treatment as LD_LIBRARY_PATH
+ * - SBOX_SESSION_DIR can not be changed or removed
+ *
+ * N.B The lua scripts will set LD_LIBRARY_PATH and
+ *    LD_PRELOAD to the actual values that should be active
+ *    during the real exec; sb2's initialization code will
+ *    restore the __SB2__LD... variables to the real variables.
+ * N.B2. Proper LD_LIBRARY_PATH and LD_PRELOAD *must* be set
+ *    by the Lua-based exec logic (argvenvp.lua), otherwise
+ *    prepare_exec() will deny the exec.
+*/
 static char **prepare_envp_for_do_exec(const char *orig_file,
 	const char *binaryname, char *const *envp)
 {
 	char	**p;
 	int	envc = 0;
 	char	**my_envp;
-	int	has_ld_preload = 0;
-	int	has_ld_library_path = 0;
+	char	*user_ld_preload = NULL;
+	char	*user_ld_library_path = NULL;
 	int	i;
 	char	*new_binaryname_var;
 	char	*new_orig_file_var;
@@ -653,14 +691,7 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 	const int sbox_session_dir_varname_len = strlen("SBOX_SESSION_DIR");
 	const int sbox_session_varname_prefix_len = strlen("SBOX_SESSION_");
 
-	/* FIXME: This routine checks that we have LD_PRELOAD and
-	 * LD_LIBRARY_PATH, but doesn't check contents of those, so it is
-	 * still possible to get out from sb2 by accident if someone modifies
-	 * those variables and leaves sb2's settings out. But the most common
-	 * problem which was caused by completely missing variables has
-	 * been solved now.
-	 * 
-	 * SBOX_SESSION_* is now preserved properly (these are practically
+	/* SBOX_SESSION_* is now preserved properly (these are practically
 	 * read-only variables now)
 	*/
 	
@@ -672,25 +703,36 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 	 * for LD_PRELOAD, LD_LIBRARY_PATH and SBOX_SESSION_*
 	 */
 	for (p=(char **)envp, envc=0; *p; p++, envc++) {
-		if (strncmp("LD_PRELOAD=", *p, strlen("LD_PRELOAD=")) == 0) {
-			has_ld_preload = 1;
-			continue;
-		}
-		if (strncmp("LD_LIBRARY_PATH=", *p, strlen("LD_LIBRARY_PATH=")) == 0) {
-			has_ld_library_path = 1;
-			continue;
-		}
-		if (strncmp("SBOX_SESSION_DIR=", *p,
-		     sbox_session_dir_varname_len+1) == 0) {
-			has_sbox_session_dir = 1;
-			if (strcmp(*p+sbox_session_dir_varname_len+1,
-				sbox_session_dir)) {
-					SB_LOG(SB_LOGLEVEL_WARNING, 
-						"Detected attempt to set %s,"
-						" restored to %s",
-						*p, sbox_session_dir);
+		if (**p == 'L') {
+			if (strncmp("LD_PRELOAD=", *p, strlen("LD_PRELOAD=")) == 0) {
+				if (asprintf(&user_ld_preload,
+					"__SB2_%s", *p) < 0) {
+					SB_LOG(SB_LOGLEVEL_ERROR,
+						"asprintf failed to create __SB2_%s", *p);
+				}
+				continue;
 			}
-			continue;
+			if (strncmp("LD_LIBRARY_PATH=", *p, strlen("LD_LIBRARY_PATH=")) == 0) {
+				if (asprintf(&user_ld_library_path,
+					"__SB2_%s", *p) < 0) {
+					SB_LOG(SB_LOGLEVEL_ERROR,
+						"asprintf failed to create __SB2_%s", *p);
+				}
+				continue;
+			}
+		} else if (**p == 'S') {
+			if (strncmp("SBOX_SESSION_DIR=", *p,
+			     sbox_session_dir_varname_len+1) == 0) {
+				has_sbox_session_dir = 1;
+				if (strcmp(*p+sbox_session_dir_varname_len+1,
+					sbox_session_dir)) {
+						SB_LOG(SB_LOGLEVEL_WARNING, 
+							"Detected attempt to set %s,"
+							" restored to %s",
+							*p, sbox_session_dir);
+				}
+				continue;
+			}
 		}
 	}
 	if (!has_sbox_session_dir) {
@@ -699,9 +741,9 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 				"restored to %s", sbox_session_dir);
 	}
 
-	/* allocate new environment. Add 8 extra elements (all may not be
+	/* allocate new environment. Add 10 extra elements (all may not be
 	 * needed always) */
-	my_envp = (char **)calloc(envc + 8, sizeof(char *));
+	my_envp = (char **)calloc(envc + 10, sizeof(char *));
 
 	for (i = 0, p=(char **)envp; *p; p++) {
 		if (strncmp(*p, "__SB2_", strlen("__SB2_")) == 0) {
@@ -711,6 +753,13 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 			 * __SB2_REAL_BINARYNAME, __SB2_ORIG_BINARYNAME
 			*/
 			continue;
+		}
+		if (**p == 'L') {
+			/* drop LD_PRELOAD and LD_LIBRARY_PATH */
+			if ((strncmp("LD_PRELOAD=", *p,
+				strlen("LD_PRELOAD=")) == 0) ||
+			    (strncmp("LD_LIBRARY_PATH=", *p,
+				strlen("LD_LIBRARY_PATH=")) == 0)) continue;
 		}
 		if (strncmp(*p, "SBOX_SESSION_MODE=",
 				sbox_session_varname_prefix_len+5) == 0) {
@@ -806,36 +855,16 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 	/* allocate slot for __SB2_REAL_BINARYNAME that is filled later on */
 	my_envp[i++] = strdup("__SB2_REAL_BINARYNAME=");
 
-	/* If our environ has LD_PRELOAD, but the given envp doesn't,
-	 * add the value that was active when this process was started.
-	 */
-	if (!has_ld_preload && sbox_orig_ld_preload) {
-		char *new_ld_preload_var;
-
-		if (asprintf(&new_ld_preload_var, "LD_PRELOAD=%s",
-			sbox_orig_ld_preload) < 0) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
-				"asprintf failed to create LD_PRELOAD");
-		}
-		if (!new_ld_preload_var)
-			exit(1);
-		my_envp[i++] = new_ld_preload_var;
+	/* add user's versions of LD_PRELOAD and LD_LIBRARY_PATH */
+	if (user_ld_preload != NULL) {
+		my_envp[i++] = user_ld_preload;
+		SB_LOG(SB_LOGLEVEL_NOISE, "Added %s", user_ld_preload);
 	}
-	/* If our environ has LD_LIBRARY_PATH, but the given envp doesn't,
-	 * add the value that was active when this process was started.
-	 */
-	if (!has_ld_library_path && sbox_orig_ld_library_path) {
-		char *new_ld_library_path;
-
-		if (asprintf(&new_ld_library_path, "LD_LIBRARY_PATH=%s",
-			sbox_orig_ld_library_path) < 0) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
-				"asprintf failed to create LD_LIBRARY_PATH");
-		}
-		if (!new_ld_library_path)
-			exit(1);
-		my_envp[i++] = new_ld_library_path;
+	if (user_ld_library_path != NULL) {
+		my_envp[i++] = user_ld_library_path;
+		SB_LOG(SB_LOGLEVEL_NOISE, "Added %s", user_ld_library_path);
 	}
+
 	my_envp[i] = NULL;
 
 	return(my_envp);
@@ -1162,6 +1191,17 @@ int do_exec(const char *exec_fn_name, const char *orig_file,
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"EXEC denied by prepare_exec(), %s", orig_file);
 			return(r); /* exec denied */
+		}
+
+		if (check_envp_has_ld_preload_and_ld_library_path(
+			new_envp ? new_envp : orig_envp) == 0) {
+
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"exec(%s) failed, internal configuration error: "
+				"LD_LIBRARY_PATH and/or LD_PRELOAD were not set "
+				"by exec mapping logic", orig_file);
+			errno = EINVAL;
+			return(-1);
 		}
 	}
 

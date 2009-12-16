@@ -1222,8 +1222,6 @@ int setrlimit64_gate(
 char *sbox_session_dir = NULL;
 char *sbox_session_mode = NULL; /* optional */
 char *sbox_session_perm = NULL; /* optional */
-char *sbox_orig_ld_preload = NULL;
-char *sbox_orig_ld_library_path = NULL;
 char *sbox_binary_name = NULL;
 char *sbox_real_binary_name = NULL;
 char *sbox_orig_binary_name = NULL;
@@ -1235,6 +1233,43 @@ int sb2_global_vars_initialized__ = 0;
 void sb2__set_active_exec_policy_name__(const char *name)
 {
 	sbox_active_exec_policy_name = name ? strdup(name) : NULL;
+}
+
+static void dump_environ_to_log(const char *msg)
+{
+	char *buf = strvec_to_string(environ);
+
+	if (buf) {
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: '%s'",
+			msg, buf);
+		free(buf);
+	} else {
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"ENV: (failed to create string)");
+	}
+}
+
+static void revert_to_user_version_of_env_var(
+	const char *realvarname, const char *wrappedname)
+{
+	char *cp = getenv(wrappedname);
+
+	if (cp) {
+		SB_LOG(SB_LOGLEVEL_DEBUG, "Revert env.var:%s=%s (%s)",
+			realvarname, cp, wrappedname);
+		setenv(realvarname, cp, 1/*overwrite*/);
+	} else {
+		int r;
+		SB_LOG(SB_LOGLEVEL_DEBUG, "Revert env.var:Clear %s", realvarname);
+		r = unsetenv(realvarname);
+		if(r < 0) {
+			int e = errno;
+			SB_LOG(SB_LOGLEVEL_ERROR, "unsetenv(%s) failed, errno=%d",
+				realvarname, e);
+		}
+	}
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE3))
+		dump_environ_to_log("revert_to_user_version_of_env_var: env. is now:");
 }
 
 /* sb2_initialize_global_variables()
@@ -1269,14 +1304,6 @@ void sb2_initialize_global_variables(void)
 			cp = getenv("SBOX_SESSION_PERM");
 			if (cp) sbox_session_perm = strdup(cp);
 		}
-		if (!sbox_orig_ld_preload) {
-			cp = getenv("LD_PRELOAD");
-			if (cp) sbox_orig_ld_preload = strdup(cp);
-		}
-		if (!sbox_orig_ld_library_path) {
-			cp = getenv("LD_LIBRARY_PATH");
-			if (cp) sbox_orig_ld_library_path = strdup(cp);
-		}
 		if (!sbox_binary_name) {
 			cp = getenv("__SB2_BINARYNAME");
 			if (cp) sbox_binary_name = strdup(cp);
@@ -1297,7 +1324,16 @@ void sb2_initialize_global_variables(void)
 		if (sbox_session_dir) {
 			/* seems that we got it.. */
 			sb2_global_vars_initialized__ = 1;
+			sblog_init();
 			SB_LOG(SB_LOGLEVEL_DEBUG, "global vars initialized from env");
+
+			/* now when we know that the environment is
+			 * valid, it is time to change LD_PRELOAD and
+			 * LD_LIBRARY_PATH back to the values that the
+			 * user expects to see.
+			*/
+			revert_to_user_version_of_env_var("LD_PRELOAD", "__SB2_LD_PRELOAD");
+			revert_to_user_version_of_env_var("LD_LIBRARY_PATH", "__SB2_LD_LIBRARY_PATH");
 		}
 	}
 }

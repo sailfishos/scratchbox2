@@ -38,6 +38,8 @@ EXPORT: char *sb2__read_string_variable_from_lua__(const char *name)
 EXPORT: void sb2__load_and_execute_lua_file__(const char *filename)
 EXPORT: const char *sb2__lua_c_interface_version__(void)
 EXPORT: void sb2__set_active_exec_policy_name__(const char *name)
+EXPORT: void sblog_printf_line_to_logfile(const char *file, int line, \
+        int level, const char *format,...)
 
 --    FIXME: The following two functions do not have anything to do with path
 --    remapping. Instead the implementations in libsb2.c prevent locking of
@@ -45,6 +47,11 @@ EXPORT: void sb2__set_active_exec_policy_name__(const char *name)
 --    why we should have these wrappers, or should these be removed completely?
 EXPORT: int lckpwdf (void)
 EXPORT: int ulckpwdf (void)
+
+--
+-- 2. exported variables.
+--    -------------------
+EXPORT_SYMBOL: sb_loglevel__
 
 -- 3. "gates"
 --    -------

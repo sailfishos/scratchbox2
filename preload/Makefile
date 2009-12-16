@@ -1,4 +1,5 @@
-objs := wrappers.o libsb2.o sb_exec.o sb_l10n.o glob.o glob64.o \
+objs := wrappers.o privatewrappers.o \
+	libsb2.o sb_exec.o sb_l10n.o glob.o glob64.o \
 	fdpathdb.o procfs.o mempcpy.o
 
 ifeq ($(shell uname -s),Linux)
@@ -35,6 +36,15 @@ $(D)/wrappers.c: preload/interface.master preload/gen-interface.pl
 		-E preload/exported.h \
 		-M preload/export.map \
 		<$(SRCDIR)/preload/interface.master
+
+$(D)/privatewrappers.h: preload/privatewrappers.c
+$(D)/privatewrappers.c: preload/interface.private preload/gen-interface.pl
+	$(MKOUTPUTDIR)
+	$(P)PERL
+	$(Q)$(SRCDIR)/preload/gen-interface.pl \
+		-W preload/privatewrappers.c \
+		-E preload/privatewrappers.h \
+		<$(SRCDIR)/preload/interface.private
 
 generated := preload/wrappers.c preload/exported.h preload/ldexportlist
 .PRECIOUS: $(generated)

@@ -217,6 +217,11 @@ static char *path_list_to_string(const struct path_entry_list *listp)
 
 static void free_path_entry(struct path_entry *work)
 {
+	SB_LOG(SB_LOGLEVEL_NOISE3,
+		"free_path_entry %lX <p=%lX n=%lX> len=%d '%s' (link_dest=%s)",
+		(long)work, (long)work->pe_prev, (long)work->pe_next,
+		work->pe_path_component_len, work->pe_path_component,
+		(work->pe_link_dest ? work->pe_link_dest : NULL));
 	if (work->pe_link_dest) free(work->pe_link_dest);
 	free(work);
 }
@@ -285,7 +290,7 @@ static struct path_entry *split_path_to_path_entries(
 			new->pe_next = NULL;
 			work = new;
 			SB_LOG(SB_LOGLEVEL_NOISE3,
-				"created entry 0x%X '%s'",
+				"created entry 0x%lX '%s'",
 				(unsigned long int)work, new->pe_path_component);
 		}
 		if (next_slash) start = next_slash + 1;
@@ -377,12 +382,19 @@ static struct path_entry *remove_path_entry(
 {
 	struct path_entry *ret = p_entry->pe_next;
 
+	SB_LOG(SB_LOGLEVEL_NOISE3,
+		"remove_path_entry at %lX, next=%lX",
+		(long)p_entry, (long)ret);
 	if (p_entry->pe_prev) {
 		/* not the first element in the list */
+		SB_LOG(SB_LOGLEVEL_NOISE3,
+			"remove_path_entry, not first");
 		p_entry->pe_prev->pe_next = p_entry->pe_next;
 		if(p_entry->pe_next)
 			p_entry->pe_next->pe_prev = p_entry->pe_prev;
 	} else {
+		SB_LOG(SB_LOGLEVEL_NOISE3,
+			"remove_path_entry, first");
 		/* removing first element from the list */
 		assert(p_entry == listp->pl_first);
 		listp->pl_first = p_entry->pe_next;
@@ -445,6 +457,9 @@ static struct path_entry *remove_dotdot_entry_and_prev_entry(
 	struct path_entry *dotdot = work;
 	struct path_entry *preventry = work->pe_prev;
 
+	SB_LOG(SB_LOGLEVEL_NOISE3,
+		"remove_dotdot_entry_and_prev_entry at %lX",
+		(long)work);
 	if (preventry) {
 		/* travel up, and eliminate previous name */
 		work = remove_path_entry(listp, preventry);
@@ -553,16 +568,27 @@ static void clean_dotdots_from_path(
 	SB_LOG(SB_LOGLEVEL_NOISE, "clean_dotdots_from_path: <2>");
 	work = abs_path->pl_first;
 	while (work) {
+		SB_LOG(SB_LOGLEVEL_NOISE3,
+			"clean_dotdots_from_path: check %lX '%s'",
+			(long)work, work->pe_path_component);
 		if ((work->pe_path_component[0] == '.') &&
 		    (work->pe_path_component[1] == '.') &&
 		    (work->pe_path_component[2] == '\0')) {
-			if (work->pe_prev->pe_flags & PATH_FLAGS_NOT_SYMLINK) {
-				/* prev. is not a symlink, remove this node */
+			if ((work->pe_prev == NULL) ||
+			    (work->pe_prev->pe_flags & PATH_FLAGS_NOT_SYMLINK)) {
+				/* Either "/work" or "x/work", where "x"
+				 * is not a symlink => safe to remove this node */
 				if (!work->pe_next) {
 					/* last component */
 					abs_path->pl_flags |= PATH_FLAGS_HAS_TRAILING_SLASH;
 				}
+				SB_LOG(SB_LOGLEVEL_NOISE3,
+					"clean_dotdots_from_path: remove at %lX",
+					(long)work);
 				work = remove_dotdot_entry_and_prev_entry(abs_path, work);
+				SB_LOG(SB_LOGLEVEL_NOISE3,
+					"clean_dotdots_from_path: removed, now at %lX",
+					(long)work);
 			} else {
 				/* keep it there, remove it later */
 				path_has_nontrivial_dotdots = 1;

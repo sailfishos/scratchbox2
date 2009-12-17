@@ -8,7 +8,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "22"
+rule_file_interface_version = "23"
 ----------------------------------
 
 tools = tools_root
@@ -19,13 +19,22 @@ end
 sb2_share_dir = sbox_user_home_dir.."/.scratchbox2/"..sbox_target.."/share"
 
 -- =========== Exec policies:  ===========
+
+-- If the permission token exists and contains "root",
+-- use fakeroot
+local fakeroot_ld_preload = ""
+if sb.get_session_perm() == "root" then
+	fakeroot_ld_preload = ":"..host_ld_preload_fakeroot
+end
+
 --
 -- For tools: If tools_root is set and libsb2 has been installed there,
 -- then dynamic libraries can be used from tools_root (otherwise we'll
 -- be using the libs from the host OS)
 
 devel_mode_tools_ld_so = nil		-- default = not needed
-devel_mode_tools_ld_library_path = nil	-- default = not needed
+devel_mode_tools_ld_library_path_prefix = ""
+devel_mode_tools_ld_library_path_suffix = ""
 -- localization support for tools
 devel_mode_locale_path = nil
 
@@ -33,12 +42,19 @@ if ((tools_root ~= nil) and conf_tools_sb2_installed) then
 	if (conf_tools_ld_so ~= nil) then
 		-- Ok to use dynamic libraries from tools!
 		devel_mode_tools_ld_so = conf_tools_ld_so
-		devel_mode_tools_ld_library_path = conf_tools_ld_so_library_path
 	end
+	devel_mode_tools_ld_library_path_prefix = conf_tools_ld_so_library_path
 	if (conf_tools_locale_path ~= nil) then
 		-- use locales from tools
 		devel_mode_locale_path = conf_tools_locale_path
 	end
+else
+	devel_mode_tools_ld_library_path_prefix =
+		host_ld_library_path_libfakeroot ..
+		host_ld_library_path_prefix ..
+		host_ld_library_path_libsb2
+	devel_mode_tools_ld_library_path_suffix =
+		host_ld_library_path_suffix
 end
 
 tools_script_interp_rules = {
@@ -54,11 +70,16 @@ exec_policy_tools = {
 	name = "Tools",
 	native_app_ld_so = devel_mode_tools_ld_so,
 	native_app_ld_so_supports_argv0 = conf_tools_ld_so_supports_argv0,
-	native_app_ld_library_path = devel_mode_tools_ld_library_path,
-	native_app_locale_path = devel_mode_locale_path,
 	native_app_ld_so_supports_rpath_prefix = conf_tools_ld_so_supports_rpath_prefix,
 	native_app_ld_so_rpath_prefix = tools,
 	native_app_ld_so_supports_nodefaultdirs = conf_tools_ld_so_supports_nodefaultdirs,
+
+	native_app_ld_library_path_prefix = devel_mode_tools_ld_library_path_prefix,
+	native_app_ld_library_path_suffix = devel_mode_tools_ld_library_path_suffix,
+
+	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
+
+	native_app_locale_path = devel_mode_locale_path,
 
 	script_log_level = "debug",
 	script_log_message = "SCRIPT from tools",
@@ -70,11 +91,16 @@ exec_policy_tools_perl = {
 	name = "Tools-perl",
 	native_app_ld_so = devel_mode_tools_ld_so,
 	native_app_ld_so_supports_argv0 = conf_tools_ld_so_supports_argv0,
-	native_app_ld_library_path = devel_mode_tools_ld_library_path,
-	native_app_locale_path = devel_mode_locale_path,
 	native_app_ld_so_supports_rpath_prefix = conf_tools_ld_so_supports_rpath_prefix,
 	native_app_ld_so_rpath_prefix = tools,
 	native_app_ld_so_supports_nodefaultdirs = conf_tools_ld_so_supports_nodefaultdirs,
+
+	native_app_ld_library_path_prefix = devel_mode_tools_ld_library_path_prefix,
+	native_app_ld_library_path_suffix = devel_mode_tools_ld_library_path_suffix,
+
+	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
+
+	native_app_locale_path = devel_mode_locale_path,
 
 	script_log_level = "debug",
 	script_log_message = "SCRIPT from tools (t.p)",
@@ -86,11 +112,16 @@ exec_policy_tools_python = {
 	name = "Tools-python",
 	native_app_ld_so = devel_mode_tools_ld_so,
 	native_app_ld_so_supports_argv0 = conf_tools_ld_so_supports_argv0,
-	native_app_ld_library_path = devel_mode_tools_ld_library_path,
-	native_app_locale_path = devel_mode_locale_path,
 	native_app_ld_so_supports_rpath_prefix = conf_tools_ld_so_supports_rpath_prefix,
 	native_app_ld_so_rpath_prefix = tools,
 	native_app_ld_so_supports_nodefaultdirs = conf_tools_ld_so_supports_nodefaultdirs,
+
+	native_app_ld_library_path_prefix = devel_mode_tools_ld_library_path_prefix,
+	native_app_ld_library_path_suffix = devel_mode_tools_ld_library_path_suffix,
+
+	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
+
+	native_app_locale_path = devel_mode_locale_path,
 
 	script_log_level = "debug",
 	script_log_message = "SCRIPT from tools (t.p)",
@@ -107,31 +138,44 @@ exec_policy_tools_python = {
 -- (as determined by the mapping engine) to decide the execution policy.
 
 devel_mode_target_ld_so = nil		-- default = not needed
-devel_mode_target_ld_library_path = nil	-- default = not needed
+devel_mode_target_ld_library_path_prefix = ""
+devel_mode_target_ld_library_path_suffix = nil
 
 if (conf_target_sb2_installed) then
 	if (conf_target_ld_so ~= nil) then
 		-- use dynamic libraries from target, 
 		-- when executing native binaries!
 		devel_mode_target_ld_so = conf_target_ld_so
-		devel_mode_target_ld_library_path = conf_target_ld_so_library_path
 
 		-- FIXME: This exec policy should process (map components of)
 		-- the current value of LD_LIBRARY_PATH, and add the results
 		-- to devel_mode_target_ld_library_path just before exec.
 		-- This has not been done yet.
 	end
+	devel_mode_target_ld_library_path_prefix = conf_target_ld_so_library_path
+else
+	devel_mode_target_ld_library_path_prefix =
+		host_ld_library_path_libfakeroot ..
+		host_ld_library_path_prefix ..
+		host_ld_library_path_libsb2
+	devel_mode_target_ld_library_path_suffix =
+		host_ld_library_path_suffix
 end
 
 exec_policy_target = {
 	name = "Rootstrap",
 	native_app_ld_so = devel_mode_target_ld_so,
 	native_app_ld_so_supports_argv0 = conf_target_ld_so_supports_argv0,
-	native_app_ld_library_path = devel_mode_target_ld_library_path,
-	native_app_locale_path = conf_target_locale_path,
 	native_app_ld_so_supports_rpath_prefix = conf_target_ld_so_supports_rpath_prefix,
 	native_app_ld_so_rpath_prefix = target_root,
 	native_app_ld_so_supports_nodefaultdirs = conf_target_ld_so_supports_nodefaultdirs,
+
+	native_app_locale_path = conf_target_locale_path,
+
+	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
+
+	native_app_ld_library_path_prefix = devel_mode_target_ld_library_path_prefix,
+	native_app_ld_library_path_suffix = devel_mode_target_ld_library_path_suffix,
 }
 
 --
@@ -147,6 +191,11 @@ exec_policy_host_os = {
 			{prefix = "/", use_orig_path = true}
 		}
 	},
+
+	-- native_app_ld_library_path* can be left undefined,
+	-- host settings will be used (but then it won't add user's
+	-- LD_LIBRARY_PATH, which is exactly what we want).
+	-- native_app_ld_preload* is not set because of the same reason.
 }
 
 -- =========== Actions for conditional rules ===========
@@ -435,7 +484,7 @@ devel_mode_rules_usr_bin = {
 		-- 19. perl & python:
 		-- 	processing depends on SBOX_REDIRECT_IGNORE,
 		--	SBOX_REDIRECT_FORCE and 
-		--	name of the current mapping mode. 
+		--	name of the current exec policy. 
 		--	(these are real prefixes, version number may
 		--	be included in the name (/usr/bin/python2.5 etc))
 		{prefix = "/usr/bin/perl", actions = perl_bin_test},

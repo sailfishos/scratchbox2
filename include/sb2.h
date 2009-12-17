@@ -63,10 +63,14 @@ struct lua_instance {
  *     to the C code; functions used to return separate booleans.
  *   - (Additionally, due to a previous bugfix in path_exists(), forcing 
  *     the library to be upgraded is a good thing to do in any case!)
+ * * Differences between "66" and "65"
+ *   - LD_PRELOAD and LD_LIBRARY_PATH environment variables
+ *     must be set by the exec postprocessing code (in argvenvp.lua);
+ *     sb_exec.c refuses to exec the program if these two are not set.
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "65"
+#define SB2_LUA_C_INTERFACE_VERSION "66"
 
 extern struct lua_instance *get_lua(void);
 extern void release_lua(struct lua_instance *ptr);

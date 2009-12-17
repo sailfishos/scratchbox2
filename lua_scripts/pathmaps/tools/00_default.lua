@@ -6,7 +6,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "22"
+rule_file_interface_version = "23"
 ----------------------------------
 
 tools = tools_root
@@ -26,8 +26,10 @@ end
 -- If the permission token exists and contains "root", tools_root directories
 -- will be available in R/W mode. Otherwise it will be "mounted" R/O.
 local tools_root_is_readonly
+local fakeroot_ld_preload = ""
 if sb.get_session_perm() == "root" then
 	tools_root_is_readonly = false
+	fakeroot_ld_preload = ":"..host_ld_preload_fakeroot
 else
 	tools_root_is_readonly = true
 end
@@ -134,7 +136,8 @@ export_chains = {
 -- Exec policy rules.
 
 default_exec_policy = {
-	name = "Default"
+	name = "Default",
+	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
 }
 
 -- For binaries from tools_root:
@@ -145,8 +148,7 @@ default_exec_policy = {
 
 tools_mode_tools_ld_so = nil		-- default = not needed
 tools_mode_tools_ld_library_path = nil	-- default = not needed
-
--- used if libsb2.so is not available in tools_root:
+tools_mode_tools_ld_library_path_prefix = ""
 tools_mode_tools_ld_library_path_suffix = nil
 
 if (conf_tools_sb2_installed) then
@@ -154,15 +156,20 @@ if (conf_tools_sb2_installed) then
 		-- use dynamic libraries from tools,
 		-- when executing native binaries!
 		tools_mode_tools_ld_so = conf_tools_ld_so
-		tools_mode_tools_ld_library_path = conf_tools_ld_so_library_path
 
 		-- FIXME: This exec policy should process (map components of)
 		-- the current value of LD_LIBRARY_PATH, and add the results
 		-- to tools_mode_tools_ld_library_path just before exec.
 		-- This has not been done yet.
 	end
+	tools_mode_tools_ld_library_path_prefix = conf_tools_ld_so_library_path
 else
-	tools_mode_tools_ld_library_path_suffix = conf_tools_ld_so_library_path
+	tools_mode_tools_ld_library_path_prefix =
+		host_ld_library_path_libfakeroot ..
+		host_ld_library_path_prefix ..
+		host_ld_library_path_libsb2
+	tools_mode_tools_ld_library_path_suffix =
+		host_ld_library_path_suffix
 end
 
 local exec_policy_tools = {
@@ -171,6 +178,7 @@ local exec_policy_tools = {
 	native_app_ld_so_supports_argv0 = conf_tools_ld_so_supports_argv0,
 	native_app_ld_library_path = tools_mode_tools_ld_library_path,
 
+	native_app_ld_library_path_prefix = tools_mode_tools_ld_library_path_prefix,
 	native_app_ld_library_path_suffix = tools_mode_tools_ld_library_path_suffix,
 
 	native_app_locale_path = conf_tools_locale_path,

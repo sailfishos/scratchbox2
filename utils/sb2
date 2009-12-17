@@ -1,7 +1,22 @@
 #!/bin/bash
 # Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
 # Licensed under GPL version 2
+#
+# "sb2" script, the command-line interface to Scratchbox 2.
+#
 
+# This *must* be the first thing in this file:
+my_path=$_
+if [ $(basename $my_path) != $(basename $0) ]; then
+	my_path=$0
+	if [ $(basename $my_path) = $my_path ]; then
+		my_path=$(which $my_path)
+	fi
+fi
+
+
+SBOX_LIBSB2="libsb2.so.1"
+	
 function version()
 {
 	cat $SBOX_DIR/share/scratchbox2/version
@@ -302,8 +317,6 @@ function clone_target_root_dir_from()
 
 function sboxify_environment()
 {
-	SBOX_LIBSB2="libsb2.so.1"
-	
 	load_configuration
 
 	# override SBOX_TOOLS_ROOT if requested by command-line option
@@ -919,6 +932,9 @@ conf_cputransparency_has_argv0_flag=$conf_cputransparency_has_argv0_flag
 conf_cputransparency_qemu_has_env_control_flags=$conf_cputransparency_qemu_has_env_control_flags
 conf_cputransparency_qemu_has_libattr_hack_flag=$conf_cputransparency_qemu_has_libattr_hack_flag
 
+host_ld_preload_libsb2="$SBOX_LIBSB2"
+host_ld_preload_fakeroot="$HOST_LD_PRELOAD_FAKEROOT"
+host_ld_preload="$SBOX_LD_PRELOAD"
 host_ld_library_path_prefix="$HOST_LD_LIBRARY_PATH_PREFIX"
 host_ld_library_path_libsb2="$HOST_LD_LIBRARY_PATH_LIBSB2"
 host_ld_library_path_suffix="$HOST_LD_LIBRARY_PATH_SUFFIX"
@@ -1140,14 +1156,6 @@ function delete_old_sb2_session()
 	rm "$SBOX_DELETE_SESSION_FILE"
 }
 
-my_path=$_
-if [ $(basename $my_path) != $(basename $0) ]; then
-	my_path=$0
-	if [ $(basename $my_path) = $my_path ]; then
-		my_path=$(which $my_path)
-	fi
-fi
-
 SBOX_MAPMODE=""
 NUM_MAPMODES=0
 SB2_INTERNAL_MAPMODES=""
@@ -1241,21 +1249,27 @@ if [ "$1" = "-" ] ; then
 	STDIN=true
 fi
 
+# determine what fakeroot wants to add to LD_LIBRARY_PATH and LD_PRELOAD
+HOST_LD_LIBRARY_PATH_LIBFAKEROOT=`LD_LIBRARY_PATH="" fakeroot sh -c 'echo $LD_LIBRARY_PATH'`
+HOST_LD_PRELOAD_FAKEROOT=`LD_PRELOAD="" fakeroot sh -c 'echo $LD_PRELOAD'`
+if [ -n "$HOST_LD_LIBRARY_PATH_LIBFAKEROOT" ]; then
+	# Add a trailing colon
+	HOST_LD_LIBRARY_PATH_LIBFAKEROOT="$HOST_LD_LIBRARY_PATH_LIBFAKEROOT:"
+else
+	HOST_LD_LIBRARY_PATH_LIBFAKEROOT=""
+fi
+
 # if SBOX_SESSION_PERM is set, export it. It may enable special permissions
 # in some mapping modes (e.g. see the "emulate" mode)
 SBOX_FAKEROOT_PREFIX=""
 if [ -n "$SBOX_SESSION_PERM" ]; then
 	export SBOX_SESSION_PERM
 	SBOX_FAKEROOT_PREFIX="fakeroot"
-fi
-
-# determine what fakeroot wants to add to LD_LIBRARY_PATH
-HOST_LD_LIBRARY_PATH_LIBFAKEROOT=`LD_LIBRARY_PATH="" fakeroot sh -c 'echo $LD_LIBRARY_PATH'`
-if [ -n "$HOST_LD_LIBRARY_PATH_LIBFAKEROOT" ]; then
-	# Add a trailing colon
-	HOST_LD_LIBRARY_PATH_LIBFAKEROOT="$HOST_LD_LIBRARY_PATH_LIBFAKEROOT:"
+	# Preload both; fakeroot and libsb2
+	SBOX_LD_PRELOAD="$HOST_LD_PRELOAD_FAKEROOT:$SBOX_LIBSB2"
 else
-	HOST_LD_LIBRARY_PATH_LIBFAKEROOT=""
+	# Preload just libsb2
+	SBOX_LD_PRELOAD="$SBOX_LIBSB2"
 fi
 
 if [ -n "$SBOX_FORCED_TOOLS_ROOT" ]; then

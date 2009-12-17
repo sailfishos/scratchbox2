@@ -7,7 +7,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "22"
+rule_file_interface_version = "23"
 ----------------------------------
 
 tools = tools_root
@@ -120,8 +120,23 @@ export_chains = {
 
 -- Exec policy rules.
 
+-- If the permission token exists and contains "root",
+-- use fakeroot
+local fakeroot_ld_preload = ""
+if sb.get_session_perm() == "root" then
+	fakeroot_ld_preload = ":"..host_ld_preload_fakeroot
+end
+
 default_exec_policy = {
-	name = "Default"
+	name = "Default",
+
+	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
+
+	native_app_ld_library_path_prefix = 
+		host_ld_library_path_libfakeroot ..
+		host_ld_library_path_prefix ..
+		host_ld_library_path_libsb2,
+	native_app_ld_library_path_suffix = host_ld_library_path_suffix,
 }
 
 -- Note that the real path (mapped path) is used when looking up rules!

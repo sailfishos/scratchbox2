@@ -3,7 +3,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "22"
+rule_file_interface_version = "23"
 ----------------------------------
 
 sb1_compat_dir = sbox_target_root .. "/scratchbox1-compat"
@@ -37,8 +37,10 @@ end
 -- If the permission token exists and contains "root", target_root
 -- will be available in R/W mode. Otherwise it will be "mounted" R/O.
 local target_root_is_readonly
+local fakeroot_ld_preload = ""
 if sb.get_session_perm() == "root" then
 	target_root_is_readonly = false
+	fakeroot_ld_preload = ":"..host_ld_preload_fakeroot
 else
 	target_root_is_readonly = true
 end
@@ -206,7 +208,8 @@ export_chains = {
 -- Exec policy rules.
 
 default_exec_policy = {
-	name = "Default"
+	name = "Default",
+	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
 }
 
 -- For target binaries:
@@ -218,7 +221,8 @@ default_exec_policy = {
 -- (as determined by the mapping engine) to decide the execution policy.
 
 emulate_mode_target_ld_so = nil		-- default = not needed
-emulate_mode_target_ld_library_path = nil	-- default = not needed
+emulate_mode_target_ld_library_path_prefix = ""
+emulate_mode_target_ld_library_path_suffix = nil
 
 -- used if libsb2.so is not available in target_root:
 emulate_mode_target_ld_library_path_suffix = nil
@@ -244,30 +248,32 @@ if (conf_target_sb2_installed) then
 		-- use dynamic libraries from target, 
 		-- when executing native binaries!
 		emulate_mode_target_ld_so = conf_target_ld_so
-		emulate_mode_target_ld_library_path = conf_target_ld_so_library_path
-
-		-- FIXME: This exec policy should process (map components of)
-		-- the current value of LD_LIBRARY_PATH, and add the results
-		-- to emulate_mode_target_ld_library_path just before exec.
-		-- This has not been done yet.
 	end
+	emulate_mode_target_ld_library_path_prefix = conf_target_ld_so_library_path
 else
-	emulate_mode_target_ld_library_path_suffix = conf_target_ld_so_library_path
+	emulate_mode_target_ld_library_path_prefix =
+		host_ld_library_path_libfakeroot ..
+		host_ld_library_path_prefix ..
+		host_ld_library_path_libsb2
+	emulate_mode_target_ld_library_path_suffix =
+		host_ld_library_path_suffix
 end
+
 
 local exec_policy_target = {
 	name = "Rootstrap",
 	native_app_ld_so = emulate_mode_target_ld_so,
 	native_app_ld_so_supports_argv0 = conf_target_ld_so_supports_argv0,
-	native_app_ld_library_path = emulate_mode_target_ld_library_path,
+	native_app_ld_so_supports_rpath_prefix = conf_target_ld_so_supports_rpath_prefix,
+	native_app_ld_so_rpath_prefix = target_root,
+	native_app_ld_so_supports_nodefaultdirs = conf_target_ld_so_supports_nodefaultdirs,
 
+	native_app_ld_library_path_prefix = emulate_mode_target_ld_library_path_prefix,
 	native_app_ld_library_path_suffix = emulate_mode_target_ld_library_path_suffix,
 
 	native_app_locale_path = conf_target_locale_path,
 
-	native_app_ld_so_supports_rpath_prefix = conf_target_ld_so_supports_rpath_prefix,
-	native_app_ld_so_rpath_prefix = target_root,
-	native_app_ld_so_supports_nodefaultdirs = conf_target_ld_so_supports_nodefaultdirs,
+	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
 }
 
 -- Note that the real path (mapped path) is used when looking up rules!

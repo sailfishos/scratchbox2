@@ -140,6 +140,15 @@ function load_and_check_rules()
 	-- exec mapping code (argvenp.lua) and the
 	-- rule files:
 	--
+	-- Version 23:
+	-- - LD_LIBRARY_PATH and LD_PRELOAD are now always
+	--   set by argvenvp.lua => the exec_policies must
+	--   have proper policies for these (otherwise "fakeroot"
+	--   may not perform as expected).
+	-- - Note the by default the real LD_LIBRARY_PATH and
+	--   LD_PRELOAD that will be used the real exec is now
+	--   different than what the user will see in these
+	--   variables!
 	-- Version 22:
 	-- - interface to custom_map_func was modified again:
 	--   Last return value is now a bitmask (was a boolean)
@@ -164,7 +173,7 @@ function load_and_check_rules()
 	--   (previously only one was expected)
 	-- - variables "esc_tools_root" and "esc_target_root"
 	--   were removed
-	local current_rule_interface_version = "22"
+	local current_rule_interface_version = "23"
 
 	do_file(rule_file_path)
 
@@ -348,6 +357,11 @@ function sbox_execute_conditional_actions(binary_name,
 			local ep = get_active_exec_policy()
 
 			if (ep ~= nil and ep.name == rule_cand.if_active_exec_policy_is) then
+				if (debug_messages_enabled) then
+					sb.log("debug", string.format(
+						"selected by exec_policy %s",
+						ep.name))
+				end
 				return sbox_execute_rule(binary_name,
 					 func_name, rp, path, rule_cand)
 			end
@@ -356,6 +370,9 @@ function sbox_execute_conditional_actions(binary_name,
 				rule_cand.if_redirect_ignore_is_active,
 				"SBOX_REDIRECT_IGNORE")) then
 
+				if (debug_messages_enabled) then
+					sb.log("debug", "selected; redirect ignore is active")
+				end
 				return sbox_execute_rule(binary_name,
 					 func_name, rp, path, rule_cand)
 			end
@@ -364,6 +381,9 @@ function sbox_execute_conditional_actions(binary_name,
 				rule_cand.if_redirect_force_is_active,
 				"SBOX_REDIRECT_FORCE")) then
 
+				if (debug_messages_enabled) then
+					sb.log("debug", "selected; redirect force is active")
+				end
 				return sbox_execute_rule(binary_name,
 					 func_name, rp, path, rule_cand)
 			end
@@ -371,6 +391,10 @@ function sbox_execute_conditional_actions(binary_name,
 			-- there MUST BE unconditional actions:
 			if (rule_cand.use_orig_path or rule_cand.force_orig_path 
 			    or rule_cand.map_to or rule_cand.replace_by) then
+
+				if (debug_messages_enabled) then
+					sb.log("debug", "using default (unconditional) rule")
+				end
 				return sbox_execute_rule(binary_name,
 					 func_name, rp, path, rule_cand)
 			else

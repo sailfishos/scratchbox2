@@ -162,83 +162,78 @@ function locate_ld_library_path(envp)
 	return -1
 end
 
--- Return path to be used as LD_LIBRARY_PATH for native applications
---
-function get_native_app_ld_library_path(exec_policy, envp)
-
-	-- attribute "native_app_ld_library_path" overrides everything else:
-	if (exec_policy.native_app_ld_library_path ~= nil) then
-		return exec_policy.native_app_ld_library_path
+function get_users_ld_library_path(envp)
+	local k
+	for k = 1, table.maxn(envp) do
+		if (string.match(envp[k], "^__SB2_LD_LIBRARY_PATH=")) then
+			return string.gsub(envp[k], "^__SB2_LD_LIBRARY_PATH=", "", 1)
+		end
 	end
+	return ""
+end
 
-	-- attributes "native_app_ld_library_path_prefix" and
-	-- "native_app_ld_library_path_suffix" extend the old value:
-	if ((exec_policy.native_app_ld_library_path_prefix ~= nil) or
-	    (exec_policy.native_app_ld_library_path_suffix ~= nil)) then
-		local ld_library_path_index = locate_ld_library_path(envp)
-		local libpath = nil
-		if ld_library_path_index > 0 then
-			libpath = string.gsub(envp[ld_library_path_index],
-				"^LD_LIBRARY_PATH=", "", 1)
+function locate_ld_preload(envp)
+	local k
+	for k = 1, table.maxn(envp) do
+		if (string.match(envp[k], "^LD_PRELOAD=")) then
+			return k
 		end
-		if (exec_policy.native_app_ld_library_path_prefix ~= nil) then
-			if libpath ~= nil then
-				libpath = exec_policy.native_app_ld_library_path_prefix ..
-					":" .. libpath
-			else
-				libpath = exec_policy.native_app_ld_library_path_prefix
-			end
-		end
-		if (exec_policy.native_app_ld_library_path_suffix ~= nil) then
-			if libpath ~= nil then
-				libpath = libpath .. ":" ..
-					 exec_policy.native_app_ld_library_path_suffix
-			else
-				libpath = exec_policy.native_app_ld_library_path_suffix
-			end
-		end
-		return libpath
 	end
+	return -1
+end
 
-	return nil
+function get_users_ld_preload(envp)
+	local k
+	for k = 1, table.maxn(envp) do
+		if (string.match(envp[k], "^__SB2_LD_PRELOAD=")) then
+			return string.gsub(envp[k], "^__SB2_LD_PRELOAD=", "", 1)
+		end
+	end
+	return ""
+end
+
+function join_paths(p1,p2)
+	if (p1 == nil or p1 == "") then
+		return p2
+	end
+	if (p2 == nil or p2 == "") then
+		return p1
+	end
+	-- p1 and p2 are not empty
+	if (string.match(p1, ":$")) then
+		return p1..p2
+	end
+	return p1..":"..p2
 end
 
 -- Set LD_LIBRARY_PATH: modifies "envp"
---
 function setenv_native_app_ld_library_path(exec_policy, envp)
+	local new_path
 
-	local ld_library_path_index = locate_ld_library_path(envp)
-	local new_path = get_native_app_ld_library_path(exec_policy, envp)
+	if (exec_policy.native_app_ld_library_path ~= nil) then
+		-- attribute "native_app_ld_library_path" overrides everything else:
+		new_path = exec_policy.native_app_ld_library_path
+	elseif ((exec_policy.native_app_ld_library_path_prefix ~= nil) or
+		(exec_policy.native_app_ld_library_path_suffix ~= nil)) then
+		-- attributes "native_app_ld_library_path_prefix" and
+		-- "native_app_ld_library_path_suffix" extend user's value:
+		local libpath = get_users_ld_library_path(envp)
+		new_path = join_paths(
+			exec_policy.native_app_ld_library_path_prefix,
+			join_paths(libpath,
+				exec_policy.native_app_ld_library_path_suffix))
+	else
+		new_path = nil
+	end
 
 	-- Set the value:
 	if (new_path == nil) then
-		if ld_library_path_index < 0 then
-			sb.log("debug", "No value for LD_LIBRARY_PATH, using orig.value")
-			-- Use host's original value
-			new_path = "LD_LIBRARY_PATH=" .. host_ld_library_path
-		else
-			-- LD_LIBRARY_PATH exists, check contents.
-			-- It must start with host's LD_LIBRARY_PATH.
-			libpath = string.gsub(envp[ld_library_path_index],
-				"^LD_LIBRARY_PATH=", "", 1)
-
-			if string.sub(libpath,1,string.len(host_ld_library_path)) ==
-				   host_ld_library_path then
-				-- good, it contains the original value.
-				-- no need to update anything, env.is OK
-				sb.log("debug", "LD_LIBRARY_PATH is "..envp[ld_library_path_index])
-				return false
-			end
-
-			-- Host's LD_LIBRARY_PATH was not found. Add it:
-			envp[ld_library_path_index] = "LD_LIBRARY_PATH=" ..
-				host_ld_library_path .. ":" .. libpath
-			sb.log("debug", "Added host's part to LD_LIBRARY_PATH:"..
-				envp[ld_library_path_index])
-			return true
-		end
+		sb.log("debug", "No value for LD_LIBRARY_PATH, using host's path")
+		-- Use host's original value
+		new_path = "LD_LIBRARY_PATH=" .. host_ld_library_path
 	end
 
+	local ld_library_path_index = locate_ld_library_path(envp)
 	if (ld_library_path_index > 0) then
 		envp[ld_library_path_index] =
 			"LD_LIBRARY_PATH=" .. new_path
@@ -246,6 +241,35 @@ function setenv_native_app_ld_library_path(exec_policy, envp)
 	else
 		table.insert(envp, "LD_LIBRARY_PATH=" .. new_path)
 		sb.log("debug", "Added LD_LIBRARY_PATH")
+	end
+	return true
+end
+
+-- Set LD_PRELOAD: modifies "envp"
+function setenv_native_app_ld_preload(exec_policy, envp)
+	local new_preload
+
+	if (exec_policy.native_app_ld_preload ~= nil) then
+		new_preload = exec_policy.native_app_ld_preload
+	elseif (exec_policy.native_app_ld_preload_prefix ~= nil or
+	        exec_policy.native_app_ld_preload_suffix ~= nil) then
+		local user_preload = get_users_ld_preload(envp)
+		new_preload = join_paths(
+			exec_policy.native_app_ld_preload_prefix,
+			join_paths(user_preload,
+				exec_policy.native_app_ld_preload_suffix))
+	else
+		new_preload = host_ld_preload
+	end
+
+	-- Set the value:
+	local ld_preload_index = locate_ld_preload(envp)
+	if (ld_preload_index > 0) then
+		envp[ld_preload_index] = "LD_PRELOAD=" .. new_preload
+		sb.log("debug", "Replaced LD_PRELOAD="..new_preload)
+	else
+		table.insert(envp, "LD_PRELOAD=" .. new_preload)
+		sb.log("debug", "Added LD_PRELOAD="..new_preload)
 	end
 	return true
 end
@@ -409,13 +433,6 @@ function sb_execve_postprocess_native_executable(rule, exec_policy,
 		new_mapped_file = exec_policy.native_app_ld_so
 		table.insert(new_argv, exec_policy.native_app_ld_so)
 
-		local ld_lib_path = get_native_app_ld_library_path(
-			exec_policy, new_envp)
-		if (ld_lib_path ~= nil) then
-			table.insert(new_argv, "--library-path")
-			table.insert(new_argv, ld_lib_path)
-		end
-
 		-- Ignore RPATH and RUNPATH information:
 		-- This will prevent accidental use of host's libraries,
 		-- if the binary has been set to use RPATHs. 
@@ -455,14 +472,18 @@ function sb_execve_postprocess_native_executable(rule, exec_policy,
 		first_argv_element_to_copy = 2
 
 		updated_args = 1
-	else
-		-- Ensure that the binary has a LD_LIBRARY_PATH,
-		-- either a non-standard one from the policy,
-		-- or the original host's LD_LIBRARY_PATH. It
-		-- won't work without any.
-		if setenv_native_app_ld_library_path(exec_policy, new_envp) then
-			updated_args = 1
-		end
+	end
+
+	-- Ensure that the binary has a LD_LIBRARY_PATH,
+	-- either a non-standard one from the policy,
+	-- or the original host's LD_LIBRARY_PATH. It
+	-- won't work without any.
+	if setenv_native_app_ld_library_path(exec_policy, new_envp) then
+		updated_args = 1
+	end
+	-- Also, set that LD_PRELOAD
+	if setenv_native_app_ld_preload(exec_policy, new_envp) then
+		updated_args = 1
 	end
 
 	--
@@ -651,13 +672,7 @@ function sb_execve_postprocess_cpu_transparency_executable(rule, exec_policy,
 		local new_filename = sbox_cputransparency_method
 
 		table.insert(new_argv, sbox_cputransparency_method)
-		-- drop LD_PRELOAD env.var.
-		if conf_cputransparency_qemu_has_env_control_flags then
-			table.insert(new_argv, "-U")
-			table.insert(new_argv, "LD_PRELOAD")
-		else
-			table.insert(new_argv, "-drop-ld-preload")
-		end
+
 		-- target runtime linker comes from /
 		table.insert(new_argv, "-L")
 		table.insert(new_argv, "/")
@@ -678,37 +693,50 @@ function sb_execve_postprocess_cpu_transparency_executable(rule, exec_policy,
 			table.insert(new_argv, "-libattr-hack")
 		end
 
+		local needs_libfakeroot = false
+		if sb.get_session_perm() == "root" then
+			needs_libfakeroot = true
+		end
+
 		if conf_cputransparency_qemu_has_env_control_flags then
 			for i = 1, #envp do
-				-- drop LD_TRACE_* and LD_LIBRARY_PATH from target environment
+				-- drop LD_TRACE_* from target environment
 				if string.match(envp[i], "^LD_TRACE_.*") then
 					-- .. and move to qemu command line 
 					table.insert(new_argv, "-E")
 					table.insert(new_argv, envp[i])
-				elseif string.match(envp[i], "^LD_LIBRARY_PATH=.*") then
-					local h_ldlbrpath = "LD_LIBRARY_PATH=" .. host_ld_library_path
-					if envp[i] == h_ldlbrpath then
-						-- same LD_LIBRARY_PATH as for host; not to be used inside qemu
-						table.insert(new_argv, "-U")
-						table.insert(new_argv, "LD_LIBRARY_PATH")
-						sb.log("debug", "Added -U LD_LIBRARY_PATH for qemu")
-					else
-						-- not the same. Assume that it is meant for the binary:
-						table.insert(new_argv, "-E")
-						table.insert(new_argv, envp[i])
-						sb.log("debug", "Passed LD_LIBRARY_PATH to qemu")
+				elseif string.match(envp[i], "^__SB2_LD_PRELOAD=.*") then
+					if string.match(envp[i], "libfakeroot") then
+						if needs_libfakeroot == false then
+							table.insert(new_envp, "SBOX_SESSION_PERM=root")
+						end
+						needs_libfakeroot = true
 					end
-					-- but use host's original LD_LIBRARY_PATH for qemu itself:
-					table.insert(new_envp, h_ldlbrpath)
+					-- FIXME: This will now drop application's
+					-- LD_PRELOAD. This is not really what should 
+					-- be done; instead we should only drop 
+					-- libfakeroot, not everything... To Be Fixed.
 				else
 					table.insert(new_envp, envp[i])
 				end
 			end
 		else
 			-- copy environment. Some things will be broken with
-			-- this qemu (for example, prelinking won't work, LD_LIBRARY_PATH
-			-- may be totally incorrect, etc)
+			-- this qemu (for example, prelinking won't work, etc)
 			new_envp = envp
+		end
+
+		-- libsb2 will replace LD_PRELOAD and LD_LIBRARY_PATH
+		-- env.vars, we don't need to worry about what the
+		-- application will see in those - BUT we need
+		-- to set those variables for Qemu itself.
+		-- Fortunately that is easy: 
+		table.insert(new_envp, "LD_LIBRARY_PATH=" .. host_ld_library_path)
+		if needs_libfakeroot then
+			table.insert(new_envp, "LD_PRELOAD=" ..
+				host_ld_preload .. ":" .. host_ld_preload_fakeroot)
+		else
+			table.insert(new_envp, "LD_PRELOAD=" .. host_ld_preload)
 		end
 
 		-- unmapped file is exec'd

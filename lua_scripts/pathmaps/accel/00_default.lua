@@ -723,6 +723,10 @@ devel_exec_policies = {
 		-- Target binaries:
 		{prefix = target_root, exec_policy = exec_policy_target},
 
+		-- the place where the session was created is expected
+		-- to contain target binaries:
+		{prefix = sbox_workdir, exec_policy = exec_policy_target},
+
 		-- -----------------------------------------------
 		-- DEFAULT RULE (must exist):
 		{prefix = "/", exec_policy = exec_policy_host_os}

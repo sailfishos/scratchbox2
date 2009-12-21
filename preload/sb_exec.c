@@ -158,6 +158,7 @@ static enum binary_type inspect_elf_binary(const char *);
 static int prepare_exec(const char *exec_fn_name,
 	const char *orig_file, int file_has_been_mapped,
 	char *const *orig_argv, char *const *orig_envp,
+	enum binary_type *typep,
 	char **new_file, char ***new_argv, char ***new_envp);
 
 static void change_environment_variable(
@@ -613,7 +614,9 @@ static int prepare_hashbang(
 	 */
 	result = prepare_exec("run_hashbang", mapped_interpreter,
 		1/*file_has_been_mapped, and rue&policy exist*/,
-		new_argv, *envpp, mapped_file, argvp, envpp);
+		new_argv, *envpp,
+		(enum binary_type*)NULL,
+		mapped_file, argvp, envpp);
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "prepare_hashbang done: mapped_file='%s'",
 			*mapped_file);
@@ -975,6 +978,7 @@ static int prepare_exec(const char *exec_fn_name,
 	int file_has_been_mapped,
 	char *const *orig_argv,
 	char *const *orig_envp,
+	enum binary_type *typep,
 	char **new_file,  /* return value */
 	char ***new_argv,
 	char ***new_envp) /* *new_envp must be filled by the caller */
@@ -1057,6 +1061,7 @@ static int prepare_exec(const char *exec_fn_name,
 
 	/* inspect the completely mangled filename */
 	type = inspect_binary(mapped_file, 1/*check_x_permission*/);
+	if (typep) *typep = type;
 
 	switch (type) {
 		case BIN_HASHBANG:
@@ -1160,6 +1165,7 @@ int do_exec(const char *exec_fn_name, const char *orig_file,
 		int	r;
 		char	**my_envp_copy = NULL; /* used only for debug log */
 		char	*tmp, *binaryname;
+		enum binary_type type;
 
 		tmp = strdup(orig_file);
 		binaryname = strdup(basename(tmp)); /* basename may modify *tmp */
@@ -1181,7 +1187,7 @@ int do_exec(const char *exec_fn_name, const char *orig_file,
 		new_envp = prepare_envp_for_do_exec(orig_file, binaryname, orig_envp);
 
 		r = prepare_exec(exec_fn_name, orig_file, 0, orig_argv, orig_envp,
-			&new_file, &new_argv, &new_envp);
+			&type, &new_file, &new_argv, &new_envp);
 
 		if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
 			/* find out and log if sb_execve_preprocess() did something */
@@ -1195,8 +1201,9 @@ int do_exec(const char *exec_fn_name, const char *orig_file,
 			return(r); /* exec denied */
 		}
 
-		if (check_envp_has_ld_preload_and_ld_library_path(
-			new_envp ? new_envp : orig_envp) == 0) {
+		if ((type != BIN_HOST_STATIC) &&
+		    (check_envp_has_ld_preload_and_ld_library_path(
+			new_envp ? new_envp : orig_envp) == 0)) {
 
 			SB_LOG(SB_LOGLEVEL_ERROR,
 				"exec(%s) failed, internal configuration error: "
@@ -1235,7 +1242,7 @@ int sb2show__execve_mods__(
 	*new_envp = prepare_envp_for_do_exec(file, binaryname, orig_envp);
 
 	ret = prepare_exec("sb2show_exec", file, 0, orig_argv, orig_envp,
-		new_file, new_argv, new_envp);
+		NULL, new_file, new_argv, new_envp);
 
 	if (!*new_file) *new_file = strdup(file);
 	if (!*new_argv) *new_argv = duplicate_argv(orig_argv);

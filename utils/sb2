@@ -875,10 +875,6 @@ END
 	fi
 
 	# 2. Exec settings for rootstrap
-	conf_cputransparency_has_argv0_flag="false"
-	conf_cputransparency_qemu_has_env_control_flags="false"
-	conf_cputransparency_qemu_has_libattr_hack_flag="false"
-
 	if [ "$SBOX_CPUTRANSPARENCY_METHOD" == "" ]; then
 		# CPU transparency method has not been set:
 		# host CPU == target CPU
@@ -920,17 +916,9 @@ conf_target_ld_so_supports_argv0=false
 conf_target_libsb2_dir=nil
 conf_target_locale_path=nil
 END
-
-		case "$SBOX_CPUTRANSPARENCY_METHOD" in	
-		*qemu*)	check_qemu_features $SBOX_CPUTRANSPARENCY_METHOD
-			;;
-		esac
 	fi
 
 	cat <<END >>$SBOX_SESSION_DIR/exec_config.lua
-conf_cputransparency_has_argv0_flag=$conf_cputransparency_has_argv0_flag
-conf_cputransparency_qemu_has_env_control_flags=$conf_cputransparency_qemu_has_env_control_flags
-conf_cputransparency_qemu_has_libattr_hack_flag=$conf_cputransparency_qemu_has_libattr_hack_flag
 
 host_ld_preload_libsb2="$SBOX_LIBSB2"
 host_ld_preload_fakeroot="$HOST_LD_PRELOAD_FAKEROOT"
@@ -942,6 +930,26 @@ host_ld_library_path_libfakeroot="$HOST_LD_LIBRARY_PATH_LIBFAKEROOT"
 host_ld_library_path="$HOST_LD_LIBRARY_PATH_LIBFAKEROOT$HOST_LD_LIBRARY_PATH_PREFIX$HOST_LD_LIBRARY_PATH_LIBSB2$HOST_LD_LIBRARY_PATH_SUFFIX"
 END
 }
+
+function add_cputransparency_settings_to_exec_config_file()
+{
+	conf_cputransparency_has_argv0_flag="false"
+	conf_cputransparency_qemu_has_env_control_flags="false"
+	conf_cputransparency_qemu_has_libattr_hack_flag="false"
+
+	case "$SBOX_CPUTRANSPARENCY_METHOD" in	
+	*qemu*)	check_qemu_features $SBOX_CPUTRANSPARENCY_METHOD
+		;;
+	esac
+
+	cat <<END >>$SBOX_SESSION_DIR/exec_config.lua
+
+conf_cputransparency_has_argv0_flag=$conf_cputransparency_has_argv0_flag
+conf_cputransparency_qemu_has_env_control_flags=$conf_cputransparency_qemu_has_env_control_flags
+conf_cputransparency_qemu_has_libattr_hack_flag=$conf_cputransparency_qemu_has_libattr_hack_flag
+END
+}
+
 
 function get_SBOX_SESSION_DIR_from_file()
 {
@@ -1367,6 +1375,12 @@ export DEB_HOST_GNU_TYPE
 export DEB_HOST_GNU_SYSTEM
 
 export LD_LIBRARY_PATH
+
+# ------------
+# Almost ready..only the CPU transparency settings are missing
+# from the exec config file.
+
+add_cputransparency_settings_to_exec_config_file
 
 # ------------
 # Now everything is ready, programs can be executed in SB2'ed environment.

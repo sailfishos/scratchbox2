@@ -61,8 +61,12 @@ static void usage_exit(const char *progname, const char *errmsg, int exitstatus)
 	    "\tpath [path1] [path2].. show mappings of pathnames\n"
 	    "\twhich [path1] [path2].. (like the 'path' command, but less verbose)\n"
 	    "\trealcwd                show real current working directory\n"
-	    "\texec file argv0 [argv1] [argv2]..\n"
+	    "\texec file [argv1] [argv2]..\n"
 	    "\t                       show execve() modifications\n"
+	    "\texec-cmdline file [argv1] [argv2]..\n"
+	    "\t                       show execve() modifications on\n"
+	    "\t                       a single line (does not show full\n"
+	    "\t                       details)\n"
 	    "\tqemu-debug-exec file argv0 [argv1] [argv2]..\n"
 	    "\t                       show command line that can be used to\n"
 	    "\t                       start target binary under qemu\n"
@@ -166,11 +170,13 @@ static int compar_strvec_elems(const void *e1, const void *e2)
 	return(strcmp(*s1,*s2));
 }
 
-static int diff_strvecs(char **orig_vec, char **new_vec, int verbose)
+static int diff_strvecs(char **orig_vec, char **new_vec,
+	int verbose, int singleline)
 {
 	char **op = orig_vec;
 	char **np = new_vec;
 	int num_diffs = 0;
+	char *sp = "";
 
 	while (op && *op && np && *np) {
 		int r = strcmp(*op,*np);
@@ -186,10 +192,15 @@ static int diff_strvecs(char **orig_vec, char **new_vec, int verbose)
 			if (namelen) {
 				if (!strncmp(*op,*np,namelen+1)) {
 					/* same name: value was modified */
-					printf("%15s: %s\n", "modified, old",
-						 *op);
-					printf("%15s: %s\n", "          new",
-						 *np);
+					if (singleline) {
+						printf("%s%s", sp, *np);
+						sp = " ";
+					} else {
+						printf("%15s: %s\n", "modified, old",
+							 *op);
+						printf("%15s: %s\n", "          new",
+							 *np);
+					}
 					op++, np++;
 					num_diffs++;
 					continue;
@@ -197,24 +208,36 @@ static int diff_strvecs(char **orig_vec, char **new_vec, int verbose)
 			}
 			/* not modified. Something was added or removed. */
 			if (r < 0) {
-				printf("%15s: %s\n", "removed", *op);
+				if (!singleline) {
+					printf("%15s: %s\n", "removed", *op);
+				}
 				op++;
 				num_diffs++;
 				continue;
 			}
-			printf("%15s: %s\n", "added", *np);
+			if (singleline) {
+				printf("%s%s", sp, *np);
+				sp = " ";
+			} else {
+				printf("%15s: %s\n", "added", *np);
+			}
 			num_diffs++;
 			np++;
 		}
 	}
 	/* now either "op" or "np" or both have been processed*/
-	while (op && *op) {
+	if (!singleline) while (op && *op) {
 		printf("%15s: %s\n", "Removed", *op);
 		num_diffs++;
 		op++;
 	}
 	while (np && *np) {
-		printf("%15s: %s\n", "Added", *np);
+		if (!singleline) {
+			printf("%15s: %s\n", "Added", *np);
+		} else {
+			printf("%s%s", sp, *np);
+			sp = " ";
+		}
 		num_diffs++;
 		np++;
 	}
@@ -253,9 +276,47 @@ static void print_exec(void *priv,
 	sort_strvec(new_env);
 
 	printf("Environment:\n");
-	if (diff_strvecs(orig_env, new_env, verbose) == 0) {
+	if (diff_strvecs(orig_env, new_env, verbose, 0/*singleline*/) == 0) {
 		printf(" (no changes)\n");
 	}
+}
+
+/* Print exec parameters on a single line,
+ * used for command "exec-cmdline". Note that this
+ * will not print argv[0] at all or env.vars that 
+ * were cleared. Only the "exec" command show all
+ * information.
+*/
+/*ARGSUSED*/
+static void print_exec_cmdline(void *priv,
+    const char *file, const char *mapped_path,
+    int readonly_flag, char *new_argv[], char *orig_env[],
+    char *new_env[], int verbose)
+{
+	int i;
+
+	(void)priv;
+	(void)file;
+	(void)readonly_flag;
+	(void)verbose;
+
+	/* First, print modified or added environment variables: */
+
+	/* compare orig. and new envs. a very simple diff. */
+	sort_strvec(orig_env);
+	sort_strvec(new_env);
+
+	if (diff_strvecs(orig_env, new_env, 0/*verbose*/, 1/*singleline*/)) {
+		printf(" ");
+	}
+
+	/* next, print the mapped file name + argv[1..(argc-1)] */
+	printf("%s", mapped_path);
+
+	for (i = 1; new_argv[i]; i++) {
+		printf(" %s", new_argv[i]);
+	}
+	printf("\n");
 }
 
 /*ARGSUSED*/
@@ -630,6 +691,11 @@ int main(int argc, char *argv[])
 			progname, argc - (optind+1), argv + optind + 1,
 			additional_env, verbose,
 			print_exec, NULL);
+	} else if (!strcmp(argv[optind], "exec-cmdline")) {
+		command_show_exec(binary_name, function_name,
+			progname, argc - (optind+1), argv + optind + 1,
+			additional_env, 0/*verbose*/,
+			print_exec_cmdline, NULL);
 	} else if (!strcmp(argv[optind], "binarytype")) {
 		command_show_binarytype(binary_name, function_name,
 			verbose, argv + optind + 1);

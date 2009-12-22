@@ -59,10 +59,11 @@ static void usage_exit(const char *errmsg, int exitstatus)
 
 	fprintf(stderr, 
 		"\n%s: Usage:\n"
-		"\t%s [options_for_%s] -- command [parameters]\n"
+		"\t%s [options_for_%s] -- [envvar=val [...]] command [parameters]\n"
 		"\nOptions:\n"
 		"\t-x program\tExecute 'program' after 'command' terminates\n"
 		"\t-d\tEnable debug messages\n"
+		"\t-L lib\tAdd 'lib' to LD_PRELOAD\n"
 		"\nExample:\n"
 		"\t%s -x /bin/echo -- signaltester -n 5\n",
 		progname, progname, progname, progname);
@@ -268,14 +269,7 @@ int main(int argc, char *argv[])
 		
 	case 0: /* child - the worker process */
 		/* child remains in the original process group.. */
-		if (debug) {
-			int	i;
-
-			DEBUG_MSG("child started, exec:\n");
-			for (i=optind; argv[i]; i++) {
-				DEBUG_MSG("[%d]='%s'\n", i, argv[i]);
-			}
-		}
+		DEBUG_MSG("child started\n");
 
 		/* set LD_PRELOAD, so that the binary started by execvp()
 		 * will be running in sb2'ed environment (depending on
@@ -319,7 +313,21 @@ int main(int argc, char *argv[])
 				"no '-L lib' option => LD_PRELOAD not set\n");
 		}
 
-		execvp(argv[optind], argv+optind);
+		while (argv[optind] && strchr(argv[optind], '=')) {
+			DEBUG_MSG("child: putenv(%s)\n", argv[optind]);
+			putenv(argv[optind]);
+			optind++;
+		}
+
+		if (argv[optind]) {
+			int	i;
+
+			DEBUG_MSG("child, exec:\n");
+			for (i=optind; argv[i]; i++) {
+				DEBUG_MSG("[%d]='%s'\n", i, argv[i]);
+			}
+			execvp(argv[optind], argv+optind);
+		}
 		DEBUG_MSG("child: exec failed\n");
 		exit(1);
 	}

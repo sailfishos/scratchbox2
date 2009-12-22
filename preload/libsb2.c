@@ -122,11 +122,22 @@ int sb_next_execve(const char *file, char *const *argv, char *const *envp)
 		char *buf = strvec_to_string(argv);
 
 		if (buf) {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "EXEC: %s : %s", file, buf);
+			SB_LOG(SB_LOGLEVEL_DEBUG, "EXEC: file:%s argv:%s", file, buf);
 			free(buf);
 		} else {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"EXEC: %s (failed to print argv)", file);
+		}
+	}
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE)) {
+		char *buf = strvec_to_string(envp);
+
+		if (buf) {
+			SB_LOG(SB_LOGLEVEL_NOISE, "EXEC/env: %s", buf);
+			free(buf);
+		} else {
+			SB_LOG(SB_LOGLEVEL_NOISE,
+				"EXEC: (failed to print env)");
 		}
 	}
 

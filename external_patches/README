@@ -7,7 +7,8 @@ to be used in the SB2'ed environment.
 
 Short description of the files:
 
-glibc-2.3.6-elf-rtld.c.patch, glibc-2.5-elf-rtld.c.patch
+glibc-2.3.6-elf-rtld.c.patch, glibc-2.5-elf-rtld.c.patch,
+glibc-2.8-elf-rtld.c.patch
 --------------------------------------------------------
 
 	A small patch for the dynamic linker/loader ("ld.so", also known as
@@ -27,7 +28,8 @@ glibc-2.3.6-elf-rtld.c.patch, glibc-2.5-elf-rtld.c.patch
 	Note that this patch causes no harm in the default case, i.e.
 	when the dynamic linker is started "automatically" by the kernel.
 
-glibc-2.5-ld.so-rpath-prefix-option.patch
+glibc-2.5-ld.so-rpath-prefix-option.patch,
+glibc-2.8-ldso-rpath-prefix-option.patch
 -----------------------------------------
 	
 	This patch adds a new option "--rpath-prefix" to ld.so.
@@ -41,7 +43,8 @@ glibc-2.5-ld.so-rpath-prefix-option.patch
 	Note that this patch causes no harm in the default case, i.e.
 	when the dynamic linker is started "automatically" by the kernel.
 
-glibc-2.5-nsswitchconf-location.patch
+glibc-2.5-nsswitchconf-location.patch,
+glibc-2.8-nsswitchconf-location.patch
 -------------------------------------
 	This patch makes location of the /etc/nsswitch.conf file
 	to be run-time configurable via an environment variable.
@@ -51,11 +54,13 @@ glibc-2.5-nsswitchconf-location.patch
 	always read /etc/nsswitch.conf from the host.
 
 glibc-2.5-nscd-socket-location
+glibc-2.8-nscd-socket-location.patch
 ------------------------------
 	This patch makes location of nscd's socket to be run-time
 	configurable via an environment variable.
 
 glibc-2.5-ldso-nodefaultdirs-option
+glibc-2.8-ldso-nodefaultdirs-option.patch
 -----------------------------------
 	Adds a new option "--nodefaultdirs" to ld.so.
 

@@ -11,15 +11,7 @@ sb2rc_mode="$1"
 case "$sb2rc_mode" in
 
 	initializing)
-		SB2INIT_DEB_BUILD_GNU_TYPE=$ARCH-linux-gnueabi
-		SB2INIT_DEB_HOST_GNU_TYPE=$ARCH-linux-gnueabi
 		SB2INIT_CROSS_GCC_PREFIX_LIST=$ARCH-linux-:$ARCH-linux-gnueabi-
-		SB2INIT_DEB_BUILD_GNU_SYSTEM="linux-gnueabi"
-		SB2INIT_DEB_HOST_GNU_SYSTEM="linux-gnueabi"
-
-		SB2INIT_DEB_HOST_ARCH_CPU=$ARCH
-		SB2INIT_DEB_BUILD_ARCH_CPU=$ARCH
-		SB2INIT_DEB_BUILD_ARCH_ABI="gnueabi"
 		;;
 
 	starting)

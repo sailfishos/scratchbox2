@@ -150,6 +150,11 @@ function update_host_ld_library_path()
 	log_config_action "Created LD_LIBRARY_PATH configuration file for host-compatible binaries"
 }
 
+function update_debian_config()
+{
+	$SBOX_DIR/share/scratchbox2/scripts/sb2-config-debian -t $SBOX_TARGET
+}
+
 if [ ! -d $SBOX_CONFIG_DIR ]; then
 	mkdir $SBOX_CONFIG_DIR 
 	log_config_action "Config upgrade: Created configuration directory"
@@ -183,14 +188,22 @@ fi
 # version "16" added "host-ld_library_path.conf"; technically, we
 #		don't have to reconfigure gcc when moving from 15 to 16,
 #		but it is easier to just do everything..
-if [ ! -f $SBOX_CONFIG_DIR/config-stamp.16 ]; then
+# version "17" added a separate tool for configuring DEB_* variables
+#		and gcc configuration sets SBOX_GCC_TARGET even if 
+#		-A option was given to sb2-init
+if [ ! -f $SBOX_CONFIG_DIR/config-stamp.17 ]; then
 	update_toolchain_configs $SB2INIT_COMPILERS
 
 	# DANGER: this will read in the complete old sb2.config file => must
 	# be the last step!! (that file will set various variables...)
 	update_host_ld_library_path
+
+	# ...well, the previous one wasn't the last thing.
+	# "sb2-config-debian" wants to execute the "sb2" command,
+	# so this is the new must-be-the-last-thing:
+	update_debian_config
 fi
 
-log_config_action "Config updated to version #16"
-touch $SBOX_CONFIG_DIR/config-stamp.16
+log_config_action "Config updated to version #17"
+touch $SBOX_CONFIG_DIR/config-stamp.17
 

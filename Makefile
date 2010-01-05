@@ -165,6 +165,7 @@ install-noarch: regular
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-upgrade-config $(prefix)/share/scratchbox2/scripts/sb2-upgrade-config
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-parse-sb2-init-args $(prefix)/share/scratchbox2/scripts/sb2-parse-sb2-init-args
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-config-gcc-toolchain $(prefix)/share/scratchbox2/scripts/sb2-config-gcc-toolchain
+	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-config-debian $(prefix)/share/scratchbox2/scripts/sb2-config-debian
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-check-pkg-mappings $(prefix)/share/scratchbox2/scripts/sb2-check-pkg-mappings
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-exitreport $(prefix)/share/scratchbox2/scripts/sb2-exitreport
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-generate-locales $(prefix)/share/scratchbox2/scripts/sb2-generate-locales

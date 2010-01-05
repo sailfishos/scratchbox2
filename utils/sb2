@@ -61,6 +61,7 @@ Options:
     -C dir       When creating a session, create copy of "dir" and use it as the 
                  target_root (rootstrap).
     -T dir       use "dir" as tools_root (overriding the value from config file)
+    -u           Disable automatic configuration upgrade.
 
 Examples:
     sb2 ./configure
@@ -238,21 +239,39 @@ function load_configuration()
 	. ~/.scratchbox2/$SBOX_TARGET/sb2.config
 	LD_LIBRARY_PATH=$saved_LD_LIBRARY_PATH
 
+	# older sb2.config files had values for the Debian
+	# variables; unset them (this is necessary only if
+	# the target still has an old-format sb2.config)
+	unset DEB_BUILD_ARCH
+	unset DEB_BUILD_ARCH_CPU
+	unset DEB_BUILD_ARCH_ABI
+	unset DEB_BUILD_GNU_CPU
+	unset DEB_BUILD_GNU_TYPE
+	unset DEB_BUILD_GNU_SYSTEM
+	unset DEB_HOST_ARCH
+	unset DEB_HOST_ARCH_OS
+	unset DEB_HOST_ARCH_CPU
+	unset DEB_HOST_GNU_CPU
+	unset DEB_HOST_GNU_TYPE
+	unset DEB_HOST_GNU_SYSTEM
+
 	# Remember where SBOX_TARGET_ROOT was in the configuration file
 	SBOX_TARGET_ROOT_in_config_file=$SBOX_TARGET_ROOT
 
 	#-----------
 	# "New" config system stores configuration to various files
 	# in sb2.config.d directory, and the configuration is automatically
-	# upgraded whenever needed:
+	# upgraded whenever needed (unless prohibited by a command-line option):
 	
 	# check if we need to upgrade configuration:
-	if [ ! -f ~/.scratchbox2/$SBOX_TARGET/sb2.config.d/config-stamp.16 ]; then
-		$SBOX_DIR/share/scratchbox2/scripts/sb2-upgrade-config \
-			$SBOX_TARGET
-		if [ $? != 0 ]; then
-			echo "Failed to upgrade configuration files" >&2
-			exit 1
+	if [ -z "$OPT_DONT_UPGRADE_CONFIGURATION" ]; then
+		if [ ! -f ~/.scratchbox2/$SBOX_TARGET/sb2.config.d/config-stamp.17 ]; then
+			$SBOX_DIR/share/scratchbox2/scripts/sb2-upgrade-config \
+				$SBOX_TARGET
+			if [ $? != 0 ]; then
+				echo "Failed to upgrade configuration files" >&2
+				exit 1
+			fi
 		fi
 	fi
 
@@ -284,6 +303,14 @@ function load_configuration()
 	# to LD_LIBRARY_PATH here. Fakeroot will take care of adding it the
 	# the head, if it has been activated.
 	LD_LIBRARY_PATH="$HOST_LD_LIBRARY_PATH_PREFIX$HOST_LD_LIBRARY_PATH_LIBSB2$HOST_LD_LIBRARY_PATH_SUFFIX"
+
+	#-----------
+	# Get values for the DEB_* variables from the new config file:
+	if [ ! -f $HOME/.scratchbox2/$SBOX_TARGET/sb2.config.d/debian.conf ]; then
+		echo "Fatal: Failed to get Debian build system variables (config file does not exist)"
+		exit 1
+	fi
+	. $HOME/.scratchbox2/$SBOX_TARGET/sb2.config.d/debian.conf
 }
 
 function clone_target_root_dir_from()
@@ -1226,8 +1253,9 @@ OPT_CLONE_TARGET_ROOT="n"
 OPT_CLONE_TARGET_ROOT_FROM=""
 OPT_SESSION_DIR=""
 SBOX_FORCED_TOOLS_ROOT=""
+OPT_DONT_UPGRADE_CONFIGURATION=""
 
-while getopts vdht:em:s:L:Q:M:ZrRS:J:D:W:O:cC:T: foo
+while getopts vdht:em:s:L:Q:M:ZrRS:J:D:W:O:cC:T:u foo
 do
 	case $foo in
 	(v) version; exit 0;;
@@ -1253,6 +1281,7 @@ do
 	(c) OPT_CLONE_TARGET_ROOT="y" ;;
 	(C) OPT_CLONE_TARGET_ROOT_FROM=$OPTARG ;;
 	(T) SBOX_FORCED_TOOLS_ROOT=$OPTARG ;;
+	(u) OPT_DONT_UPGRADE_CONFIGURATION="y" ;;
 	(*) usage ;;
 	esac
 done
@@ -1407,21 +1436,6 @@ fi
 # ------------
 # Export variables that need to be available in environment;
 # don't export anything unnecessary!
-
-export DEB_BUILD_ARCH
-export DEB_BUILD_ARCH_CPU
-export DEB_BUILD_ARCH_ABI
-export DEB_BUILD_GNU_CPU
-export DEB_BUILD_GNU_TYPE
-export DEB_BUILD_GNU_SYSTEM
-
-export DEB_HOST_ARCH
-export DEB_HOST_ARCH_OS
-export DEB_HOST_ARCH_CPU
-
-export DEB_HOST_GNU_CPU
-export DEB_HOST_GNU_TYPE
-export DEB_HOST_GNU_SYSTEM
 
 export LD_LIBRARY_PATH
 

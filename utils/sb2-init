@@ -122,21 +122,6 @@ SBOX_CPU=$ARCH
 SBOX_CPUTRANSPARENCY_METHOD="$SB2INIT_CPUTRANSP"
 SBOX_UNAME_MACHINE=$MACHINE_ARCH
 
-DEB_BUILD_ARCH=$SB2INIT_DEB_BUILD_ARCH
-DEB_BUILD_ARCH_CPU=$SB2INIT_DEB_BUILD_ARCH_CPU
-DEB_BUILD_ARCH_ABI=$SB2INIT_DEB_BUILD_ARCH_ABI
-DEB_BUILD_GNU_CPU=$ARCH
-DEB_BUILD_GNU_TYPE=$SB2INIT_DEB_BUILD_GNU_TYPE
-DEB_BUILD_GNU_SYSTEM=$SB2INIT_DEB_BUILD_GNU_SYSTEM
-
-DEB_HOST_ARCH=$DEBIAN_CPU
-DEB_HOST_ARCH_OS=$SB2INIT_DEB_HOST_ARCH_OS
-DEB_HOST_ARCH_CPU=$SB2INIT_DEB_HOST_ARCH_CPU
-
-DEB_HOST_GNU_CPU=$ARCH
-DEB_HOST_GNU_TYPE=$SB2INIT_DEB_HOST_GNU_TYPE
-DEB_HOST_GNU_SYSTEM=$SB2INIT_DEB_HOST_GNU_SYSTEM
-
 SBOX_HOST_GCC_NAME=host-gcc
 SBOX_HOST_GCC_PREFIX_LIST=host-
 SBOX_HOST_GCC_SUBST_PREFIX=
@@ -322,30 +307,17 @@ else
 	echo "sb2-init: Target machine is '$SB2INIT_MACHINE_ARCH'"
 fi
 
-DEBIAN_CPU=$ARCH
-
 HOST_ARCH="$(uname -m)"
 if echo "$HOST_ARCH" | grep -q "^i.86*"; then
 	HOST_ARCH="i[3456]86"
 fi
 echo "sb2-init: Host architecture is '$HOST_ARCH'"
 
+DEFAULT_CPUTRANSP=""
 case "$ARCH" in
 	$HOST_ARCH*) ;;
 
-	arm*) 
-		# SBOX_GCC_TARGET from gcc.config.sh..
-		if [ -z "$SBOX_GCC_TARGET" ]; then
-			DEBIAN_CPU=$ARCH
-		else
-			echo $SBOX_GCC_TARGET | grep -q -i eabi
-			if [ $? == 0 ]; then
-				DEBIAN_CPU=armel
-			fi
-		fi
-		DEFAULT_CPUTRANSP="qemu-$ARCH"
-		;;
-
+	arm*)	DEFAULT_CPUTRANSP="qemu-$ARCH" ;;
 	ppc*)	DEFAULT_CPUTRANSP="qemu-$ARCH" ;;
 	mips*)	DEFAULT_CPUTRANSP="qemu-$ARCH" ;;
 	sh*)	DEFAULT_CPUTRANSP="qemu-$ARCH" ;;
@@ -398,26 +370,11 @@ if ! expr "$ARCH" : "$HOST_ARCH" > /dev/null ; then
 	fi
 fi
 
-# defaults for SB2_INIT_DEB_BUILD_GNU_TYPE, SB2_INIT_DEB_HOST_GNU_TYPE, etc,
-# and the cross-gcc prefix list:
-# these may be changed by sb2rc.$MAPPING_MODE
-SB2INIT_DEB_BUILD_ARCH=$DEBIAN_CPU
-SB2INIT_DEB_BUILD_ARCH_ABI="gnu"
-SB2INIT_DEB_BUILD_GNU_TYPE=$ARCH-linux-gnu
-SB2INIT_DEB_BUILD_GNU_SYSTEM=""
-SB2INIT_DEB_BUILD_ARCH_CPU=$DEBIAN_CPU
-
-SB2INIT_DEB_HOST_GNU_TYPE=$ARCH-linux-gnu
-SB2INIT_DEB_HOST_GNU_SYSTEM=""
-SB2INIT_DEB_HOST_ARCH_OS="linux"
-SB2INIT_DEB_HOST_ARCH_CPU=$DEBIAN_CPU
-
 # $ARCH has been set, get mode-specific settings..
 if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$MAPPING_MODE ]; then
 	echo "Reading mode-specific settings.."
 	. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$MAPPING_MODE "initializing"
 fi
-
 
 if [ ! $SB2INIT_SKIP_CHECKS ]; then
 	check_buildroot_sanity
@@ -455,8 +412,22 @@ if [ -n "$SB2INIT_REMOTEHOST" ]; then
 	write_sbrsh_config
 fi
 
+# ---------------------------
+# The target can be used now; it is possible to 
+# finalize the configuration by running programs in the new environment.
+
 if [ $SB2INIT_SET_AS_DEFAULT == 1 ]; then
 	sb2-config -d $TARGET
+fi
+
+# if the target system is (based on) debian,
+# DEB_* environment variables are needed. We'll set them in any case:
+echo "sb2-init: Creating Debian build system settings for this target:"
+$SBOX_DIR/share/scratchbox2/scripts/sb2-config-debian -t $TARGET
+if [ $? != 0 ]; then
+	log_config_action "sb2-init: failed run sb2-config-debian"
+	echo "sb2-init: sb2-config-debian failed."
+	exit 1
 fi
 
 #

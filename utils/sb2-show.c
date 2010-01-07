@@ -18,6 +18,7 @@
 
 #include "exported.h"
 #include "sb2.h"
+#include "scratchbox2_version.h"
 
 #ifdef HAVE_CRT_EXTERNS_H
 #include <crt_externs.h>
@@ -29,6 +30,112 @@
   extern char **environ;
  #endif
 #endif
+
+static void *libsb2_handle = NULL;
+
+/* -------------------- wrappers functions for calling functions from
+ * 			libsb2.so; if sb2-show is executed outside of
+ *			an sb2 session, libsb2.so is not available.
+*/
+
+/* create a wrapper to a function returning void */
+#define LIBSB2_VOID_CALLER(funct_name, param_list, param_names) \
+	static void call_ ## funct_name param_list \
+	{ \
+		static	void *fnptr = NULL; \
+		if (!fnptr && libsb2_handle) \
+			fnptr = dlsym(libsb2_handle, #funct_name); \
+		if (fnptr) { \
+			((void(*)param_list)fnptr)param_names; \
+			return; \
+		} \
+	} \
+	extern void funct_name param_list; /* ensure that we got the prototype right */
+
+/* create a wrapper to a function with returns something */
+#define LIBSB2_CALLER(return_type, funct_name, param_list, param_names, errorvalue) \
+	static return_type call_ ## funct_name param_list \
+	{ \
+		static	void *fnptr = NULL; \
+		if (!fnptr && libsb2_handle) \
+			fnptr = dlsym(libsb2_handle, #funct_name); \
+		if (fnptr) { \
+			return(((return_type(*)param_list)fnptr)param_names); \
+		} \
+		return(errorvalue); \
+	} \
+	extern return_type funct_name param_list; /* ensure that we got the prototype right */
+
+/* create call_sb2show__binary_type__() */
+LIBSB2_CALLER(char *, sb2show__binary_type__,
+	(const char *filename), (filename),
+	NULL)
+
+/* create call_sb2show__map_path2__() */
+LIBSB2_CALLER(char *, sb2show__map_path2__,
+	(const char *binary_name, const char *mapping_mode,
+	const char *fn_name, const char *pathname, int *readonly),
+	(binary_name, mapping_mode, fn_name, pathname, readonly),
+	NULL)
+
+/* create call_sb2show__execve_mods__() */
+LIBSB2_CALLER(int, sb2show__execve_mods__,
+	(char *file, char *const *orig_argv, char *const *orig_envp,
+	char **new_file, char ***new_argv, char ***new_envp),
+	(file, orig_argv, orig_envp, new_file, new_argv, new_envp),
+	-1)
+
+/* create call_sb2__set_active_exec_policy_name__() */
+LIBSB2_VOID_CALLER(sb2__set_active_exec_policy_name__,
+	(const char *name), (name))
+
+/* create call_sb2__load_and_execute_lua_file__() */
+LIBSB2_VOID_CALLER(sb2__load_and_execute_lua_file__,
+	(const char *filename), (filename))
+
+/* create call_sb2__lua_c_interface_version__() */
+LIBSB2_CALLER(const char *, sb2__lua_c_interface_version__,
+	(void), (), NULL)
+
+/* create call_sb2show__get_real_cwd__() */
+LIBSB2_CALLER(char *, sb2show__get_real_cwd__,
+	(const char *binary_name, const char *fn_name),
+	(binary_name, fn_name),
+	NULL)
+
+/* create call_sblog_vprintf_line_to_logfile() */
+LIBSB2_VOID_CALLER(sblog_vprintf_line_to_logfile,
+	(const char *file, int line,
+        int level, const char *format, va_list ap),
+	(file, line, level, format, ap))
+
+/* create call_sb2__read_string_variable_from_lua__() */
+LIBSB2_CALLER(char *, sb2__read_string_variable_from_lua__,
+	(const char *name), (name), NULL)
+
+int sb_loglevel__ = SB_LOGLEVEL_uninitialized;
+
+/* need to have a copy of sblog_printf_line_to_logfile() here;
+ * variable arguments are not compatible with the LIBSB2_CALLER()
+ * thing above. Must use va_lists instead.
+*/
+void sblog_printf_line_to_logfile(
+	const char      *file,
+	int             line,
+	int             level,
+	const char      *format,
+	...)
+{
+	va_list ap;
+
+	if (sb_loglevel__ == SB_LOGLEVEL_uninitialized) return;
+
+	va_start(ap, format);
+	call_sblog_vprintf_line_to_logfile(file, line, level, format, ap);
+	va_end(ap);
+}
+
+/* -------------------- end of wrappers functions. */
 
 static void usage_exit(const char *progname, const char *errmsg, int exitstatus)
 {
@@ -98,7 +205,7 @@ static int command_show_variable(
 	const char *progname, 
 	const char *varname)
 {
-	char *value = sb2__read_string_variable_from_lua__(varname);
+	char *value = call_sb2__read_string_variable_from_lua__(varname);
 
 	if (value) {
 		if (verbose) printf("%s = \"%s\"\n", varname, value);
@@ -379,14 +486,14 @@ static void command_show_exec(
 	/* add user-specified environment varaibles */
 	orig_env = join_env_vecs(orig_env0, additional_env);
 
-	if (sb2show__execve_mods__(argv[0], argv, orig_env,
+	if (call_sb2show__execve_mods__(argv[0], argv, orig_env,
 		&new_file, &new_argv, &new_envp) < 0) {
 		printf("Exec denied (%s)\n", strerror(errno));
 	} else {
 		/* do_exec() will map the path just after argvenvp
 		 * modifications have been done, do that here also
 		*/
-		mapped_path = sb2show__map_path2__(binary_name,
+		mapped_path = call_sb2show__map_path2__(binary_name,
 		    "", fn_name, new_file, &readonly_flag);
 
 		if (!mapped_path) {
@@ -406,7 +513,7 @@ static void command_show_path(const char *binary_name, const char *fn_name,
 	int	readonly_flag;
 
 	while (*argv) {
-		mapped_path = sb2show__map_path2__(binary_name, "", 
+		mapped_path = call_sb2show__map_path2__(binary_name, "", 
 			fn_name, *argv, &readonly_flag);
 		if (!mapped_path) {
 			printf("%s: Mapping failed\n", *argv);
@@ -430,12 +537,12 @@ static void command_show_binarytype(const char *binary_name,
 	while (*argv) {
 		/* sb2show__binary_type__() operates on
 		 * real paths; map the path first.. */
-		mapped_path = sb2show__map_path2__(binary_name, "",
+		mapped_path = call_sb2show__map_path2__(binary_name, "",
 			fn_name, *argv, &readonly_flag);
 		if (!mapped_path) {
 			printf("%s: Mapping failed\n", *argv);
 		} else {
-			char *type = sb2show__binary_type__(mapped_path);
+			char *type = call_sb2show__binary_type__(mapped_path);
 			if (verbose) {
 				printf("%s: %s\n", mapped_path, type);
 			} else {
@@ -451,7 +558,7 @@ static void command_show_realcwd(const char *binary_name, const char *fn_name)
 {
 	char	*real_cwd_path = NULL;
 
-	real_cwd_path = sb2show__get_real_cwd__(binary_name, fn_name);
+	real_cwd_path = call_sb2show__get_real_cwd__(binary_name, fn_name);
 	printf("%s\n", real_cwd_path ? real_cwd_path : "<null>");
 }
 
@@ -533,7 +640,7 @@ static int command_verify_pathlist_mappings(
 
 		if (ignore_this) continue;
 
-		mapped_path = sb2show__map_path2__(binary_name, "",
+		mapped_path = call_sb2show__map_path2__(binary_name, "",
 				fn_name, path_buf, &readonly_flag);
 		if (!mapped_path) {
 			if (verbose)
@@ -587,7 +694,7 @@ static void command_log(char **argv, int loglevel)
 
 static void command_show_libraryinterface(void)
 {
-	printf("%s\n", sb2__lua_c_interface_version__());
+	printf("%s\n", call_sb2__lua_c_interface_version__());
 }
 
 int main(int argc, char *argv[])
@@ -606,21 +713,6 @@ int main(int argc, char *argv[])
 	char	**additional_env = NULL;
 	char	*debug_port = "1234";
 	
-#if 0 || defined(enable_this_after_sb2_preload_library_startup_has_been_fixed)
-	/* FIXME: this should be able to check if we are inside the sb2
-	 * sandbox, but that is not currently possible (instead initialization
-	 * of the preload library will fail even before main() is entered.
-	 * this happens because the preload library was not designed to
-	 * be used as ordinary library, which is exactly what we are doing 
-	 * now... initialization code of the library should be modified.
-	*/
-
-	/* check that we are running inside 'sb2' environment */
-	if (!getenv("SBOX_SESSION_DIR")) {
-		usage_exit(progname, "Not inside scratchboxed environment", 1);
-	}
-#endif
-
 	while ((opt = getopt(argc, argv, "hm:f:b:Dvtg:x:X:E:p:")) != -1) {
 		switch (opt) {
 		case 'h': usage_exit(progname, NULL, 0); break;
@@ -631,7 +723,7 @@ int main(int argc, char *argv[])
 			break;
 		case 'f': function_name = optarg; break;
 		case 'b': binary_name = optarg; break;
-		case 'p': sb2__set_active_exec_policy_name__(optarg); break;
+		case 'p': call_sb2__set_active_exec_policy_name__(optarg); break;
 		case 'D': ignore_directories = 1; break;
 		case 'v': verbose = 1; break;
 		case 't': report_time = 1; break;
@@ -658,6 +750,34 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	/* disable mapping; dlopen must run without mapping. */
+	setenv("SBOX_DISABLE_MAPPING", "1", 1/*overwrite*/);
+	libsb2_handle = dlopen(LIBSB2_SONAME, RTLD_NOW);
+	if (libsb2_handle) {
+
+		if (verbose) {
+			printf("%s: libsb2 FOUND\n", progname);
+		}
+		int *loglevelptr = NULL;
+		loglevelptr = dlsym(libsb2_handle, "sb_loglevel__");
+		if (loglevelptr) {
+			sb_loglevel__ = *loglevelptr;
+		} else {
+			sb_loglevel__ = 0;
+		}
+	} else {
+		if (verbose) {
+			printf("%s: libsb2 was not found\n", progname);
+		}
+		sb_loglevel__ = 0;
+	}
+	/* enable mapping */
+	unsetenv("SBOX_DISABLE_MAPPING");
+
+	if (!libsb2_handle) 
+		usage_exit(progname, "This command can only be used "
+			"inside a session (e.g. 'sb2 sb2-show ...')", 1);
+
 	/* check parameters */
 	if (optind >= argc) 
 		usage_exit(progname, "Wrong number of parameters", 1);
@@ -666,7 +786,7 @@ int main(int argc, char *argv[])
 	 * -x and -t options were used)
 	*/
 	if (pre_cmd_file)
-		sb2__load_and_execute_lua_file__(pre_cmd_file);
+		call_sb2__load_and_execute_lua_file__(pre_cmd_file);
 
 	if (report_time) {
 		if (gettimeofday(&start_time, (struct timezone *)NULL) < 0) {
@@ -715,7 +835,7 @@ int main(int argc, char *argv[])
 	} else if (!strcmp(argv[optind], "var")) {
 		ret = command_show_variable(verbose, progname, argv[optind+1]);
 	} else if (!strcmp(argv[optind], "execluafile")) {
-		sb2__load_and_execute_lua_file__(argv[optind+1]);
+		call_sb2__load_and_execute_lua_file__(argv[optind+1]);
 	} else {
 		usage_exit(progname, "Unknown command", 1);
 	}
@@ -741,7 +861,7 @@ int main(int argc, char *argv[])
 	 * (if both -X and -t options were used)
 	*/
 	if (post_cmd_file)
-		sb2__load_and_execute_lua_file__(post_cmd_file);
+		call_sb2__load_and_execute_lua_file__(post_cmd_file);
 
 	return(ret);
 }

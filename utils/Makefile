@@ -3,10 +3,10 @@
 
 $(D)/sb2-show: CFLAGS := $(CFLAGS) -Wall -W -Werror \
 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
-		-I$(SRCDIR)/include
+		-I$(SRCDIR)/include -ldl
 
 $(D)/sb2-show.o: preload/exported.h
-$(D)/sb2-show: preload/libsb2.$(SHLIBEXT) $(D)/sb2-show.o
+$(D)/sb2-show: $(D)/sb2-show.o
 	$(MKOUTPUTDIR)
 	$(P)LD
 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^

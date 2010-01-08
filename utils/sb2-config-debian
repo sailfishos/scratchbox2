@@ -81,9 +81,16 @@ fi
 
 SBOX_CONFIG_DIR=~/.scratchbox2/$TARGET/sb2.config.d 
 
-# get ARCH from the primary gcc config file
-. $SBOX_CONFIG_DIR/gcc.config.sh
-ARCH=$SB2_GCC_INIT_ARCH
+if [ -f $SBOX_CONFIG_DIR/gcc.config.sh ]; then
+	# configured with a cross-compiler;
+	# get ARCH from the primary gcc config file
+	. $SBOX_CONFIG_DIR/gcc.config.sh
+	ARCH=$SB2_GCC_INIT_ARCH
+else
+	# No gcc. Use the value which was specified to sb2-init
+	. $SBOX_CONFIG_DIR/sb2-init-args
+	ARCH=$SB2INIT_ARCH
+fi
 
 # set DEBIAN_CPU. For some targets it is not the same as $ARCH
 DEBIAN_CPU=$ARCH

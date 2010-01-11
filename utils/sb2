@@ -599,12 +599,34 @@ function write_ld_library_path_replacement_to_exec_config()
 }
 
 # Test if qemu has "-0 argv0" and "-E envvar=value" flags, and/or
-# "-libattr-hack"
+# "-libattr-hack", and find out how it should be executed (i.e.
+# if qemu lives inside tools_root, then a non-standard startup
+# might be needed)
 function check_qemu_features()
 {
 	qemu_path=$1
 
-	test_output=`$qemu_path -h | grep '^-0'`
+	# Use "sb2-show" to find out how qemu should be executed
+	# (qemu might be under tools_root => it might need to
+	# use ld.so and libraries from tools)
+	sb2-monitor \
+		-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
+		exec-cmdline \
+		$qemu_path \
+		>$SBOX_SESSION_DIR/qemu_cmdline
+	if [ $? != 0 ]; then
+		exit_error "Failed to find out how $qemu_path should be started"
+	fi
+
+	# run qemu -h
+	sb2-monitor \
+		-L $SBOX_LIBSB2 -- \
+		`cat $SBOX_SESSION_DIR/qemu_cmdline` -h \
+		>$SBOX_SESSION_DIR/qemu_help
+	# we don't test $? here, qemu -h returns with a non-zero
+	# argument anyway
+
+	test_output=`grep '^-0' $SBOX_SESSION_DIR/qemu_help`
 	if [ -n "$test_output" ]; then
 		# -0 is supported
 		conf_cputransparency_has_argv0_flag="true"
@@ -612,7 +634,7 @@ function check_qemu_features()
 		conf_cputransparency_has_argv0_flag="false"
 	fi
 
-	test_output=`$qemu_path -h | grep '^-E'`
+	test_output=`grep '^-E' $SBOX_SESSION_DIR/qemu_help`
 	if [ -n "$test_output" ]; then
 		# -E is supported
 		conf_cputransparency_qemu_has_env_control_flags="true"
@@ -620,11 +642,32 @@ function check_qemu_features()
 		conf_cputransparency_qemu_has_env_control_flags="false"
 	fi
 
-	test_output=`$qemu_path -h | grep '^-libattr-hack'`
+	test_output=`grep '^-libattr-hack' $SBOX_SESSION_DIR/qemu_help`
 	if [ -n "$test_output" ]; then
 		conf_cputransparency_qemu_has_libattr_hack_flag="true"
 	else
 		conf_cputransparency_qemu_has_libattr_hack_flag="false"
+	fi
+
+	qemu_argv=""
+	for qemuarg in `cat $SBOX_SESSION_DIR/qemu_cmdline`; do
+		case "$qemuarg" in
+		LD_LIBRARY_PATH=*)
+			conf_cputransparency_qemu_ld_library_path=$qemuarg ;;
+		LD_PRELOAD=*)
+			conf_cputransparency_qemu_ld_preload=$qemuarg ;;
+		__SB2_*=*) # skip it
+			;;
+		*)
+			if [ -z "$qemu_argv" ]; then
+				qemu_argv="'$qemuarg'"
+			else
+				qemu_argv="$qemu_argv,'$qemuarg'"
+			fi ;;
+		esac
+	done
+	if [ -n "$qemu_argv" ]; then
+		conf_cputransparency_qemu_argv="{$qemu_argv}"
 	fi
 }
 
@@ -936,6 +979,9 @@ function add_cputransparency_settings_to_exec_config_file()
 	conf_cputransparency_has_argv0_flag="false"
 	conf_cputransparency_qemu_has_env_control_flags="false"
 	conf_cputransparency_qemu_has_libattr_hack_flag="false"
+	conf_cputransparency_qemu_ld_library_path=""
+	conf_cputransparency_qemu_ld_preload=""
+	conf_cputransparency_qemu_argv="nil"
 
 	case "$SBOX_CPUTRANSPARENCY_METHOD" in	
 	*qemu*)	check_qemu_features $SBOX_CPUTRANSPARENCY_METHOD
@@ -947,6 +993,9 @@ function add_cputransparency_settings_to_exec_config_file()
 conf_cputransparency_has_argv0_flag=$conf_cputransparency_has_argv0_flag
 conf_cputransparency_qemu_has_env_control_flags=$conf_cputransparency_qemu_has_env_control_flags
 conf_cputransparency_qemu_has_libattr_hack_flag=$conf_cputransparency_qemu_has_libattr_hack_flag
+conf_cputransparency_qemu_ld_library_path="$conf_cputransparency_qemu_ld_library_path"
+conf_cputransparency_qemu_ld_preload="$conf_cputransparency_qemu_ld_preload"
+conf_cputransparency_qemu_argv=$conf_cputransparency_qemu_argv
 END
 }
 

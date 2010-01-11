@@ -66,6 +66,8 @@ mapall_chain = {
 	rules = {
 		{dir = session_dir, use_orig_path = true},
 
+		{path = conf_tools_ld_so, use_orig_path = true, readonly = true},
+
 		{path = sbox_cputransparency_method, use_orig_path = true,
 		 readonly = true},
 
@@ -276,17 +278,71 @@ local exec_policy_target = {
 	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
 }
 
+--
+-- For tools: If tools_root is set and libsb2 has been installed there,
+-- then dynamic libraries can be used from tools_root (otherwise we'll
+-- be using the libs from the host OS)
+
+tools = tools_root
+if (not tools) then
+	tools = "/"
+end
+
+local emulate_mode_tools_ld_so = nil		-- default = not needed
+local emulate_mode_tools_ld_library_path_prefix = ""
+local emulate_mode_tools_ld_library_path_suffix = ""
+
+if ((tools_root ~= nil) and conf_tools_sb2_installed) then
+	if (conf_tools_ld_so ~= nil) then
+		-- Ok to use dynamic libraries from tools!
+		emulate_mode_tools_ld_so = conf_tools_ld_so
+	end
+	emulate_mode_tools_ld_library_path_prefix = conf_tools_ld_so_library_path
+	if (conf_tools_locale_path ~= nil) then
+		-- use locales from tools
+		devel_mode_locale_path = conf_tools_locale_path
+	end
+else
+	emulate_mode_tools_ld_library_path_prefix =
+		host_ld_library_path_libfakeroot ..
+		host_ld_library_path_prefix ..
+		host_ld_library_path_libsb2
+	emulate_mode_tools_ld_library_path_suffix =
+		host_ld_library_path_suffix
+end
+
+local exec_policy_tools = {
+	name = "Tools",
+	native_app_ld_so = emulate_mode_tools_ld_so,
+	native_app_ld_so_supports_argv0 = conf_tools_ld_so_supports_argv0,
+	native_app_ld_so_supports_rpath_prefix = conf_tools_ld_so_supports_rpath_prefix,
+	native_app_ld_so_rpath_prefix = tools,
+	native_app_ld_so_supports_nodefaultdirs = conf_tools_ld_so_supports_nodefaultdirs,
+
+	native_app_ld_library_path_prefix = emulate_mode_tools_ld_library_path_prefix,
+	native_app_ld_library_path_suffix = emulate_mode_tools_ld_library_path_suffix,
+
+	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
+}
+
+
 -- Note that the real path (mapped path) is used when looking up rules!
 all_exec_policies_chain = {
 	next_chain = nil,
 	binary = nil,
 	rules = {
+		-- Tools. at least qemu might be used from there.
+		{prefix = tools, exec_policy = exec_policy_tools},
+
                 -- the home directory is expected to contain target binaries:
                 {prefix = sbox_user_home_dir, exec_policy = exec_policy_target},
 
 		-- Target binaries:
 		{prefix = target_root, exec_policy = exec_policy_target},
 
+		-- the place where the session was created is expected
+		-- to contain target binaries:
+		{prefix = sbox_workdir, exec_policy = exec_policy_target},
 
 		-- DEFAULT RULE (must exist):
 		{prefix = "/", exec_policy = default_exec_policy}
@@ -301,6 +357,7 @@ exec_policy_chains = {
 -- process wants to locate the currently active policy
 all_exec_policies = {
 	exec_policy_target,
+	exec_policy_tools,
 	default_exec_policy,
 }
 

@@ -230,7 +230,7 @@ function setenv_native_app_ld_library_path(exec_policy, envp)
 	if (new_path == nil) then
 		sb.log("debug", "No value for LD_LIBRARY_PATH, using host's path")
 		-- Use host's original value
-		new_path = "LD_LIBRARY_PATH=" .. host_ld_library_path
+		new_path = host_ld_library_path
 	end
 
 	local ld_library_path_index = locate_ld_library_path(envp)
@@ -669,9 +669,17 @@ function sb_execve_postprocess_cpu_transparency_executable(rule, exec_policy,
 	if cputransparency_method_is_qemu then
 		local new_envp = {}
 		local new_argv = {}
-		local new_filename = sbox_cputransparency_method
+		local new_filename
 
-		table.insert(new_argv, sbox_cputransparency_method)
+		if conf_cputransparency_qemu_argv == nil then
+			table.insert(new_argv, sbox_cputransparency_method)
+			new_filename = sbox_cputransparency_method
+		else
+			for i = 1, table.maxn(conf_cputransparency_qemu_argv) do
+				table.insert(new_argv, conf_cputransparency_qemu_argv[i])
+			end
+			new_filename = conf_cputransparency_qemu_argv[1]
+		end
 
 		-- target runtime linker comes from /
 		table.insert(new_argv, "-L")
@@ -731,13 +739,33 @@ function sb_execve_postprocess_cpu_transparency_executable(rule, exec_policy,
 		-- application will see in those - BUT we need
 		-- to set those variables for Qemu itself.
 		-- Fortunately that is easy: 
-		table.insert(new_envp, "LD_LIBRARY_PATH=" .. host_ld_library_path)
-		if needs_libfakeroot then
-			table.insert(new_envp, "LD_PRELOAD=" ..
-				host_ld_preload .. ":" .. host_ld_preload_fakeroot)
+		local qemu_ldlibpath
+		local qemu_ldpreload
+		if conf_cputransparency_qemu_ld_library_path == "" then
+			qemu_ldlibpath = "LD_LIBRARY_PATH=" .. host_ld_library_path
 		else
-			table.insert(new_envp, "LD_PRELOAD=" .. host_ld_preload)
+			qemu_ldlibpath = conf_cputransparency_qemu_ld_library_path
 		end
+		if conf_cputransparency_qemu_ld_preload == "" then
+			qemu_ldpreload = "LD_PRELOAD=" ..  host_ld_preload
+		else
+			qemu_ldpreload = conf_cputransparency_qemu_ld_preload
+		end
+
+		-- NOTE/FIXME: This still assumes that the name of the libfakeroot
+		-- library is the same as what is used on the host. This is 
+		-- usually (always?) the case, and if it isn't, there is
+		-- something fatally wrong anyway. That is why 
+		-- "host_ld_preload_fakeroot" is used here, even if "host_*"
+		-- should not be mixed to things that might actually come from
+		-- the target. But using libsb2 and libfakeroot at the same
+		-- time is a complex thing...
+		if needs_libfakeroot then
+			qemu_ldpreload = qemu_ldpreload ..  ":" .. host_ld_preload_fakeroot
+		end
+
+		table.insert(new_envp, qemu_ldlibpath)
+		table.insert(new_envp, qemu_ldpreload)
 
 		-- unmapped file is exec'd
 		table.insert(new_argv, filename)

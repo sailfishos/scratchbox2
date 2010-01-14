@@ -91,6 +91,8 @@ GATE: int glob64 (const char *pattern, int flags, \
 	int (*errfunc) (const char *, int), glob64_t *pglob) :
 #endif
 
+GATE: int system (const char *line) :
+
 --    These gates just log what happened:
 GATE: void _exit(int status)
 GATE: void _Exit(int status)

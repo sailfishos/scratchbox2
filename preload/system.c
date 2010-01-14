@@ -1,3 +1,5 @@
+/* copied from sources of glibc-2.8 and adapted for Scratchbox 2 by Lauri T. Aarnio */
+
 /* Copyright (C) 1991-2000,2002,2003,2005,2007 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
@@ -24,8 +26,25 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <bits/libc-lock.h>
+#if 0
 #include <sysdep-cancel.h>
+#endif
 
+#if 1 /* sb2 */
+#include "libsb2.h"
+#include "exported.h"
+
+#if 0
+#define __sigemptyset	sigemptyset
+#endif
+#define __sigaction	sigaction
+#define __sigaddset	sigaddset
+#define __sigprocmask	sigprocmask
+#define __set_errno(x)	(errno=(x))
+#define __fork		fork
+#define __execve	execve
+#define __waitpid	waitpid
+#endif
 
 #define	SHELL_PATH	"/bin/sh"	/* Path of the shell.  */
 #define	SHELL_NAME	"sh"		/* Name to give it.  */
@@ -134,6 +153,7 @@ do_system (const char *line)
       INIT_LOCK ();
 
       /* Exec the shell.  */
+      SB_LOG(SB_LOGLEVEL_DEBUG, "system(%s)", line);
       (void) __execve (SHELL_PATH, (char *const *) new_argv, __environ);
       _exit (127);
     }
@@ -148,6 +168,7 @@ do_system (const char *line)
 	 have to do anything here.  */
       if (TEMP_FAILURE_RETRY (__waitpid (pid, &status, 0)) != pid)
 	status = -1;
+      SB_LOG(SB_LOGLEVEL_DEBUG, "system: waitpid => status=%d", status);
     }
 
 #ifdef CLEANUP_HANDLER
@@ -174,17 +195,24 @@ do_system (const char *line)
   return status;
 }
 
-int
-__libc_system (const char *line)
+static int
+sb2_libc_system (const char *line)
 {
   if (line == NULL)
     /* Check that we have a command processor available.  It might
        not be available after a chroot(), for example.  */
     return do_system ("exit 0") == 0;
 
+#if 0
+  /* FIXME: sb2 now uses this as if the program
+   * was single-threaded always. this is of course
+   * false assumption.
+  */
   if (SINGLE_THREAD_P)
+#endif
     return do_system (line);
 
+#if 0
   int oldtype = LIBC_CANCEL_ASYNC ();
 
   int result = do_system (line);
@@ -192,5 +220,18 @@ __libc_system (const char *line)
   LIBC_CANCEL_RESET (oldtype);
 
   return result;
+#endif
 }
-weak_alias (__libc_system, system)
+
+/* ------------ End Of glibc-Based Code ------------ */
+
+/* sb2: */
+int system_gate(int (*real_system_ptr)(const char *line),
+        const char *realfnname, const char *line)
+{
+	(void)real_system_ptr;
+	(void)realfnname;
+	SB_LOG(SB_LOGLEVEL_DEBUG, "system(%s)", line);
+	return(sb2_libc_system(line));
+}
+

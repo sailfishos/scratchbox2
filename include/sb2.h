@@ -67,10 +67,15 @@ struct lua_instance {
  *   - LD_PRELOAD and LD_LIBRARY_PATH environment variables
  *     must be set by the exec postprocessing code (in argvenvp.lua);
  *     sb_exec.c refuses to exec the program if these two are not set.
+ * * Differences between "67" and "66"
+ *   - Introduced a wrapper for system() (no real changes to the
+ *     interface, but this fixes a serious bug introduced by the
+ *     previous change; this number is incremented to force an
+ *     upgrade now!)
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "66"
+#define SB2_LUA_C_INTERFACE_VERSION "67"
 
 extern struct lua_instance *get_lua(void);
 extern void release_lua(struct lua_instance *ptr);

@@ -30,6 +30,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <dirent.h>
 
 #include <config.h>
 
@@ -64,6 +65,7 @@ static void usage_exit(const char *errmsg, int exitstatus)
 		"\t-x program\tExecute 'program' after 'command' terminates\n"
 		"\t-d\tEnable debug messages\n"
 		"\t-L lib\tAdd 'lib' to LD_PRELOAD\n"
+		"\t-e envdir\tRead additional environment variables from 'envdir'\n"
 		"\nExample:\n"
 		"\t%s -x /bin/echo -- signaltester -n 5\n",
 		progname, progname, progname, progname);
@@ -226,6 +228,56 @@ static void catch_all_signals(void)
 #endif
 }
 
+static void read_env_vars_from_dir(const char *envdir)
+{
+	DIR	*ed;
+
+	DEBUG_MSG("read_env_vars_from_dir(%s)\n", envdir);
+	
+	ed = opendir(envdir);
+	if (ed) {
+		while(1) {
+			struct dirent	*ent;
+			FILE		*fl;
+			char		*fullfilename;
+
+			ent = readdir(ed);
+			if (!ent) break;
+
+			/* skip everything that begins with a dot */
+			if (ent->d_name[0] == '.') continue;
+
+			if (asprintf(&fullfilename, "%s/%s", envdir, ent->d_name) < 0) {
+				/* asprintf failed */
+				continue;
+			}
+			DEBUG_MSG("open(%s)\n", fullfilename);
+			fl = fopen(fullfilename, "r");
+			if (fl) {
+				char	varbuf[2048];
+				size_t	len;
+
+				len = fread(varbuf, sizeof(char), sizeof(varbuf), fl);
+				if (len < sizeof(varbuf)) {
+					if(len > 0) {
+						varbuf[len-1] = '\0'; /* replace \n */
+						DEBUG_MSG("set '%s'\n", varbuf);
+						putenv(strdup(varbuf));
+					}
+					
+				} else {
+					fprintf(stderr, "Warning: value of target-specific "
+						"env.var '%s' is too big (not used)\n",
+						ent->d_name);
+				}
+				fclose(fl);
+			}
+			free(fullfilename);
+		}
+		closedir(ed);
+	}
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -239,15 +291,17 @@ int main(int argc, char *argv[])
 	int	new_stdin;
 	char	*sbox_libsb2 = NULL;
 	int	resultcode;
+	char	*envdir = NULL;
 
 	progname = argv[0];
 	
-	while ((opt = getopt(argc, argv, "L:x:dh")) != -1) {
+	while ((opt = getopt(argc, argv, "L:x:dhe:")) != -1) {
 		switch (opt) {
 		case 'L': sbox_libsb2 = optarg; break;
 		case 'h': usage_exit(NULL, 0); break;
 		case 'd': debug = 1; break;
 		case 'x': command_to_exec_at_end = optarg; break;
+		case 'e': envdir = optarg; break;
 		default: usage_exit("Illegal option", 1); break;
 		}
 	}
@@ -313,9 +367,13 @@ int main(int argc, char *argv[])
 				"no '-L lib' option => LD_PRELOAD not set\n");
 		}
 
+		if (envdir) {
+			read_env_vars_from_dir(envdir);
+		}
+
 		while (argv[optind] && strchr(argv[optind], '=')) {
 			DEBUG_MSG("child: putenv(%s)\n", argv[optind]);
-			putenv(argv[optind]);
+			putenv(strdup(argv[optind]));
 			optind++;
 		}
 

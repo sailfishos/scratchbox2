@@ -1509,6 +1509,8 @@ if [ -d "$SBOX_SESSION_DIR/env_vars" ]; then
 	done
 fi
 
+SBOX_CONFIG_DIR=$HOME/.scratchbox2/$SBOX_TARGET/sb2.config.d
+
 #
 # We need to start "trampoline" host shell that is run under
 # influence of libsb2.so.1.  When it exec's real shell, we can
@@ -1521,12 +1523,14 @@ if [ $# -gt 0 -o "$STDIN" = true ]; then
 	exec $SBOX_FAKEROOT_PREFIX sb2-monitor \
 		-L $SBOX_LIBSB2 \
 		-x $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
+		-e $SBOX_CONFIG_DIR/env_vars \
 		-- \
 		$SHELL -c "exec $SHELL -c '$binary $args'"
 else
 	exec $SBOX_FAKEROOT_PREFIX sb2-monitor \
 		-L $SBOX_LIBSB2 \
 		-x $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
+		-e $SBOX_CONFIG_DIR/env_vars \
 		-- \
 		$SHELL -c \
 		"export PS1='$PS1'; exec $SHELL --noprofile --norc"

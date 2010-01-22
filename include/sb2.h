@@ -72,10 +72,12 @@ struct lua_instance {
  *     interface, but this fixes a serious bug introduced by the
  *     previous change; this number is incremented to force an
  *     upgrade now!)
+ * * Differences between "68" and "67"
+ *   - added a wrapper for popen(). Added a new function to argvenvp.lua.
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "67"
+#define SB2_LUA_C_INTERFACE_VERSION "68"
 
 extern struct lua_instance *get_lua(void);
 extern void release_lua(struct lua_instance *ptr);

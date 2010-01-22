@@ -203,7 +203,8 @@ int sb_execve_postprocess(char *exec_type,
 
 	lua_getfield(luaif->lua, LUA_GLOBALSINDEX, "sb_execve_postprocess");
 
-	/* stack now contains "rule", "exec_policy" and "sb_execve_postprocess".	 * move "sb_execve_postprocess" to the bottom : */
+	/* stack now contains "rule", "exec_policy" and "sb_execve_postprocess".
+	 * move "sb_execve_postprocess" to the bottom : */
 	lua_insert(luaif->lua, -3);
 
 	lua_pushstring(luaif->lua, exec_type);
@@ -431,3 +432,40 @@ char *sb_execve_map_script_interpreter(
 	release_lua(luaif);
 	return mapped_interpreter;
 }
+
+/* get parameters for popen():
+ * popen() uses /bin/sh of the host as a trampoline to start
+ * the process, get values for LD_PRELOAD and LD_LIBRARY_PATH
+ * for that process.
+*/
+void sb_get_popen_ld_params(char **popen_ld_preload, char **popen_ld_lib_path)
+{
+	struct lua_instance *luaif;
+
+	if (getenv("SBOX_DISABLE_ARGVENVP")) {
+		SB_LOG(SB_LOGLEVEL_DEBUG, "sb_argvenvp disabled(E):");
+		return 0;
+	}
+	luaif = get_lua();
+	if (!luaif) return;
+
+	SB_LOG(SB_LOGLEVEL_NOISE,
+		"sb_get_popen_ld_params: gettop=%d", lua_gettop(luaif->lua));
+
+	lua_getfield(luaif->lua, LUA_GLOBALSINDEX, "sbox_get_popen_ld_params");
+
+	/* no args,    
+	 * returns: ld_preload, ld_library_path */
+	lua_call(luaif->lua, 0, 2);
+	
+	*popen_ld_preload = strdup(lua_tostring(luaif->lua, -2));
+	*popen_ld_lib_path = strdup(lua_tostring(luaif->lua, -1));
+
+	/* remove return values from the stack.  */
+	lua_pop(luaif->lua, 2);
+
+	SB_LOG(SB_LOGLEVEL_NOISE,
+		"sb_get_popen_ld_params: at exit, gettop=%d", lua_gettop(luaif->lua));
+	release_lua(luaif);
+}
+

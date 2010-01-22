@@ -845,3 +845,18 @@ function sb_execve_postprocess(rule, exec_policy, exec_type,
 	end
 end
 
+-- This is called from C:
+function sbox_get_popen_ld_params()
+	-- FIXME:
+	-- in the future we should get these values from a "Host" exec policy,
+	-- but can't do so before the exec policy conventions dictate
+	-- that a "Host" policy must exist. Now the values are hardcoded:
+	local ldpreload
+	if sb.get_session_perm() == "root" then
+		ldpreload = host_ld_preload ..  ":" .. host_ld_preload_fakeroot
+	else
+		ldpreload = host_ld_preload
+	end
+	return ldpreload, host_ld_library_path
+end
+

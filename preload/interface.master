@@ -92,6 +92,7 @@ GATE: int glob64 (const char *pattern, int flags, \
 #endif
 
 GATE: int system (const char *line) :
+GATE: FILE *popen(const char *command, const char *type) :
 
 --    These gates just log what happened:
 GATE: void _exit(int status)

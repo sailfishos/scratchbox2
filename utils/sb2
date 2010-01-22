@@ -1441,9 +1441,12 @@ export LD_LIBRARY_PATH
 
 # ------------
 # Almost ready..only the CPU transparency settings are missing
-# from the exec config file.
+# from the exec config file, unless we are joining to an
+# existing session.
 
-add_cputransparency_settings_to_exec_config_file
+if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
+	add_cputransparency_settings_to_exec_config_file
+fi
 
 # ------------
 # Now everything is ready, programs can be executed in SB2'ed environment.

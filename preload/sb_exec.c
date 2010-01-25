@@ -1111,6 +1111,23 @@ static int prepare_exec(const char *exec_fn_name,
 						mapped_file);
 				}
 			}
+			/* Call postprocessing.
+			 * This adds LD_LIBRARY_PATH and LD_PRELOAD.
+			 * the static binary itselft does not need
+			 * these, but if it executes another 
+			 * program, then there is at least some
+			 * hope of getting back to SB2. It won't
+			 * be able to start anything that runs
+			 * under CPU transparency, but host-compatible
+			 * binaries may be able to get back..
+			*/
+			postprocess_result = sb_execve_postprocess("static",
+				&mapped_file, &my_file, binaryname,
+				&my_argv, &my_envp);
+			if (postprocess_result < 0) {
+				errno = EINVAL;
+				ret = -1;
+			}
 			break;
 
 		case BIN_TARGET:
@@ -1201,9 +1218,8 @@ int do_exec(const char *exec_fn_name, const char *orig_file,
 			return(r); /* exec denied */
 		}
 
-		if ((type != BIN_HOST_STATIC) &&
-		    (check_envp_has_ld_preload_and_ld_library_path(
-			new_envp ? new_envp : orig_envp) == 0)) {
+		if (check_envp_has_ld_preload_and_ld_library_path(
+			new_envp ? new_envp : orig_envp) == 0) {
 
 			SB_LOG(SB_LOGLEVEL_ERROR,
 				"exec(%s) failed, internal configuration error: "

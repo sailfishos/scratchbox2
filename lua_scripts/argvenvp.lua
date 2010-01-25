@@ -206,6 +206,18 @@ function join_paths(p1,p2)
 	return p1..":"..p2
 end
 
+function set_ld_library_path(envp, new_path)
+	local ld_library_path_index = locate_ld_library_path(envp)
+	if (ld_library_path_index > 0) then
+		envp[ld_library_path_index] =
+			"LD_LIBRARY_PATH=" .. new_path
+		sb.log("debug", "Replaced LD_LIBRARY_PATH")
+	else
+		table.insert(envp, "LD_LIBRARY_PATH=" .. new_path)
+		sb.log("debug", "Added LD_LIBRARY_PATH")
+	end
+end
+
 -- Set LD_LIBRARY_PATH: modifies "envp"
 function setenv_native_app_ld_library_path(exec_policy, envp)
 	local new_path
@@ -233,16 +245,20 @@ function setenv_native_app_ld_library_path(exec_policy, envp)
 		new_path = host_ld_library_path
 	end
 
-	local ld_library_path_index = locate_ld_library_path(envp)
-	if (ld_library_path_index > 0) then
-		envp[ld_library_path_index] =
-			"LD_LIBRARY_PATH=" .. new_path
-		sb.log("debug", "Replaced LD_LIBRARY_PATH")
-	else
-		table.insert(envp, "LD_LIBRARY_PATH=" .. new_path)
-		sb.log("debug", "Added LD_LIBRARY_PATH")
-	end
+	set_ld_library_path(envp, new_path)
 	return true
+end
+
+function set_ld_preload(envp, new_preload)
+	-- Set the value:
+	local ld_preload_index = locate_ld_preload(envp)
+	if (ld_preload_index > 0) then
+		envp[ld_preload_index] = "LD_PRELOAD=" .. new_preload
+		sb.log("debug", "Replaced LD_PRELOAD="..new_preload)
+	else
+		table.insert(envp, "LD_PRELOAD=" .. new_preload)
+		sb.log("debug", "Added LD_PRELOAD="..new_preload)
+	end
 end
 
 -- Set LD_PRELOAD: modifies "envp"
@@ -262,15 +278,7 @@ function setenv_native_app_ld_preload(exec_policy, envp)
 		new_preload = host_ld_preload
 	end
 
-	-- Set the value:
-	local ld_preload_index = locate_ld_preload(envp)
-	if (ld_preload_index > 0) then
-		envp[ld_preload_index] = "LD_PRELOAD=" .. new_preload
-		sb.log("debug", "Replaced LD_PRELOAD="..new_preload)
-	else
-		table.insert(envp, "LD_PRELOAD=" .. new_preload)
-		sb.log("debug", "Added LD_PRELOAD="..new_preload)
-	end
+	set_ld_preload(envp, new_preload)
 	return true
 end
 
@@ -839,10 +847,18 @@ function sb_execve_postprocess(rule, exec_policy, exec_type,
 		return sb_execve_postprocess_cpu_transparency_executable(rule,
 			exec_policy, exec_type, mapped_file,
 			filename, argv, envp)
-	else
-		-- all other exec_types: allow exec with orig.args
-		return 1, mapped_file, filename, #argv, argv, #envp, envp
+	elseif (exec_type == "static") then
+		-- [see comment in sb_exec.c]
+		local ldlibpath
+		local ldpreload
+		ldpreload, ldlibpath = sbox_get_host_policy_ld_params()
+		set_ld_preload(envp, ldpreload)
+		set_ld_library_path(envp, ldlibpath)
+		return 0, mapped_file, filename, #argv, argv, #envp, envp
 	end
+	
+	-- all other exec_types: allow exec with orig.args
+	return 1, mapped_file, filename, #argv, argv, #envp, envp
 end
 
 -- This is called from C:

@@ -286,6 +286,32 @@ message_catalog_test = {
 
 -- =========== Mapping rule chains ===========
 
+-- "/bin/*"
+devel_mode_rules_bin = {
+	rules = {
+		-- -----------------------------------------------
+		-- 20. /bin/*:
+		-- tools that need special processing:
+
+		{path = "/bin/sh",
+		 replace_by = tools .. "/bin/bash", readonly = true},
+
+		{path = "/bin/ps",
+		 use_orig_path = true, readonly = true},
+	
+		-- "pwd" from "coreutils" uses a built-in replacement
+		-- for getcwd(), which does not work with sb2, because
+		-- the path mapping means that ".." does not necessarily
+		-- contain an i-node that refers to the current directory..
+		{path = "/bin/pwd",
+		 replace_by = session_dir .. "/wrappers." .. active_mapmode .. "/pwd",
+		 readonly = true},
+
+		{dir = "/bin",
+		 actions = test_first_tools_default_is_target},
+	}
+}
+
 -- Used when dir = "/usr/share/aclocal":
 devel_mode_rules_usr_share_aclocal = {
 	rules = {
@@ -745,15 +771,6 @@ simple_chain = {
 		{prefix = "/home", use_orig_path = true},
 
 		-- -----------------------------------------------
-		-- 20. /bin/*:
-		-- tools that need special processing:
-
-		{path = "/bin/sh",
-		 replace_by = tools .. "/bin/bash", readonly = true},
-		{path = "/bin/ps",
-		 use_orig_path = true, readonly = true},
-
-		-- -----------------------------------------------
 		-- 30. /lib/*
 
 		-- 
@@ -820,8 +837,8 @@ simple_chain = {
 		-- but everything else defaults to the host system
 		-- (so that things like /mnt, /media and /opt are
 		-- used from the host)
-		{dir = "/bin",
-		 actions = test_first_tools_default_is_target},
+		{dir = "/bin", chain = devel_mode_rules_bin},
+
 		{dir = "/sbin",
 		 actions = test_first_tools_default_is_target},
 

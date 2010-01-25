@@ -214,6 +214,7 @@ install-noarch: regular
 	$(Q)install -c -m 755 $(SRCDIR)/wrappers/host-gcc-tools-wrapper $(prefix)/share/scratchbox2/wrappers/host-gcc-tools-wrapper
 	$(Q)install -c -m 755 $(SRCDIR)/wrappers/gdb $(prefix)/share/scratchbox2/wrappers/gdb
 	$(Q)install -c -m 755 $(SRCDIR)/wrappers/ldd $(prefix)/share/scratchbox2/wrappers/ldd
+	$(Q)install -c -m 755 $(SRCDIR)/wrappers/pwd $(prefix)/share/scratchbox2/wrappers/pwd
 	$(Q)(set -e; cd $(prefix)/share/scratchbox2/wrappers; \
 	for f in $(host_prefixed_gcc_bins); do \
 		ln -sf host-gcc-tools-wrapper $$f; \

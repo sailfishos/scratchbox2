@@ -1112,6 +1112,9 @@ function initialize_new_sb2_session()
 	mkdir $SBOX_SESSION_DIR/rules
 	mkdir $SBOX_SESSION_DIR/rev_rules
 
+	ln -s $SBOX_DIR/bin $SBOX_SESSION_DIR/bin
+	ln -s $SBOX_DIR/share $SBOX_SESSION_DIR/share
+
 	if [ -n "$SBOX_WRITE_SESSION_INFO_TO_FILE" ]; then
 		cat >$SBOX_WRITE_SESSION_INFO_TO_FILE <<END
 # SB2 SessionInfo:

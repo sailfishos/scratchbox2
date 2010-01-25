@@ -168,6 +168,7 @@ static void usage_exit(const char *progname, const char *errmsg, int exitstatus)
 	    "\tpath [path1] [path2].. show mappings of pathnames\n"
 	    "\twhich [path1] [path2].. (like the 'path' command, but less verbose)\n"
 	    "\trealcwd                show real current working directory\n"
+	    "\tpwd                    show virtual current working directory\n"
 	    "\texec file [argv1] [argv2]..\n"
 	    "\t                       show execve() modifications\n"
 	    "\texec-cmdline file [argv1] [argv2]..\n"
@@ -562,6 +563,23 @@ static void command_show_realcwd(const char *binary_name, const char *fn_name)
 	printf("%s\n", real_cwd_path ? real_cwd_path : "<null>");
 }
 
+static void command_show_pwd(const char *progname)
+{
+	char	path_buf[PATH_MAX + 1];
+
+	if (getcwd(path_buf, sizeof(path_buf))) {
+		printf("%s\n", path_buf);
+	} else {
+		if (errno == ERANGE) {
+			fprintf(stderr, "%s: CWD is longer than PATH_MAX\n",
+				progname);
+		} else {
+			perror(progname);
+		}
+		exit(1);
+	}
+}
+
 /* read paths from stdin, report paths that are not mapped to specified
  * directory.
  * returns 0 if all OK, 1 if one or more paths were not mapped.
@@ -806,6 +824,8 @@ int main(int argc, char *argv[])
 			1/*show only dest.path*/, argv + optind + 1);
 	} else if (!strcmp(argv[optind], "realcwd")) {
 		command_show_realcwd(binary_name, function_name);
+	} else if (!strcmp(argv[optind], "pwd")) {
+		command_show_pwd(progname);
 	} else if (!strcmp(argv[optind], "exec")) {
 		command_show_exec(binary_name, function_name,
 			progname, argc - (optind+1), argv + optind + 1,

@@ -27,7 +27,10 @@ sb2_share_dir = sbox_user_home_dir.."/.scratchbox2/"..sbox_target.."/share"
 -- use fakeroot
 local fakeroot_ld_preload = ""
 if sb.get_session_perm() == "root" then
+	target_root_is_readonly = false
 	fakeroot_ld_preload = ":"..host_ld_preload_fakeroot
+else
+	target_root_is_readonly = true
 end
 
 --
@@ -657,8 +660,9 @@ simple_chain = {
 
 		-- unmodified view of the rootstrap, can be used as destination
 		-- directory when installing stuff to the rootstrap
-		-- This provides is R/W access to the target_root!
-		{prefix = "/target_root", replace_by = target_root},
+		-- This gives R/W access to the target_root (with -R)
+		{prefix = "/target_root", replace_by = target_root,
+		 readonly = target_root_is_readonly},
 
 		-- -----------------------------------------------
 		-- 98. Scratchbox 1 emulation rules

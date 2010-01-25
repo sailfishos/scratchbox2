@@ -57,7 +57,7 @@ function host_compatible_binary()
 		LD_TRACE_LOADED_OBJECTS=yes $1
 		;;
 	*)
-		mapped_file=`sb2-show which $1`
+		mapped_file=`$SBOX_SESSION_DIR/bin/sb2-show which $1`
 		LD_TRACE_LOADED_OBJECTS=yes $conf_target_ld_so --library-path $conf_target_ld_so_library_path $mapped_file
 		;;
 	esac
@@ -105,7 +105,7 @@ do
 	then
 		echo "$f:"
 	fi
-	type=`sb2-show binarytype $f`
+	type=`$SBOX_SESSION_DIR/bin/sb2-show binarytype $f`
 	case "$type" in
 	target*) /target_root/usr/bin/ldd $OPTIONS $f;;
 	host/*) host_compatible_binary $f;;

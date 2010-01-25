@@ -1316,7 +1316,7 @@ FILE *popen_gate(FILE *(*real_popen_ptr)(const char *command, const char *type),
 	cp  = getenv("LD_PRELOAD");
 	if (cp) user_ld_preload  = strdup(cp);
 
-	sb_get_popen_ld_params(&popen_ld_preload, &popen_ld_lib_path);
+	sb_get_host_policy_ld_params(&popen_ld_preload, &popen_ld_lib_path);
 
 	if (popen_ld_lib_path) setenv("LD_LIBRARY_PATH", popen_ld_lib_path, 1);
 	else unsetenv("LD_LIBRARY_PATH");

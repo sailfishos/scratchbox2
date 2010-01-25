@@ -81,21 +81,21 @@ function sb_execve_postprocess_loader(rule, exec_policy, exec_type,
 		mapped_file, filename, binaryname, argv, envp)
 end
 
-function sbox_get_popen_ld_params_loader()
-	local prev_fn = sbox_get_popen_ld_params
+function sbox_get_host_policy_ld_params_loader()
+	local prev_fn = sbox_get_host_policy_ld_params
 
-	sb.log("info", "sbox_get_popen_ld_params called: loading argvenvp.lua")
+	sb.log("info", "sbox_get_host_policy_ld_params called: loading argvenvp.lua")
 	do_file(session_dir .. "/lua_scripts/argvenvp.lua")
 
-	if prev_fn == sbox_get_popen_ld_params then
+	if prev_fn == sbox_get_host_policy_ld_params then
 		sb.log("error",
-			"Fatal: Failed to load real sbox_get_popen_ld_params")
+			"Fatal: Failed to load real sbox_get_host_policy_ld_params")
 		os.exit(88)
 	end
 
 	-- This loader has been replaced. The following call is not
 	-- a recursive call to this function, even if it may look like one:
-	return sbox_get_popen_ld_params()
+	return sbox_get_host_policy_ld_params()
 end
 
 local binary_name = sb.get_binary_name()
@@ -119,7 +119,7 @@ else
 	end
 	sbox_execve_preprocess = sbox_execve_preprocess_loader
 	sb_execve_postprocess = sb_execve_postprocess_loader
-	sbox_get_popen_ld_params = sbox_get_popen_ld_params_loader
+	sbox_get_host_policy_ld_params = sbox_get_host_policy_ld_params_loader
 end
 
 -- sb2 is ready for operation!

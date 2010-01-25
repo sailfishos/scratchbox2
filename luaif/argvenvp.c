@@ -433,12 +433,12 @@ char *sb_execve_map_script_interpreter(
 	return mapped_interpreter;
 }
 
-/* get parameters for popen():
- * popen() uses /bin/sh of the host as a trampoline to start
- * the process, get values for LD_PRELOAD and LD_LIBRARY_PATH
- * for that process.
+/* Get LD_PRELOAD and LD_LIBRARY_PATH that are used for
+ * programs running within the "Host" exec policy.
+ * Needed for popen(), at least: popen() uses /bin/sh of 
+ * the host as a trampoline to start the process.
 */
-void sb_get_popen_ld_params(char **popen_ld_preload, char **popen_ld_lib_path)
+void sb_get_host_policy_ld_params(char **p_ld_preload, char **p_ld_lib_path)
 {
 	struct lua_instance *luaif;
 
@@ -450,22 +450,22 @@ void sb_get_popen_ld_params(char **popen_ld_preload, char **popen_ld_lib_path)
 	if (!luaif) return;
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
-		"sb_get_popen_ld_params: gettop=%d", lua_gettop(luaif->lua));
+		"sb_get_host_policy_ld_params: gettop=%d", lua_gettop(luaif->lua));
 
-	lua_getfield(luaif->lua, LUA_GLOBALSINDEX, "sbox_get_popen_ld_params");
+	lua_getfield(luaif->lua, LUA_GLOBALSINDEX, "sbox_get_host_policy_ld_params");
 
 	/* no args,    
 	 * returns: ld_preload, ld_library_path */
 	lua_call(luaif->lua, 0, 2);
 	
-	*popen_ld_preload = strdup(lua_tostring(luaif->lua, -2));
-	*popen_ld_lib_path = strdup(lua_tostring(luaif->lua, -1));
+	*p_ld_preload = strdup(lua_tostring(luaif->lua, -2));
+	*p_ld_lib_path = strdup(lua_tostring(luaif->lua, -1));
 
 	/* remove return values from the stack.  */
 	lua_pop(luaif->lua, 2);
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
-		"sb_get_popen_ld_params: at exit, gettop=%d", lua_gettop(luaif->lua));
+		"sb_get_host_policy_ld_params: at exit, gettop=%d", lua_gettop(luaif->lua));
 	release_lua(luaif);
 }
 

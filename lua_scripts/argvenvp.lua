@@ -846,7 +846,7 @@ function sb_execve_postprocess(rule, exec_policy, exec_type,
 end
 
 -- This is called from C:
-function sbox_get_popen_ld_params()
+function sbox_get_host_policy_ld_params()
 	-- FIXME:
 	-- in the future we should get these values from a "Host" exec policy,
 	-- but can't do so before the exec policy conventions dictate

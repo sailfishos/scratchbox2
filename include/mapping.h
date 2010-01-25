@@ -75,7 +75,7 @@ extern char *sb_execve_map_script_interpreter(const char *interpreter,
 extern int sb_execve_postprocess(char *exec_type,
 	char **mapped_file, char **filename, const char *binary_name,
 	char ***argv, char ***envp);
-extern void sb_get_popen_ld_params(char **popen_ld_preload, char **popen_ld_lib_path);
+extern void sb_get_host_policy_ld_params(char **popen_ld_preload, char **popen_ld_lib_path);
 
 extern char *scratchbox_reverse_path(
 	const char *func_name, const char *full_path);

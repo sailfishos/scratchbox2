@@ -185,18 +185,27 @@ static char *path_entries_to_string_until(
 	/* add path components to the buffer */
 	work = p_entry;
 	if (flags & PATH_FLAGS_ABSOLUTE) {
-		strcat(buf, "/");
+		strcpy(buf, "/");
 	}
 	while (work) {
-		strcat(buf, work->pe_path_component);
+		int component_is_empty;
+		if (*work->pe_path_component) {
+			strcat(buf, work->pe_path_component);
+			component_is_empty = 0;
+		} else {
+			component_is_empty = 1;
+		}
 		if (work == last_path_entry_to_include) break;
 		work = work->pe_next;
-		if (work) {
+		if (work && (component_is_empty==0)) {
 			strcat(buf, "/");
 		}
 	}
 	if (flags & PATH_FLAGS_HAS_TRAILING_SLASH) {
-		strcat(buf, "/");
+		char *cp = buf;
+		/* point to last char in buf */
+		while (*cp && cp[1]) cp++; 
+		if (*cp != '/') strcat(buf, "/");
 	}
 
 	return(buf);
@@ -1460,20 +1469,27 @@ static int relative_virtual_path_to_abs_path(
 			virtual_reversed_cwd);
 	} else {
 		/* "cache miss" */
-		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"sbox_map_path_internal: reversing cwd:");
-		virtual_reversed_cwd = call_lua_function_sbox_reverse_path(
-			ctx, host_cwd);
-		if (virtual_reversed_cwd == NULL) {
-			/*
-			 * In case reverse path couldn't be resolved
-			 * we fallback into host_cwd.  This is the
-			 * way it used to work before.
-			 */
-			virtual_reversed_cwd = strdup(host_cwd);
+		if ( (host_cwd[1]=='\0') && (*host_cwd=='/') ) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
-			    "unable to reverse, using reversed_cwd=%s",
-			    virtual_reversed_cwd);
+				"sbox_map_path_internal: no need to reverse, '/' is always '/'");
+			/* reversed "/" is always "/" */
+			virtual_reversed_cwd = strdup(host_cwd);
+		} else {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"sbox_map_path_internal: reversing cwd(%s)", host_cwd);
+			virtual_reversed_cwd = call_lua_function_sbox_reverse_path(
+				ctx, host_cwd);
+			if (virtual_reversed_cwd == NULL) {
+				/*
+				 * In case reverse path couldn't be resolved
+				 * we fallback into host_cwd.  This is the
+				 * way it used to work before.
+				 */
+				virtual_reversed_cwd = strdup(host_cwd);
+				SB_LOG(SB_LOGLEVEL_DEBUG,
+				    "unable to reverse, using reversed_cwd=%s",
+				    virtual_reversed_cwd);
+			}
 		}
 		/* put the reversed CWD to our one-slot cache: */
 		if (luaif->host_cwd) free(luaif->host_cwd);

@@ -902,6 +902,8 @@ END
 		tools_basename=`basename $SBOX_TOOLS_ROOT`
 		write_ld_library_path_replacement_to_exec_config \
 			$SBOX_TOOLS_ROOT conf_tools_ld_so_library_path \
+			~/.scratchbox2/libsb2/tools/$target_basename/$library_interface/libsb2.so.1 \
+			~/.scratchbox2/libsb2/tools/$library_interface/libsb2.so.1 \
 			$SBOX_DIR/lib/libsb2/tools/$tools_basename/$library_interface/libsb2.so.1 \
 			$SBOX_DIR/lib/libsb2/tools/$library_interface/libsb2.so.1 \
 			$SBOX_TOOLS_ROOT/usr/lib/libsb2/libsb2.so.1

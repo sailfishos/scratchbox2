@@ -48,6 +48,7 @@ Options:
                  a mode-specific string)
     -R           use simulated root permissions (currently activates
                  "fakeroot" for this functionality)
+    -f args      additional fakeroot arguments
     -S file      Write session information to "file" (see option -J)
     -J file      Don't create a new session; join an existing one (see -S) 
     -D file      delete an old session (see -S). Warning: this does not
@@ -1369,7 +1370,7 @@ OPT_SESSION_DIR=""
 SBOX_FORCED_TOOLS_ROOT=""
 OPT_DONT_UPGRADE_CONFIGURATION=""
 
-while getopts vdht:em:s:L:Q:M:ZrRS:J:D:W:O:cC:T:u foo
+while getopts vdht:em:s:L:Q:M:ZrRS:J:D:W:O:cC:T:uf: foo
 do
 	case $foo in
 	(v) version; exit 0;;
@@ -1396,6 +1397,7 @@ do
 	(C) OPT_CLONE_TARGET_ROOT_FROM=$OPTARG ;;
 	(T) SBOX_FORCED_TOOLS_ROOT=$OPTARG ;;
 	(u) OPT_DONT_UPGRADE_CONFIGURATION="y" ;;
+	(f) SBOX_FAKEROOT_ARGS=$OPTARG ;;
 	(*) usage ;;
 	esac
 done
@@ -1464,7 +1466,7 @@ fi
 SBOX_FAKEROOT_PREFIX=""
 if [ -n "$SBOX_SESSION_PERM" ]; then
 	export SBOX_SESSION_PERM
-	SBOX_FAKEROOT_PREFIX="fakeroot"
+	SBOX_FAKEROOT_PREFIX="fakeroot $SBOX_FAKEROOT_ARGS"
 	# Preload both; fakeroot and libsb2
 	SBOX_LD_PRELOAD="$HOST_LD_PRELOAD_FAKEROOT:$SBOX_LIBSB2"
 else

@@ -265,7 +265,7 @@ function load_configuration()
 	
 	# check if we need to upgrade configuration:
 	if [ -z "$OPT_DONT_UPGRADE_CONFIGURATION" ]; then
-		if [ ! -f ~/.scratchbox2/$SBOX_TARGET/sb2.config.d/config-stamp.17 ]; then
+		if [ ! -f ~/.scratchbox2/$SBOX_TARGET/sb2.config.d/config-stamp.18 ]; then
 			$SBOX_DIR/share/scratchbox2/scripts/sb2-upgrade-config \
 				$SBOX_TARGET
 			if [ $? != 0 ]; then

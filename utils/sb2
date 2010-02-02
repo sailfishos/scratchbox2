@@ -378,7 +378,7 @@ function sboxify_environment()
 			exit_error "Don't know how to create target root from '$OPT_CLONE_TARGET_ROOT_FROM'"
 		fi
 	else
-		SB2_TEMP_DPKG_ADMIN_DIR=$HOME/.scratchbox2/$SBOX_TARGET.tmp-pkg-db.$SBOX_MAPMODE
+		SB2_TEMP_DPKG_ADMIN_DIR=$HOME/.scratchbox2/$SBOX_TARGET/tmp-pkg-db.$SBOX_MAPMODE
 	fi
 
 	# SBOX_MAPMODE has been set, read mode-specific settings

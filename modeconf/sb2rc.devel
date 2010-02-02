@@ -12,7 +12,10 @@ case "$sb2rc_mode" in
 
 	initializing)
 
-		SB2INIT_CROSS_GCC_PREFIX_LIST=$ARCH-linux-:$ARCH-linux-gnueabi-
+		SB2INIT_CROSS_GCC_PREFIX_LIST=$ARCH-linux-:$ARCH-linux-gnueabi-:$ARCH-linux-gnu-
+		if [ "$ARCH" != "$MACHINE_ARCH" ]; then
+			SB2INIT_CROSS_GCC_PREFIX_LIST=$SB2INIT_CROSS_GCC_PREFIX_LIST:$MACHINE_ARCH-linux-:$MACHINE_ARCH-linux-gnueabi-:$MACHINE_ARCH-linux-gnu-
+		fi
 		;;
 
 	starting)

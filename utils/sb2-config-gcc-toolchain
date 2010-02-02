@@ -136,10 +136,11 @@ fi
 
 verbose=""
 
-while getopts t:m:C:A:hS:R:Vv option
+while getopts t:m:C:A:M:hS:R:Vv option
 do
 	case $option in
 	(A) ARCH=$OPTARG ;;
+	(M) MACHINE_ARCH=$OPTARG ;;
 	(h) usage ;;
 	(t) TARGET=$OPTARG ;;
 	(m) MAPPING_MODE=$OPTARG ;;
@@ -257,6 +258,9 @@ else
 		echo "Target architecture set to $ARCH"
 	fi
 fi
+if [ -z "$MACHINE_ARCH" ]; then
+	MACHINE_ARCH=$ARCH
+fi
 
 # Path where gcc searches for sub-tools (ld, as, cc1,..)
 SBOX_CROSS_GCC_PROGS_PATH=$($GCC -print-search-dirs|grep ^programs:|sed 's/programs: =//')
@@ -266,7 +270,7 @@ SBOX_CROSS_GCC_PROGS_PATH=$($GCC -print-search-dirs|grep ^programs:|sed 's/progr
 
 SB2INIT_CROSS_GCC_PREFIX_LIST=$ARCH-linux-
 
-# $ARCH has been set, get mode-specific settings..
+# $ARCH and $MACHINE_ARCH have been set, get mode-specific settings..
 if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$MAPPING_MODE ]; then
 	if [ -n "$verbose" ] ; then
 		echo "Reading mode-specific settings.."

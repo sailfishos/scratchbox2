@@ -79,12 +79,18 @@ function update_toolchain_configs()
 	else
 		gccconfig_arch_option=""
 	fi
+	if [ -n "$SB2INIT_MACHINE_ARCH" ]; then
+		gccconfig_arch_option2="-M $SB2INIT_MACHINE_ARCH"
+	else
+		gccconfig_arch_option2=""
+	fi
 	for compiler_path in $*; do
 		# echo "Updating compiler $compiler_path"
 		log_config_action "Config upgrade: settings for compiler $compiler_path"
 		$SBOX_SHARE_DIR/scripts/sb2-config-gcc-toolchain \
 			$secondary_compiler \
 			$gccconfig_arch_option \
+			$gccconfig_arch_option2 \
 			-R "$SB2INIT_TARGET_ROOT" \
 			-S "$SBOX_SHARE_DIR/../.." \
 			-t "$SB2INIT_TARGET" \

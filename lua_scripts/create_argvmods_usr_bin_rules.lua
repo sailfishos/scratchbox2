@@ -15,44 +15,84 @@ gcc_rule_file_path = session_dir .. "/gcc-conf.lua"
 
 default_rule = os.getenv("SBOX_ARGVMODS_USR_BIN_DEFAULT_RULE")
 
-function argvmods_to_mapping_rules()
+function argvmods_to_mapping_rules(prefix)
 	local n
-	print("argvmods_rules_for_usr_bin = {")
-	print(" rules = {")
 	for n in pairs(argvmods) do
 		local rule = argvmods[n]
 		-- print("-- rule ", n, " new_filename=", rule.new_filename)
-		local k
-		for k=1,table.maxn(rule.path_prefixes) do
-			if rule.path_prefixes[k] == "/usr/bin/" and
-			   rule.new_filename ~= nil then
-				-- this rule maps "n" from /usr/bin to
-				-- another file
-				if sb.path_exists(rule.new_filename) then
-					print("  {path=\"/usr/bin/"..n.."\",")
-					print("   replace_by=\"" ..
-						rule.new_filename.."\"},")
-				else
-					print("  -- WARNING: " ..
-						rule.new_filename ..
-						" does not exist")
+		local process_now = true
+		if prefix ~= nil then
+			if not sb.isprefix(prefix, n) then
+				process_now = false
+			end
+		end
+
+		if process_now and not rule.argvmods_processed then
+			rule.argvmods_processed = true
+			local k
+			for k=1,table.maxn(rule.path_prefixes) do
+				if rule.path_prefixes[k] == "/usr/bin/" and
+				   rule.new_filename ~= nil then
+					-- this rule maps "n" from /usr/bin to
+					-- another file
+					if sb.path_exists(rule.new_filename) then
+						print("  {path=\"/usr/bin/"..n.."\",")
+						print("   replace_by=\"" ..
+							rule.new_filename.."\"},")
+					else
+						print("  -- WARNING: " ..
+							rule.new_filename ..
+							" does not exist")
+					end
 				end
 			end
 		end
 	end
-	if (default_rule ~= nil) then
-		print("  -- default:")
-		print("  ", default_rule)
-	end
-	print(" }")
-	print("}")
 end
 
 print("-- Argvmods-to-mapping-rules converter:")
 print("-- Automatically generated mapping rules. Do not modify:")
 
 do_file(session_dir .. "/lua_scripts/argvenvp.lua")
-argvmods_to_mapping_rules()
+
+print("argvmods_rules_for_usr_bin_"..sbox_cpu.." = {")
+print(" rules = {")
+argvmods_to_mapping_rules(sbox_cpu)
+if (default_rule ~= nil) then
+	print("  -- default:")
+	print("  ", default_rule)
+end
+print(" }")
+print("}")
+local prefixrule1 = "  {prefix=\"/usr/bin/"..sbox_cpu..
+	"\",chain=argvmods_rules_for_usr_bin_"..sbox_cpu.."},"
+local prefixrule2 = ""
+
+if sbox_cpu ~= sbox_uname_machine then
+	print("argvmods_rules_for_usr_bin_"..sbox_uname_machine.." = {")
+	print(" rules = {")
+	argvmods_to_mapping_rules(sbox_uname_machine)
+	if (default_rule ~= nil) then
+		print("  -- default:")
+		print("  ", default_rule)
+	end
+	print(" }")
+	print("}")
+	prefixrule2 = "  {prefix=\"/usr/bin/"..sbox_uname_machine..
+		"\",chain=argvmods_rules_for_usr_bin_"..sbox_uname_machine.."},"
+end
+
+print("argvmods_rules_for_usr_bin = {")
+print(" rules = {")
+print(prefixrule1)
+print(prefixrule2)
+argvmods_to_mapping_rules(nil)
+if (default_rule ~= nil) then
+	print("  -- default:")
+	print("  ", default_rule)
+end
+print(" }")
+print("}")
 
 print("-- End of rules created by argvmods-to-mapping-rules converter.")
 

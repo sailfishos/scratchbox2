@@ -869,6 +869,7 @@ my $export_h_buffer =
 
 #include <assert.h>
 #include <unistd.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <dlfcn.h>
 #include <stdio.h>

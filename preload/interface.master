@@ -310,6 +310,9 @@ WRAP: ssize_t getxattr(const char *path, const char *name, void *value, size_t s
 
 EXPORT: int glob_pattern_p(const char *pattern, int quote)
 
+WRAP: int inotify_add_watch(int fd, const char *pathname, uint32_t mask) : \
+	map(pathname)
+
 WRAP: int lchmod(const char *path, mode_t mode) : \
 	dont_resolve_final_symlink map(path) fail_if_readonly(path,-1,EROFS)
 

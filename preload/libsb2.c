@@ -854,10 +854,20 @@ void _Exit_gate(void (*real__Exit_ptr)(int status),
 
 static void map_sockaddr_un(
 	const char *realfnname,
-	struct sockaddr_un *orig_serv_addr_un,
-	struct sockaddr_un *mapped_serv_addr_un)
+	const struct sockaddr_un *orig_serv_addr_un,
+	struct sockaddr_un *mapped_serv_addr_un,
+	socklen_t *new_addrlen)
 {
 	mapping_results_t	res;
+
+	if (!*orig_serv_addr_un->sun_path) {
+		/* an "abstract" local domain socket.
+		 * This is an Linux extension */
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: abstract AF_UNIX addr",
+			realfnname);
+		*mapped_serv_addr_un = *orig_serv_addr_un;
+		return;
+	}
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: checking AF_UNIX addr '%s'",
 		realfnname, orig_serv_addr_un->sun_path);
@@ -880,6 +890,8 @@ static void map_sockaddr_un(
 		} else {
 			strcpy(mapped_serv_addr_un->sun_path,
 				res.mres_result_path);
+			*new_addrlen = offsetof(struct sockaddr_un, sun_path)
+				+ strlen(res.mres_result_path) + 1;
 		}
 	}
 	free_mapping_results(&res);
@@ -893,18 +905,19 @@ int bind_gate(
 	const struct sockaddr *my_addr,
 	socklen_t addrlen)
 {
-	if (my_addr->sa_family == AF_UNIX) {
+	if (my_addr && (my_addr->sa_family == AF_UNIX)) {
 		struct sockaddr_un mapped_my_addr_un;
+		socklen_t new_addrlen = addrlen;
 
 		map_sockaddr_un(realfnname,
-			(struct sockaddr_un*)my_addr, &mapped_my_addr_un);
+			(const struct sockaddr_un*)my_addr,
+			&mapped_my_addr_un, &new_addrlen);
 
 		return((*real_bind_ptr)(sockfd,
 			(struct sockaddr*)&mapped_my_addr_un,
-			sizeof(mapped_my_addr_un)));
-	} else {
-		return((*real_bind_ptr)(sockfd, my_addr, addrlen));
+			new_addrlen));
 	}
+	return((*real_bind_ptr)(sockfd, my_addr, addrlen));
 }
 
 int connect_gate(
@@ -915,18 +928,208 @@ int connect_gate(
 	const struct sockaddr *serv_addr,
 	socklen_t addrlen)
 {
-	if (serv_addr->sa_family == AF_UNIX) {
+	if (serv_addr && (serv_addr->sa_family == AF_UNIX)) {
 		struct sockaddr_un mapped_serv_addr_un;
+		socklen_t new_addrlen = addrlen;
 
 		map_sockaddr_un(realfnname,
-			(struct sockaddr_un*)serv_addr, &mapped_serv_addr_un);
+			(const struct sockaddr_un*)serv_addr,
+			&mapped_serv_addr_un, &new_addrlen);
 
 		return((*real_connect_ptr)(sockfd,
 			(struct sockaddr*)&mapped_serv_addr_un,
-			sizeof(mapped_serv_addr_un)));
-	} else {
-		return((*real_connect_ptr)(sockfd, serv_addr, addrlen));
+			new_addrlen));
 	}
+	return((*real_connect_ptr)(sockfd, serv_addr, addrlen));
+}
+
+ssize_t sendto_gate(ssize_t (*real_sendto_ptr)(int s, const void *buf,
+	size_t len, int flags, const struct sockaddr *to, socklen_t tolen),
+        const char *realfnname,
+	int s,
+	const void *buf,
+	size_t len,
+	int flags,
+	const struct sockaddr *to,
+	socklen_t tolen)
+{
+	if (to && (to->sa_family == AF_UNIX)) {
+		struct sockaddr_un mapped_to_addr;
+		socklen_t new_addrlen = tolen;
+
+		map_sockaddr_un(realfnname,
+			(const struct sockaddr_un*)to,
+			&mapped_to_addr, &new_addrlen);
+
+		return((*real_sendto_ptr)(s, buf,
+			len, flags, (struct sockaddr*)&mapped_to_addr, 
+			new_addrlen));
+	}
+	return((*real_sendto_ptr)(s, buf, len, flags, to, tolen));
+}
+
+ssize_t sendmsg_gate(ssize_t (*real_sendmsg_ptr)(int s,
+	const struct msghdr *msg, int flags),
+        const char *realfnname,
+	int s,
+	const struct msghdr *msg,
+	int flags)
+{
+	if (msg) {
+		const struct sockaddr *to = (struct sockaddr*)msg->msg_name;
+		if (to && (to->sa_family == AF_UNIX)) {
+			struct sockaddr_un mapped_to_addr;
+			struct msghdr msg2 = *msg;
+			socklen_t new_addrlen = msg->msg_namelen;
+
+			map_sockaddr_un(realfnname,
+				(const struct sockaddr_un*)to,
+				&mapped_to_addr, &new_addrlen);
+			msg2.msg_name = &mapped_to_addr;
+			msg2.msg_namelen = new_addrlen;
+			return((*real_sendmsg_ptr)(s, &msg2, flags));
+		}
+	}
+	return((*real_sendmsg_ptr)(s, msg, flags));
+}
+
+static void reverse_sockaddr_un(
+	const char *realfnname,
+	struct sockaddr *from,
+	socklen_t orig_from_size,
+	socklen_t *fromlen)
+{
+	struct sockaddr_un *from_un;
+	char *sbox_path = NULL;
+
+	if (!from || !fromlen || (*fromlen < 1) || (orig_from_size < 1)) {
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			 "%s: nothing to reverse", realfnname);
+		return;
+	}
+
+	if (from->sa_family != AF_UNIX) {
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			 "%s: not AF_UNIX", realfnname);
+		return;
+	}
+
+	if (*fromlen <= offsetof(struct sockaddr_un, sun_path)) {
+		/* empty address, nothing to reverse */
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			 "%s: empty AF_UNIX address", realfnname);
+		return;
+	}
+
+	from_un = (struct sockaddr_un*)from;
+	if (from_un->sun_path[0] == '\0') {
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			 "%s: abstract AF_UNIX address", realfnname);
+		return;
+	}
+
+	/* a non-abstract unix domain socket address, reverse it */
+	sbox_path = scratchbox_reverse_path(realfnname, from_un->sun_path);
+	if (sbox_path) {
+		size_t max_path_size = orig_from_size -
+			 offsetof(struct sockaddr_un, sun_path);
+
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: reversed to '%s'",
+			realfnname, sbox_path);
+		if (strlen(sbox_path) >= max_path_size) {
+			/* address does not fit */
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"%s: (result will be cut)", realfnname);
+			strncpy(from_un->sun_path, sbox_path, max_path_size);
+			*fromlen = orig_from_size;
+		} else {
+			strcpy(from_un->sun_path, sbox_path);
+			*fromlen = offsetof(struct sockaddr_un, sun_path)
+				+ strlen(sbox_path) + 1;
+		}
+		free(sbox_path);
+	}
+}
+
+ssize_t recvfrom_gate(ssize_t (*real_recvfrom_ptr)(int s, void *buf,
+	size_t len, int flags, struct sockaddr *from, socklen_t *fromlen),
+        const char *realfnname,
+	int s,
+	void *buf,
+	size_t len,
+	int flags,
+	struct sockaddr *from,
+	socklen_t *fromlen)
+{
+	ssize_t	res;
+	socklen_t orig_from_size = *fromlen;
+
+	res = (*real_recvfrom_ptr)(s, buf, len, flags, from, fromlen);
+	reverse_sockaddr_un(realfnname, from, orig_from_size, fromlen);
+	return (res);
+}
+
+ssize_t recvmsg_gate(ssize_t (*real_recvmsg_ptr)(int s,
+	struct msghdr *msg, int flags),
+        const char *realfnname,
+	int s,
+	struct msghdr *msg,
+	int flags)
+{
+	ssize_t	res;
+	socklen_t orig_from_size = msg ? msg->msg_namelen : 0;
+
+	res = (*real_recvmsg_ptr)(s, msg, flags);
+	if (msg && msg->msg_name) {
+		reverse_sockaddr_un(realfnname, msg->msg_name,
+			orig_from_size, &(msg->msg_namelen));
+	}
+	return (res);
+}
+
+int accept_gate(int (*real_accept_ptr)(int sockfd,
+	struct sockaddr *addr, socklen_t *addrlen),
+        const char *realfnname,
+	int sockfd,
+	struct sockaddr *addr,
+	socklen_t *addrlen)
+{
+	ssize_t	res;
+	socklen_t orig_from_size = *addrlen;
+
+	res = (*real_accept_ptr)(sockfd, addr, addrlen);
+	reverse_sockaddr_un(realfnname, addr, orig_from_size, addrlen);
+	return (res);
+}
+
+int getpeername_gate(int (*real_getpeername_ptr)(int s,
+	struct sockaddr *name, socklen_t *namelen),
+        const char *realfnname,
+	int s,
+	struct sockaddr *name,
+	socklen_t *namelen)
+{
+	ssize_t	res;
+	socklen_t orig_from_size = *namelen;
+
+	res = (*real_getpeername_ptr)(s, name, namelen);
+	reverse_sockaddr_un(realfnname, name, orig_from_size, namelen);
+	return (res);
+}
+
+int getsockname_gate(int (*real_getsockname_ptr)(int s,
+	struct sockaddr *name, socklen_t *namelen),
+        const char *realfnname,
+	int s,
+	struct sockaddr *name,
+	socklen_t *namelen)
+{
+	ssize_t	res;
+	socklen_t orig_from_size = *namelen;
+
+	res = (*real_getsockname_ptr)(s, name, namelen);
+	reverse_sockaddr_un(realfnname, name, orig_from_size, namelen);
+	return (res);
 }
 
 /* ---------- */

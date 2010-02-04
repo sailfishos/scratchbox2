@@ -504,6 +504,15 @@ WRAP: int utimes(const char *filename, const struct timeval tv[2]) : \
 
 GATE: int bind(int sockfd, const struct sockaddr *my_addr, socklen_t addrlen)
 GATE: int connect(int sockfd, const struct sockaddr *serv_addr, socklen_t addrlen)
+GATE: ssize_t sendto(int s, const void *buf, size_t len, int flags, \
+	const struct sockaddr *to, socklen_t tolen)
+GATE: ssize_t recvfrom(int s, void *buf, size_t len, int flags, \
+	struct sockaddr *from, socklen_t *fromlen)
+GATE: int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
+GATE: int getpeername(int s, struct sockaddr *name, socklen_t *namelen)
+GATE: int getsockname(int s, struct sockaddr *name, socklen_t *namelen)
+GATE: ssize_t recvmsg(int s, struct msghdr *msg, int flags)
+GATE: ssize_t sendmsg(int s, const struct msghdr *msg, int flags)
 
 --
 -- 8. Wrappers, where argument buffer is modified

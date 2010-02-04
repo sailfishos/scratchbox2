@@ -47,6 +47,18 @@ char *bindtextdomain_gate(char *(*realfn)(const char *, const char *),
 
 	result = (*realfn)(domainname, mapped_dirname);
 	free_mapping_results(&res);
+	if (result && (*result != '\0')) {
+		char *sbox_path = NULL;
+		sbox_path = scratchbox_reverse_path(realfn_name, result);
+		if (sbox_path) {
+			/* FIXME: this will leak memory. nobody will free
+			 * the buffer at *sbox_path; in fact the manual
+			 * page denies that ("..must not be modified
+			 * or freed")
+			*/
+			result = sbox_path;
+		}
+	}
 	return (result);
 }
 

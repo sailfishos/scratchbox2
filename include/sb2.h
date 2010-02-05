@@ -78,10 +78,12 @@ struct lua_instance {
  *   - minor changes to the popen() implementation.
  * * Differences between "70" and "69"
  *   - bug fixes in luaif/paths.c
+ * * Differences between "71" and "70"
+ *   - sockaddr_un can now handle "abstract" socket names (a linux extension)
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "70"
+#define SB2_LUA_C_INTERFACE_VERSION "71"
 
 extern struct lua_instance *get_lua(void);
 extern void release_lua(struct lua_instance *ptr);

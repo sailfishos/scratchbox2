@@ -31,6 +31,8 @@
 #include <unistd.h>
 #include <config.h>
 #include <ctype.h>
+#include <stdlib.h>
+#include <signal.h>
 #include "libsb2.h"
 #include "exported.h"
 
@@ -1578,6 +1580,20 @@ void sb2_initialize_global_variables(void)
 			sb2_global_vars_initialized__ = 1;
 			sblog_init();
 			SB_LOG(SB_LOGLEVEL_DEBUG, "global vars initialized from env");
+
+			/* check if the user wants us to SIGTRAP
+			 * during libsb2 initialization.
+			 *
+			 * This is used together with two small GDB
+			 * modification to make running gdb possible
+			 * in sb2 emulation mode.
+			 *
+			 * The needed modifications in GDB:
+			 *   - START_INFERIOR_TRAPS_EXPECTED=4 in gdb/inferior.h
+			 *   - 'set environment SBOX_SIGTRAP' at startup
+			*/
+			if (getenv("SBOX_SIGTRAP"))
+				raise(SIGTRAP);
 
 			/* now when we know that the environment is
 			 * valid, it is time to change LD_PRELOAD and

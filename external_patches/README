@@ -5,7 +5,57 @@
 This directory contains patches to external components that are recommended
 to be used in the SB2'ed environment.
 
+Unless otherwise noted, these patches are needed only when target CPU
+archictecture is the same as host CPU architecture; i.e. when sb2 is
+used without Qemu.
+
 Short description of the files:
+
+gdb-7.0.1+sb2.patch
+-------------------
+
+	From: Gergely Risko <gergely@risko.hu>
+	
+	The main problem is that sb2 wraps exec and instead of execve'ing the
+	executable, it uses ld-linux.so.2 to do the loading.  This way the
+	kernel only maps ld-linux.so.2, and the mmapping of the real binary is
+	done by ld-linux.so.2 itself.  Thus the kernel raises SIGTRAP as soon as
+	ld-linux.so.2 is mmapped, but by this time the real binary is not in the
+	memory, setting breakpoints fail.
+
+	My solution is two minimal modifications in libsb2 and gdb.
+
+	Gdb has a
+	#define START_INFERIOR_TRAPS_EXPECTED 2
+	in gdb/inferior.h, which specifies that 2 SIGTRAPs will be raised, and
+	then we are really debugging the wanted process.  The first SIGTRAP is
+	from the shell, which is used in GDB to make e.g.
+	run *
+	possible (where * is expanded by the shell).  I just increased this
+	constant to 4.  I also set a new environment variable SBOX_SIGTRAP to 1
+	in the shell started by GDB.
+
+	In libsb2 I added to the initialization a check.  If SBOX_SIGTRAP is
+	set, then we do a raise(SIGTRAP).
+
+	So the whole process is this:
+	gdb forks
+	  ptrace(TRACME)
+	  execve("/bin/sh", ["-e", "./mybin"], {SBOX_SIGTRAP => "1", ...})
+	    libsb2 wraps this exec:
+	    exec("ld-linux.so.2", ["/bin/sh", "-e", "exec ./mybin"])  -> 1 SIGTRAP
+	      libsb2.so gets loaded for the shell, constructor gets called,
+	      the constructor notes the SBOX_SIGTRAP               -> 1 SIGTRAP
+	      shell exec's the mybin                               -> 1 SIGTRAP
+	      libsb2.so preload constructor notes SBOX_SIGTRAP     -> 1 SIGTRAP
+	<-
+	gdb parent already got 4 SIGTRAPs, so it starts putting in breakpoints
+	and everything.
+
+	Pro: no gdb wrapper, user can start putting breakpoints right away after
+	gdb startup, no special handling of gdb is needed inside sb2.
+
+	Con: modification in both gdb and libsb2.
 
 glibc-2.3.6-elf-rtld.c.patch, glibc-2.5-elf-rtld.c.patch,
 glibc-2.8-elf-rtld.c.patch

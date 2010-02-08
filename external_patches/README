@@ -57,6 +57,19 @@ gdb-7.0.1+sb2.patch
 
 	Con: modification in both gdb and libsb2.
 
+	-=-
+
+	GDB can follow exec calls, see (info "(gdb) Processes").
+
+	To support this, SB2 has to reintroduce SBOX_SIGTRAP if it
+	going to be lost because the program called exec*e without
+	specifying SBOX_SIGTRAP in the new env.  This is done in
+	preload/sb-exec.c:prepare_envp_for_do_exec.
+
+	In GDB we have to wait for an extra SIGTRAP after every time,
+	the inferior called exec(), the modification for this is made
+	in gdb/infrun.c.
+
 glibc-2.3.6-elf-rtld.c.patch, glibc-2.5-elf-rtld.c.patch,
 glibc-2.8-elf-rtld.c.patch
 --------------------------------------------------------

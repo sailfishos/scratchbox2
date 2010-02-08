@@ -691,6 +691,7 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 	char	*new_orig_file_var;
 	int	has_sbox_session_dir = 0;
 	int	has_sbox_session_mode = 0;
+	int     has_sbox_sigtrap = 0;
 	const int sbox_session_dir_varname_len = strlen("SBOX_SESSION_DIR");
 	const int sbox_session_varname_prefix_len = strlen("SBOX_SESSION_");
 
@@ -702,8 +703,15 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 	 * has it as well
 	 */
 
+	/* if the caller sets SBOX_SIGTRAP, then assume that it was
+	 * intentional and leave it alone, but if they just call
+	 * execve without SBOX_SIGTRAP in the environment, then
+	 * SBOX_SIGTRAP should be inherited from us
+	 */
+
 	/* count the environment variables and arguments, also check
-	 * for LD_PRELOAD, LD_LIBRARY_PATH and SBOX_SESSION_*
+	 * for LD_PRELOAD, LD_LIBRARY_PATH, SBOX_SESSION_* and
+	 * SBOX_SIGTRAP
 	 */
 	for (p=(char **)envp, envc=0; *p; p++, envc++) {
 		if (**p == 'L') {
@@ -734,6 +742,11 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 							" restored to %s",
 							*p, sbox_session_dir);
 				}
+				continue;
+			}
+			if (strncmp("SBOX_SIGTRAP=", *p,
+			     sbox_session_dir_varname_len+1) == 0) {
+				has_sbox_sigtrap = 1;
 				continue;
 			}
 		}
@@ -835,6 +848,21 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 		     sbox_session_perm) < 0) {
 			SB_LOG(SB_LOGLEVEL_ERROR,
 				"asprintf failed to create SBOX_SESSION_PERM");
+		} else {
+			i++;
+		}
+	}
+
+	/* add back SBOX_SIGTRAP if it was removed accidentally, so
+	 * exec following in GDB will work */
+	if (!has_sbox_sigtrap && getenv("SBOX_SIGTRAP")) {
+		SB_LOG(SB_LOGLEVEL_WARNING,
+		       "Detected attempt to clear SBOX_SIGTRAP, "
+		       "restored to %s", getenv("SBOX_SIGTRAP"));
+		if (asprintf(&(my_envp[i]), "SBOX_SIGTRAP=%s",
+			     getenv("SBOX_SIGTRAP")) < 0) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+			       "asprintf failed to create SBOX_SIGTRAP");
 		} else {
 			i++;
 		}

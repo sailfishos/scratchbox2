@@ -860,37 +860,71 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 }
 
 #
-# write_locale_paths_to_exec_config()
+# write_locale_and_gconv_paths_to_exec_config()
 #
 # Probes localization files and directories and writes
 # it to exec_config.lua.
 #
-function write_locale_paths_to_exec_config()
+function write_locale_and_gconv_paths_to_exec_config()
 {
 	rootdir=$1
 	generated_locale_path=$2
 	locale_path_varname=$3
+	gconv_path_varname=$4
 
-	#
-	# Check whether $rootdir has localization files
-	# in archived or extracted format.  If they are
-	# in extracted format, we can use files straight
+	#------------ Locales:
+
+	locale_path=""
+
+	# Check whether $rootdir has localization directories.
+	# If they are in extracted format, we can use files straight
 	# from $rootdir.  Otherwise we need to use extracted
 	# files that were created by sb2-generate-locales and
 	# placed under $locale_path.
 	#
-	locale_path="$rootdir/usr/lib/locale"
-	if [ -d "$locale_path" ]; then
-		if [ -f "$locale_path/locale-archive" ]; then
-			# need to use generated files
-			locale_path="$generated_locale_path"
+	for rootdir_locales in "$rootdir/usr/lib/locale" \
+		"$rootdir/usr/share/locale"
+	do
+		if [ -d "$rootdir_locales" ]; then
+			locale_path="$locale_path:$rootdir_locales"
 		fi
-		echo "$locale_path_varname=\"$locale_path\"" \
+	done
+
+	if [ -n "$generated_locale_path" ]; then
+		if [ -d "$generated_locale_path" ]; then
+			# use generated files in any case
+			locale_path="$locale_path:$generated_locale_path"
+		fi
+	fi
+
+	if [ -n "$locale_path" ]; then
+		echo "$locale_path_varname=\"$locale_path\"" |
+			sed -e 's/=":/="/' \
 		    >> $SBOX_SESSION_DIR/exec_config.lua
 	else
 		echo "$locale_path_varname=nil" \
 		    >> $SBOX_SESSION_DIR/exec_config.lua
 	fi
+
+	#------------ gconv:
+	gconv_path=""
+	for rootdir_gconvs in "$rootdir/usr/lib/gconv" \
+		"$rootdir/usr/share/gconv"
+	do
+		if [ -d "$rootdir_gconvs" ]; then
+			gconv_path="$gconv_path:$rootdir_gconvs"
+		fi
+	done
+
+	if [ -n "$gconv_path" ]; then
+		echo "$gconv_path_varname=\"$gconv_path\"" |
+			sed -e 's/=":/="/' \
+		    >> $SBOX_SESSION_DIR/exec_config.lua
+	else
+		echo "$gconv_path_varname=nil" \
+		    >> $SBOX_SESSION_DIR/exec_config.lua
+	fi
+
 }
 
 # Write configuration file $SBOX_SESSION_DIR/exec_config.lua
@@ -921,10 +955,11 @@ END
 			conf_tools_ld_so_supports_rpath_prefix \
 			conf_tools_ld_so_supports_nodefaultdirs
 
-		write_locale_paths_to_exec_config \
+		write_locale_and_gconv_paths_to_exec_config \
 			$SBOX_TOOLS_ROOT \
 			$HOME/.scratchbox2/$tools_basename/locales \
-			conf_tools_locale_path
+			conf_tools_locale_path \
+			conf_tools_gconv_path
 
 		if [ $ld_so_found != "yes" ]; then
 			# ld.so from tools can not be used. Add tools' shared
@@ -977,10 +1012,11 @@ END
 			conf_target_ld_so_supports_rpath_prefix \
 			conf_target_ld_so_supports_nodefaultdirs
 
-		write_locale_paths_to_exec_config \
+		write_locale_and_gconv_paths_to_exec_config \
 			$SBOX_TARGET_ROOT \
 			$HOME/.scratchbox2/$SBOX_TARGET/locales \
-			conf_target_locale_path
+			conf_target_locale_path \
+			conf_target_gconv_path
 	else
 		# SBOX_CPUTRANSPARENCY_METHOD is not empty,
 		# host CPU != target CPU

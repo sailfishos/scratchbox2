@@ -510,6 +510,14 @@ function sb_execve_postprocess_native_executable(rule, exec_policy,
 		    exec_policy.native_app_locale_path)
 		updated_args = 1
 	end
+
+	if exec_policy.native_app_gconv_path ~= nil then
+		sb.log("debug", string.format("setting GCONV_PATH=%s",
+		    exec_policy.native_app_gconv_path))
+		table.insert(new_envp, "GCONV_PATH=" ..
+		    exec_policy.native_app_gconv_path)
+		updated_args = 1
+	end
 	
 	if (updated_args == 1) then
 		-- Add components from original argv[]

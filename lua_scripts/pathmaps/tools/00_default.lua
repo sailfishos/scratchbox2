@@ -182,6 +182,7 @@ local exec_policy_tools = {
 	native_app_ld_library_path_suffix = tools_mode_tools_ld_library_path_suffix,
 
 	native_app_locale_path = conf_tools_locale_path,
+	native_app_gconv_path = conf_tools_gconv_path,
 	native_app_message_catalog_prefix = conf_tools_message_catalog_prefix,
 }
 

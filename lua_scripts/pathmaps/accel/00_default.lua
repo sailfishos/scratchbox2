@@ -43,6 +43,7 @@ devel_mode_tools_ld_library_path_prefix = ""
 devel_mode_tools_ld_library_path_suffix = ""
 -- localization support for tools
 devel_mode_locale_path = nil
+devel_mode_gconv_path = nil
 
 if ((tools_root ~= nil) and conf_tools_sb2_installed) then
 	if (conf_tools_ld_so ~= nil) then
@@ -53,6 +54,7 @@ if ((tools_root ~= nil) and conf_tools_sb2_installed) then
 	if (conf_tools_locale_path ~= nil) then
 		-- use locales from tools
 		devel_mode_locale_path = conf_tools_locale_path
+		devel_mode_gconv_path = conf_tools_gconv_path
 	end
 else
 	devel_mode_tools_ld_library_path_prefix =
@@ -86,6 +88,7 @@ exec_policy_tools = {
 	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
 
 	native_app_locale_path = devel_mode_locale_path,
+	native_app_gconv_path = devel_mode_gconv_path,
 
 	script_log_level = "debug",
 	script_log_message = "SCRIPT from tools",
@@ -107,6 +110,7 @@ exec_policy_tools_perl = {
 	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
 
 	native_app_locale_path = devel_mode_locale_path,
+	native_app_gconv_path = devel_mode_gconv_path,
 
 	script_log_level = "debug",
 	script_log_message = "SCRIPT from tools (t.p)",
@@ -128,6 +132,7 @@ exec_policy_tools_python = {
 	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
 
 	native_app_locale_path = devel_mode_locale_path,
+	native_app_gconv_path = devel_mode_gconv_path,
 
 	script_log_level = "debug",
 	script_log_message = "SCRIPT from tools (t.p)",

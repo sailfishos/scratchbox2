@@ -274,6 +274,7 @@ local exec_policy_target = {
 	native_app_ld_library_path_suffix = emulate_mode_target_ld_library_path_suffix,
 
 	native_app_locale_path = conf_target_locale_path,
+	native_app_gconv_path = conf_target_gconv_path,
 
 	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
 }

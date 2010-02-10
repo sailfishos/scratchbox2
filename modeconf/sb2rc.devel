@@ -63,7 +63,7 @@ case "$sb2rc_mode" in
 		#
 		SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST=" \
 			@require-both: \
-			/usr/bin /usr/sbin /sbin \
+			/usr/bin /usr/sbin /sbin /bin \
 			@ignore: \
 			/usr/lib/perl /usr/share/perl \
 			/usr/lib/python /usr/share/python /usr/share/pygobject \

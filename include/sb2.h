@@ -80,10 +80,12 @@ struct lua_instance {
  *   - bug fixes in luaif/paths.c
  * * Differences between "71" and "70"
  *   - sockaddr_un can now handle "abstract" socket names (a linux extension)
+ * * Differences between "72" and "71"
+ *   - added wrapper for utimensat
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "71"
+#define SB2_LUA_C_INTERFACE_VERSION "72"
 
 extern struct lua_instance *get_lua(void);
 extern void release_lua(struct lua_instance *ptr);

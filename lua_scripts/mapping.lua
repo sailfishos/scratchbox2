@@ -140,6 +140,8 @@ function load_and_check_rules()
 	-- exec mapping code (argvenp.lua) and the
 	-- rule files:
 	--
+	-- Version 24:
+	-- - Added support for gconv_path for native applications
 	-- Version 23:
 	-- - LD_LIBRARY_PATH and LD_PRELOAD are now always
 	--   set by argvenvp.lua => the exec_policies must
@@ -173,7 +175,7 @@ function load_and_check_rules()
 	--   (previously only one was expected)
 	-- - variables "esc_tools_root" and "esc_target_root"
 	--   were removed
-	local current_rule_interface_version = "23"
+	local current_rule_interface_version = "24"
 
 	do_file(rule_file_path)
 

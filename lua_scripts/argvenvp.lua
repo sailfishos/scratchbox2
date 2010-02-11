@@ -276,6 +276,24 @@ function setenv_native_app_ld_preload(exec_policy, envp)
 				exec_policy.native_app_ld_preload_suffix))
 	else
 		new_preload = host_ld_preload
+		-- See if fakeroot is needed. The exec policy
+		-- didn't say anything about that; now there are
+		-- two ways how fakeroot may get in: 
+		if sb.get_session_perm() == "root" then
+			-- session was entered with -R 
+			new_preload = new_preload..":"..host_ld_preload_fakeroot
+		else
+			-- check if fakeroot session was created inside
+			-- the sb2 session. User's LD_PRELOAD variable
+			-- wiil reveal that.
+			local users_ld_preload = get_users_ld_preload(envp)
+			if (users_ld_preload ~= "") then
+				if string.find(users_ld_preload,"libfakeroot") then
+					-- need to use fakeroot.
+					new_preload = new_preload..":"..host_ld_preload_fakeroot
+				end
+			end
+		end
 	end
 
 	set_ld_preload(envp, new_preload)

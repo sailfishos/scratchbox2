@@ -148,6 +148,8 @@ void sblog_init(void)
 					sb_loglevel__ = SB_LOGLEVEL_ERROR;
 				} else if (!strcmp(level_str,"warning")) {
 					sb_loglevel__ = SB_LOGLEVEL_WARNING;
+				} else if (!strcmp(level_str,"net")) {
+					sb_loglevel__ = SB_LOGLEVEL_NETWORK;
 				} else if (!strcmp(level_str,"notice")) {
 					sb_loglevel__ = SB_LOGLEVEL_NOTICE;
 				} else if (!strcmp(level_str,"info")) {
@@ -262,6 +264,7 @@ void sblog_vprintf_line_to_logfile(
 	switch(level) {
 	case SB_LOGLEVEL_ERROR:		levelname = "ERROR"; break;
 	case SB_LOGLEVEL_WARNING:	levelname = "WARNING"; break;
+	case SB_LOGLEVEL_NETWORK:	levelname = "NET"; break;
 	case SB_LOGLEVEL_NOTICE:	levelname = "NOTICE"; break;
 	/* default is to pass level info as numbers */
 	}

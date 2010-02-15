@@ -33,6 +33,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <netinet/in.h>
 #include "libsb2.h"
 #include "exported.h"
 
@@ -930,17 +931,67 @@ int connect_gate(
 	const struct sockaddr *serv_addr,
 	socklen_t addrlen)
 {
-	if (serv_addr && (serv_addr->sa_family == AF_UNIX)) {
-		struct sockaddr_un mapped_serv_addr_un;
-		socklen_t new_addrlen = addrlen;
+	struct sockaddr_un mapped_serv_addr_un;
+	socklen_t new_addrlen;
+	char printable_dst_addr[200];
+	int r;
+	int saved_errno;
+	struct sockaddr_in *ina;
+	struct sockaddr_in6 *ina6;
 
-		map_sockaddr_un(realfnname,
-			(const struct sockaddr_un*)serv_addr,
-			&mapped_serv_addr_un, &new_addrlen);
+	if (serv_addr) {
+		switch (serv_addr->sa_family) {
+		case AF_UNIX:
+			new_addrlen = addrlen;
 
-		return((*real_connect_ptr)(sockfd,
-			(struct sockaddr*)&mapped_serv_addr_un,
-			new_addrlen));
+			map_sockaddr_un(realfnname,
+				(const struct sockaddr_un*)serv_addr,
+				&mapped_serv_addr_un, &new_addrlen);
+
+			return((*real_connect_ptr)(sockfd,
+				(struct sockaddr*)&mapped_serv_addr_un,
+				new_addrlen));
+		case AF_INET:
+			ina = (struct sockaddr_in*)serv_addr;
+			r = (*real_connect_ptr)(sockfd, serv_addr, addrlen);
+			saved_errno = errno;
+			if (inet_ntop(serv_addr->sa_family,
+				&ina->sin_addr,
+				printable_dst_addr, sizeof(printable_dst_addr))) {
+
+				SB_LOG(SB_LOGLEVEL_NETWORK,
+					"%s: %s:%d => %s", realfnname,
+					printable_dst_addr, ina->sin_port,
+					(r ? "Failed" : "OK"));
+			} else {
+				SB_LOG(SB_LOGLEVEL_NETWORK,
+					"%s: <address conversion failed> => %s",
+					realfnname,
+					(r ? "Failed" : "OK"));
+			}
+			errno = saved_errno;
+			return(r);
+		case AF_INET6:
+			ina6 = (struct sockaddr_in6*)serv_addr;
+			r = (*real_connect_ptr)(sockfd, serv_addr, addrlen);
+			saved_errno = errno;
+			if (inet_ntop(serv_addr->sa_family,
+				&ina6->sin6_addr,
+				printable_dst_addr, sizeof(printable_dst_addr))) {
+
+				SB_LOG(SB_LOGLEVEL_NETWORK,
+					"%s: [%s]:%d => %s", realfnname,
+					printable_dst_addr, ina6->sin6_port,
+					(r ? "Failed" : "OK"));
+			} else {
+				SB_LOG(SB_LOGLEVEL_NETWORK,
+					"%s: <address conversion failed> => %s",
+					realfnname,
+					(r ? "Failed" : "OK"));
+			}
+			errno = saved_errno;
+			return(r);
+		}
 	}
 	return((*real_connect_ptr)(sockfd, serv_addr, addrlen));
 }

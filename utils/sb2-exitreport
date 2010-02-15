@@ -28,8 +28,8 @@ if [ -s "$SBOX_MAPPING_LOGFILE" ]; then
 	# add reason and status to the logfile
 	echo "# $* ($ret)" >> $SBOX_MAPPING_LOGFILE
 	case "$SBOX_MAPPING_LOGLEVEL" in
-	(error|warning)
-		# Brief log, only error and warning messages.
+	(error|warning|net)
+		# Brief log, only error, warning and network-related messages.
 		echo "Messages from sb2:"
 		cat $SBOX_MAPPING_LOGFILE
 		;;

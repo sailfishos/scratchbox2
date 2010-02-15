@@ -111,7 +111,8 @@ extern void dump_lua_stack(const char *msg, lua_State *L);
 #define SB_LOGLEVEL_NONE	0
 #define SB_LOGLEVEL_ERROR	1
 #define SB_LOGLEVEL_WARNING	2
-#define SB_LOGLEVEL_NOTICE	3
+#define SB_LOGLEVEL_NETWORK	3
+#define SB_LOGLEVEL_NOTICE	4
 #define SB_LOGLEVEL_INFO	5
 #define SB_LOGLEVEL_DEBUG	8
 #define SB_LOGLEVEL_NOISE	9

@@ -1,6 +1,7 @@
 objs := wrappers.o privatewrappers.o \
 	libsb2.o sb_exec.o sb_l10n.o glob.o glob64.o \
 	network.o \
+	execgates.o \
 	fdpathdb.o procfs.o mempcpy.o \
 	system.o
 

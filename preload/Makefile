@@ -3,6 +3,7 @@ objs := wrappers.o privatewrappers.o \
 	network.o \
 	execgates.o \
 	miscgates.o \
+	tmpnamegates.o \
 	fdpathdb.o procfs.o mempcpy.o \
 	system.o
 

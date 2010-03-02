@@ -690,6 +690,12 @@ function check_qemu_features()
 			conf_cputransparency_qemu_ld_preload=$qemuarg ;;
 		__SB2_*=*) # skip it
 			;;
+		[A-Z_]*=*)	# other additional env.vars.
+			if [ -z "$qemu_env" ]; then
+				qemu_env="'$qemuarg'"
+			else
+				qemu_env="$qemu_env,'$qemuarg'"
+			fi ;;
 		*)
 			if [ -z "$qemu_argv" ]; then
 				qemu_argv="'$qemuarg'"
@@ -700,6 +706,9 @@ function check_qemu_features()
 	done
 	if [ -n "$qemu_argv" ]; then
 		conf_cputransparency_qemu_argv="{$qemu_argv}"
+	fi
+	if [ -n "$qemu_argv" ]; then
+		conf_cputransparency_qemu_env="{$qemu_env}"
 	fi
 }
 
@@ -1052,6 +1061,7 @@ function add_cputransparency_settings_to_exec_config_file()
 	conf_cputransparency_qemu_ld_library_path=""
 	conf_cputransparency_qemu_ld_preload=""
 	conf_cputransparency_qemu_argv="nil"
+	conf_cputransparency_qemu_env="nil"
 
 	case "$SBOX_CPUTRANSPARENCY_METHOD" in	
 	*qemu*)	check_qemu_features $SBOX_CPUTRANSPARENCY_METHOD
@@ -1066,6 +1076,7 @@ conf_cputransparency_qemu_has_libattr_hack_flag=$conf_cputransparency_qemu_has_l
 conf_cputransparency_qemu_ld_library_path="$conf_cputransparency_qemu_ld_library_path"
 conf_cputransparency_qemu_ld_preload="$conf_cputransparency_qemu_ld_preload"
 conf_cputransparency_qemu_argv=$conf_cputransparency_qemu_argv
+conf_cputransparency_qemu_env=$conf_cputransparency_qemu_env
 END
 }
 

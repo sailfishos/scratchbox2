@@ -715,6 +715,12 @@ function sb_execve_postprocess_cpu_transparency_executable(rule, exec_policy,
 			new_filename = conf_cputransparency_qemu_argv[1]
 		end
 
+		if conf_cputransparency_qemu_env ~= nil then
+			for i = 1, table.maxn(conf_cputransparency_qemu_env) do
+				table.insert(new_envp, conf_cputransparency_qemu_env[i])
+			end
+		end
+
 		-- target runtime linker comes from /
 		table.insert(new_argv, "-L")
 		table.insert(new_argv, "/")

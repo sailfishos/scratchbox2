@@ -44,6 +44,11 @@ simple_chain = {
 
 		-- -----------------------------------------------
 		-- 99. Other rules.
+		{prefix = "/usr/share/python", use_orig_path = true, readonly = true},
+		{prefix = "/usr/share/pyshared", use_orig_path = true, readonly = true},
+		{prefix = "/usr/lib/pymodules", use_orig_path = true, readonly = true},
+		{prefix = "/usr/lib/pyshared", use_orig_path = true, readonly = true},
+		{prefix = "/usr/lib/python", use_orig_path = true, readonly = true},
 		{prefix = "/usr/lib/perl", map_to = tools},
 		{prefix = "/usr/lib/gcc", map_to = tools},
 		{prefix = "/usr/lib/git-core", use_orig_path = true, readonly = true},

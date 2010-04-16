@@ -800,6 +800,25 @@ function locate_shell()
 	export __SB2_BINARYNAME
 }
 
+# Try to determine dynamic linker
+# Choose x86_64 ld.so if architecture seems correct and linker exists.
+#
+# NOTE:
+#   Debian seems to have scratchbox2 packages for ia64 and powerpc,
+#   however since I don't have access to these arches I'm leaving "linker chooser" unfixed 
+#   there (ia64 has /lib/ld-linux-ia64.so, powerpc has /lib/ld.so.1).
+function guess_ld_so()
+{
+	local prefix="$1"
+
+	if [ "`uname -m`" = 'x86_64' -a -r "$prefix/lib/ld-linux-x86-64.so.2" ]
+	then
+		printf "$prefix/lib/ld-linux-x86-64.so.2"
+	else
+		printf "$prefix/lib/ld-linux.so.2"		
+	fi
+}
+
 function write_libsb2_and_ld_so_state_to_exec_config()
 {
 	rootdir=$1
@@ -845,7 +864,7 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 	# check the dynamic linker:
 
 	# First try if the default linker can be used
-	ld_so_candidate=$rootdir/lib/ld-linux.so.2
+	ld_so_candidate="`guess_ld_so $rootdir`"
 	if [ -f $ld_so_candidate ]; then
 		check_ld_so_features $rootdir $ld_so_candidate
 		if [ "$ld_so_argv_flag_works" != "true" ]; then
@@ -889,7 +908,7 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 		# points to the actual dynamic linker since we don't
 		# know its version.
 		#
-		ld_so_candidate2="$libsb2_dirname/ld-linux.so.2"
+		ld_so_candidate2="`guess_ld_so $libsb2_dirname`"
 		if [ -L $ld_so_candidate2 ]; then
 			ld_so_candidate2=`/bin/readlink -f $ld_so_candidate2`
 			# check also that it has --argv0 support

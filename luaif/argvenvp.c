@@ -118,23 +118,22 @@ void sb_push_string_to_lua_stack(char *str)
 */
 int sb_execve_preprocess(char **file, char ***argv, char ***envp)
 {
-	struct lua_instance *luaif = get_lua();
+	struct lua_instance *luaif = NULL;
 	int res, new_argc, new_envc;
-
-	if (!luaif) return(0);
 
 	if (!argv || !envp) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"ERROR: sb_argvenvp: (argv || envp) == NULL");
-		release_lua(luaif);
 		return -1;
 	}
 
 	if (getenv("SBOX_DISABLE_ARGVENVP")) {
 		SB_LOG(SB_LOGLEVEL_DEBUG, "sb_argvenvp disabled(E):");
-		release_lua(luaif);
 		return 0;
 	}
+
+	luaif = get_lua();
+	if (!luaif) return(0);
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"sb_execve_preprocess: gettop=%d", lua_gettop(luaif->lua));
@@ -383,8 +382,8 @@ char *sb_execve_map_script_interpreter(
 	case 2:
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"sb_execve_map_script_interpreter: use sbox_map_path_for_exec");
-		/* remove all return values from the stack. */
-		lua_pop(luaif->lua, 8);
+		/* remove return values from the stack, leave rule & policy.  */
+		lua_pop(luaif->lua, 6);
 		if (mapped_interpreter) free(mapped_interpreter);
 		mapped_interpreter = NULL;
 		{

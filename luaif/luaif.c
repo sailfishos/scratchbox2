@@ -767,9 +767,22 @@ static int lua_sb_test_path_match(lua_State *l)
 			}
 		}
 		if ((result == -1) && str_path && str_rule_path) {
+			int rule_path_len = strlen(str_rule_path);
 			if (!strcmp(str_path, str_rule_path)) {
-				result = strlen(str_rule_path);
+				result = rule_path_len;
 				match_type = "path";
+			} else {
+				/* if "path" has a trailing slash, we may
+				 * want to try again, ignoring the trailing
+				 * slash. */
+				int	path_len = strlen(str_path);
+				if ((path_len > 2) &&
+				    (str_path[path_len-1] == '/') &&
+				    (path_len == (rule_path_len+1)) &&
+				    !strncmp(str_path, str_rule_path, rule_path_len)) {
+					result = rule_path_len;
+					match_type = "path/";
+				}
 			}
 		}
 		SB_LOG(SB_LOGLEVEL_NOISE2,

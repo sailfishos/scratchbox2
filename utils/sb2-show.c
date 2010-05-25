@@ -730,6 +730,7 @@ int main(int argc, char *argv[])
 	char	*post_cmd_file = NULL;
 	char	**additional_env = NULL;
 	char	*debug_port = "1234";
+	char	*active_exec_policy_name = NULL;
 	
 	while ((opt = getopt(argc, argv, "hm:f:b:Dvtg:x:X:E:p:")) != -1) {
 		switch (opt) {
@@ -741,7 +742,7 @@ int main(int argc, char *argv[])
 			break;
 		case 'f': function_name = optarg; break;
 		case 'b': binary_name = optarg; break;
-		case 'p': call_sb2__set_active_exec_policy_name__(optarg); break;
+		case 'p': active_exec_policy_name = optarg; break;
 		case 'D': ignore_directories = 1; break;
 		case 'v': verbose = 1; break;
 		case 't': report_time = 1; break;
@@ -795,6 +796,10 @@ int main(int argc, char *argv[])
 	if (!libsb2_handle) 
 		usage_exit(progname, "This command can only be used "
 			"inside a session (e.g. 'sb2 sb2-show ...')", 1);
+
+	if (active_exec_policy_name) {
+		call_sb2__set_active_exec_policy_name__(active_exec_policy_name);
+	}
 
 	/* check parameters */
 	if (optind >= argc) 

@@ -26,9 +26,11 @@ fi
 # probably done some changes into mappings so we just issue
 # a warning.
 #
-if /bin/rmdir $pathmaps/maemo > /dev/null 2>&1; then
-	ln -ns devel $pathmaps/maemo
-else
-	echo "Can't symlink maemo -> devel, directory is not empty"
-	exit 0
+if [ -d $pathmaps/maemo ]; then
+	if /bin/rmdir $pathmaps/maemo > /dev/null 2>&1; then
+		ln -ns devel $pathmaps/maemo
+	else
+		echo "Can't symlink maemo -> devel, directory is not empty"
+		exit 0
+	fi
 fi

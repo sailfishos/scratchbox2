@@ -32,11 +32,22 @@ then
 	error_not_inside_sb2
 fi
 
+sbox_ldconfig_path=""
+sbox_ldconfig_root=""
 # read-in mode-specific settings
 if [ -f $sbox_dir/share/scratchbox2/modeconf/sb2rc.$sbox_mapmode ]
 then
 	. $sbox_dir/share/scratchbox2/modeconf/sb2rc.$sbox_mapmode "$progbase"
 fi
 
-export SBOX_ALLOW_STATIC_BINARY=$sbox_target_root/sbin/ldconfig
-exec $sbox_target_root/sbin/ldconfig -r "$sbox_target_root" $args
+if [ -z "$sbox_ldconfig_path" ]
+then
+	sbox_ldconfig_path="$sbox_target_root/sbin/ldconfig"
+fi
+if [ -z "$sbox_ldconfig_root" ]
+then
+	sbox_ldconfig_root="$sbox_target_root"
+fi
+
+export SBOX_ALLOW_STATIC_BINARY=$sbox_ldconfig_path
+exec $sbox_ldconfig_path -r "$sbox_ldconfig_root" $args

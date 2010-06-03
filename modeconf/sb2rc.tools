@@ -24,6 +24,11 @@ case "$sb2rc_mode" in
 		unset DEB_HOST_ARCH
 		;;
 
+	ldconfig)
+		sbox_ldconfig_path="$sbox_tools_root/sbin/ldconfig"
+		sbox_ldconfig_root="$sbox_tools_root"
+		;;
+
 	*)
 		# Default.
 		;;

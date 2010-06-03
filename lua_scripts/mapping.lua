@@ -450,8 +450,16 @@ function sbox_execute_rule(binary_name, func_name, rp, path, rule)
 		else
 			rule_name = "(no name)"
 		end
-		sb.log("error", string.format("mapping rule '%s' does not "..
-			"have any valid actions, path=%s", rule_name, path))
+		local rule_selector = ""
+		if rule.dir then
+			rule_selector = "(dir="..rule.dir..")"
+		elseif rule.path then
+			rule_selector = "(path="..rule.path..")"
+		elseif rule.prefix then
+			rule_selector = "(prefix="..rule.prefix..")"
+		end
+		sb.log("error", string.format("mapping rule '%s' %s does not "..
+			"have any valid actions, path=%s", rule_name, rule_selector, path))
 	end
 	
 	return ret_exec_policy, ret_path, ret_flags
@@ -509,6 +517,7 @@ function find_rule(chain, func, full_path)
 						end
 						return rule, min_path_len
 					end
+					rule = nil
 				end
 			end
 		end

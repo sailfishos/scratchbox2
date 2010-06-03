@@ -62,6 +62,9 @@ case "$sb2rc_mode" in
 		# the binaries automatically.
 		#
 		SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST=" \
+			@ignore: \
+			/usr/bin/pygettext /usr/bin/pyversions \
+			/usr/bin/pydoc /usr/bin/pdb \
 			@require-both: \
 			/usr/bin /usr/sbin /sbin /bin \
 			@ignore: \

@@ -217,6 +217,12 @@ test_first_target_then_tools_default_is_target = {
 	{ map_to = target_root, readonly = true }
 }
 
+test_first_tools_then_target_default_is_tools = {
+	{ if_exists_then_map_to = tools, readonly = true },
+	{ if_exists_then_map_to = target_root, readonly = true },
+	{ map_to = tools, readonly = true }
+}
+
 test_first_tools_default_is_target = {
 	{ if_exists_then_map_to = tools, readonly = true },
 	{ map_to = target_root, readonly = true }
@@ -409,7 +415,7 @@ devel_mode_rules_usr = {
 		-- there are exceptions: Some tools have private subdirectories
 		-- there.
 
-		{prefix = "/usr/lib/gcc", map_to = tools, readonly = true},
+		{dir = "/usr/lib/gcc", actions = test_first_tools_then_target_default_is_tools},
 
 		{prefix = "/usr/lib/perl", actions = perl_lib_test},
 
@@ -488,6 +494,10 @@ devel_mode_rules_etc = {
 		 use_orig_path = true, readonly = true},
 		{path = "/etc/shadow",
 		 use_orig_path = true, readonly = true},
+
+		-- Symlinks in /etc/alternatives are used to select tools:
+		{dir = "/etc/alternatives",
+		 actions = test_first_tools_default_is_target},
 
 		-- default rules:
 		{dir = "/etc",

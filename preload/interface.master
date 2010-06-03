@@ -67,9 +67,14 @@ GATE: int execv (const char *path, char *const argv [])
 GATE: int execve (const char *filename, char *const argv [], char *const envp[])
 GATE: int execvp (const char *file, char *const argv [])
 
-GATE: char * getcwd (char *buf, size_t size) : returns_string create_nomap_nolog_version
+GATE: char * getcwd (char *buf, size_t size) : \
+	returns_string create_nomap_nolog_version
+GATE: char *__getcwd_chk (char *buf, size_t size, size_t buflen) : \
+	returns_string
+
 GATE: char * get_current_dir_name (void) : returns_string
 GATE: char * getwd (char *buf) : returns_string
+GATE: char * __getwd_chk (char *buf, size_t buflen) : returns_string
 
 GATE: char *realpath(const char *name, char *resolved) : \
 	map(name) returns_string
@@ -130,19 +135,38 @@ WRAP: int open64(const char *pathname, int flags, ...) : \
 	map(pathname) optional_arg_is_create_mode(flags&O_CREAT) \
 	postprocess(pathname) \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
+
+-- open; variants witout varargs
+WRAP: int __open_2(const char *pathname, int flags) : \
+	map(pathname) \
+	postprocess(pathname) \
+	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
+WRAP: int __open64_2(const char *pathname, int flags) : \
+	map(pathname) \
+	postprocess(pathname) \
+	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
+
+-- openat:
 WRAP: int openat(int dirfd, const char *pathname, int flags, ...) : \
 	map_at(dirfd,pathname) optional_arg_is_create_mode(flags&O_CREAT) \
 	postprocess(pathname) \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
-WRAP: int __openat_2(int dirfd, const char *pathname, int flags) : \
- 	map_at(dirfd,pathname) \
- 	postprocess(pathname) \
- 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
 WRAP: int openat64(int dirfd, const char *pathname, int flags, ...) : \
 	map_at(dirfd,pathname) optional_arg_is_create_mode(flags&O_CREAT) \
 	postprocess(pathname) \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
 
+-- openat; variants witout varargs
+WRAP: int __openat_2(int dirfd, const char *pathname, int flags) : \
+ 	map_at(dirfd,pathname) \
+ 	postprocess(pathname) \
+ 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
+WRAP: int __openat64_2(int dirfd, const char *pathname, int flags) : \
+ 	map_at(dirfd,pathname) \
+ 	postprocess(pathname) \
+ 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
+
+-- close:
 WRAP: int close(int fd) : \
 	postprocess() \
 	create_nomap_nolog_version
@@ -399,8 +423,14 @@ WRAP: long pathconf(const char *path, int name) : map(path)
 
 WRAP: READLINK_TYPE readlink(const char *path, char *buf, size_t bufsize) : \
 	dont_resolve_final_symlink map(path)
+WRAP: ssize_t __readlink_chk(const char *__restrict path, \
+		       char *__restrict buf, size_t len, size_t buflen) : \
+	dont_resolve_final_symlink map(path)
 
 WRAP: READLINK_TYPE readlinkat(int dirfd, const char *pathname, char *buf, size_t bufsize) : \
+	dont_resolve_final_symlink map_at(dirfd,pathname)
+WRAP: ssize_t __readlinkat_chk(int dirfd, const char *__restrict pathname, \
+			char *__restrict buf, size_t len, size_t buflen) : \
 	dont_resolve_final_symlink map_at(dirfd,pathname)
 
 WRAP: int remove(const char *pathname) : \
@@ -519,6 +549,9 @@ GATE: ssize_t sendto(int s, const void *buf, size_t len, int flags, \
 	const struct sockaddr *to, socklen_t tolen)
 GATE: ssize_t recvfrom(int s, void *buf, size_t len, int flags, \
 	struct sockaddr *from, socklen_t *fromlen)
+GATE: ssize_t __recvfrom_chk(int s, void *__restrict buf, size_t __n, \
+	size_t __buflen, int flags, \
+	struct sockaddr *from, socklen_t *__restrict fromlen)
 GATE: int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
 GATE: int getpeername(int s, struct sockaddr *name, socklen_t *namelen)
 GATE: int getsockname(int s, struct sockaddr *name, socklen_t *namelen)

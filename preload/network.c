@@ -303,6 +303,27 @@ ssize_t recvfrom_gate(ssize_t (*real_recvfrom_ptr)(int s, void *buf,
 	return (res);
 }
 
+ssize_t __recvfrom_chk_gate(ssize_t (*real___recvfrom_chk_ptr)(int s,
+	void *__restrict buf, size_t __n, size_t __buflen, int flags,
+	struct sockaddr *from, socklen_t *__restrict fromlen),
+	const char *realfnname,
+	int s,
+	void *__restrict buf,
+	size_t __n,
+	size_t __buflen,
+	int flags,
+	struct sockaddr *from,
+	socklen_t *__restrict fromlen)
+{
+	ssize_t	res;
+	socklen_t orig_from_size = *fromlen;
+
+	res = (*real___recvfrom_chk_ptr)(s, buf, __n, __buflen, flags,
+		from, fromlen);
+	reverse_sockaddr_un(realfnname, from, orig_from_size, fromlen);
+	return (res);
+}
+
 ssize_t recvmsg_gate(ssize_t (*real_recvmsg_ptr)(int s,
 	struct msghdr *msg, int flags),
         const char *realfnname,

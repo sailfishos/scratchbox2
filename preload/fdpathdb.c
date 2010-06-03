@@ -214,12 +214,28 @@ extern void __open_postprocess_pathname(
 	fdpathdb_register_mapping_result(realfnname, ret_fd, res, pathname);
 }
 
+extern void __open_2_postprocess_pathname(
+	const char *realfnname, int ret_fd, mapping_results_t *res,
+	const char *pathname, int flags)
+{
+	(void)flags;
+	fdpathdb_register_mapping_result(realfnname, ret_fd, res, pathname);
+}
+
 extern void __open64_postprocess_pathname(
 	const char *realfnname, int ret_fd, mapping_results_t *res,
 	const char *pathname, int flags, int mode)
 {
 	(void)flags;
 	(void)mode;
+	fdpathdb_register_mapping_result(realfnname, ret_fd, res, pathname);
+}
+
+extern void __open64_2_postprocess_pathname(
+	const char *realfnname, int ret_fd, mapping_results_t *res,
+	const char *pathname, int flags)
+{
+	(void)flags;
 	fdpathdb_register_mapping_result(realfnname, ret_fd, res, pathname);
 }
 
@@ -252,6 +268,15 @@ extern void openat_postprocess_pathname(
 }
 
 extern void __openat_2_postprocess_pathname(
+	const char *realfnname, int ret_fd, mapping_results_t *res,
+	int dirfd, const char *pathname, int flags)
+{
+	(void)dirfd;
+	(void)flags;
+	fdpathdb_register_mapping_result(realfnname, ret_fd, res, pathname);
+}
+
+extern void __openat64_2_postprocess_pathname(
 	const char *realfnname, int ret_fd, mapping_results_t *res,
 	int dirfd, const char *pathname, int flags)
 {

@@ -95,20 +95,11 @@ char * get_current_dir_name_gate(
 	return(cwd); /* failed to reverse it */
 }
 
-
-/* #include <unistd.h> */
-char *getcwd_gate (
-	char *(*real_getcwd_ptr)(char *buf, size_t size),
-	const char *realfnname,
-	char *buf,
-	size_t size)
+static char *getcwd_common(char *buf, size_t size,
+	const char *realfnname, char *cwd)
 {
 	char *sbox_path = NULL;
-	char *cwd;
 
-	if ((cwd = (*real_getcwd_ptr)(buf, size)) == NULL) {
-		return NULL;
-	}
 	if (*cwd != '\0') {
 		sbox_path = scratchbox_reverse_path(realfnname, cwd);
 	}
@@ -138,18 +129,40 @@ SB_LOG(SB_LOGLEVEL_DEBUG, "GETCWD: returns '%s'", cwd);
 	return cwd;
 }
 
-
-char * getwd_gate(
-	char *(*real_getwd_ptr)(char *buf),
+/* #include <unistd.h> */
+char *getcwd_gate (
+	char *(*real_getcwd_ptr)(char *buf, size_t size),
 	const char *realfnname,
-	char *buf)
+	char *buf,
+	size_t size)
 {
-	char *sbox_path = NULL;
 	char *cwd;
 
-	if ((cwd = (*real_getwd_ptr)(buf)) == NULL) {
+	if ((cwd = (*real_getcwd_ptr)(buf, size)) == NULL) {
 		return NULL;
 	}
+	return(getcwd_common(buf, size, realfnname, cwd));
+}
+
+char *__getcwd_chk_gate(char * (*real___getcwd_chk_ptr)(char *buf,
+		size_t size, size_t buflen),
+        const char *realfnname,
+	char *buf,
+	size_t size,
+	size_t buflen)
+{
+	char *cwd;
+
+	if ((cwd = (*real___getcwd_chk_ptr)(buf, size, buflen)) == NULL) {
+		return NULL;
+	}
+	return(getcwd_common(buf, size, realfnname, cwd));
+}
+
+static char *getwd_common(char *cwd, const char *realfnname, char *buf)
+{
+	char *sbox_path = NULL;
+
 	if (*cwd != '\0') {
 		sbox_path = scratchbox_reverse_path(realfnname, cwd);
 	}
@@ -168,6 +181,33 @@ char * getwd_gate(
 		}
 	}
 	return cwd;
+}
+
+char *getwd_gate(
+	char *(*real_getwd_ptr)(char *buf),
+	const char *realfnname,
+	char *buf)
+{
+	char *cwd;
+
+	if ((cwd = (*real_getwd_ptr)(buf)) == NULL) {
+		return NULL;
+	}
+	return(getwd_common(buf, realfnname, cwd));
+}
+
+char *__getwd_chk_gate(char * (*real___getwd_chk_ptr)(char *buf,
+		size_t buflen),
+        const char *realfnname,
+	char *buf,
+	size_t buflen)
+{
+	char *cwd;
+
+	if ((cwd = (*real___getwd_chk_ptr)(buf, buflen)) == NULL) {
+		return NULL;
+	}
+	return(getwd_common(buf, realfnname, cwd));
 }
 
 char *realpath_gate(

@@ -745,6 +745,30 @@ function check_ld_so_features()
 	fi
 }
 
+# Locate shell and set the initial binary name for the mapping engine
+function locate_shell()
+{
+	sb2-monitor \
+		-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
+		which /bin/bash \
+		>$SBOX_SESSION_DIR/path_to_shell.conf
+	SHELL_PATH=`cat $SBOX_SESSION_DIR/path_to_shell.conf`
+	if [ -f $SHELL_PATH ]; then
+		# Good, bash exists. Use that.
+		__SB2_BINARYNAME="bash"
+		SHELL=/bin/bash
+	else
+		sb2-monitor \
+			-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
+			which /bin/sh \
+			>$SBOX_SESSION_DIR/path_to_shell.conf
+		# Default to /bin/sh
+		__SB2_BINARYNAME="sh"
+		SHELL=/bin/sh
+	fi
+	export __SB2_BINARYNAME
+}
+
 function write_libsb2_and_ld_so_state_to_exec_config()
 {
 	rootdir=$1
@@ -1475,18 +1499,6 @@ if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 	write_configfiles_and_rules_for_new_session
 fi
 
-# set the initial binary name for the mapping engine
-if [ -f $SBOX_TARGET_ROOT/bin/bash ]; then
-	# Good, bash exists. Use that.
-	__SB2_BINARYNAME="bash"
-	SHELL=/bin/bash
-else
-	# Default to /bin/sh
-	__SB2_BINARYNAME="sh"
-	SHELL=/bin/sh
-fi
-
-export __SB2_BINARYNAME
 
 # Final addition to LD_LIBRARY_PATH, if needed
 if [ -f $SBOX_SESSION_DIR/ld_library_path_extras ]; then
@@ -1551,6 +1563,7 @@ else
 fi
 
 locate_target_nsswitch_conf
+locate_shell
 
 # ------------ cleanup:
 # Unset variables which used to be passed in environment,

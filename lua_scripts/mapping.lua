@@ -260,16 +260,16 @@ if (debug_messages_enabled) then
 	end
 end
 
-function sbox_execute_replace_rule(path, replacement, rule)
+function sbox_execute_replace_rule(path, replacement, rule_selector)
 	local ret = nil
 
 	if (debug_messages_enabled) then
 		sb.log("debug", string.format("replace:%s:%s", path, replacement))
 	end
-	if (rule.dir) then
-		if ((rule.dir ~= "") and
-		    (isprefix(rule.dir, path))) then
-			ret = replacement .. string.sub(path, string.len(rule.dir)+1)
+	if (rule_selector.dir) then
+		if ((rule_selector.dir ~= "") and
+		    (isprefix(rule_selector.dir, path))) then
+			ret = replacement .. string.sub(path, string.len(rule_selector.dir)+1)
 			if (debug_messages_enabled) then
 				sb.log("debug", string.format("replaced (dir) => %s", ret))
 			end
@@ -279,10 +279,10 @@ function sbox_execute_replace_rule(path, replacement, rule)
 				sb.log("debug", string.format("replacement failed (short path?)"))
 			end
 		end
-	elseif (rule.prefix) then
-		if ((rule.prefix ~= "") and
-		    (isprefix(rule.prefix, path))) then
-			ret = replacement .. string.sub(path, string.len(rule.prefix)+1)
+	elseif (rule_selector.prefix) then
+		if ((rule_selector.prefix ~= "") and
+		    (isprefix(rule_selector.prefix, path))) then
+			ret = replacement .. string.sub(path, string.len(rule_selector.prefix)+1)
 			if (debug_messages_enabled) then
 				sb.log("debug", string.format("replaced (prefix) => %s", ret))
 			end
@@ -292,9 +292,9 @@ function sbox_execute_replace_rule(path, replacement, rule)
 				sb.log("debug", string.format("replacement failed (short path?)"))
 			end
 		end
-	elseif (rule.path) then
+	elseif (rule_selector.path) then
 		-- "path" may be shorter than prefix during path resolution
-		if (rule.path == path) then
+		if (rule_selector.path == path) then
 			ret = replacement
 			if (debug_messages_enabled) then
 				sb.log("debug", string.format("replaced (path) => %s", ret))
@@ -315,8 +315,8 @@ end
 
 -- returns exec_policy, path, flags
 function sbox_execute_conditional_actions(binary_name,
-		func_name, rp, path, rule)
-	local actions = rule.actions
+		func_name, rp, path, rule_selector)
+	local actions = rule_selector.actions
 	local ret_exec_policy = nil
 
 	local a
@@ -327,78 +327,84 @@ function sbox_execute_conditional_actions(binary_name,
 
 		-- each member in the "actions" array is a 
 		-- candidate for the rule which will be applied
-		local rule_cand = actions[a]
+		local action_candidate = actions[a]
 
 		local ret_flags = 0
-		if (rule_cand.readonly) then
+		if (action_candidate.readonly) then
 			ret_flags = RULE_FLAGS_READONLY
 		end
 
-		if (rule_cand.if_exists_then_map_to or
-		    rule_cand.if_exists_then_replace_by) then
+		if (action_candidate.if_exists_then_map_to or
+		    action_candidate.if_exists_then_replace_by) then
 			-- conditional destinations: build a path to
 			-- "tmp_dest", and if that destination exists, use that path.
 			local tmp_dest = nil
-			if (rule_cand.if_exists_then_map_to) then
-				tmp_dest = rule_cand.if_exists_then_map_to .. path
+			if (action_candidate.if_exists_then_map_to) then
+				tmp_dest = action_candidate.if_exists_then_map_to .. path
 			else
 				tmp_dest = sbox_execute_replace_rule(path,
-					rule_cand.if_exists_then_replace_by, rule)
+					action_candidate.if_exists_then_replace_by, rule_selector)
 			end
 			if (sb.path_exists(tmp_dest)) then
 				if (debug_messages_enabled) then
 					sb.log("debug", string.format(
 						"target exists: => %s", tmp_dest))
 				end
-				if (rule_cand.exec_policy ~= nil) then
-					ret_exec_policy = rule_cand.exec_policy
+				if (action_candidate.exec_policy ~= nil) then
+					ret_exec_policy = action_candidate.exec_policy
 				end
 				return ret_exec_policy, tmp_dest, ret_flags
 			end
-		elseif (rule_cand.if_active_exec_policy_is) then
+		elseif (action_candidate.if_active_exec_policy_is) then
 			local ep = get_active_exec_policy()
 
-			if (ep ~= nil and ep.name == rule_cand.if_active_exec_policy_is) then
+			if (ep ~= nil and ep.name == action_candidate.if_active_exec_policy_is) then
 				if (debug_messages_enabled) then
 					sb.log("debug", string.format(
 						"selected by exec_policy %s",
 						ep.name))
 				end
 				return sbox_execute_rule(binary_name,
-					 func_name, rp, path, rule_cand)
+					func_name, rp, path,
+					rule_selector, action_candidate)
 			end
-		elseif (rule_cand.if_redirect_ignore_is_active) then
+		elseif (action_candidate.if_redirect_ignore_is_active) then
 			if (sb.test_if_listed_in_envvar(
-				rule_cand.if_redirect_ignore_is_active,
+				action_candidate.if_redirect_ignore_is_active,
 				"SBOX_REDIRECT_IGNORE")) then
 
 				if (debug_messages_enabled) then
 					sb.log("debug", "selected; redirect ignore is active")
 				end
 				return sbox_execute_rule(binary_name,
-					 func_name, rp, path, rule_cand)
+					func_name, rp, path,
+					rule_selector, action_candidate)
 			end
-		elseif (rule_cand.if_redirect_force_is_active) then
+		elseif (action_candidate.if_redirect_force_is_active) then
 			if (sb.test_if_listed_in_envvar(
-				rule_cand.if_redirect_force_is_active,
+				action_candidate.if_redirect_force_is_active,
 				"SBOX_REDIRECT_FORCE")) then
 
 				if (debug_messages_enabled) then
 					sb.log("debug", "selected; redirect force is active")
 				end
 				return sbox_execute_rule(binary_name,
-					 func_name, rp, path, rule_cand)
+					func_name, rp, path,
+					rule_selector, action_candidate)
 			end
 		else
 			-- there MUST BE unconditional actions:
-			if (rule_cand.use_orig_path or rule_cand.force_orig_path 
-			    or rule_cand.map_to or rule_cand.replace_by) then
+			if (action_candidate.use_orig_path
+			    or action_candidate.force_orig_path 
+			    or action_candidate.map_to
+			    or action_candidate.replace_by) then
 
 				if (debug_messages_enabled) then
 					sb.log("debug", "using default (unconditional) rule")
 				end
 				return sbox_execute_rule(binary_name,
-					 func_name, rp, path, rule_cand)
+					func_name, rp, path,
+					rule_selector, action_candidate)
 			else
 				sb.log("error", string.format(
 					"error in rule: no valid conditional actions for '%s'",
@@ -414,52 +420,54 @@ function sbox_execute_conditional_actions(binary_name,
 end
 
 -- returns exec_policy, path and readonly_flag
-function sbox_execute_rule(binary_name, func_name, rp, path, rule)
+function sbox_execute_rule(binary_name, func_name, rp, path,
+	rule_selector, rule_conditions_and_actions)
+
 	local ret_exec_policy = nil
 	local ret_path = nil
 	local ret_flags = 0
 	local rule_name
 
-	if (rule.readonly) then
+	if (rule_conditions_and_actions.readonly) then
 		ret_flags = RULE_FLAGS_READONLY
 	end
-	if (rule.exec_policy ~= nil) then
-		ret_exec_policy = rule.exec_policy
+	if (rule_conditions_and_actions.exec_policy ~= nil) then
+		ret_exec_policy = rule_conditions_and_actions.exec_policy
 	end
-	if (rule.use_orig_path) then
+	if (rule_conditions_and_actions.use_orig_path) then
 		ret_path = path
-	elseif (rule.actions) then
+	elseif (rule_conditions_and_actions.actions) then
 		ret_exec_policy, ret_path, ret_flags = 
 			sbox_execute_conditional_actions(binary_name,
-				func_name, rp, path, rule)
-	elseif (rule.map_to) then
-		if (rule.map_to == "/") then
+				func_name, rp, path, rule_selector)
+	elseif (rule_conditions_and_actions.map_to) then
+		if (rule_conditions_and_actions.map_to == "/") then
 			ret_path = path
 		else
-			ret_path = rule.map_to .. path
+			ret_path = rule_conditions_and_actions.map_to .. path
 		end
-	elseif (rule.replace_by) then
-		ret_path = sbox_execute_replace_rule(path, rule.replace_by, rule)
-	elseif (rule.force_orig_path) then
+	elseif (rule_conditions_and_actions.replace_by) then
+		ret_path = sbox_execute_replace_rule(path, rule_conditions_and_actions.replace_by, rule_selector)
+	elseif (rule_conditions_and_actions.force_orig_path) then
 		ret_path = path
 		ret_flags = ret_flags + RULE_FLAGS_FORCE_ORIG_PATH
 	else
 		ret_path = path
-		if (rule.name) then
-			rule_name = rule.name
+		if (rule_selector.name) then
+			rule_name = rule_selector.name
 		else
 			rule_name = "(no name)"
 		end
-		local rule_selector = ""
-		if rule.dir then
-			rule_selector = "(dir="..rule.dir..")"
-		elseif rule.path then
-			rule_selector = "(path="..rule.path..")"
-		elseif rule.prefix then
-			rule_selector = "(prefix="..rule.prefix..")"
+		local rule_selector_str = ""
+		if rule_selector.dir then
+			rule_selector_str = "(dir="..rule_selector.dir..")"
+		elseif rule_selector.path then
+			rule_selector_str = "(path="..rule_selector.path..")"
+		elseif rule_selector.prefix then
+			rule_selector_str = "(prefix="..rule_selector.prefix..")"
 		end
 		sb.log("error", string.format("mapping rule '%s' %s does not "..
-			"have any valid actions, path=%s", rule_name, rule_selector, path))
+			"have any valid actions, path=%s", rule_name, rule_selector_str, path))
 	end
 	
 	return ret_exec_policy, ret_path, ret_flags
@@ -572,7 +580,7 @@ function sbox_translate_path(rule, binary_name, func_name, path)
 		end
 	else
 		exec_policy, ret, ret_flags = sbox_execute_rule(
-			binary_name, func_name, rp, path, rule)
+			binary_name, func_name, rp, path, rule, rule)
 	end
 
 	return rule, exec_policy, ret, ret_flags

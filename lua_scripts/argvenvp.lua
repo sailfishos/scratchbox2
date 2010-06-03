@@ -396,7 +396,7 @@ function sb_execve_map_script_interpreter(rule, exec_policy, interpreter,
 		if (rule) then
 			exec_pol_2, mapped_interpreter, ro_flag = sbox_execute_rule(
 				interpreter, "map_script_interpreter",
-				interpreter, interpreter, rule)
+				interpreter, interpreter, rule, rule)
 		
 			if exec_policy.script_set_argv0_to_mapped_interpreter then
 				argv[1] = mapped_interpreter

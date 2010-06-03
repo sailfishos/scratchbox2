@@ -239,6 +239,12 @@ function load_configuration()
 	. ~/.scratchbox2/$SBOX_TARGET/sb2.config
 	LD_LIBRARY_PATH=$saved_LD_LIBRARY_PATH
 
+	# resolve possible symlinks in SBOX_TARGET_ROOT and SBOX_TOOLS_ROOT
+	SBOX_TARGET_ROOT=`readlink -f $SBOX_TARGET_ROOT`
+	if [ -n "$SBOX_TOOLS_ROOT" ]; then
+		SBOX_TOOLS_ROOT=`readlink -f $SBOX_TOOLS_ROOT`
+	fi
+
 	# older sb2.config files had values for the Debian
 	# variables; unset them (this is necessary only if
 	# the target still has an old-format sb2.config)
@@ -254,9 +260,6 @@ function load_configuration()
 	unset DEB_HOST_GNU_CPU
 	unset DEB_HOST_GNU_TYPE
 	unset DEB_HOST_GNU_SYSTEM
-
-	# Remember where SBOX_TARGET_ROOT was in the configuration file
-	SBOX_TARGET_ROOT_in_config_file=$SBOX_TARGET_ROOT
 
 	#-----------
 	# "New" config system stores configuration to various files

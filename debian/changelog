@@ -1,3 +1,9 @@
+scratchbox2 (2.1rc2-1) unstable; urgency=low
+
+  * scratchbox 2.1 release candidate 2.
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Thu, 03 Jun 2010 14:19:29 +0300
+
 scratchbox2 (2.0-1) unstable; urgency=low
 
   * scratchbox 2.0 release!

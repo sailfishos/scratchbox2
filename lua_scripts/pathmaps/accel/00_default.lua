@@ -228,6 +228,19 @@ test_first_tools_default_is_target = {
 	{ map_to = target_root, readonly = true }
 }
 
+test_first_usr_bin_default_is_bin__replace = {
+	{ if_exists_then_replace_by = tools.."/usr/bin", readonly = true },
+	{ if_exists_then_replace_by = target_root.."/usr/bin", readonly = true },
+	{ if_exists_then_replace_by = tools.."/bin", readonly = true },
+	{ replace_by = target_root.."/bin", readonly = true }
+}
+
+test_usr_share_aclocal__replace = {
+	{ if_exists_then_replace_by = target_root.."/usr/share/aclocal", readonly = true },
+	{ if_exists_then_replace_by = tools.."/usr/share/aclocal", readonly = true },
+	{ replace_by = target_root.."/usr/share/aclocal", readonly = true }
+}
+
 perl_lib_test = {
 	{ if_active_exec_policy_is = "Tools-perl",
 	  map_to = tools, readonly = true },
@@ -543,6 +556,7 @@ devel_mode_rules_var = {
 	}
 }
 
+-- Path == "/":
 devel_mode_rules_scratchbox1 = {
 	rules = {
 		-- -----------------------------------------------
@@ -564,7 +578,7 @@ devel_mode_rules_scratchbox1 = {
 
 		-- compiler tools:
 		{prefix = "/scratchbox/compilers/bin",
-		 replace_by = "/usr/bin",
+		 actions = test_first_usr_bin_default_is_bin__replace,
 		 log_level = "warning",
 		 readonly = true, virtual_path = true},
 
@@ -584,7 +598,7 @@ devel_mode_rules_scratchbox1 = {
 		--
 		-- Other tools:
 		{prefix = "/scratchbox/tools/bin",
-		 replace_by = tools .. "/usr/bin",
+		 actions = test_first_usr_bin_default_is_bin__replace,
 		 log_level = "warning",
 		 readonly = true, virtual_path = true},
 

@@ -50,6 +50,11 @@ end
 -- under cpu transparency = very slowly..)
 enable_cross_gcc_toolchain = false
 
+test_first_usr_bin_default_is_bin__replace = {
+	{ if_exists_then_replace_by = target_root.."/usr/bin", readonly = true },
+	{ replace_by = target_root.."/bin", readonly = true }
+}
+
 rootdir_rules = {
 	rules = {
 		{path = "/", func_name = ".*stat.*",
@@ -105,6 +110,20 @@ mapall_chain = {
 		-- to detect if it is running inside scratchbox..
 		{prefix = "/scratchbox/etc/scratchbox-version",
 		 replace_by = "/usr/share/scratchbox2/version",
+		 readonly = true, virtual_path = true},
+
+		-- Stupid references to /scratchbox/tools/bin
+		-- and /scratchbox/compilers/bin: these should not
+		-- be used at all, but if they do, try to guess
+		-- where the thing is. In any case, log a warning
+		-- and allow only R/O access.
+		{prefix = "/scratchbox/tools/bin",
+		 actions = test_first_usr_bin_default_is_bin__replace,
+		 log_level = "warning",
+		 readonly = true, virtual_path = true},
+		{prefix = "/scratchbox/compilers/bin",
+		 actions = test_first_usr_bin_default_is_bin__replace,
+		 log_level = "warning",
 		 readonly = true, virtual_path = true},
 
 		--

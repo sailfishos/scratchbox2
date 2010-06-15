@@ -108,6 +108,7 @@ sub check_gcc_dependency {
 	my $r_missing = shift;
 
 	my $version_req = $r_missing->{'version'};
+	$version_req =~ s/[0-9]+://;
 
 	if (defined($version_req) && ($version_req ne "")) {
 		if ($debug) {

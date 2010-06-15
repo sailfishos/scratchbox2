@@ -1,0 +1,99 @@
+Index: eglibc-2.10/elf/ldconfig.c
+===================================================================
+--- eglibc-2.10.orig/elf/ldconfig.c	2009-10-12 21:30:00.000000000 +0300
++++ eglibc-2.10/elf/ldconfig.c	2010-04-16 12:56:31.000000000 +0300
+@@ -118,6 +118,9 @@
+ /* Cache file to use.  */
+ static char *cache_file;
+ 
++/* Aux cache file to use.  */
++static char *aux_cache_file;
++
+ /* Configuration file.  */
+ static const char *config_file;
+ 
+@@ -793,6 +796,34 @@
+ 	  lstat_buf.st_ino = stat_buf.st_ino;
+ 	  lstat_buf.st_size = stat_buf.st_size;
+ 	  lstat_buf.st_ctime = stat_buf.st_ctime;
++
++	  /* We need to check if it is link outside of new root
++	     and stat returns to us different info than real chroot.  */
++          if (opt_chroot)
++	    {
++	      char *real_name = chroot_canon (opt_chroot, file_name);
++	      if (real_name == NULL)
++	        {
++	          if (strstr (file_name, ".so") == NULL)
++		    error (0, 0, _("Input file %s not found.\n"), file_name);
++	          continue;
++	        }
++	      if (__builtin_expect (stat64 (real_name, &stat_buf), 0))
++	        {
++	          error (0, errno, _("Cannot stat %s"), real_name);
++	          continue;
++	        }
++	      if (lstat_buf.st_dev != stat_buf.st_dev
++	          || lstat_buf.st_ino != stat_buf.st_ino
++	          || lstat_buf.st_size != stat_buf.st_size
++	          || lstat_buf.st_ctime != stat_buf.st_ctime)
++	        {
++	          lstat_buf.st_dev = stat_buf.st_dev;
++	          lstat_buf.st_ino = stat_buf.st_ino;
++	          lstat_buf.st_size = stat_buf.st_size;
++	          lstat_buf.st_ctime = stat_buf.st_ctime;
++	        }
++	    }
+ 	}
+       else
+ 	is_dir = S_ISDIR (lstat_buf.st_mode);
+@@ -1349,8 +1380,39 @@
+ 	add_system_dir (LIBDIR);
+     }
+ 
++  if (aux_cache_file == NULL)
++    {
++      aux_cache_file = alloca (strlen (_PATH_LDCONFIG_AUX_CACHE) + 1);
++      strcpy (aux_cache_file, _PATH_LDCONFIG_AUX_CACHE);
++    }
++
++  if (opt_chroot)
++    {
++      /* Canonicalize the directory name of aux_cache_file, not aux_cache_file,
++	 because we'll rename a temporary aux cache file to it.  */
++      char *p = strrchr (aux_cache_file, '/');
++      char *canon = chroot_canon (opt_chroot,
++				  p ? (*p = '\0', aux_cache_file) : "/");
++
++      if (canon == NULL)
++	{
++	  error (EXIT_FAILURE, errno,
++		 _("Can't open aux cache file directory %s\n"),
++		 p ? aux_cache_file : "/");
++	}
++
++      if (p)
++	++p;
++      else
++	p = aux_cache_file;
++
++      aux_cache_file = alloca (strlen (canon) + strlen (p) + 2);
++      sprintf (aux_cache_file, "%s/%s", canon, p);
++      free (canon);
++    }
++
+   if (! opt_ignore_aux_cache)
+-    load_aux_cache (_PATH_LDCONFIG_AUX_CACHE);
++    load_aux_cache (aux_cache_file);
+   else
+     init_aux_cache ();
+ 
+@@ -1359,7 +1421,7 @@
+   if (opt_build_cache)
+     {
+       save_cache (cache_file);
+-      save_aux_cache (_PATH_LDCONFIG_AUX_CACHE);
++      save_aux_cache (aux_cache_file);
+     }
+ 
+   return 0;

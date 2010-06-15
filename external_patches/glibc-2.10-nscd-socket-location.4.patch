@@ -1,0 +1,142 @@
+Index: eglibc-2.10/nscd/connections.c
+===================================================================
+--- eglibc-2.10.orig/nscd/connections.c	2009-10-12 21:28:35.000000000 +0300
++++ eglibc-2.10/nscd/connections.c	2010-04-16 12:56:31.000000000 +0300
+@@ -502,6 +502,20 @@
+   return 0;
+ }
+ 
++int __nscd_get_socket_path(char *buf, size_t bufsiz)
++{
++  const char *ext_nscd_socket_path = getenv ("NSCD_SOCKET_PATH");
++  if (ext_nscd_socket_path) {
++    int len = strlen(ext_nscd_socket_path);
++    strncpy (buf, ext_nscd_socket_path, bufsiz);
++    if (len >= bufsiz) return -1;
++    return 0;
++  }
++  strncpy (buf, _PATH_NSCDSOCKET, bufsiz);
++  if (sizeof(_PATH_NSCDSOCKET) >= bufsiz) return -1;
++  return 0;
++}
++
+ 
+ #ifdef O_CLOEXEC
+ # define EXTRA_O_FLAGS O_CLOEXEC
+@@ -900,10 +914,15 @@
+   /* Bind a name to the socket.  */
+   struct sockaddr_un sock_addr;
+   sock_addr.sun_family = AF_UNIX;
+-  strcpy (sock_addr.sun_path, _PATH_NSCDSOCKET);
++  if (__nscd_get_socket_path (sock_addr.sun_path, sizeof(sock_addr.sun_path)) < 0)
++    {
++      dbg_log ("Path to nscd socket is too long");
++      exit (1);
++    }
++
+   if (bind (sock, (struct sockaddr *) &sock_addr, sizeof (sock_addr)) < 0)
+     {
+-      dbg_log ("%s: %s", _PATH_NSCDSOCKET, strerror (errno));
++      dbg_log ("%s: %s", sock_addr.sun_path, strerror (errno));
+       exit (errno == EACCES ? 4 : 1);
+     }
+ 
+@@ -930,7 +949,7 @@
+ #endif
+ 
+   /* Set permissions for the socket.  */
+-  chmod (_PATH_NSCDSOCKET, DEFFILEMODE);
++  chmod (sock_addr.sun_path, DEFFILEMODE);
+ 
+   /* Set the socket up to accept connections.  */
+   if (listen (sock, SOMAXCONN) < 0)
+Index: eglibc-2.10/nscd/nscd.c
+===================================================================
+--- eglibc-2.10.orig/nscd/nscd.c	2009-10-12 21:28:35.000000000 +0300
++++ eglibc-2.10/nscd/nscd.c	2010-04-16 12:56:31.000000000 +0300
+@@ -126,6 +126,8 @@
+ /* True if only statistics are requested.  */
+ static bool get_stats;
+ 
++extern int __nscd_get_socket_path(char *buf, size_t bufsiz);
++
+ int
+ main (int argc, char **argv)
+ {
+@@ -270,7 +272,11 @@
+   signal (SIGPIPE, SIG_IGN);
+ 
+   /* Cleanup files created by a previous 'bind'.  */
+-  unlink (_PATH_NSCDSOCKET);
++  {
++    struct sockaddr_un addr;
++    if (__nscd_get_socket_path (addr.sun_path, sizeof(addr.sun_path)) >= 0)
++      unlink (addr.sun_path);
++  }
+ 
+   /* Make sure we do not get recursive calls.  */
+   __nss_disable_nscd ();
+@@ -451,8 +457,12 @@
+     return -1;
+ 
+   addr.sun_family = AF_UNIX;
+-  assert (sizeof (addr.sun_path) >= sizeof (_PATH_NSCDSOCKET));
+-  strcpy (addr.sun_path, _PATH_NSCDSOCKET);
++  if (__nscd_get_socket_path (addr.sun_path, sizeof(addr.sun_path)) < 0)
++    {
++      close (sock);
++      return -1;
++    }
++
+   if (connect (sock, (struct sockaddr *) &addr, sizeof (addr)) < 0)
+     {
+       close (sock);
+@@ -467,10 +477,13 @@
+ void
+ termination_handler (int signum)
+ {
++  struct sockaddr_un addr;
++
+   close_sockets ();
+ 
+   /* Clean up the file created by 'bind'.  */
+-  unlink (_PATH_NSCDSOCKET);
++  if (__nscd_get_socket_path (addr.sun_path, sizeof(addr.sun_path)) >= 0)
++    unlink (addr.sun_path);
+ 
+   /* Clean up pid file.  */
+   unlink (_PATH_NSCDPID);
+Index: eglibc-2.10/nscd/nscd_helper.c
+===================================================================
+--- eglibc-2.10.orig/nscd/nscd_helper.c	2009-10-12 21:28:35.000000000 +0300
++++ eglibc-2.10/nscd/nscd_helper.c	2010-04-16 12:56:31.000000000 +0300
+@@ -159,6 +159,19 @@
+   return ret;
+ }
+ 
++static int nscd_get_socket_path(char *buf, size_t bufsiz)
++{
++  const char *ext_nscd_socket_path = getenv ("NSCD_SOCKET_PATH");
++  if (ext_nscd_socket_path) {
++    int len = strlen(ext_nscd_socket_path);
++    strncpy (buf, ext_nscd_socket_path, bufsiz);
++    if (len >= bufsiz) return -1;
++    return 0;
++  }
++  strncpy (buf, _PATH_NSCDSOCKET, bufsiz);
++  if (sizeof(_PATH_NSCDSOCKET) >= bufsiz) return -1;
++  return 0;
++}
+ 
+ static int
+ open_socket (request_type type, const char *key, size_t keylen)
+@@ -203,7 +216,8 @@
+ 
+   struct sockaddr_un sun;
+   sun.sun_family = AF_UNIX;
+-  strcpy (sun.sun_path, _PATH_NSCDSOCKET);
++  if (nscd_get_socket_path (sun.sun_path, sizeof(sun.sun_path)) < 0) goto out;
++
+   if (__connect (sock, (struct sockaddr *) &sun, sizeof (sun)) < 0
+       && errno != EINPROGRESS)
+     goto out;

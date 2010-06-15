@@ -1,0 +1,177 @@
+Index: eglibc-2.10/elf/dl-load.c
+===================================================================
+--- eglibc-2.10.orig/elf/dl-load.c	2009-10-12 21:30:00.000000000 +0300
++++ eglibc-2.10/elf/dl-load.c	2010-04-16 12:56:31.000000000 +0300
+@@ -380,7 +380,8 @@
+ 
+ static struct r_search_path_elem **
+ fillin_rpath (char *rpath, struct r_search_path_elem **result, const char *sep,
+-	      int check_trusted, const char *what, const char *where)
++	      int check_trusted, const char *what, const char *where,
++	      const char *rpath_prefix)
+ {
+   char *cp;
+   size_t nelems = 0;
+@@ -436,9 +437,23 @@
+ 	}
+ 
+       /* See if this directory is already known.  */
+-      for (dirp = GL(dl_all_dirs); dirp != NULL; dirp = dirp->next)
+-	if (dirp->dirnamelen == len && memcmp (cp, dirp->dirname, len) == 0)
+-	  break;
++      if (__builtin_expect (rpath_prefix != NULL, 0))
++	{
++	  /* has rpath_prefix */
++	  size_t rpath_prefix_len = strlen (rpath_prefix);
++
++	  for (dirp = GL(dl_all_dirs); dirp != NULL; dirp = dirp->next)
++	    if (dirp->dirnamelen == (rpath_prefix_len+len) &&
++		(memcmp (cp, rpath_prefix, rpath_prefix_len) == 0) &&
++		(memcmp (cp+rpath_prefix_len, dirp->dirname, len) == 0))
++	      break;
++	}
++      else
++	{
++	  for (dirp = GL(dl_all_dirs); dirp != NULL; dirp = dirp->next)
++	    if (dirp->dirnamelen == len && memcmp (cp, dirp->dirname, len) == 0)
++	      break;
++	}
+ 
+       if (dirp != NULL)
+ 	{
+@@ -456,22 +471,43 @@
+ 	  size_t cnt;
+ 	  enum r_dir_status init_val;
+ 	  size_t where_len = where ? strlen (where) + 1 : 0;
++	  size_t rpath_prefix_len = 0;
++
++	  if (__builtin_expect (rpath_prefix != NULL, 0)
++	      && !INTUSE(__libc_enable_secure))
++	    {
++		rpath_prefix_len = strlen (rpath_prefix);
++		if (*cp != '/') rpath_prefix_len++; /* need to add a '/' */
++	    }
+ 
+ 	  /* It's a new directory.  Create an entry and add it.  */
+ 	  dirp = (struct r_search_path_elem *)
+ 	    malloc (sizeof (*dirp) + ncapstr * sizeof (enum r_dir_status)
+-		    + where_len + len + 1);
++		    + where_len + rpath_prefix_len + len + 1);
+ 	  if (dirp == NULL)
+ 	    _dl_signal_error (ENOMEM, NULL, NULL,
+ 			      N_("cannot create cache for search path"));
+ 
+ 	  dirp->dirname = ((char *) dirp + sizeof (*dirp)
+ 			   + ncapstr * sizeof (enum r_dir_status));
+-	  *((char *) __mempcpy ((char *) dirp->dirname, cp, len)) = '\0';
+-	  dirp->dirnamelen = len;
++	  if (rpath_prefix_len == 0)
++	    {
++		  *((char *) __mempcpy ((char *) dirp->dirname, cp, len)) = '\0';
++	    }
++	  else
++	    {
++		char *prefixend;
++
++		prefixend = (char *) __mempcpy ((char *) dirp->dirname,
++				rpath_prefix, rpath_prefix_len);
++		if (*cp != '/')
++		  prefixend[-1] = '/'; /* replace \0 */
++		*((char *) __mempcpy (prefixend, cp, len)) = '\0';
++	    }
++	  dirp->dirnamelen = len + rpath_prefix_len;
+ 
+-	  if (len > max_dirnamelen)
+-	    max_dirnamelen = len;
++	  if ((len + rpath_prefix_len) > max_dirnamelen)
++	    max_dirnamelen = len + rpath_prefix_len;
+ 
+ 	  /* We have to make sure all the relative directories are
+ 	     never ignored.  The current directory might change and
+@@ -482,7 +518,8 @@
+ 
+ 	  dirp->what = what;
+ 	  if (__builtin_expect (where != NULL, 1))
+-	    dirp->where = memcpy ((char *) dirp + sizeof (*dirp) + len + 1
++	    dirp->where = memcpy ((char *) dirp + sizeof (*dirp)
++				  + rpath_prefix_len + len + 1
+ 				  + (ncapstr * sizeof (enum r_dir_status)),
+ 				  where, where_len);
+ 	  else
+@@ -576,7 +613,7 @@
+       _dl_signal_error (ENOMEM, NULL, NULL, errstring);
+     }
+ 
+-  fillin_rpath (copy, result, ":", 0, what, where);
++  fillin_rpath (copy, result, ":", 0, what, where, GLRO(dl_rpath_prefix));
+ 
+   /* Free the copied RPATH string.  `fillin_rpath' make own copies if
+      necessary.  */
+@@ -775,7 +812,7 @@
+ 
+       (void) fillin_rpath (llp_tmp, env_path_list.dirs, ":;",
+ 			   INTUSE(__libc_enable_secure), "LD_LIBRARY_PATH",
+-			   NULL);
++			   NULL, NULL/*no prefix*/);
+ 
+       if (env_path_list.dirs[0] == NULL)
+ 	{
+Index: eglibc-2.10/elf/dl-support.c
+===================================================================
+--- eglibc-2.10.orig/elf/dl-support.c	2009-10-12 21:30:00.000000000 +0300
++++ eglibc-2.10/elf/dl-support.c	2010-04-16 12:56:31.000000000 +0300
+@@ -56,6 +56,9 @@
+    ignored.  */
+ const char *_dl_inhibit_rpath;
+ 
++/* prefix to be added to all RUNPATHs and RPATHs */
++const char *_dl_rpath_prefix = NULL;
++
+ /* The map for the object we will profile.  */
+ struct link_map *_dl_profile_map;
+ 
+Index: eglibc-2.10/elf/rtld.c
+===================================================================
+--- eglibc-2.10.orig/elf/rtld.c	2010-04-16 12:56:31.000000000 +0300
++++ eglibc-2.10/elf/rtld.c	2010-04-16 12:56:31.000000000 +0300
+@@ -979,6 +979,15 @@
+ 	    _dl_argc -= 2;
+ 	    INTUSE(_dl_argv) += 2;
+ 	  }
++	else if (! strcmp (INTUSE(_dl_argv)[1], "--rpath-prefix")
++		 && _dl_argc > 2)
++	  {
++	    GLRO(dl_rpath_prefix) = INTUSE(_dl_argv)[2];
++
++	    _dl_skip_args += 2;
++	    _dl_argc -= 2;
++	    INTUSE(_dl_argv) += 2;
++	  }
+ 	else if (! strcmp (INTUSE(_dl_argv)[1], "--audit") && _dl_argc > 2)
+ 	  {
+ 	    process_dl_audit (INTUSE(_dl_argv)[2]);
+@@ -1020,6 +1029,7 @@
+                         object we can handle\n\
+   --library-path PATH   use given PATH instead of content of the environment\n\
+                         variable LD_LIBRARY_PATH\n\
++  --rpath-prefix PREFIX add PREFIX to every RUNPATH and RPATH component\n\
+   --inhibit-rpath LIST  ignore RUNPATH and RPATH information in object names\n\
+                         in LIST\n\
+                         in LIST\n\
+Index: eglibc-2.10/sysdeps/generic/ldsodefs.h
+===================================================================
+--- eglibc-2.10.orig/sysdeps/generic/ldsodefs.h	2009-10-12 21:29:18.000000000 +0300
++++ eglibc-2.10/sysdeps/generic/ldsodefs.h	2010-04-16 12:56:31.000000000 +0300
+@@ -664,6 +664,12 @@
+ 
+   /* 0 if internal pointer values should not be guarded, 1 if they should.  */
+   EXTERN int _dl_pointer_guard;
++#endif
++
++  /* prefix for RPATH + RUNPATH components.  */
++  EXTERN const char *_dl_rpath_prefix;
++
++#ifdef SHARED
+ };
+ # define __rtld_global_attribute__
+ # ifdef IS_IN_rtld

@@ -82,6 +82,7 @@ static void map_sockaddr_un(
 }
 
 int bind_gate(
+	int *result_errno_ptr,
 	int (*real_bind_ptr)(int sockfd, const struct sockaddr *my_addr,
 		socklen_t addrlen),
 	const char *realfnname,
@@ -89,6 +90,8 @@ int bind_gate(
 	const struct sockaddr *my_addr,
 	socklen_t addrlen)
 {
+	int	result;
+
 	if (my_addr && (my_addr->sa_family == AF_UNIX)) {
 		struct sockaddr_un mapped_my_addr_un;
 		socklen_t new_addrlen = addrlen;
@@ -97,14 +100,21 @@ int bind_gate(
 			(const struct sockaddr_un*)my_addr,
 			&mapped_my_addr_un, &new_addrlen);
 
-		return((*real_bind_ptr)(sockfd,
+		errno = *result_errno_ptr; /* restore to orig.value */
+		result = (*real_bind_ptr)(sockfd,
 			(struct sockaddr*)&mapped_my_addr_un,
-			new_addrlen));
+			new_addrlen);
+		*result_errno_ptr = errno;
+	} else {
+		errno = *result_errno_ptr; /* restore to orig.value */
+		result = (*real_bind_ptr)(sockfd, my_addr, addrlen);
+		*result_errno_ptr = errno;
 	}
-	return((*real_bind_ptr)(sockfd, my_addr, addrlen));
+	return(result);
 }
 
 int connect_gate(
+	int *result_errno_ptr,
 	int (*real_connect_ptr)(int sockfd, const struct sockaddr *serv_addr,
 		socklen_t addrlen),
 	const char *realfnname,
@@ -115,8 +125,7 @@ int connect_gate(
 	struct sockaddr_un mapped_serv_addr_un;
 	socklen_t new_addrlen;
 	char printable_dst_addr[200];
-	int r;
-	int saved_errno;
+	int result;
 	struct sockaddr_in *ina;
 	struct sockaddr_in6 *ina6;
 
@@ -129,13 +138,17 @@ int connect_gate(
 				(const struct sockaddr_un*)serv_addr,
 				&mapped_serv_addr_un, &new_addrlen);
 
-			return((*real_connect_ptr)(sockfd,
+			errno = *result_errno_ptr; /* restore to orig.value */
+			result = (*real_connect_ptr)(sockfd,
 				(struct sockaddr*)&mapped_serv_addr_un,
-				new_addrlen));
+				new_addrlen);
+			*result_errno_ptr = errno;
+			return(result);
 		case AF_INET:
 			ina = (struct sockaddr_in*)serv_addr;
-			r = (*real_connect_ptr)(sockfd, serv_addr, addrlen);
-			saved_errno = errno;
+			errno = *result_errno_ptr; /* restore to orig.value */
+			result = (*real_connect_ptr)(sockfd, serv_addr, addrlen);
+			*result_errno_ptr = errno;
 			if (inet_ntop(serv_addr->sa_family,
 				&ina->sin_addr,
 				printable_dst_addr, sizeof(printable_dst_addr))) {
@@ -143,19 +156,19 @@ int connect_gate(
 				SB_LOG(SB_LOGLEVEL_NETWORK,
 					"%s: %s:%d => %s", realfnname,
 					printable_dst_addr, ina->sin_port,
-					(r ? "Failed" : "OK"));
+					(result ? "Failed" : "OK"));
 			} else {
 				SB_LOG(SB_LOGLEVEL_NETWORK,
 					"%s: <address conversion failed> => %s",
 					realfnname,
-					(r ? "Failed" : "OK"));
+					(result ? "Failed" : "OK"));
 			}
-			errno = saved_errno;
-			return(r);
+			return(result);
 		case AF_INET6:
 			ina6 = (struct sockaddr_in6*)serv_addr;
-			r = (*real_connect_ptr)(sockfd, serv_addr, addrlen);
-			saved_errno = errno;
+			errno = *result_errno_ptr; /* restore to orig.value */
+			result = (*real_connect_ptr)(sockfd, serv_addr, addrlen);
+			*result_errno_ptr = errno;
 			if (inet_ntop(serv_addr->sa_family,
 				&ina6->sin6_addr,
 				printable_dst_addr, sizeof(printable_dst_addr))) {
@@ -163,21 +176,25 @@ int connect_gate(
 				SB_LOG(SB_LOGLEVEL_NETWORK,
 					"%s: [%s]:%d => %s", realfnname,
 					printable_dst_addr, ina6->sin6_port,
-					(r ? "Failed" : "OK"));
+					(result ? "Failed" : "OK"));
 			} else {
 				SB_LOG(SB_LOGLEVEL_NETWORK,
 					"%s: <address conversion failed> => %s",
 					realfnname,
-					(r ? "Failed" : "OK"));
+					(result ? "Failed" : "OK"));
 			}
-			errno = saved_errno;
-			return(r);
+			return(result);
 		}
 	}
-	return((*real_connect_ptr)(sockfd, serv_addr, addrlen));
+	errno = *result_errno_ptr; /* restore to orig.value */
+	result = (*real_connect_ptr)(sockfd, serv_addr, addrlen);
+	*result_errno_ptr = errno;
+	return(result);
 }
 
-ssize_t sendto_gate(ssize_t (*real_sendto_ptr)(int s, const void *buf,
+ssize_t sendto_gate(
+	int *result_errno_ptr,
+	ssize_t (*real_sendto_ptr)(int s, const void *buf,
 	size_t len, int flags, const struct sockaddr *to, socklen_t tolen),
         const char *realfnname,
 	int s,
@@ -187,6 +204,8 @@ ssize_t sendto_gate(ssize_t (*real_sendto_ptr)(int s, const void *buf,
 	const struct sockaddr *to,
 	socklen_t tolen)
 {
+	ssize_t	result;
+
 	if (to && (to->sa_family == AF_UNIX)) {
 		struct sockaddr_un mapped_to_addr;
 		socklen_t new_addrlen = tolen;
@@ -195,20 +214,30 @@ ssize_t sendto_gate(ssize_t (*real_sendto_ptr)(int s, const void *buf,
 			(const struct sockaddr_un*)to,
 			&mapped_to_addr, &new_addrlen);
 
-		return((*real_sendto_ptr)(s, buf,
+		errno = *result_errno_ptr; /* restore to orig.value */
+		result = (*real_sendto_ptr)(s, buf,
 			len, flags, (struct sockaddr*)&mapped_to_addr, 
-			new_addrlen));
+			new_addrlen);
+		*result_errno_ptr = errno;
+		return(result);
 	}
-	return((*real_sendto_ptr)(s, buf, len, flags, to, tolen));
+	errno = *result_errno_ptr; /* restore to orig.value */
+	result = (*real_sendto_ptr)(s, buf, len, flags, to, tolen);
+	*result_errno_ptr = errno;
+	return(result);
 }
 
-ssize_t sendmsg_gate(ssize_t (*real_sendmsg_ptr)(int s,
+ssize_t sendmsg_gate(
+	int *result_errno_ptr,
+	ssize_t (*real_sendmsg_ptr)(int s,
 	const struct msghdr *msg, int flags),
         const char *realfnname,
 	int s,
 	const struct msghdr *msg,
 	int flags)
 {
+	ssize_t	result;
+
 	if (msg) {
 		const struct sockaddr *to = (struct sockaddr*)msg->msg_name;
 		if (to && (to->sa_family == AF_UNIX)) {
@@ -221,10 +250,16 @@ ssize_t sendmsg_gate(ssize_t (*real_sendmsg_ptr)(int s,
 				&mapped_to_addr, &new_addrlen);
 			msg2.msg_name = &mapped_to_addr;
 			msg2.msg_namelen = new_addrlen;
-			return((*real_sendmsg_ptr)(s, &msg2, flags));
+			errno = *result_errno_ptr; /* restore to orig.value */
+			result = (*real_sendmsg_ptr)(s, &msg2, flags);
+			*result_errno_ptr = errno;
+			return(result);
 		}
 	}
-	return((*real_sendmsg_ptr)(s, msg, flags));
+	errno = *result_errno_ptr; /* restore to orig.value */
+	result = (*real_sendmsg_ptr)(s, msg, flags);
+	*result_errno_ptr = errno;
+	return(result);
 }
 
 static void reverse_sockaddr_un(
@@ -285,8 +320,10 @@ static void reverse_sockaddr_un(
 	}
 }
 
-ssize_t recvfrom_gate(ssize_t (*real_recvfrom_ptr)(int s, void *buf,
-	size_t len, int flags, struct sockaddr *from, socklen_t *fromlen),
+ssize_t recvfrom_gate(
+	int *result_errno_ptr,
+	ssize_t (*real_recvfrom_ptr)(int s, void *buf,
+		size_t len, int flags, struct sockaddr *from, socklen_t *fromlen),
         const char *realfnname,
 	int s,
 	void *buf,
@@ -298,14 +335,18 @@ ssize_t recvfrom_gate(ssize_t (*real_recvfrom_ptr)(int s, void *buf,
 	ssize_t	res;
 	socklen_t orig_from_size = *fromlen;
 
+	errno = *result_errno_ptr; /* restore to orig.value */
 	res = (*real_recvfrom_ptr)(s, buf, len, flags, from, fromlen);
+	*result_errno_ptr = errno;
 	reverse_sockaddr_un(realfnname, from, orig_from_size, fromlen);
 	return (res);
 }
 
-ssize_t __recvfrom_chk_gate(ssize_t (*real___recvfrom_chk_ptr)(int s,
-	void *__restrict buf, size_t __n, size_t __buflen, int flags,
-	struct sockaddr *from, socklen_t *__restrict fromlen),
+ssize_t __recvfrom_chk_gate(
+	int *result_errno_ptr,
+	ssize_t (*real___recvfrom_chk_ptr)(int s,
+		void *__restrict buf, size_t __n, size_t __buflen, int flags,
+		struct sockaddr *from, socklen_t *__restrict fromlen),
 	const char *realfnname,
 	int s,
 	void *__restrict buf,
@@ -318,13 +359,17 @@ ssize_t __recvfrom_chk_gate(ssize_t (*real___recvfrom_chk_ptr)(int s,
 	ssize_t	res;
 	socklen_t orig_from_size = *fromlen;
 
+	errno = *result_errno_ptr; /* restore to orig.value */
 	res = (*real___recvfrom_chk_ptr)(s, buf, __n, __buflen, flags,
 		from, fromlen);
+	*result_errno_ptr = errno;
 	reverse_sockaddr_un(realfnname, from, orig_from_size, fromlen);
 	return (res);
 }
 
-ssize_t recvmsg_gate(ssize_t (*real_recvmsg_ptr)(int s,
+ssize_t recvmsg_gate(
+	int *result_errno_ptr,
+	ssize_t (*real_recvmsg_ptr)(int s,
 	struct msghdr *msg, int flags),
         const char *realfnname,
 	int s,
@@ -334,7 +379,9 @@ ssize_t recvmsg_gate(ssize_t (*real_recvmsg_ptr)(int s,
 	ssize_t	res;
 	socklen_t orig_from_size = msg ? msg->msg_namelen : 0;
 
+	errno = *result_errno_ptr; /* restore to orig.value */
 	res = (*real_recvmsg_ptr)(s, msg, flags);
+	*result_errno_ptr = errno;
 	if (msg && msg->msg_name) {
 		reverse_sockaddr_un(realfnname, msg->msg_name,
 			orig_from_size, &(msg->msg_namelen));
@@ -342,7 +389,9 @@ ssize_t recvmsg_gate(ssize_t (*real_recvmsg_ptr)(int s,
 	return (res);
 }
 
-int accept_gate(int (*real_accept_ptr)(int sockfd,
+int accept_gate(
+	int *result_errno_ptr,
+	int (*real_accept_ptr)(int sockfd,
 	struct sockaddr *addr, socklen_t *addrlen),
         const char *realfnname,
 	int sockfd,
@@ -352,12 +401,16 @@ int accept_gate(int (*real_accept_ptr)(int sockfd,
 	ssize_t	res;
 	socklen_t orig_from_size = *addrlen;
 
+	errno = *result_errno_ptr; /* restore to orig.value */
 	res = (*real_accept_ptr)(sockfd, addr, addrlen);
+	*result_errno_ptr = errno;
 	reverse_sockaddr_un(realfnname, addr, orig_from_size, addrlen);
 	return (res);
 }
 
-int getpeername_gate(int (*real_getpeername_ptr)(int s,
+int getpeername_gate(
+	int *result_errno_ptr,
+	int (*real_getpeername_ptr)(int s,
 	struct sockaddr *name, socklen_t *namelen),
         const char *realfnname,
 	int s,
@@ -367,12 +420,16 @@ int getpeername_gate(int (*real_getpeername_ptr)(int s,
 	ssize_t	res;
 	socklen_t orig_from_size = *namelen;
 
+	errno = *result_errno_ptr; /* restore to orig.value */
 	res = (*real_getpeername_ptr)(s, name, namelen);
+	*result_errno_ptr = errno;
 	reverse_sockaddr_un(realfnname, name, orig_from_size, namelen);
 	return (res);
 }
 
-int getsockname_gate(int (*real_getsockname_ptr)(int s,
+int getsockname_gate(
+	int *result_errno_ptr,
+	int (*real_getsockname_ptr)(int s,
 	struct sockaddr *name, socklen_t *namelen),
         const char *realfnname,
 	int s,
@@ -382,7 +439,9 @@ int getsockname_gate(int (*real_getsockname_ptr)(int s,
 	ssize_t	res;
 	socklen_t orig_from_size = *namelen;
 
+	errno = *result_errno_ptr; /* restore to orig.value */
 	res = (*real_getsockname_ptr)(s, name, namelen);
+	*result_errno_ptr = errno;
 	reverse_sockaddr_un(realfnname, name, orig_from_size, namelen);
 	return (res);
 }

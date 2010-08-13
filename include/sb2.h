@@ -99,7 +99,7 @@ extern char *sb_decolonize_path(const char *path);
 extern int sb_next_execve(const char *filename, char *const argv [],
 			char *const envp[]);
 
-extern int do_exec(const char *exec_fn_name, const char *file,
+extern int do_exec(int *result_errno_ptr, const char *exec_fn_name, const char *file,
 		char *const *argv, char *const *envp);
 
 extern time_t get_sb2_timestamp(void);

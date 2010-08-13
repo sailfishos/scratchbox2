@@ -173,6 +173,7 @@ static char **va_exec_args_to_argv(
 
 /* #include <unistd.h> */
 int execl_gate(
+	int *result_errno_ptr,
 	int (*real_execl_ptr)(const char *path, const char *arg, ...),
 	const char *realfnname,
 	const char *path,
@@ -185,7 +186,7 @@ int execl_gate(
 	(void)real_execl_ptr; /* not used */
 
 	argv = va_exec_args_to_argv(realfnname, arg, args, NULL);
-	ret = execve_gate (NULL, realfnname, path, (char *const *) argv, 
+	ret = execve_gate (result_errno_ptr, NULL, realfnname, path, (char *const *) argv, 
 		environ);
 	free(argv);
 	return(ret);
@@ -194,6 +195,7 @@ int execl_gate(
 
 /* #include <unistd.h> */
 int execle_gate(
+	int *result_errno_ptr,
 	int (*real_execle_ptr)(const char *path, const char *arg, ...),
 	const char *realfnname,
 	const char *path,
@@ -207,7 +209,8 @@ int execle_gate(
 	(void)real_execle_ptr; /* not used */
 
 	argv = va_exec_args_to_argv(realfnname, arg, args, &envp);
-	ret = execve_gate (NULL, realfnname, path, (char *const *) argv, 
+	ret = execve_gate (result_errno_ptr,
+		NULL, realfnname, path, (char *const *) argv, 
 		(char *const *) envp);
 	free(argv);
 	return(ret);
@@ -217,6 +220,7 @@ int execle_gate(
    it contains no slashes, with all arguments after FILE until a
    NULL pointer and environment from `environ'.  */
 int execlp_gate(
+	int *result_errno_ptr,
 	int (*real_execlp_ptr)(const char *file, const char *arg, ...),
 	const char *realfnname,
 	const char *file,
@@ -229,7 +233,8 @@ int execlp_gate(
 	(void)real_execlp_ptr;	/* not used */
 
 	argv = va_exec_args_to_argv(realfnname, arg, args, NULL);
-	ret = execvp_gate (NULL, realfnname, file, (char *const *) argv);
+	ret = execvp_gate (result_errno_ptr,
+		NULL, realfnname, file, (char *const *) argv);
 	free(argv);
 	return(ret);
 }
@@ -238,6 +243,7 @@ int execlp_gate(
 
 /* #include <unistd.h> */
 int execv_gate(
+	int *result_errno_ptr,
 	int (*real_execv_ptr)(const char *path, char *const argv []),
 	const char *realfnname,
 	const char *path,
@@ -245,12 +251,13 @@ int execv_gate(
 {
 	(void)real_execv_ptr;	/* not used */
 
-	return execve_gate (NULL, realfnname, path, argv, environ);
+	return execve_gate (result_errno_ptr, NULL, realfnname, path, argv, environ);
 }
 
 
 /* #include <unistd.h> */
 int execve_gate(
+	int *result_errno_ptr,
 	int (*real_execve_ptr)(const char *filename, char *const argv [],
 		char *const envp[]),
 	const char *realfnname,
@@ -259,7 +266,7 @@ int execve_gate(
 	char *const envp[])
 {
 	(void)real_execve_ptr;
-	return do_exec(realfnname, filename, argv, envp);
+	return do_exec(result_errno_ptr, realfnname, filename, argv, envp);
 }
 
 /* return a new argv[] */
@@ -282,6 +289,7 @@ static char **create_argv_for_script_exec(const char *file, char *const argv[])
 
 
 static int do_execvep(
+	int *result_errno_ptr,
 	const char *realfnname,
 	const char *file,
 	char *const argv [],
@@ -289,21 +297,18 @@ static int do_execvep(
 {
 	if (*file == '\0') {
 		/* We check the simple case first. */
-		errno = ENOENT;
+		*result_errno_ptr = ENOENT;
 		return -1;
 	}
 
 	if (strchr (file, '/') != NULL) {
 		/* Don't search when it contains a slash.  */
-		execve_gate (NULL, realfnname, file, argv, envp);
-		if (errno == ENOEXEC) {
+		execve_gate (result_errno_ptr, NULL, realfnname, file, argv, envp);
+		if (*result_errno_ptr == ENOEXEC) {
 			char **new_argv = create_argv_for_script_exec(
 				file, argv);
-			int err;
-			execve_gate (NULL, realfnname, new_argv[0], new_argv, envp);
-			err = errno;
+			execve_gate (result_errno_ptr, NULL, realfnname, new_argv[0], new_argv, envp);
 			free(new_argv);
-			errno = err;
 		}
 		return(-1);
 	} else {
@@ -352,19 +357,16 @@ static int do_execvep(
 			}
 
 			/* Try to execute this name.  If it works, execv will not return.  */
-			execve_gate (NULL, realfnname, startp, argv, envp);
+			execve_gate (result_errno_ptr, NULL, realfnname, startp, argv, envp);
 
-			if (errno == ENOEXEC) {
+			if (*result_errno_ptr == ENOEXEC) {
 				char **new_argv = create_argv_for_script_exec(
 					startp, argv);
-				int err;
-				execve_gate (NULL, realfnname, new_argv[0], new_argv, envp);
-				err = errno;
+				execve_gate (result_errno_ptr, NULL, realfnname, new_argv[0], new_argv, envp);
 				free(new_argv);
-				errno = err;
 			}
 
-			switch (errno) {
+			switch (*result_errno_ptr) {
 				case EACCES:
 					/* Record the we got a `Permission denied' error.  If we end
 					   up finding no executable we can use, we want to diagnose
@@ -390,7 +392,7 @@ static int do_execvep(
 		if (got_eacces)
 			/* At least one failure was due to permissions, so report that
 			   error.  */
-			errno = EACCES;
+			*result_errno_ptr = EACCES;
 	}
 
 	/* Return the error from the last attempt (probably ENOENT).  */
@@ -402,31 +404,39 @@ int sb_execvep(
 	char *const argv [],
 	char *const envp [])
 {
-	return do_execvep(__FUNCTION__, file, argv, envp);
+	int res;
+	int err;
+	res = do_execvep(&err, __FUNCTION__, file, argv, envp);
+	errno = err;
+	return res;
 }
 
 
 /* #include <unistd.h> */
 int execvp_gate(
+	int *result_errno_ptr,
 	int (*real_execvp_ptr)(const char *file, char *const argv []),
 	const char *realfnname,
 	const char *file,
 	char *const argv [])
 {
 	(void)real_execvp_ptr;	/* not used */
-	return do_execvep(realfnname, file, argv, environ);
+	return do_execvep(result_errno_ptr, realfnname, file, argv, environ);
 }
 
 
 /* SETRLIMIT_ARG1_TYPE is defined in interface.master */
 
 int setrlimit_gate(
+	int *result_errno_ptr,
 	int (*real_setrlimit_ptr)(SETRLIMIT_ARG1_TYPE resource,
 		const struct rlimit *rlp),
 	const char *realfnname,
 	SETRLIMIT_ARG1_TYPE resource,
 	const struct rlimit *rlp)
 {
+	int	result;
+
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: res=%d cur=%ld max=%ld",
 		realfnname, resource, (long)rlp->rlim_cur, (long)rlp->rlim_max);
 
@@ -450,17 +460,23 @@ int setrlimit_gate(
 			}
 		}
 	}
-	return((*real_setrlimit_ptr)(resource,rlp));
+	errno = *result_errno_ptr; /* restore to orig.value */
+	result = (*real_setrlimit_ptr)(resource,rlp);
+	*result_errno_ptr = errno;
+	return(result);
 }
 
 #ifndef __APPLE__
 int setrlimit64_gate(
+	int *result_errno_ptr,
 	int (*real_setrlimit64_ptr)(SETRLIMIT_ARG1_TYPE resource,
 		const struct rlimit64 *rlp),
 	const char *realfnname,
 	SETRLIMIT_ARG1_TYPE resource,
 	const struct rlimit64 *rlp)
 {
+	int	result;
+
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: res=%d cur=%ld max=%ld",
 		realfnname, resource, (long)rlp->rlim_cur, (long)rlp->rlim_max);
 
@@ -484,7 +500,10 @@ int setrlimit64_gate(
 			}
 		}
 	}
-	return((*real_setrlimit64_ptr)(resource,rlp));
+	errno = *result_errno_ptr; /* restore to orig.value */
+	result = (*real_setrlimit64_ptr)(resource,rlp);
+	*result_errno_ptr = errno;
+	return(result);
 }
 #endif
 

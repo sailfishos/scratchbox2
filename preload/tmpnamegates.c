@@ -147,14 +147,17 @@ void mkstemps64_postprocess_template(const char *realfnname,
  * be mapped before the name can be tested and that won't happen inside libc.
  * Istead, we'll use mktemp()..
 */
-char *tmpnam_gate(char *(*real_tmpnam_ptr)(char *s),
-	 const char *realfnname, char *s)
+char *tmpnam_gate(
+	int *result_errno_ptr,
+	char *(*real_tmpnam_ptr)(char *s),
+	const char *realfnname, char *s)
 {
 	static char static_tmpnam_buf[PATH_MAX]; /* used if s is NULL */
 	char tmpnam_buf[PATH_MAX];
 	char *dir = getenv("TMPDIR");
 
 	(void)real_tmpnam_ptr; /* not used */
+	(void)result_errno_ptr; /* not used */
 
 	if (!dir) dir = P_tmpdir;
 	if (!dir) dir = "/tmp";
@@ -189,6 +192,7 @@ char *tmpnam_gate(char *(*real_tmpnam_ptr)(char *s),
 /* the real tempnam() can not be used, just like tmpnam() can't be used.
 */
 char *tempnam_gate(
+	int *result_errno_ptr,
 	char *(*real_tempnam_ptr)(const char *tmpdir, const char *prefix),
         const char *realfnname, const char *tmpdir, const char *prefix)
 {
@@ -212,6 +216,7 @@ char *tempnam_gate(
 
 	tmpnam_buf = malloc(namelen);
 	if (!tmpnam_buf) {
+		*result_errno_ptr = errno; /* ENOMEM, usually */
 		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: malloc() failed", realfnname);
 		return(NULL);
 	}
@@ -229,6 +234,7 @@ char *tempnam_gate(
 		return(tmpnam_buf);
 	}
 	/* mktemp() failed */
+	*result_errno_ptr = errno;
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: mktemp() failed", realfnname);
 	return(NULL);
 }

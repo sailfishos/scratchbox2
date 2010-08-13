@@ -26,8 +26,9 @@
 
 static void check_textdomain(const char *);
 
-char *bindtextdomain_gate(char *(*realfn)(const char *, const char *),
-    const char *realfn_name, const char *domainname, const char *dirname)
+char *bindtextdomain_gate(int *result_errno_ptr,
+	char *(*realfn)(const char *, const char *),
+	const char *realfn_name, const char *domainname, const char *dirname)
 {
 	mapping_results_t res;
 	const char *mapped_dirname = dirname;
@@ -45,7 +46,10 @@ char *bindtextdomain_gate(char *(*realfn)(const char *, const char *),
 		    domainname, mapped_dirname);
 	}
 
+	errno = *result_errno_ptr; /* restore to orig.value */
 	result = (*realfn)(domainname, mapped_dirname);
+	*result_errno_ptr = errno;
+
 	free_mapping_results(&res);
 	if (result && (*result != '\0')) {
 		char *sbox_path = NULL;
@@ -73,56 +77,86 @@ static void check_textdomain(const char *domainname)
 }
 
 /*ARGSUSED*/
-char *textdomain_gate(char *(*realfn)(const char *), const char *realfn_name,
-    const char *domainname)
+char *textdomain_gate(int *result_errno_ptr,
+	char *(*realfn)(const char *), const char *realfn_name,
+	const char *domainname)
 {
+	char	*result;
+
 	(void)realfn_name;
 
 	check_textdomain(domainname);
-	return (*realfn)(domainname);
+	errno = *result_errno_ptr; /* restore to orig.value */
+	result = (*realfn)(domainname);
+	*result_errno_ptr = errno;
+	return(result);
 }
 
 /*ARGSUSED*/
-char *dgettext_gate(char *(*realfn)(const char *, const char *),
-    const char *realfn_name, const char *domainname, const char *msgid)
+char *dgettext_gate(int *result_errno_ptr,
+	char *(*realfn)(const char *, const char *),
+	const char *realfn_name, const char *domainname, const char *msgid)
 {
+	char	*result;
+
 	(void)realfn_name;
 
 	check_textdomain(domainname);
-	return (*realfn)(domainname, msgid);
+	errno = *result_errno_ptr; /* restore to orig.value */
+	result = (*realfn)(domainname, msgid);
+	*result_errno_ptr = errno;
+	return(result);
 }
 
 /*ARGSUSED*/
-char *dcgettext_gate(char *(*realfn)(const char *, const char *, int),
-    const char *realfn_name, const char *domainname, const char *msgid,
-    int category)
+char *dcgettext_gate(int *result_errno_ptr,
+	char *(*realfn)(const char *, const char *, int),
+	const char *realfn_name, const char *domainname, const char *msgid,
+	int category)
 {
+	char	*result;
+
 	(void)realfn_name;
 
 	check_textdomain(domainname);
-	return (*realfn)(domainname, msgid, category);
+	errno = *result_errno_ptr; /* restore to orig.value */
+	result = (*realfn)(domainname, msgid, category);
+	*result_errno_ptr = errno;
+	return(result);
 }
 
 /*ARGSUSED*/
-char *dngettext_gate(char *(*realfn)(const char *, const char *, const char *,
-    unsigned long int n), const char *realfn_name,
-    const char *domainname, const char *msgid,
-    const char *msgid_plural, unsigned long int n)
+char *dngettext_gate(int *result_errno_ptr,
+	char *(*realfn)(const char *, const char *, const char *,
+	unsigned long int n), const char *realfn_name,
+	const char *domainname, const char *msgid,
+	const char *msgid_plural, unsigned long int n)
 {
+	char	*result;
+
 	(void)realfn_name;
 
 	check_textdomain(domainname);
-	return (*realfn)(domainname, msgid, msgid_plural, n);
+	errno = *result_errno_ptr; /* restore to orig.value */
+	result = (*realfn)(domainname, msgid, msgid_plural, n);
+	*result_errno_ptr = errno;
+	return(result);
 }
 
 /*ARGSUSED*/
-char *dcngettext_gate(char *(*realfn)(const char *, const char *, const char *,
-    unsigned long int, int), const char *realfn_name,
-    const char *domainname, const char *msgid,
-    const char *msgid_plural, unsigned long int n, int category)
+char *dcngettext_gate(int *result_errno_ptr,
+	char *(*realfn)(const char *, const char *, const char *,
+	unsigned long int, int), const char *realfn_name,
+	const char *domainname, const char *msgid,
+	const char *msgid_plural, unsigned long int n, int category)
 {
+	char	*result;
+
 	(void)realfn_name;
 
 	check_textdomain(domainname);
-	return (*realfn)(domainname, msgid, msgid_plural, n, category);
+	errno = *result_errno_ptr; /* restore to orig.value */
+	result = (*realfn)(domainname, msgid, msgid_plural, n, category);
+	*result_errno_ptr = errno;
+	return(result);
 }

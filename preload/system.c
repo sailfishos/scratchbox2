@@ -226,12 +226,19 @@ sb2_libc_system (const char *line)
 /* ------------ End Of glibc-Based Code ------------ */
 
 /* sb2: */
-int system_gate(int (*real_system_ptr)(const char *line),
+int system_gate(
+	int *result_errno_ptr,
+	int (*real_system_ptr)(const char *line),
         const char *realfnname, const char *line)
 {
+	int	result;
+
 	(void)real_system_ptr;
 	(void)realfnname;
 	SB_LOG(SB_LOGLEVEL_DEBUG, "system(%s)", line);
-	return(sb2_libc_system(line));
+	errno = *result_errno_ptr; /* restore to orig.value */
+	result = sb2_libc_system(line);
+	*result_errno_ptr = errno;
+	return(result);
 }
 

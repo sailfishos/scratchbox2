@@ -767,13 +767,16 @@ sub create_call_to_real_fn {
 	return(
 		# 1. call with mapped parameters
 		"(*$real_fn_pointer_name)(".
-			join(", ", @param_list_in_next_call).");\n",
+			join(", ", @param_list_in_next_call).");".
+			" result_errno = errno;\n",
 		# 2. call with original (unmapped) parameters
 		"(*$real_fn_pointer_name)(".
-			join(", ", @{$mods->{'parameter_names'}}).");\n",
+			join(", ", @{$mods->{'parameter_names'}}).");".
+			" result_errno = errno;\n",
 		# 3. call with original parameters (without logging)
 		"(*$real_fn_pointer_name)(".
-			join(", ", @{$mods->{'parameter_names'}}).");\n",
+			join(", ", @{$mods->{'parameter_names'}}).");".
+			" result_errno = errno;\n",
 		# 4.
 		$postprocessor_calls,
 		# 5. prototypes.
@@ -790,7 +793,7 @@ sub create_call_to_gate_fn {
 	my $num_gate_params = @gate_params_with_types;
 	my $orig_param_list;
 	my $modified_param_list;
-	my $gate_params = $mods->{'real_fn_pointer_name'}.", __func__";
+	my $gate_params = "&result_errno,".$mods->{'real_fn_pointer_name'}.", __func__";
 	my $fn_ptr_prototype_params;
 	my $prototype_params;
 
@@ -811,7 +814,9 @@ sub create_call_to_gate_fn {
 			join(", ", @param_list_in_next_call);
 		$fn_ptr_prototype_params = join(", ",
 			@{$fn->{'all_params_with_types'}});
-		$prototype_params = $fn->{'fn_return_type'}." ".
+		$prototype_params =
+			"int *result_errno_ptr,\n".
+			 $fn->{'fn_return_type'}." ".
 			"(*real_${fn_name}_ptr)".
 			"($fn_ptr_prototype_params),\n".
 			"\tconst char *realfnname, ".
@@ -820,7 +825,9 @@ sub create_call_to_gate_fn {
 		$orig_param_list = $gate_params;
 		$modified_param_list = $gate_params;
 		$fn_ptr_prototype_params = "void";
-		$prototype_params = $fn->{'fn_return_type'}.
+		$prototype_params =
+			"int *result_errno_ptr,\n".
+			$fn->{'fn_return_type'}.
 			" (*real_${fn_name}_ptr)(void), ".
 			"\tconst char *realfnname";
 	}
@@ -837,7 +844,7 @@ sub create_call_to_gate_fn {
 	# nomap_nolog for a gate is a direct call to the real function
 	my $unmapped_nolog_call = "${fn_name}_next__(".
 		join(", ", @{$mods->{'parameter_names'}}).
-		");\n";
+		"); result_errno = errno;\n";
 
 	my $gate_function_prototype =
 		"extern ".$fn->{'fn_return_type'}." ${fn_name}_gate(".
@@ -969,8 +976,11 @@ sub command_wrap_or_gate {
 		$nomap_nolog_fn_c_code .= "\t$fn_return_type ret = $default_return_value;\n";
 	}
 	$wrapper_fn_c_code .=	"\tint saved_errno = errno;\n".
+				"\tint result_errno = saved_errno;\n".
 				"\terrno = 0;\n";
-	$nomap_fn_c_code .=	"\tint saved_errno = errno;\n";
+	$nomap_fn_c_code .=	"\tint saved_errno = errno;\n".
+				"\tint result_errno = saved_errno;\n";
+	$nomap_nolog_fn_c_code .= "\tint result_errno = errno;\n";
 
 	# variables have been introduced, add the code:
 	if($mods->{'check_libsb2_has_been_initialized'} != 0) {
@@ -1077,8 +1087,8 @@ sub command_wrap_or_gate {
 		$log_return_val = "\tSB_LOG($generated_code_loglevel, ".
 			"\"%s returns ".
 			"$log_return_value_format, errno=%d (%s)\", ".
-			"__func__, $log_return_val, errno, ".
-			"(saved_errno != errno ? ".
+			"__func__, $log_return_val, result_errno, ".
+			"(saved_errno != result_errno ? ".
 			" \"SET\" : \"unchanged\") );\n";
 	} else {
 		# don't know how to print the return value itself 
@@ -1086,8 +1096,8 @@ sub command_wrap_or_gate {
 		$log_return_val = "\tSB_LOG($generated_code_loglevel, ".
 			"\"%s returns,".
 			" errno=%d (%s)\", ".
-			"__func__, errno, ".
-			"(saved_errno != errno ? ".
+			"__func__, result_errno, ".
+			"(saved_errno != result_errno ? ".
 			" \"SET\" : \"unchanged\") );\n";
 	}
 	
@@ -1113,6 +1123,7 @@ sub command_wrap_or_gate {
 	$nomap_fn_c_code .=		"\terrno = saved_errno;\n";
 
 	# Next, insert the call to the real function
+	# (the call will also copy errno to result_errno)
 	$wrapper_fn_c_code .=		$call_line_prefix.$mapped_call;
 	$nomap_fn_c_code .=		$call_line_prefix.$unmapped_call;
 	$nomap_nolog_fn_c_code .=	$call_line_prefix.$unmapped_nolog_call;
@@ -1128,9 +1139,14 @@ sub command_wrap_or_gate {
 	$nomap_fn_c_code .=		$mods->{'va_list_end_code'};
 	$nomap_nolog_fn_c_code .=	$mods->{'va_list_end_code'};
 
-	$wrapper_fn_c_code .=		$log_return_val.$return_statement."}\n";
-	$nomap_fn_c_code .=		$log_return_val.$return_statement."}\n";
-	$nomap_nolog_fn_c_code .=	$return_statement."}\n";
+	$wrapper_fn_c_code .=		$log_return_val.
+					"\terrno = result_errno;\n".
+					$return_statement."}\n";
+	$nomap_fn_c_code .=		$log_return_val.
+					"\terrno = result_errno;\n".
+					$return_statement."}\n";
+	$nomap_nolog_fn_c_code .=	"\terrno = result_errno;\n".
+					$return_statement."}\n";
 
 	if($debug) {
 		print "Wrapper code:\n".$wrapper_fn_c_code;

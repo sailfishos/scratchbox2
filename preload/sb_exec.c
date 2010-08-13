@@ -1197,12 +1197,14 @@ static int prepare_exec(const char *exec_fn_name,
 	return(ret);
 }
 
-int do_exec(const char *exec_fn_name, const char *orig_file,
-		char *const *orig_argv, char *const *orig_envp)
+int do_exec(int *result_errno_ptr,
+	const char *exec_fn_name, const char *orig_file,
+	char *const *orig_argv, char *const *orig_envp)
 {
 	char *new_file = NULL;
 	char **new_argv = NULL;
 	char **new_envp = NULL;
+	int  result;
 
 	if (getenv("SBOX_DISABLE_MAPPING")) {
 		/* just run it, don't worry, be happy! */
@@ -1243,6 +1245,7 @@ int do_exec(const char *exec_fn_name, const char *orig_file,
 		if (r < 0) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"EXEC denied by prepare_exec(), %s", orig_file);
+			*result_errno_ptr = errno;
 			return(r); /* exec denied */
 		}
 
@@ -1253,15 +1256,18 @@ int do_exec(const char *exec_fn_name, const char *orig_file,
 				"exec(%s) failed, internal configuration error: "
 				"LD_LIBRARY_PATH and/or LD_PRELOAD were not set "
 				"by exec mapping logic", orig_file);
-			errno = EINVAL;
+			*result_errno_ptr = EINVAL;
 			return(-1);
 		}
 	}
 
-	return sb_next_execve(
+	errno = *result_errno_ptr; /* restore to orig.value */
+	result = sb_next_execve(
 		(new_file ? new_file : orig_file),
 		(new_argv ? new_argv : orig_argv),
 		(new_envp ? new_envp : orig_envp));
+	*result_errno_ptr = errno;
+	return(result);
 }
 
 /* ----- EXPORTED from interface.master: ----- */
@@ -1338,7 +1344,8 @@ char *sb2show__binary_type__(const char *filename)
  * be taken determined by the mapping rules, but in practise it
  * produces correct results.
 */
-FILE *popen_gate(FILE *(*real_popen_ptr)(const char *command, const char *type),
+FILE *popen_gate(int *result_errno_ptr,
+	FILE *(*real_popen_ptr)(const char *command, const char *type),
         const char *realfnname, const char *command, const char *type)
 {
 	char	*user_ld_lib_path = NULL;
@@ -1370,7 +1377,9 @@ FILE *popen_gate(FILE *(*real_popen_ptr)(const char *command, const char *type),
 	SB_LOG(SB_LOGLEVEL_DEBUG, "popen: LD_LIBRARY_PATH=%s", popen_ld_lib_path);
 	SB_LOG(SB_LOGLEVEL_DEBUG, "popen: LD_PRELOAD=%s", popen_ld_preload);
 
+	errno = *result_errno_ptr; /* restore to orig.value */
 	res = (*real_popen_ptr)(command, type);
+	*result_errno_ptr = errno;
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "popen: restoring LD_PRELOAD and LD_LIBRARY_PATH");
 

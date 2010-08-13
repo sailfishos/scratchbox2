@@ -35,7 +35,9 @@
 
 #ifdef HAVE_FTS_H
 /* FIXME: why there was #if !defined(HAVE___OPENDIR2) around fts_open() ???? */
-FTS * fts_open_gate(FTS * (*real_fts_open_ptr)(char * const *path_argv,
+FTS * fts_open_gate(
+	int *result_errno_ptr,
+	FTS * (*real_fts_open_ptr)(char * const *path_argv,
 		int options, int (*compar)(const FTSENT **,const FTSENT **)),
 	const char *realfnname,
 	char * const *path_argv,
@@ -47,6 +49,7 @@ FTS * fts_open_gate(FTS * (*real_fts_open_ptr)(char * const *path_argv,
 	char **new_path_argv;
 	char **np;
 	int n;
+	FTS *result;
 
 	for (n=0, p=path_argv; *p; n++, p++);
 	if ((new_path_argv = calloc(n+1, (sizeof(char *)))) == NULL) {
@@ -71,20 +74,27 @@ FTS * fts_open_gate(FTS * (*real_fts_open_ptr)(char * const *path_argv,
 
 	/* FIXME: this system causes memory leaks */
 
-	return (*real_fts_open_ptr)(new_path_argv, options, compar);
+	errno = *result_errno_ptr; /* restore to orig.value */
+	result = (*real_fts_open_ptr)(new_path_argv, options, compar);
+	*result_errno_ptr = errno;
+	return(result);
 }
 #endif
 
 char * get_current_dir_name_gate(
+	int *result_errno_ptr,
 	char * (*real_get_current_dir_name_ptr)(void),
 	const char *realfnname)
 {
 	char *sbox_path = NULL;
 	char *cwd;
 
+	errno = *result_errno_ptr; /* restore to orig.value */
 	if ((cwd = (*real_get_current_dir_name_ptr)()) == NULL) {
+		*result_errno_ptr = errno;
 		return NULL;
 	}
+	*result_errno_ptr = errno;
 	if (*cwd != '\0') {
 		sbox_path = scratchbox_reverse_path(realfnname, cwd);
 	}
@@ -131,6 +141,7 @@ SB_LOG(SB_LOGLEVEL_DEBUG, "GETCWD: returns '%s'", cwd);
 
 /* #include <unistd.h> */
 char *getcwd_gate (
+	int *result_errno_ptr,
 	char *(*real_getcwd_ptr)(char *buf, size_t size),
 	const char *realfnname,
 	char *buf,
@@ -138,13 +149,18 @@ char *getcwd_gate (
 {
 	char *cwd;
 
+	errno = *result_errno_ptr; /* restore to orig.value */
 	if ((cwd = (*real_getcwd_ptr)(buf, size)) == NULL) {
+		*result_errno_ptr = errno;
 		return NULL;
 	}
+	*result_errno_ptr = errno;
 	return(getcwd_common(buf, size, realfnname, cwd));
 }
 
-char *__getcwd_chk_gate(char * (*real___getcwd_chk_ptr)(char *buf,
+char *__getcwd_chk_gate(
+	int *result_errno_ptr,
+	char * (*real___getcwd_chk_ptr)(char *buf,
 		size_t size, size_t buflen),
         const char *realfnname,
 	char *buf,
@@ -153,9 +169,12 @@ char *__getcwd_chk_gate(char * (*real___getcwd_chk_ptr)(char *buf,
 {
 	char *cwd;
 
+	errno = *result_errno_ptr; /* restore to orig.value */
 	if ((cwd = (*real___getcwd_chk_ptr)(buf, size, buflen)) == NULL) {
+		*result_errno_ptr = errno;
 		return NULL;
 	}
+	*result_errno_ptr = errno;
 	return(getcwd_common(buf, size, realfnname, cwd));
 }
 
@@ -184,19 +203,25 @@ static char *getwd_common(char *cwd, const char *realfnname, char *buf)
 }
 
 char *getwd_gate(
+	int *result_errno_ptr,
 	char *(*real_getwd_ptr)(char *buf),
 	const char *realfnname,
 	char *buf)
 {
 	char *cwd;
 
+	errno = *result_errno_ptr; /* restore to orig.value */
 	if ((cwd = (*real_getwd_ptr)(buf)) == NULL) {
+		*result_errno_ptr = errno;
 		return NULL;
 	}
+	*result_errno_ptr = errno;
 	return(getwd_common(buf, realfnname, cwd));
 }
 
-char *__getwd_chk_gate(char * (*real___getwd_chk_ptr)(char *buf,
+char *__getwd_chk_gate(
+	int *result_errno_ptr,
+	char * (*real___getwd_chk_ptr)(char *buf,
 		size_t buflen),
         const char *realfnname,
 	char *buf,
@@ -204,13 +229,17 @@ char *__getwd_chk_gate(char * (*real___getwd_chk_ptr)(char *buf,
 {
 	char *cwd;
 
+	errno = *result_errno_ptr; /* restore to orig.value */
 	if ((cwd = (*real___getwd_chk_ptr)(buf, buflen)) == NULL) {
+		*result_errno_ptr = errno;
 		return NULL;
 	}
+	*result_errno_ptr = errno;
 	return(getwd_common(buf, realfnname, cwd));
 }
 
 char *realpath_gate(
+	int *result_errno_ptr,
 	char *(*real_realpath_ptr)(const char *name, char *resolved),
         const char *realfnname,
 	const char *name,	/* name, already mapped */
@@ -219,9 +248,12 @@ char *realpath_gate(
 	char *sbox_path = NULL;
 	char *rp;
 	
+	errno = *result_errno_ptr; /* restore to orig.value */
 	if ((rp = (*real_realpath_ptr)(name,resolved)) == NULL) {
+		*result_errno_ptr = errno;
 		return NULL;
 	}
+	*result_errno_ptr = errno;
 	if (*rp != '\0') {
 		sbox_path = scratchbox_reverse_path(realfnname, rp);
 		if (sbox_path) {
@@ -247,6 +279,7 @@ char *realpath_gate(
  * (__realpath_chk is yet another ugly trick from the creators of glibc)
 */
 char *__realpath_chk_gate(
+	int *result_errno_ptr,
 	char *(*real__realpath_chk_ptr)(__const char *__restrict __name,
 		char *__restrict __resolved, size_t __resolvedlen),
         const char *realfnname,
@@ -257,9 +290,12 @@ char *__realpath_chk_gate(
 	char *sbox_path = NULL;
 	char *rp;
 	
+	errno = *result_errno_ptr; /* restore to orig.value */
 	if ((rp = (*real__realpath_chk_ptr)(name,__resolved,__resolvedlen)) == NULL) {
+		*result_errno_ptr = errno;
 		return NULL;
 	}
+	*result_errno_ptr = errno;
 	if (*rp != '\0') {
 		sbox_path = scratchbox_reverse_path(realfnname, rp);
 		if (sbox_path) {
@@ -311,6 +347,7 @@ static char *check_and_prepare_glob_pattern(
 #endif
 
 int glob_gate(
+	int *result_errno_ptr,
 	int (*real_glob_ptr)(const char *pattern, int flags,
 		int (*errfunc) (const char *,int), glob_t *pglob),
 	const char *realfnname,
@@ -324,8 +361,10 @@ int glob_gate(
 	char *mapped__pattern;
 
 	mapped__pattern = check_and_prepare_glob_pattern(realfnname, pattern);
+	errno = *result_errno_ptr; /* restore to orig.value */
 	rc = (*real_glob_ptr)(mapped__pattern ? mapped__pattern : pattern,
 		flags, errfunc, pglob);
+	*result_errno_ptr = errno;
 	if (mapped__pattern) free(mapped__pattern);
 #else
 	/* glob() has been replaced by a modified copy (from glibc) */
@@ -335,7 +374,9 @@ int glob_gate(
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: pattern='%s' gl_offs=%d, flags=0x%X",
 		realfnname, pattern, pglob->gl_offs, flags);
+	errno = *result_errno_ptr; /* restore to orig.value */
 	rc = do_glob(pattern, flags, errfunc, pglob);
+	*result_errno_ptr = errno;
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: returns %d (gl_pathc=%d)",
 		realfnname, rc, pglob->gl_pathc);
 	for (i=0; i < pglob->gl_pathc; i++) {
@@ -350,6 +391,7 @@ int glob_gate(
 
 #ifdef HAVE_GLOB64
 int glob64_gate(
+	int *result_errno_ptr,
 	int (*real_glob64_ptr)(const char *pattern,
 		int flags, int (*errfunc) (const char *,int), glob64_t *pglob),
 	const char *realfnname,
@@ -363,8 +405,10 @@ int glob64_gate(
 	char *mapped__pattern;
 
 	mapped__pattern = check_and_prepare_glob_pattern(realfnname, pattern);
+	errno = *result_errno_ptr; /* restore to orig.value */
 	rc = (*real_glob64_ptr)(mapped__pattern ? mapped__pattern : pattern,
 		flags, errfunc, pglob);
+	*result_errno_ptr = errno;
 	if (mapped__pattern) free(mapped__pattern);
 #else
 	/* glob64() has been replaced by a modified copy (from glibc) */
@@ -374,7 +418,9 @@ int glob64_gate(
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: pattern='%s' gl_offs=%d, flags=0x%X",
 		realfnname, pattern, pglob->gl_offs, flags);
+	errno = *result_errno_ptr; /* restore to orig.value */
 	rc = do_glob64(pattern, flags, errfunc, pglob);
+	*result_errno_ptr = errno;
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: returns %d (gl_pathc=%d)",
 		realfnname, rc, pglob->gl_pathc);
 	for (i=0; i < pglob->gl_pathc; i++) {
@@ -390,6 +436,7 @@ int glob64_gate(
 
 
 int uname_gate(
+	int *result_errno_ptr,
 	int (*real_uname_ptr)(struct utsname *buf),
 	const char *realfnname,
 	struct utsname *buf)
@@ -398,9 +445,12 @@ int uname_gate(
 
 	(void)realfnname;	/* not used here */
 
+	errno = *result_errno_ptr; /* restore to orig.value */
 	if ((*real_uname_ptr)(buf) < 0) {
+		*result_errno_ptr = errno;
 		return -1;
 	}
+	*result_errno_ptr = errno;
 
 	if (sbox_session_dir) {
 		/* sb2 has been initialized. */
@@ -415,9 +465,13 @@ int uname_gate(
 	return 0;
 }
 
-void _exit_gate(void (*real__exit_ptr)(int status),
+void _exit_gate(
+	int *result_errno_ptr,
+	void (*real__exit_ptr)(int status),
 	const char *realfnname, int status)
 {
+	(void)result_errno_ptr; /* not used */
+
 	/* NOTE: Following SB_LOG() call is used by the log
 	 *       postprocessor script "sb2-logz". Do not change
 	 *       without making a corresponding change to the script!
@@ -427,9 +481,13 @@ void _exit_gate(void (*real__exit_ptr)(int status),
 }
 
 
-void _Exit_gate(void (*real__Exit_ptr)(int status),
+void _Exit_gate(
+	int *result_errno_ptr,
+	void (*real__Exit_ptr)(int status),
 	const char *realfnname, int status)
 {
+	(void)result_errno_ptr; /* not used */
+
 	/* NOTE: Following SB_LOG() call is used by the log
 	 *       postprocessor script "sb2-logz". Do not change
 	 *       without making a corresponding change to the script!

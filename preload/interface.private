@@ -20,7 +20,7 @@
 -- Copyright (C) 2009 Nokia Corporation.
 -- Author: Lauri T. Aarnio
 
-LOGLEVEL: SB_LOGLEVEL_DEBUG
+LOGLEVEL: SB_LOGLEVEL_NOISE
 
 -- Environment management.
 -- These are used during library initialization => MUST be marked

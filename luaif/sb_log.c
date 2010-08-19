@@ -137,11 +137,41 @@ void sblog_init(void)
 		const char	*level_str;
 		const char	*format_str;
 
-		if (!sb2_global_vars_initialized__)
+		if (!sb2_global_vars_initialized__) {
 			sb2_initialize_global_variables();
+			if (sb2_global_vars_initialized__) {
+				/* All ok. sb2_initialize_global_variables()
+				 * called us, no need to continue here.
+				*/
+				return;
+			}
+		}
 
-		if (sbox_binary_name)
-			sb_log_state.sbl_binary_name = sbox_binary_name;
+		if (sbox_exec_name &&
+		    sbox_orig_binary_name &&
+		    strcmp(sbox_exec_name, sbox_orig_binary_name)) {
+			/* this is an interpreter, running a script.
+			 * set .sbl_binary_name to 
+			 * scriptbasename{interpreterbasename}
+			*/
+			char *full_name = NULL;
+			char *cp;
+
+			if ((cp=strrchr(sbox_exec_name, '/')) != NULL) {
+				cp++;
+			} else {
+				cp = sbox_exec_name;
+			}
+			if (asprintf(&full_name, "%s{%s}", cp, sbox_binary_name) < 0) {
+				if (sbox_binary_name)
+					sb_log_state.sbl_binary_name = sbox_binary_name;
+			} else {
+				sb_log_state.sbl_binary_name = full_name;
+			}
+		} else {
+			if (sbox_binary_name)
+				sb_log_state.sbl_binary_name = sbox_binary_name;
+		}
 
 		sb_log_state.sbl_logfile = getenv("SBOX_MAPPING_LOGFILE");
 		level_str = getenv("SBOX_MAPPING_LOGLEVEL");
@@ -192,7 +222,13 @@ void sblog_init(void)
 		/* initialized, write a mark to logfile. */
 		SB_LOG(SB_LOGLEVEL_INFO,
 			 "---------- Starting (" SCRATCHBOX2_VERSION ")"
-			" [" __DATE__ " " __TIME__ "] ----------");
+			" [" __DATE__ " " __TIME__ "] "
+			"ppid=%d <%s> (%s) ----------",
+			getppid(),
+			sbox_exec_name ? 
+				sbox_exec_name : "",
+			sbox_active_exec_policy_name ?
+				sbox_active_exec_policy_name : "");
 	}
 }
 

@@ -206,6 +206,7 @@ char *sbox_session_dir = NULL;
 char *sbox_session_mode = NULL; /* optional */
 char *sbox_session_perm = NULL; /* optional */
 char *sbox_binary_name = NULL;
+char *sbox_exec_name = NULL;
 char *sbox_real_binary_name = NULL;
 char *sbox_orig_binary_name = NULL;
 char *sbox_active_exec_policy_name = NULL;
@@ -292,6 +293,10 @@ void sb2_initialize_global_variables(void)
 		if (!sbox_binary_name) {
 			cp = getenv("__SB2_BINARYNAME");
 			if (cp) sbox_binary_name = strdup(cp);
+		}
+		if (!sbox_exec_name) {
+			cp = getenv("__SB2_EXEC_BINARYNAME");
+			if (cp) sbox_exec_name = strdup(cp);
 		}
 		if (!sbox_real_binary_name) {
 			cp = getenv("__SB2_REAL_BINARYNAME");

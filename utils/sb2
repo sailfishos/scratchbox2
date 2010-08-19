@@ -123,6 +123,7 @@ function create_reverse_rules()
 	for ammf in $SBOX_SESSION_DIR/rules/*.lua; do
 		amm_base=`basename $ammf .lua`
 
+		__SB2_BINARYNAME="sb2:CreatingReverseRules" \
 		SBOX_SESSION_MODE=$amm_base sb2-monitor \
 			-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
 			execluafile \
@@ -142,10 +143,12 @@ function create_reverse_rules()
 #   source tree)
 function locate_target_nsswitch_conf()
 {
+	__SB2_BINARYNAME="sb2:LocatingNsswitchConf" \
 	sb2-monitor \
 		-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
 		which /etc/nsswitch.conf \
 		>$SBOX_SESSION_DIR/path_to_nsswitch.conf
+	__SB2_BINARYNAME="sb2:LocatingNscdSocket" \
 	sb2-monitor \
 		-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
 		which /var/run/nscd/socket \
@@ -167,6 +170,7 @@ function locate_target_nsswitch_conf()
 function create_argvmods_rules()
 {
 	/bin/mkdir -p $SBOX_SESSION_DIR/argvmods
+	__SB2_BINARYNAME="sb2:CreatingArgvmodsMiscRules" \
 	SBOX_ARGVMODS_SOURCE_FILE="argvenvp_misc.lua" sb2-monitor \
 	    -L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
 	    execluafile \
@@ -175,6 +179,7 @@ function create_argvmods_rules()
 	if [ $? != 0 ]; then
 		exit_error "Failed to create 'argvmods_misc' rules"
 	fi
+	__SB2_BINARYNAME="sb2:CreatingArgvmodsGccRules" \
 	SBOX_ARGVMODS_SOURCE_FILE="argvenvp_gcc.lua" sb2-monitor \
 	    -L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
 	    execluafile \
@@ -195,6 +200,7 @@ function create_argvmods_usr_bin_rules()
 		amm_base=`basename $ammf .lua`
 
 		SBOX_ARGVMODS_USR_BIN_DEFAULT_RULE="$default_rule" \
+		__SB2_BINARYNAME="sb2:CreatingArgvmodsUsrBinRules" \
 		SBOX_SESSION_MODE=$amm_base sb2-monitor \
 			-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
 			execluafile \
@@ -649,6 +655,7 @@ function check_qemu_features()
 	# Use "sb2-show" to find out how qemu should be executed
 	# (qemu might be under tools_root => it might need to
 	# use ld.so and libraries from tools)
+	__SB2_BINARYNAME="sb2:CheckingQemuExec" \
 	sb2-monitor \
 		-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
 		exec-cmdline \
@@ -659,6 +666,7 @@ function check_qemu_features()
 	fi
 
 	# run qemu -h
+	__SB2_BINARYNAME="sb2:CheckingQemuFeatures" \
 	sb2-monitor \
 		-L $SBOX_LIBSB2 -- \
 		`cat $SBOX_SESSION_DIR/qemu_cmdline` -h \
@@ -759,7 +767,7 @@ function check_ld_so_features()
 # Locate shell and set the initial binary name for the mapping engine
 function locate_shell()
 {
-	sb2-monitor \
+	__SB2_BINARYNAME="sb2:TestingBash" sb2-monitor \
 		-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
 		which /bin/bash \
 		>$SBOX_SESSION_DIR/path_to_shell.conf
@@ -769,7 +777,7 @@ function locate_shell()
 		__SB2_BINARYNAME="bash"
 		SHELL=/bin/bash
 	else
-		sb2-monitor \
+		__SB2_BINARYNAME="sb2:LocatingShell" sb2-monitor \
 			-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
 			which /bin/sh \
 			>$SBOX_SESSION_DIR/path_to_shell.conf

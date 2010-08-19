@@ -151,6 +151,7 @@ extern char *sbox_session_perm;
 extern char *sbox_orig_ld_preload;
 extern char *sbox_orig_ld_library_path;
 extern char *sbox_binary_name;
+extern char *sbox_exec_name;
 extern char *sbox_real_binary_name;
 extern char *sbox_orig_binary_name;
 extern char *sbox_active_exec_policy_name;

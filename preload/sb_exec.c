@@ -689,6 +689,7 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 	int	i;
 	char	*new_binaryname_var;
 	char	*new_orig_file_var;
+	char	*new_exec_file_var;
 	int	has_sbox_session_dir = 0;
 	int	has_sbox_session_mode = 0;
 	int     has_sbox_sigtrap = 0;
@@ -757,9 +758,9 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 				"restored to %s", sbox_session_dir);
 	}
 
-	/* allocate new environment. Add 10 extra elements (all may not be
+	/* allocate new environment. Add 11 extra elements (all may not be
 	 * needed always) */
-	my_envp = (char **)calloc(envc + 10, sizeof(char *));
+	my_envp = (char **)calloc(envc + 11, sizeof(char *));
 
 	for (i = 0, p=(char **)envp; *p; p++) {
 		if (strncmp(*p, "__SB2_", strlen("__SB2_")) == 0) {
@@ -877,11 +878,22 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 			"asprintf failed to create __SB2_BINARYNAME");
 	}
 	my_envp[i++] = new_binaryname_var; /* add the new process' name */
+
 	if (asprintf(&new_orig_file_var, "__SB2_ORIG_BINARYNAME=%s", orig_file) < 0) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"asprintf failed to create __SB2_ORIG_BINARYNAME");
 	}
 	my_envp[i++] = new_orig_file_var; /* add the new process' name */
+
+	/* __SB2_EXEC_BINARYNAME is the original filename; for scripts,
+	 * it is the name of script, otherwise it is same as
+	 *  __SB2_ORIG_BINARYNAME
+	*/
+	if (asprintf(&new_exec_file_var, "__SB2_EXEC_BINARYNAME=%s", orig_file) < 0) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"asprintf failed to create __SB2_EXEC_BINARYNAME");
+	}
+	my_envp[i++] = new_exec_file_var; /* add the new process' name */
 
 	/* allocate slot for __SB2_REAL_BINARYNAME that is filled later on */
 	my_envp[i++] = strdup("__SB2_REAL_BINARYNAME=");
@@ -1267,6 +1279,8 @@ int do_exec(int *result_errno_ptr,
 		(new_argv ? new_argv : orig_argv),
 		(new_envp ? new_envp : orig_envp));
 	*result_errno_ptr = errno;
+	SB_LOG(SB_LOGLEVEL_DEBUG,
+		"EXEC failed (%s), errno=%d", orig_file, *result_errno_ptr);
 	return(result);
 }
 

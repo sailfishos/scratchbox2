@@ -465,6 +465,21 @@ int uname_gate(
 	return 0;
 }
 
+void exit_gate(
+	int *result_errno_ptr,
+	void (*real_exit_ptr)(int status),
+	const char *realfnname, int status)
+{
+	(void)result_errno_ptr; /* not used */
+
+	/* NOTE: Following SB_LOG() call is used by the log
+	 *       postprocessor script "sb2-logz". Do not change
+	 *       without making a corresponding change to the script!
+	*/
+	SB_LOG(SB_LOGLEVEL_INFO, "%s: status=%d", realfnname, status);
+	(real_exit_ptr)(status);
+}
+
 void _exit_gate(
 	int *result_errno_ptr,
 	void (*real__exit_ptr)(int status),

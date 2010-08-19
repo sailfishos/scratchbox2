@@ -100,6 +100,7 @@ GATE: int system (const char *line) :
 GATE: FILE *popen(const char *command, const char *type) :
 
 --    These gates just log what happened:
+GATE: void exit(int status)
 GATE: void _exit(int status)
 GATE: void _Exit(int status)
 

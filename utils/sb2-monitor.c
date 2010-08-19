@@ -504,8 +504,8 @@ int main(int argc, char *argv[])
 
 		/* OOPS, exec failed */
 		DEBUG_MSG("Failed to execute %s\n", command_to_exec_at_end);
-		return(1);
+		exit(1);
 	}
-	return(resultcode);
+	exit(resultcode);
 }
 

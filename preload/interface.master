@@ -103,6 +103,14 @@ GATE: FILE *popen(const char *command, const char *type) :
 GATE: void exit(int status)
 GATE: void _exit(int status)
 GATE: void _Exit(int status)
+--	wait() and waitpid() are GATEd also for
+--	logging purposes.
+GATE: pid_t wait(int *status)
+GATE: pid_t waitpid(pid_t pid, int *status, int options)
+--	Note: we'd like to have similar logging-only wrappers for
+--	fork() and vfork(), but because vfork() can not be safely wrapped
+--	at all that is impossible! fork() could be wrapped, but it won't
+--	help much, as many programs still use vfork().
 
 --
 -- 4. Wrappers where the path is not mapped

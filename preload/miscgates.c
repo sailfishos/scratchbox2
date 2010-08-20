@@ -512,3 +512,65 @@ void _Exit_gate(
 }
 //void _Exit_gate() __attribute__ ((noreturn));
 
+static void log_wait_result(const char *realfnname, pid_t pid, int status)
+{
+	if (WIFEXITED(status)) {
+		SB_LOG(SB_LOGLEVEL_INFO, "%s: child %d exit status=%d",
+			realfnname, (int)pid, WEXITSTATUS(status));
+		return;
+	}
+	if (WIFSIGNALED(status)) {
+#ifdef WCOREDUMP
+		SB_LOG(SB_LOGLEVEL_INFO,
+			"%s: child %d terminated by signal %d%s",
+			realfnname, (int)pid, WTERMSIG(status),
+			(WCOREDUMP(status) ? " (core dumped)" : ""));
+#else
+		SB_LOG(SB_LOGLEVEL_INFO,
+			"%s: child %d terminated by signal %d",
+			realfnname, (int)pid, WTERMSIG(status));
+#endif
+		return;
+	}
+	if (WIFSTOPPED(status)) {
+		SB_LOG(SB_LOGLEVEL_INFO, "%s: child %d stopped by signal %d",
+			realfnname, (int)pid, WSTOPSIG(status));
+		return;
+	}
+	if (WIFCONTINUED(status)) {
+		SB_LOG(SB_LOGLEVEL_INFO, "%s: child %d continued",
+			realfnname, (int)pid);
+		return;
+	}
+}
+
+pid_t wait_gate(int *result_errno_ptr,
+	pid_t (*real_wait_ptr)(int *status),
+        const char *realfnname, int *status)
+{
+	pid_t	p;
+	int	wstatus;
+
+	errno = *result_errno_ptr;
+	if (!status) status = &wstatus;
+	p = (*real_wait_ptr)(status);
+	*result_errno_ptr = errno;
+	if(p != -1) log_wait_result(realfnname, p, *status);
+	return(p);
+}
+
+pid_t waitpid_gate(int *result_errno_ptr,
+	pid_t (*real_waitpid_ptr)(pid_t pid, int *status, int options),
+        const char *realfnname, pid_t pid, int *status, int options)
+{
+	pid_t	p;
+	int	wstatus;
+
+	errno = *result_errno_ptr;
+	if (!status) status = &wstatus;
+	p = (*real_waitpid_ptr)(pid, status, options);
+	*result_errno_ptr = errno;
+	if(p > 1) log_wait_result(realfnname, p, *status);
+	return(p);
+}
+

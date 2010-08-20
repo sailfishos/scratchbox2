@@ -115,6 +115,8 @@ int sb_next_execve(const char *file, char *const *argv, char *const *envp)
 #endif
 	}
 
+	SB_LOG(SB_LOGLEVEL_INFO, "EXEC: i_pid=%d file='%s'",
+		sb_log_initial_pid__, file);
 	return next_execve(file, argv, envp);
 }
 

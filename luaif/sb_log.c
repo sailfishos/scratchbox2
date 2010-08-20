@@ -74,6 +74,8 @@ static struct sb_log_state_s {
 /* loglevel needs to be public, it is used from the logging macros */
 int sb_loglevel__ = SB_LOGLEVEL_uninitialized;
 
+int sb_log_initial_pid__ = 0;
+
 /* ===================== private functions ===================== */
 
 /* create a timestamp in format "YYYY-MM-DD HH:MM:SS.sss", where "sss"
@@ -229,6 +231,8 @@ void sblog_init(void)
 				sbox_exec_name : "",
 			sbox_active_exec_policy_name ?
 				sbox_active_exec_policy_name : "");
+
+		sb_log_initial_pid__ = getpid();
 	}
 }
 

@@ -128,6 +128,8 @@ extern void sblog_printf_line_to_logfile(const char *file, int line,
 	int level, const char *format,...);
 
 extern int sb_loglevel__; /* do not access directly */
+extern int sb_log_initial_pid__; /* current PID will be recorded here
+				  * when the logger is initialized */
 
 #define SB_LOG_INITIALIZED() (sb_loglevel__ >= SB_LOGLEVEL_NONE)
 

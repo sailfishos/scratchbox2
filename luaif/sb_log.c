@@ -114,12 +114,16 @@ static void write_to_logfile(const char *msg, int msglen)
 		if (*sb_log_state.sbl_logfile == '-' &&
 		    sb_log_state.sbl_logfile[1] == '\0') {
 			/* log to stdout. */
-			(void)write(1, msg, msglen);
+			int r; /* needed to get around some unnecessary warnings from gcc*/
+			r = write(1, msg, msglen);
+			(void)r;
 		} else if ((logfd = open_nomap_nolog(sb_log_state.sbl_logfile,
 					O_APPEND | O_RDWR | O_CREAT,
 					S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP
 					| S_IROTH | S_IWOTH)) > 0) {
-			(void)write(logfd, msg, msglen);
+			int r; /* needed to get around some unnecessary warnings from gcc*/
+			r = write(logfd, msg, msglen);
+			(void)r;
 			close_nomap_nolog(logfd);
 		}
 	}

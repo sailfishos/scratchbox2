@@ -220,6 +220,11 @@ local pwd_chain = {
 	},
 }
 
+-- do not try to remap files from this table at all
+override_nomap = {
+	os.getenv("SSH_AUTH_SOCK"),
+}
+
 export_chains = {
 	dpkg_chain,
 	pwd_chain,

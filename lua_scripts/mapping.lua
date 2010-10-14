@@ -110,6 +110,33 @@ function get_active_exec_policy()
 	return active_exec_policy_ptr
 end
 
+-- Override mapping rules from override_nomap table
+--  Each entry from table override_nomap should specify path that shouldn't be remapped
+--  Entries from this table will be searched before all other rules
+function override_export_chains()
+	if (not override_nomap) then
+		return export_chains
+	end
+
+	override_chain = {
+		next_chain = export_chains[1],
+		binary = nil,
+		rules = { },
+	}
+
+	for i, key in pairs(override_nomap) do
+		if (key) then
+			table.insert(override_chain.rules, {path = key, use_orig_path = true})
+		end
+	end
+
+	local new_chain = { override_chain, }
+	for i, key in pairs(export_chains) do
+		table.insert(new_chain, key)
+	end
+	return new_chain
+end
+
 -- Load mode-specific rules.
 -- A mode file must define three variables:
 --  1. rule_file_interface_version (string) is checked and must match,
@@ -188,6 +215,7 @@ function load_and_check_rules()
 	local current_rule_interface_version = "25"
 
 	do_file(rule_file_path)
+	export_chains = override_export_chains()
 
 	-- fail and die if interface version is incorrect
 	if (rule_file_interface_version == nil) or 

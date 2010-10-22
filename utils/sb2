@@ -284,10 +284,11 @@ function load_configuration()
 		. $HOME/.scratchbox2/$TARGET/sb2.config.d/gcc.config.sh
 	fi
 	# attempt to make SBOX_CPUTRANSPARENCY_METHOD path absolute
+	# and remove symlinks from it
 	if [ -n "$SBOX_CPUTRANSPARENCY_METHOD" ]; then
 		_cputransp=$(which $SBOX_CPUTRANSPARENCY_METHOD)
 		if [ -e $_cputransp ]; then
-			SBOX_CPUTRANSPARENCY_METHOD=$_cputransp
+			SBOX_CPUTRANSPARENCY_METHOD=$(realpath $_cputransp)
 		fi
 	fi
 

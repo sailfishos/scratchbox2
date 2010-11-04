@@ -287,7 +287,11 @@ function load_configuration()
 	# and remove symlinks from it
 	if [ -n "$SBOX_CPUTRANSPARENCY_METHOD" ]; then
 		_cputransp=$(which $SBOX_CPUTRANSPARENCY_METHOD)
-		if [ -e $_cputransp ]; then
+		if [ -z "$_cputransp" ]; then
+			echo "Fatal: CPU transparency method not found ($SBOX_CPUTRANSPARENCY_METHOD)"
+			exit 1
+		fi
+		if [ -e "$_cputransp" ]; then
 			SBOX_CPUTRANSPARENCY_METHOD=$(realpath $_cputransp)
 		fi
 	fi

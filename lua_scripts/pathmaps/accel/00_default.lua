@@ -235,6 +235,11 @@ test_first_usr_bin_default_is_bin__replace = {
 	{ replace_by = target_root.."/bin", readonly = true }
 }
 
+test_first_tools_default_is_orig_path = {
+	{ if_exists_then_map_to = tools, readonly = true },
+	{ use_orig_path = true, readonly = true},
+}
+
 test_usr_share_aclocal__replace = {
 	{ if_exists_then_replace_by = target_root.."/usr/share/aclocal", readonly = true },
 	{ if_exists_then_replace_by = tools.."/usr/share/aclocal", readonly = true },
@@ -383,7 +388,7 @@ devel_mode_rules_usr_bin = {
 		-- tools that need special processing:
 
 		{prefix = "/usr/bin/host-",
-		 use_orig_path = true, readonly = true},
+		 actions = test_first_tools_default_is_orig_path},
 
 		-- "localedef" *must* be used from the target, the version
 		-- which exists in tools_root appers to work but doesn't..

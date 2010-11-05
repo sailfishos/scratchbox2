@@ -63,11 +63,7 @@ case "$sb2rc_mode" in
 		#
 		SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST=" \
 			@ignore: \
-			/usr/bin/pygettext /usr/bin/pyversions \
-			/usr/bin/pydoc /usr/bin/pdb \
-			@require-both: \
 			/usr/bin /usr/sbin /sbin /bin \
-			@ignore: \
 			/usr/lib/perl /usr/share/perl \
 			/usr/lib/python /usr/share/python /usr/share/pygobject \
 			/etc \
@@ -82,6 +78,7 @@ case "$sb2rc_mode" in
 			/usr/share/perl5 \
 			/usr/share/gconf \
 			/usr/share/base-passwd \
+			/usr/share/qt4/bin \
 			/usr/share/lintian/overrides/dpkg-dev \
 			/usr/share/zoneinfo/localtime \
 			/usr/share/aclocal/glib-2.0.m4 \

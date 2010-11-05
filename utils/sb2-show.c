@@ -278,6 +278,25 @@ static int compar_strvec_elems(const void *e1, const void *e2)
 	return(strcmp(*s1,*s2));
 }
 
+/* print arg, quote it if empty or contains whitespace */
+static void q_print_arg(const char *prefix, const char *arg)
+{
+	int q = 0;
+
+	if (!arg) arg = "";
+	if (!*arg) {
+		q = 1;
+	} else if (strchr(arg, ' ') || strchr(arg, '\t') || strchr(arg,'\n')) {
+		q = 1;
+	}
+
+	if(q) {
+		printf("%s'%s'", prefix, arg);
+	} else {
+		printf("%s%s", prefix, arg);
+	}
+}
+
 static int diff_strvecs(char **orig_vec, char **new_vec,
 	int verbose, int singleline)
 {
@@ -324,7 +343,7 @@ static int diff_strvecs(char **orig_vec, char **new_vec,
 				continue;
 			}
 			if (singleline) {
-				printf("%s%s", sp, *np);
+				q_print_arg(sp, *np);
 				sp = " ";
 			} else {
 				printf("%15s: %s\n", "added", *np);
@@ -343,7 +362,7 @@ static int diff_strvecs(char **orig_vec, char **new_vec,
 		if (!singleline) {
 			printf("%15s: %s\n", "Added", *np);
 		} else {
-			printf("%s%s", sp, *np);
+			q_print_arg(sp, *np);
 			sp = " ";
 		}
 		num_diffs++;
@@ -422,7 +441,7 @@ static void print_exec_cmdline(void *priv,
 	printf("%s", mapped_path);
 
 	for (i = 1; new_argv[i]; i++) {
-		printf(" %s", new_argv[i]);
+		q_print_arg(" ", new_argv[i]);
 	}
 	printf("\n");
 }

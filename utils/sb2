@@ -704,6 +704,12 @@ function check_qemu_features()
 			else
 				qemu_env="$qemu_env,'$qemuarg'"
 			fi ;;
+		[\'\"]*[\'\"])
+			if [ -z "$qemu_argv" ]; then
+				qemu_argv="$qemuarg"
+			else
+				qemu_argv="$qemu_argv,$qemuarg"
+			fi ;;
 		*)
 			if [ -z "$qemu_argv" ]; then
 				qemu_argv="'$qemuarg'"

@@ -39,14 +39,26 @@
  * was modified by the real function) to callers buffer.
 */
 static void postprocess_tempname_template(const char *realfnname,
-	char *mapped__template, char *template)
+	char *mapped__template, char *template, int suffixlen)
 {
 	char *X_ptr;
 	int mapped_len = strlen(mapped__template);
+	int template_len = strlen(template);
 	int num_x = 0;
 
-	X_ptr = strrchr(template, 'X'); /* point to last 'X' */
-	if (!X_ptr) {
+	if (suffixlen >= template_len) {
+		SB_LOG(SB_LOGLEVEL_WARNING,
+			"%s: template length too long %d >= %d, ignoring",
+			realfnname, suffixlen, template_len);
+		return;
+	}
+
+	/* find X, working backwards along the template from the suffix */
+	X_ptr = template + template_len - suffixlen;
+	while (*X_ptr != 'X' && X_ptr > template)
+		X_ptr --;
+
+	if (*X_ptr != 'X') {
 		SB_LOG(SB_LOGLEVEL_WARNING,
 			"%s: orig.template did not contain X (%s,%s), won't "
 			"do anything", realfnname, template, mapped__template);
@@ -54,16 +66,18 @@ static void postprocess_tempname_template(const char *realfnname,
 	}
 
 	/* the last 'X' should be the last character in the template: */
-	if (X_ptr[1] != '\0') {
+	if (X_ptr[suffixlen + 1] != '\0') {
 		SB_LOG(SB_LOGLEVEL_WARNING,
 			"%s: unknown orig.template format (%s,%s), "
-			"won't do anything", 
+			"won't do anything",
 			realfnname, template, mapped__template);
 		return;
 	}
 
+	num_x = 1;
 	while ((X_ptr > template) && (X_ptr[-1] == 'X')) {
 		X_ptr--;
+		num_x ++;
 	}
 
 	/* now "X_ptr" points to the first 'X' to be modified.
@@ -71,9 +85,8 @@ static void postprocess_tempname_template(const char *realfnname,
 	 * However, some systems seem to allow varying number of X characters
 	 * (see the manual pages)
 	*/
-	num_x = strlen(X_ptr);
 
-	if(mapped_len < num_x) {
+	if (mapped_len < num_x) {
 		SB_LOG(SB_LOGLEVEL_WARNING,
 			"%s: mapped.template is too short (%s,%s), won't "
 			"do anything", realfnname, template, mapped__template);
@@ -81,7 +94,7 @@ static void postprocess_tempname_template(const char *realfnname,
 	}
 
 	/* now copy last characters from mapping result to caller's buffer*/
-	strncpy(X_ptr, mapped__template + (mapped_len-num_x), num_x);
+	memcpy(X_ptr, mapped__template + (mapped_len-num_x-suffixlen), num_x);
 
 	SB_LOG(SB_LOGLEVEL_DEBUG,
 		"%s: template set to (%s)", realfnname, template);
@@ -91,29 +104,44 @@ void mkstemp_postprocess_template(const char *realfnname,
 	int ret, mapping_results_t *res, char *template)
 {
 	(void)ret;
-	postprocess_tempname_template(realfnname, res->mres_result_path, template);
+	postprocess_tempname_template(realfnname, res->mres_result_path, template, 0);
 }
 
 void mkstemp64_postprocess_template(const char *realfnname,
 	int ret, mapping_results_t *res, char *template)
 {
 	(void)ret;
-	postprocess_tempname_template(realfnname, res->mres_result_path, template);
+	postprocess_tempname_template(realfnname, res->mres_result_path, template, 0);
 }
 
 void mkdtemp_postprocess_template(const char *realfnname,
 	char *ret, mapping_results_t *res, char *template)
 {
 	(void)ret;
-	postprocess_tempname_template(realfnname, res->mres_result_path, template);
+	postprocess_tempname_template(realfnname, res->mres_result_path, template, 0);
 }
 
 void mktemp_postprocess_template(const char *realfnname,
 	char *ret, mapping_results_t *res, char *template)
 {
 	(void)ret;
-	postprocess_tempname_template(realfnname, res->mres_result_path, template);
+	postprocess_tempname_template(realfnname, res->mres_result_path, template, 0);
 }
+
+void mkstemps_postprocess_template(const char *realfnname,
+	int ret, mapping_results_t *res, char *template, int suffixlen)
+{
+	(void)ret;
+	postprocess_tempname_template(realfnname, res->mres_result_path, template, suffixlen);
+}
+
+void mkstemps64_postprocess_template(const char *realfnname,
+	int ret, mapping_results_t *res, char *template, int suffixlen)
+{
+	(void)ret;
+	postprocess_tempname_template(realfnname, res->mres_result_path, template, suffixlen);
+}
+
 
 /* the real tmpnam() can not be used at all, because the generated name must
  * be mapped before the name can be tested and that won't happen inside libc.

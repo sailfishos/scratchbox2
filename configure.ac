@@ -121,7 +121,9 @@ mknodat \
 mkfifo \
 mkfifoat \
 mkstemp \
+mkstemps \
 mkstemp64 \
+mkstemps64 \
 mktemp \
 nftw \
 nftw64 \

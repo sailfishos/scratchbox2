@@ -198,7 +198,8 @@ fi
 #		and gcc configuration sets SBOX_GCC_TARGET even if 
 #		-A option was given to sb2-init
 # version "18" added cross_gcc_progs_path to gcc configuration
-if [ ! -f $SBOX_CONFIG_DIR/config-stamp.18 ]; then
+# version "19": changed detection of -Wno-poison-system-directories (gcc config)
+if [ ! -f $SBOX_CONFIG_DIR/config-stamp.19 ]; then
 	update_toolchain_configs $SB2INIT_COMPILERS
 
 	# DANGER: this will read in the complete old sb2.config file => must
@@ -211,6 +212,6 @@ if [ ! -f $SBOX_CONFIG_DIR/config-stamp.18 ]; then
 	update_debian_config
 fi
 
-log_config_action "Config updated to version #18"
-touch $SBOX_CONFIG_DIR/config-stamp.18
+log_config_action "Config updated to version #19"
+touch $SBOX_CONFIG_DIR/config-stamp.19
 

@@ -222,6 +222,10 @@ void sblog_init(void)
 		}
 
 		/* initialized, write a mark to logfile. */
+		/* NOTE: Following SB_LOG() call is used by the log
+		 *       postprocessor script "sb2logz". Do not change
+		 *       without making a corresponding change to the script!
+		*/
 		SB_LOG(SB_LOGLEVEL_INFO,
 			 "---------- Starting (" SCRATCHBOX2_VERSION ")"
 			" [" __DATE__ " " __TIME__ "] "

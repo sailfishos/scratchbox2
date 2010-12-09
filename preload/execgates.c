@@ -115,6 +115,10 @@ int sb_next_execve(const char *file, char *const *argv, char *const *envp)
 #endif
 	}
 
+	/* NOTE: Following SB_LOG() call is used by the log
+	 *       postprocessor script "sb2logz". Do not change
+	 *       without making a corresponding change to the script!
+	*/
 	SB_LOG(SB_LOGLEVEL_INFO, "EXEC: i_pid=%d file='%s'",
 		sb_log_initial_pid__, file);
 	return next_execve(file, argv, envp);

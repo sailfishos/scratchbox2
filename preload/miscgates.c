@@ -514,6 +514,10 @@ void _Exit_gate(
 
 static void log_wait_result(const char *realfnname, pid_t pid, int status)
 {
+	/* NOTE: Following SB_LOG() calls are used by the log
+	 *       postprocessor script "sb2logz". Do not change
+	 *       without making a corresponding changes to the script!
+	*/
 	if (WIFEXITED(status)) {
 		SB_LOG(SB_LOGLEVEL_INFO, "%s: child %d exit status=%d",
 			realfnname, (int)pid, WEXITSTATUS(status));

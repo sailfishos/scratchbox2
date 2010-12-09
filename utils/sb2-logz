@@ -33,6 +33,12 @@ sub usage {
 		"\t-r\tprint reversed mappings (dest->src)\n".
 		"\t-s\tprint process statistics\n".
 		"\t-v\tverbose mode, prints dots while reading input etc.\n".
+		"\t-P file.dot\twrite process diagram to file.dot (postprocess\n".
+		"\t\t\t it with 'dot', e.g. 'dot -Tpdf file.dot >file.pdf'\n".
+		"\t-E file.dot\twrite execution diagram to file.dot (postprocess\n".
+		"\t\t\t it with 'dot', e.g. 'dot -Tpdf file.dot >file.pdf'\n".
+		"\t-A acct-file\tRead process accounting information from acct-file\n".
+		"\t\t\t (enhances output of -P and -E)'\n".
 		"";
 }
 
@@ -41,8 +47,8 @@ sub usage {
 # Options:
 #
 our($opt_d,$opt_v,$opt_m,$opt_p,$opt_l,$opt_b,$opt_B,$opt_r,
-    $opt_s,$opt_i,$opt_h,$opt_N);
-if (!getopts("bB:d:hilmNprsv")) {
+    $opt_s,$opt_i,$opt_h,$opt_N,$opt_P,$opt_E,$opt_A);
+if (!getopts("A:bB:d:hilmNprsvP:E:")) {
 	usage();
 	exit(1);
 }
@@ -62,6 +68,9 @@ my $no_blacklist = $opt_b;
 my $user_blacklist = $opt_B;
 my $print_process_statistics = $opt_s;
 my $print_notices = $opt_N;
+my $process_diagram_file = $opt_P;
+my $exec_diagram_file = $opt_E;
+my $acct_file = $opt_A;
 
 #============================================
 # 
@@ -94,6 +103,10 @@ if($user_blacklist) {
 # Global variables
 
 my %all_processes;	# Indexed by processname[pid]
+my @all_processes_array;
+my %all_processes_by_pid;	# Indexed by pid
+my %active_processes;	# Indexed by pid
+
 my %argv0_counters;	# Indexed by processname, counts processes with the
 			# same argv[0]
 
@@ -119,7 +132,13 @@ my @errors;		# collect error messages to this array..
 my @warnings;		# ..and warnings here
 my @notices;		# ..and notices here
 
-my %failed_process;	# processes with non-zero exit status
+#####my %failed_process;	# processes with non-zero exit status
+
+my $first_process = undef;
+
+my @i_pid;
+
+my %programs;
 
 #============================================
 
@@ -238,6 +257,541 @@ sub print_all_paths {
 	}
 }
 
+# returns (name,pid,tid)
+sub split_name_and_pid {
+	my $process_name_and_pid = shift;
+	
+	my $procname = $process_name_and_pid;
+	my $pid = undef;
+	my $tid = 0;
+	if($process_name_and_pid =~ m/^(.*)\[([0-9]+)\]$/) {
+		$procname = $1;
+		$pid = $2;
+	} elsif($process_name_and_pid =~ m/^(.*)\[([0-9]+)\/([0-9]+)\]$/) {
+		$procname = $1;
+		$pid = $2;
+		$tid = $3;
+	}
+	return($procname,$pid,$tid);
+}
+
+my $program_num = 0;
+
+sub process_started {
+	my $process_name_and_pid = shift;
+	my $timestamp = shift;
+	my $version = shift;
+	my $build_time = shift;
+	my $ppid = shift;
+	my $exec_binary_name = shift;
+	my $exec_policy_name = shift;
+
+	my $procname;
+	my $pid;
+	my $tid;
+	($procname,$pid,$tid) = split_name_and_pid($process_name_and_pid);
+
+	if(!defined $first_process) {
+		# the very first real process is still unknown..
+		if($procname =~ m/^sb2:[A-Z][a-zA-Z0-9]*$/) {
+			# This is one of sb2's internal, initialization-phase
+			# processes. Forget it.
+			return;
+		}
+	}
+
+	my $program_id = "$exec_policy_name\t$exec_binary_name";
+	my $r_prog = undef;
+	if($program_id ne "\t") {
+		$r_prog = $programs{$program_id};
+		if(!defined($r_prog)) {
+			$r_prog = {
+				'label' => "P$program_num",
+				'exec_policy' => $exec_policy_name,
+				'exec_binary' => $exec_binary_name,
+				'executed' => {},
+				'instances' => 1,
+
+				'time_elapsed' => 0,
+				'time_user' => 0,
+				'time_sys' => 0,
+			};
+			$program_num++;
+			$programs{$program_id} = $r_prog;
+		} else {
+			$r_prog->{'instances'} += 1;
+		}
+	}
+
+	if(defined($pid)) {
+		my $r_proc = $active_processes{$pid};
+		my $r_parent = undef;
+
+		if(!defined($r_proc)) {
+			# found a new active process.
+			$r_proc = $active_processes{$pid} = {
+				'label' => "L".$pid,
+				'program_id' => $program_id,
+				'program_ref' => $r_prog,
+				'pid' => $pid,
+				'ppid' => $ppid,
+				'name' => $procname,
+				'exec_policy' => $exec_policy_name,
+				'exec_binary' => $exec_binary_name,
+				'parent' => undef,
+				'children' => [],
+				'adopted_children' => [],
+				'prev_names' => [],
+				'prev_exec_policies' => [],
+				'start_times' => [$timestamp],
+				'exit_status' => undef,
+
+				'time_elapsed' => undef,
+				'time_user' => undef,
+				'time_sys' => undef,
+			};
+			$r_parent = $all_processes_by_pid{$ppid};
+			if (defined($r_parent)) {
+				$r_proc->{'parent'} = $r_parent;
+				push(@{$r_parent->{'children'}},$r_proc);
+			} else {
+				# Oops. Unknown parent. Try if the i_pid
+				# translation helps:
+				$r_parent = $all_processes_by_pid{$i_pid[$pid]};
+				if (defined $r_parent) {
+					# found a grandparent.
+					$r_proc->{'parent'} = $r_parent;
+					push(@{$r_parent->{'adopted_children'}},$r_proc);
+				}
+			}
+			push(@all_processes_array, $r_proc);
+			# if pid is reused, $all_processes_by_pid{$pid}
+			# will be overwritten.
+			$all_processes_by_pid{$pid} = $r_proc;
+
+			if(!defined $first_process) {
+				$first_process = $r_proc;
+			}
+		} else {
+			# An old pid; probably the process exec'd 
+			# another executable.
+
+			#FIXME: check ppid
+			#FIXME: Write previous names.
+			push(@{$r_proc->{'prev_names'}}, $r_proc->{'name'});
+			push(@{$r_proc->{'prev_exec_policies'}}, $r_proc->{'exec_policy'});
+			push(@{$r_proc->{'start_times'}}, $timestamp);
+			$r_proc->{'name'} = $procname;
+			$r_proc->{'exec_policy'} = $exec_policy_name;
+			$r_parent = $r_proc->{'parent'};
+
+			if($r_proc->{'program_id'} eq "\t") {
+				# the very first shell process, we'll have
+				# to fix this..
+				$r_proc->{'program_ref'} = $r_prog;
+				$r_proc->{'program_id'} = $program_id;
+			}
+		}
+		if (defined($r_parent)) {
+			my $parent_prog = $r_parent->{'program_ref'};
+			my $ep = $parent_prog->{'executed'};
+			$ep->{$program_id} = 1;
+		}
+	}
+
+# FIXME: OLD CODE:
+	if(defined($all_processes{$process_name_and_pid})) {
+		# just increment number of lines from that process
+		$all_processes{$process_name_and_pid}++;
+	} else {
+		# found a new process!
+		# first set number of log lines from that process to 1:
+		$all_processes{$process_name_and_pid} = 1;
+		# and next count that there was yet another instance
+		# of $procname:
+		$argv0_counters{$procname}++;
+	}
+}
+
+sub process_exited {
+	my $pid = shift;
+	my $process_exit_status = shift;
+
+#####	if($process_exit_status != 0) {
+#####		$failed_process{$process_name_and_pid} = $process_exit_status;
+#####	}
+#####print "EXIT: $pid $process_exit_status\n";
+	if(defined($pid)) {
+		my $r_proc = $active_processes{$pid};
+		if(defined $r_proc) {
+			$r_proc->{'exit_status'} = $process_exit_status;
+			delete($active_processes{$pid});
+		}
+	}
+}
+
+my $max_elapsed = 0;
+my $total_user = 0;
+my $total_sys = 0;
+
+sub read_acct_file {
+	return if(!defined $acct_file);
+
+	open(ACCTFILE, "<$acct_file") || die "Failed to open $acct_file\n";
+
+	my $ticks = `getconf CLK_TCK`;
+	if ($ticks < 1) {
+		$ticks = 1;
+	}
+
+	while(!eof(ACCTFILE)) {
+		my $buffer;
+
+		read(ACCTFILE, $buffer, 64);
+
+		my @acctdata = unpack("CCSIIIIIIfSSSSSSSSA16", $buffer);
+		if ($acctdata[1] != 3) {
+			die "acct record version != 3";
+		}
+
+		my $a_pid = $acctdata[6];
+		my $a_ppid = $acctdata[7];
+
+		my $r_proc = $all_processes_by_pid{$a_pid};
+		if (defined($r_proc) && ($r_proc->{'ppid'} == $a_ppid)) {
+			printf "Found process $a_pid: etime=%f utime=%d stime=%d\n",
+				$acctdata[9],$acctdata[10],$acctdata[11];
+			my $time_elapsed = $acctdata[9] / $ticks;
+			my $time_user = $acctdata[10] / $ticks;
+			my $time_sys = $acctdata[11] / $ticks;
+
+			$r_proc->{'time_elapsed'} = $time_elapsed;
+			$r_proc->{'time_user'} = $time_user;
+			$r_proc->{'time_sys'} = $time_sys;
+
+			my $r_prog = $r_proc->{'program_ref'};
+			$r_prog->{'time_elapsed'} += $time_elapsed;
+			$r_prog->{'time_user'} += $time_user;
+			$r_prog->{'time_sys'} += $time_sys;
+
+			if ($max_elapsed < $time_elapsed) {
+				$max_elapsed = $time_elapsed;
+			}
+			$total_user += $time_user;
+			$total_sys += $time_sys;
+		}
+	}
+	close ACCTFILE;
+}
+
+# summary in the dot-files:
+my $summary_table_begin = " [shape=octagon,margin=0,".
+	"label=<<table border=\"0\" cellborder=\"0\"".
+	" cellspacing=\"0\">\n";
+my $summary_table_end = "</table>>];\n";
+
+# process/program element in the dot-files:
+my $pr_element_table_begin = " [shape=none,margin=0,".
+	"label=<<table border=\"0\" cellborder=\"1\"".
+	" cellspacing=\"0\">\n";
+my $pr_element_table_end = "</table>>];\n";
+
+sub select_exec_policy_colors {
+	my $exec_policy = shift;
+
+	my $ep_color_begin = "";
+	my $ep_color_end = "";
+
+	if ($exec_policy =~ m/^Target/) {
+		$ep_color_begin = "<font color=\"darkgreen\">";
+		$ep_color_end = "</font>";
+	} elsif($exec_policy =~ m/^Tools/) {
+		$ep_color_begin = "<font color=\"blue\">";
+		$ep_color_end = "</font>";
+	}
+	return($ep_color_begin,$ep_color_end);
+}
+
+sub write_process_data {
+	my $rp = shift;
+
+	my $label = $rp->{'label'};
+	my $ep_color_begin;
+	my $ep_color_end;
+	($ep_color_begin,$ep_color_end) =
+		 select_exec_policy_colors($rp->{'exec_policy'});
+
+	my $exit_status = $rp->{'exit_status'};
+	my $exit_text = undef;
+	my $exit_color_begin;
+	my $exit_color_end;
+	if(defined $exit_status) {
+		if($exit_status eq '0') {
+			# normal exit.
+		} elsif($exit_status =~ m/^\d+$/) {
+			# numeric
+			$exit_text .= " exit($exit_status)";
+			$exit_color_begin = "<font color=\"red\">";
+			$exit_color_end = "</font>";
+		} else {
+			$exit_text .= " $exit_status";
+			$exit_color_begin = "<font color=\"red\">";
+			$exit_color_end = "</font>";
+		}
+	} else {
+		$exit_text .= " NO EXIT STATUS";
+		$exit_color_begin = "<font color=\"red\">";
+		$exit_color_end = "</font>";
+	}
+	my $r_prev_names = $rp->{'prev_names'};
+	my $pnames = join('<br/>', @{$r_prev_names});
+	my $pexecpols = "";
+	if ($pnames ne '') {
+		$pnames .= '<br/>';
+		my $r_pep = $rp->{'prev_exec_policies'};
+		$pexecpols = join('<br/>', @{$r_pep}).'<br/>';
+		# (previous exec policies are not colored, only
+		# the final policy gets it)
+	}
+	print PDIAG "\t".$label." ".$pr_element_table_begin.
+		"<tr>".
+		   "<td colspan=\"2\"";
+	if (defined($rp->{'cell_color'})) {
+		printf PDIAG " bgcolor=\"%s\"", $rp->{'cell_color'};
+	}
+	printf PDIAG ">".
+		   $pnames.
+		   $rp->{'name'}.
+		   "</td>\n".
+		"</tr>\n".
+		"<tr>".
+		   "<td>pid=".$rp->{'pid'}."</td>\n".
+		   "<td>$pexecpols$ep_color_begin".$rp->{'exec_policy'}."$ep_color_end</td>\n".
+		"</tr>\n";
+	if(defined($exit_text)) {
+		print PDIAG
+		"<tr>".
+		   "<td colspan=\"2\">$exit_color_begin".$exit_text."$exit_color_end</td>\n".
+		"</tr>\n";
+	}
+	if(defined($rp->{'time_elapsed'})) {
+		printf PDIAG
+		"<tr>".
+		   "<td colspan=\"2\">real = %5.2f".
+		      "<br/>user %5.2f + sys %5.2f = %5.2f</td>\n".
+		"</tr>\n",
+		   $rp->{'time_elapsed'},
+		   $rp->{'time_user'},
+		   $rp->{'time_sys'},
+		   $rp->{'time_user'} + $rp->{'time_sys'};
+	}
+	print PDIAG $pr_element_table_end;
+}
+
+my $toploadcolor = "red";
+my $highloadcolor = "sandybrown";
+my $mediumloadcolor = "wheat";
+
+sub write_process_diagram {
+	if(defined $acct_file) {
+		# Add color to the most time consuming processes:
+		# first sort them:
+		my @processes_sorted_by_time = sort {
+			my $t_a = $a->{'time_user'} + $a->{'time_sys'};
+			my $t_b = $b->{'time_user'} + $b->{'time_sys'};
+			$t_b <=> $t_a; # biggest time first in the results
+		} @all_processes_array;
+
+		my $num_processes = @processes_sorted_by_time;
+		my $top_load_limit = 3;
+		my $high_load_limit = 15;
+		my $medium_load_limit = 30;
+		my $print_limit = $num_processes < $medium_load_limit ?
+			 $num_processes : $medium_load_limit;
+
+		# add color attributes:
+		my $i;
+		for ($i=0; $i < $print_limit; $i++) {
+			my $rp = $processes_sorted_by_time[$i];
+printf "PID=%d u=%5.2f s=%5.2f\n", 
+	$rp->{'pid'}, $rp->{'time_user'}, $rp->{'time_sys'};
+			if ($i <= $top_load_limit) {
+				$rp->{'cell_color'} = $toploadcolor;
+			} elsif ($i <= $high_load_limit) {
+				$rp->{'cell_color'} = $highloadcolor;
+			} elsif ($i <= $medium_load_limit) {
+				$rp->{'cell_color'} = $mediumloadcolor;
+			}
+			$rp->{'show_this'} = 1;
+
+			# make sure that parent and grandparents will be
+			# visible
+			my $r_parent = $rp->{'parent'};
+			while (defined($r_parent)) {
+				$r_parent->{'show_this'} = 1;
+				$r_parent = $r_parent->{'parent'};
+			}
+		}
+	}
+
+	open(PDIAG, ">$process_diagram_file");
+	print PDIAG "digraph processes {\n".
+		"\trankdir=LR;\n";
+	my $rp;
+	foreach $rp (@all_processes_array) {
+		if (!defined $acct_file || $rp->{'show_this'}) {
+			write_process_data($rp);
+
+			my $label = $rp->{'label'};
+			my $invisible_children = 0;
+			my $cp;
+			foreach $cp (@{$rp->{'children'}}) {
+				if (!defined $acct_file || $cp->{'show_this'}) {
+				
+					print PDIAG "\t".$label." -> ".$cp->{'label'}.";\n";
+				} else {
+					$invisible_children++;
+				}
+			}
+			foreach $cp (@{$rp->{'adopted_children'}}) {
+				if (!defined $acct_file || $cp->{'show_this'}) {
+					print PDIAG "\t".$label." -> ".$cp->{'label'}.
+						" [style=dashed];\n";
+				} else {
+					$invisible_children++;
+				}
+			}
+			if ($invisible_children > 0) {
+				print PDIAG "\t".$label." -> ".$label."ic;\n";
+				my $iclbl;
+				if ($invisible_children == 1) {
+					$iclbl = "one child process";
+				} else {
+					$iclbl = "$invisible_children child processes";
+				}
+				print PDIAG "\t".$label."ic [shape=ellipse,".
+					"label=\"$iclbl\"];\n";
+			}
+		}
+	}
+	print PDIAG "}\n";
+	close(PDIAG);
+}
+
+sub write_exec_diagram {
+	open(EDIAG, ">$exec_diagram_file");
+	printf EDIAG "digraph programs {\n".
+		"\trankdir=LR;\n".
+		"summary ".$summary_table_begin.
+			"<tr>".
+			   "<td>Totals:".
+				"<br/>real = %5.2f".
+				"<br/>user = %5.2f<br/>sys = %5.2f\n".
+				"<br/>user + sys = %5.2f</td>\n".
+			"</tr>\n",
+			$max_elapsed,
+			$total_user,
+			$total_sys,
+			$total_user + $total_sys;
+	if(defined $acct_file) {
+		printf EDIAG
+			"<tr>\n".
+			  "<td bgcolor=\"$toploadcolor\">Load = top 3%</td>\n".
+			"</tr>\n".
+			"<tr>\n".
+			  "<td bgcolor=\"$highloadcolor\">Load = high (10%)</td>\n".
+			"</tr>\n".
+			"<tr>\n".
+			  "<td bgcolor=\"$mediumloadcolor\">Load = medium (20%)</td>\n".
+			"</tr>\n";
+	}
+	printf EDIAG $summary_table_end;
+
+	my @all_program_keys = keys(%programs);
+	if(defined $acct_file) {
+		# Add color to the most time consuming programs:
+		# first sort them:
+		my @programs_sorted_by_time = sort {
+			my $r_a = $programs{$a};
+			my $r_b = $programs{$b};
+			my $t_a = $r_a->{'time_user'} + $r_a->{'time_sys'};
+			my $t_b = $r_b->{'time_user'} + $r_b->{'time_sys'};
+			$t_b <=> $t_a; # biggest time first in the result array
+		} @all_program_keys;
+
+		my $num_programs = @programs_sorted_by_time;
+		my $top_load_limit = $num_programs * .03; # 3%
+		my $high_load_limit = $num_programs * .10; # 10%
+		my $medium_load_limit = $num_programs * .20; # 20%
+
+		# add color attributes:
+		my $i;
+		for ($i=0; $i < $num_programs; $i++) {
+			my $pkey = $programs_sorted_by_time[$i];
+			my $rp = $programs{$pkey};
+	printf "u=%5.2f s=%5.2f %s\n", $rp->{'time_user'}, $rp->{'time_sys'}, $pkey;
+			if ($i <= $top_load_limit) {
+				$rp->{'cell_color'} = $toploadcolor;
+			} elsif ($i <= $high_load_limit) {
+				$rp->{'cell_color'} = $highloadcolor;
+			} elsif ($i <= $medium_load_limit) {
+				$rp->{'cell_color'} = $mediumloadcolor;
+			}
+		}
+	}
+
+	my $pkey;
+	foreach $pkey (@all_program_keys) {
+		my $rp = $programs{$pkey};
+
+		my $label = $rp->{'label'};
+		my $ep_color_begin;
+		my $ep_color_end;
+		($ep_color_begin,$ep_color_end) =
+			 select_exec_policy_colors($rp->{'exec_policy'});
+
+		print EDIAG "\t".$label." ".$pr_element_table_begin.
+			"<tr>\n<td ";
+		if (defined($rp->{'cell_color'})) {
+			printf EDIAG "bgcolor=\"%s\" ", $rp->{'cell_color'};
+		}
+		print EDIAG
+			   "colspan=\"2\">".$rp->{'exec_binary'}."</td>\n".
+			"</tr>\n".
+			"<tr>".
+			   "<td>n=".$rp->{'instances'}."</td>\n".
+			   "<td>$ep_color_begin".$rp->{'exec_policy'}."$ep_color_end</td>\n".
+			"</tr>\n";
+		
+		if(defined $acct_file) {
+			my $tu = $rp->{'time_user'};
+			my $ts = $rp->{'time_sys'};
+
+			printf EDIAG
+			"<tr>".
+			   "<td colspan=\"2\">real = %5.2f".
+			      "<br/>user %5.2f + sys %5.2f<br/>\n".
+			      " = %5.2f (%2.2f%%)</td>\n".
+			"</tr>\n",
+			   $rp->{'time_elapsed'},
+			   $tu,
+			   $ts,
+			   $tu + $ts,
+			   (($tu + $ts) * 100) / ($total_user + $total_sys);
+		}
+		printf EDIAG
+			$pr_element_table_end;
+		my $cp;
+		foreach $cp (keys(%{$rp->{'executed'}})) {
+			my $x = $programs{$cp};
+
+			print EDIAG "\t".$label." -> ".$x->{'label'}.";\n";
+		}
+	}
+	print EDIAG "}\n";
+	close(EDIAG);
+}
+
 #============================================
 #
 # Read log lines from standard input.
@@ -311,25 +865,6 @@ while ($line = <STDIN>) {
 		$first_timestamp = $last_timestamp;
 	}
 
-	my $procname = $process_name_and_pid;
-	my $pid = 0;
-	if($process_name_and_pid =~ m/^(.*)\[([0-9]+)\]$/) {
-		$procname = $1;
-		$pid = $2;
-	}
-
-	if(defined($all_processes{$process_name_and_pid})) {
-		# just increment number of lines from that process
-		$all_processes{$process_name_and_pid}++;
-	} else {
-		# found a new process!
-		# first set number of log lines from that process to 1:
-		$all_processes{$process_name_and_pid} = 1;
-		# and next count that there was yet another instance
-		# of $procname:
-		$argv0_counters{$procname}++;
-	}
-
 	if($logmessage =~ m/^mapped: ([a-zA-Z0-9_]+) '(.*)' -> '(.*)'/) {
 		my $fn_name = $1;
 		my $from_path = $2;
@@ -338,6 +873,10 @@ while ($line = <STDIN>) {
 			print "MAPPED: $fn_name: $from_path -> $to_path\n";
 		}
 		if(!defined($blacklisted_functions{$fn_name})) {
+			my $procname;
+			my $pid;
+			my $tid;
+			($procname,$pid,$tid) = split_name_and_pid($process_name_and_pid);
 			path_accessed(\%mapped_src_paths,
 				$fn_name, $procname, $from_path, $to_path);
 			path_accessed(\%mapped_dest_paths,
@@ -350,6 +889,10 @@ while ($line = <STDIN>) {
 			print "PASS: $fn_name: $path\n";
 		}
 		if(!defined($blacklisted_functions{$fn_name})) {
+			my $procname;
+			my $pid;
+			my $tid;
+			($procname,$pid,$tid) = split_name_and_pid($process_name_and_pid);
 			path_accessed(\%passed_paths,
 				$fn_name, $procname, $path, undef);
 		}
@@ -360,14 +903,66 @@ while ($line = <STDIN>) {
 			print "DISABLED/PASS: $fn_name: $path\n";
 		}
 		if(!defined($blacklisted_functions{$fn_name})) {
+			my $procname;
+			my $pid;
+			my $tid;
+			($procname,$pid,$tid) = split_name_and_pid($process_name_and_pid);
 			path_accessed(\%disabled_passed_paths,
 				$fn_name, $procname, $path, undef);
 		}
-	} elsif($logmessage =~ m/^_[Ee]xit: status=(\d*)/) {
-		my $process_exit_status = $1;
-		if($process_exit_status != 0) {
-			$failed_process{$process_name_and_pid} = $process_exit_status;
+	} elsif($logmessage =~ m/^---------- Starting \((.*)\) \[(.*)\] ppid=(\d*) <(.*)> \((.*)\) -/) {
+		my $version = $1;
+		my $build_time = $2;
+		my $ppid = $3;
+		my $exec_binary_name = $4;
+		my $exec_policy_name = $5;
+
+		if($debug > 1) {
+			print "Starting $version, $build_time, $ppid, ".
+				"$exec_binary_name, $exec_policy_name\n";
 		}
+
+		process_started($process_name_and_pid, $timestamp,
+			$version, $build_time,
+			$ppid, $exec_binary_name, $exec_policy_name);
+			
+	} elsif($logmessage =~ m/^wait[pid]*: child (\d+) (.*)$/) {
+		my $child_pid = $1;
+		my $reason = $2;
+
+		if($reason =~ m/^exit status=(\d+)/) {
+			my $process_exit_status = $1;
+
+			if($debug > 1) {
+				print "Child exited %s\n", $process_exit_status;
+			}
+			process_exited($child_pid, $process_exit_status);
+		} elsif($reason =~ m/^terminated by signal (\d+)(.*)$/) {
+			if($debug > 1) {
+				print "Child: ".$reason."\n";
+			}
+			process_exited($child_pid, $reason);
+		}
+	} elsif($logmessage =~ m/[Ee]xit: status=(\d*)/) {
+		my $process_exit_status = $1;
+		my $procname;
+		my $pid;
+		my $tid;
+		($procname,$pid,$tid) = split_name_and_pid($process_name_and_pid);
+		process_exited($pid, $process_exit_status);
+	} elsif($logmessage =~ m/EXEC: i_pid=(\d*) /) {
+		my $ipid = $1;
+		# The "i_pid" hack is used to track lost parents.
+		# some complex programs may use several fork() calls, etc,
+		# which may lead to a situation where the PPID refers to a
+		# process that we don't know (but which is still a forked 
+		# child of a process that we know). We'll record the i_pid
+		# if it is needed later...
+		my $procname;
+		my $pid;
+		my $tid;
+		($procname,$pid,$tid) = split_name_and_pid($process_name_and_pid);
+		$i_pid[$pid] = $1;
 	}
 }
 if($verbose) {
@@ -444,14 +1039,26 @@ if($print_process_statistics) {
 	foreach $pname (sort(keys(%argv0_counters))) {
 		print "\t\t".$argv0_counters{$pname}."\t".$pname."\n";
 	}
-	my @failures = sort(keys(%failed_process));
-	my $num_failures = @failures;
-	if($num_failures > 0) {
-		print "\t$num_failures processes with non-zero exit status:\n";
-		foreach $pname (@failures) {
-			print "\t\t$pname:\t".$failed_process{$pname}."\n";
+
+#####	my @failures = sort(keys(%failed_process));
+#####	my $num_failures = @failures;
+#####	if($num_failures > 0) {
+#####		print "\t$num_failures processes with non-zero exit status:\n";
+#####		foreach $pname (@failures) {
+#####			print "\t\t$pname:\t".$failed_process{$pname}."\n";
+#####		}
+#####	}
+	my @unknown_exit_status = keys(%active_processes);
+	my $num_unknown_exit_status = @unknown_exit_status;
+	if($num_unknown_exit_status > 0) {
+		print "\t$num_unknown_exit_status processes with unknown exit status (or still active):\n";
+		my $u_pid;
+		foreach $u_pid (@unknown_exit_status) {
+			my $rp = $active_processes{$u_pid};
+			print "\t\t$u_pid\t".$rp->{'name'}."\n";
 		}
 	}
+
 }
 
 print   "Number of pathnames:\n".
@@ -495,6 +1102,19 @@ if($print_passed_paths) {
 if($print_disabled_passed_paths) {
 	print_all_paths(\@disabled_passed_paths, \%disabled_passed_paths,
 		"Mapping disabled => passed pathnames", "");
+	$printed_path_details = 1;
+}
+
+if(defined $acct_file) {
+	read_acct_file();
+}
+
+if($process_diagram_file) {
+	write_process_diagram();
+	$printed_path_details = 1;
+}
+if($exec_diagram_file) {
+	write_exec_diagram();
 	$printed_path_details = 1;
 }
 

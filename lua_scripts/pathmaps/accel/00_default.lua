@@ -471,14 +471,9 @@ devel_mode_rules_usr = {
 		 actions = test_first_tools_default_is_target},
 
 		-- -----------------------------------------------
-		-- 100. DEFAULT RULES:
-		-- the root directory must not be mapped:
-
-		-- "standard" directories are mapped to tools_root,
-		-- but everything else defaults to the host system
-		-- (so that things like /mnt, /media and /opt are
-		-- used from the host)
-		{prefix = "/usr", map_to = tools, readonly = true},
+		-- 100. DEFAULT for /usr/*:
+		{prefix = "/usr",
+		 actions = test_first_tools_default_is_target},
 	}
 }
 

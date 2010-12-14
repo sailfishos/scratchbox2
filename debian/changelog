@@ -1,3 +1,24 @@
+scratchbox2 (2.2rc1-1) unstable; urgency=low
+
+  [ Lauri Aarnio ]
+  * One new feature: sb2-logz can create process and exec diagrams
+    (graphs); execute "sb2-logz -h" for details.
+  * external_patches: patches for eglibc2.10 are available now
+    (see external_patches/README)
+  * Fix: Better protection of "errno" in certain situations
+  * Fixes to CPU transparency method handling: Consistency checks,
+    and options can now be passed to the transparency method (e.g. qemu)
+  * Fix to toolchain (gcc) config: Fixed detection of 
+    -Wno-poison-system-directories
+  * other, minor bugfixes were included as well.
+
+  [ Mike McCormack ]
+  * Fix: Added wrappers for mkstemps64() and mkstemps() (this fixes mapping
+    of tmp.files created by mkstemps(); at least some newer versions 
+    of gcc use it)
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Mon, 13 Dec 2010 14:39:00 +0200
+
 scratchbox2 (2.1-1) unstable; urgency=low
 
   * scratchbox 2.1 release!

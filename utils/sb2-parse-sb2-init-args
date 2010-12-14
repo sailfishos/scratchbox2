@@ -5,7 +5,25 @@
 # Copyright (C) 2009 Nokia Corporation.
 # Licensed under GPL version 2
 
-SB2INIT_INIT_ORIG_ARGS="$*"
+# Use an array to preserve spaces in original arguments:
+declare -a init_orig_args_array
+init_orig_args_array=("$@")
+
+# make a printable version:
+SB2INIT_INIT_ORIG_ARGS=""
+for arg in "${init_orig_args_array[@]}"; do
+	case "$arg" in
+	(*[[:space:]]*)	pr_arg="'""$arg""'";;
+	(*)		pr_arg="$arg";;
+	esac
+
+	if [ -z "$SB2INIT_INIT_ORIG_ARGS" ]; then
+		SB2INIT_INIT_ORIG_ARGS="$pr_arg"
+	else
+		SB2INIT_INIT_ORIG_ARGS="$SB2INIT_INIT_ORIG_ARGS $pr_arg"
+	fi
+done
+
 
 SB2INIT_REMOTEHOST=
 SB2INIT_LOCALHOST=

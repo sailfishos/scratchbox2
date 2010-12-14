@@ -231,7 +231,24 @@ if [ -z "$SBOX_DIR" ]; then
 fi
 SBOX_SHARE_DIR=$SBOX_DIR/share/scratchbox2
 
-SBOX_INIT_ORIG_ARGS="$*"
+# Use an array to preserve spaces in original arguments:
+declare -a init_orig_args_array
+init_orig_args_array=("$@")
+
+# make a printable version:
+SBOX_INIT_ORIG_ARGS=""
+for arg in "${init_orig_args_array[@]}"; do
+	case "$arg" in
+	(*[[:space:]]*)	pr_arg="'""$arg""'";;
+	(*)		pr_arg="$arg";;
+	esac
+
+	if [ -z "$SBOX_INIT_ORIG_ARGS" ]; then
+		SBOX_INIT_ORIG_ARGS="$pr_arg"
+	else
+		SBOX_INIT_ORIG_ARGS="$SBOX_INIT_ORIG_ARGS $pr_arg"
+	fi
+done
 
 # No parameters => show usage and exit.
 if [ -z "$SBOX_INIT_ORIG_ARGS" ]; then
@@ -242,7 +259,7 @@ fi
 # because a) name of the target is currently unknown, b) there might be 
 # errors in the parameters, or c) if the user is just requesting help or
 # version and we are not actually going to configure anything.
-eval `$SBOX_SHARE_DIR/scripts/sb2-parse-sb2-init-args $SBOX_INIT_ORIG_ARGS`
+eval `$SBOX_SHARE_DIR/scripts/sb2-parse-sb2-init-args "${init_orig_args_array[@]}"`
 
 TARGET=$SB2INIT_TARGET
 SBOX_TARGET_ROOT=$SB2INIT_TARGET_ROOT
@@ -291,7 +308,7 @@ log_config_action "sb2-init $SBOX_INIT_ORIG_ARGS"
 # Parse parameters (round 2); store parameters to the config directory.
 # "$SBOX_CONFIG_DIR/sb2-init-args" can be overwritten by sb2-init or
 # sb2-upgrade-config; the config log should identify who did what..
-$SBOX_SHARE_DIR/scripts/sb2-parse-sb2-init-args $SBOX_INIT_ORIG_ARGS \
+$SBOX_SHARE_DIR/scripts/sb2-parse-sb2-init-args "${init_orig_args_array[@]}" \
 	>$SBOX_CONFIG_DIR/sb2-init-args
 
 if [ -z "$SB2INIT_COMPILERS" ]; then

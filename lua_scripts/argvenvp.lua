@@ -551,10 +551,10 @@ function sb_execve_postprocess_native_executable(rule, exec_policy,
 	return 1, mapped_file, filename, #argv, argv, #envp, envp
 end
 
-if string.match(sbox_cputransparency_method, "qemu") then
+if string.match(sbox_cputransparency_cmd, "qemu") then
 	cputransparency_method_is_qemu = true
 end
-if string.match(sbox_cputransparency_method, "sbrsh") then
+if string.match(sbox_cputransparency_cmd, "sbrsh") then
 	cputransparency_method_is_sbrsh = true
 end
 
@@ -706,8 +706,8 @@ function sb_execve_postprocess_cpu_transparency_executable(rule, exec_policy,
 		local new_filename
 
 		if conf_cputransparency_qemu_argv == nil then
-			table.insert(new_argv, sbox_cputransparency_method)
-			new_filename = sbox_cputransparency_method
+			table.insert(new_argv, sbox_cputransparency_cmd)
+			new_filename = sbox_cputransparency_cmd
 		else
 			for i = 1, table.maxn(conf_cputransparency_qemu_argv) do
 				table.insert(new_argv, conf_cputransparency_qemu_argv[i])

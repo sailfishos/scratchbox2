@@ -291,14 +291,21 @@ function load_configuration()
 	fi
 	# attempt to make SBOX_CPUTRANSPARENCY_METHOD path absolute
 	# and remove symlinks from it
+	SBOX_CPUTRANSPARENCY_CMD=""
+	SBOX_CPUTRANSPARENCY_ARGS=""
 	if [ -n "$SBOX_CPUTRANSPARENCY_METHOD" ]; then
-		_cputransp=$(which $SBOX_CPUTRANSPARENCY_METHOD)
+		# $SBOX_CPUTRANSPARENCY_METHOD may contain options.
+		set $SBOX_CPUTRANSPARENCY_METHOD
+		SBOX_CPUTRANSPARENCY_CMD="$1"
+		shift
+		SBOX_CPUTRANSPARENCY_ARGS="$*"
+		_cputransp=$(which $SBOX_CPUTRANSPARENCY_CMD)
 		if [ -z "$_cputransp" ]; then
 			echo "Fatal: CPU transparency method not found ($SBOX_CPUTRANSPARENCY_METHOD)"
 			exit 1
 		fi
 		if [ -e "$_cputransp" ]; then
-			SBOX_CPUTRANSPARENCY_METHOD=$(realpath $_cputransp)
+			SBOX_CPUTRANSPARENCY_CMD=$(realpath $_cputransp)
 		fi
 	fi
 
@@ -519,6 +526,8 @@ sbox_temp_dpkg_admin_dir="$SB2_TEMP_DPKG_ADMIN_DIR"
 
 sbox_cpu="$SBOX_CPU"
 sbox_cputransparency_method="$SBOX_CPUTRANSPARENCY_METHOD"
+sbox_cputransparency_cmd="$SBOX_CPUTRANSPARENCY_CMD"
+sbox_cputransparency_args="$SBOX_CPUTRANSPARENCY_ARGS"
 sbox_sbrsh_config="$SBRSH_CONFIG"
 
 sbox_host_gcc_prefix_list="$SBOX_HOST_GCC_PREFIX_LIST"
@@ -651,6 +660,8 @@ function write_ld_library_path_replacement_to_exec_config()
 function check_qemu_features()
 {
 	qemu_path=$1
+	shift
+	qemu_options=$*
 
 	# Use "sb2-show" to find out how qemu should be executed
 	# (qemu might be under tools_root => it might need to
@@ -658,8 +669,8 @@ function check_qemu_features()
 	__SB2_BINARYNAME="sb2:CheckingQemuExec" \
 	sb2-monitor \
 		-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
-		exec-cmdline \
-		$qemu_path \
+		-- exec-cmdline \
+		$qemu_path $qemu_options \
 		>$SBOX_SESSION_DIR/qemu_cmdline
 	if [ $? != 0 ]; then
 		exit_error "Failed to find out how $qemu_path should be started"
@@ -1109,7 +1120,7 @@ function add_cputransparency_settings_to_exec_config_file()
 	conf_cputransparency_qemu_argv="nil"
 	conf_cputransparency_qemu_env="nil"
 
-	case "$SBOX_CPUTRANSPARENCY_METHOD" in	
+	case "$SBOX_CPUTRANSPARENCY_CMD" in	
 	*qemu*)	check_qemu_features $SBOX_CPUTRANSPARENCY_METHOD
 		;;
 	esac

@@ -7,7 +7,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "24"
+rule_file_interface_version = "25"
 ----------------------------------
 
 tools = tools_root
@@ -87,7 +87,7 @@ simple_chain = {
 
 qemu_chain = {
 	next_chain = nil,
-	binary = basename(sbox_cputransparency_method),
+	binary = basename(sbox_cputransparency_cmd),
 	rules = {
 		{prefix = "/usr/lib", map_to = target_root},
 		{prefix = "/usr/local/lib", map_to = target_root},

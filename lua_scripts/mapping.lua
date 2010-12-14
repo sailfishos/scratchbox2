@@ -140,6 +140,16 @@ function load_and_check_rules()
 	-- exec mapping code (argvenp.lua) and the
 	-- rule files:
 	--
+	-- Version 25:
+	-- - CPU Transparency is now defined by three variables:
+	--    - sbox_cputransparency_method is the complete string,
+	--      containing both the command and options. This is
+	--	defined by the '-c' option of sb2-init.
+	--    - sbox_cputransparency_cmd is path to the binary,
+	--    - sbox_cputransparency_args contains optional
+	--	arguments.
+	--   Previously only sbox_cputransparency_method was
+	--   available.
 	-- Version 24:
 	-- - Added support for gconv_path for native applications
 	-- Version 23:
@@ -175,7 +185,7 @@ function load_and_check_rules()
 	--   (previously only one was expected)
 	-- - variables "esc_tools_root" and "esc_target_root"
 	--   were removed
-	local current_rule_interface_version = "24"
+	local current_rule_interface_version = "25"
 
 	do_file(rule_file_path)
 

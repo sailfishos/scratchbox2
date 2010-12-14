@@ -6,7 +6,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "24"
+rule_file_interface_version = "25"
 ----------------------------------
 
 tools = tools_root
@@ -52,7 +52,7 @@ mapall_chain = {
 	rules = {
 		{dir = session_dir, use_orig_path = true},
 
-		{path = sbox_cputransparency_method, use_orig_path = true,
+		{path = sbox_cputransparency_cmd, use_orig_path = true,
 		 readonly = true},
 
 		{path = "/usr/bin/sb2-show", use_orig_path = true,

@@ -91,7 +91,7 @@ simple_chain = {
 
 qemu_chain = {
 	next_chain = nil,
-	binary = basename(sbox_cputransparency_method),
+	binary = basename(sbox_cputransparency_cmd),
 	rules = {
 		{prefix = session_dir, use_orig_path = true},
 

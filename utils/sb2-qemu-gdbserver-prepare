@@ -56,7 +56,7 @@ check_mode_and_cpu_transparency()
 	if [ "$sbox_mapmode" != "emulate" ]; then
 		return 1
 	fi
-	transp=$sbox_cputransparency_method
+	transp=$sbox_cputransparency_cmd
 	if [ -z "$transp" ]; then
 		return 1
 	fi

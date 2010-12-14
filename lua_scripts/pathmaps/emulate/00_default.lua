@@ -3,7 +3,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "24"
+rule_file_interface_version = "25"
 ----------------------------------
 
 sb1_compat_dir = sbox_target_root .. "/scratchbox1-compat"
@@ -73,7 +73,7 @@ mapall_chain = {
 
 		{path = conf_tools_ld_so, use_orig_path = true, readonly = true},
 
-		{path = sbox_cputransparency_method, use_orig_path = true,
+		{path = sbox_cputransparency_cmd, use_orig_path = true,
 		 readonly = true},
 
 		{path = "/usr/bin/sb2-show", use_orig_path = true,

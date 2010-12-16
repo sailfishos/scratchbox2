@@ -1023,7 +1023,7 @@ END
 	library_interface=`LD_LIBRARY_PATH=$SBOX_DIR/lib/libsb2:$LD_LIBRARY_PATH sb2-show libraryinterface`
 
 	# 1. Exec settings for tools
-	if [ "$SBOX_TOOLS_ROOT" != "" ]; then
+	if [ "$SBOX_TOOLS_ROOT" != "/" ]; then
 		tools_basename=`basename $SBOX_TOOLS_ROOT`
 		write_ld_library_path_replacement_to_exec_config \
 			$SBOX_TOOLS_ROOT conf_tools_ld_so_library_path \

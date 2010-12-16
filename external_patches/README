@@ -13,6 +13,9 @@ a) target CPU archictecture is the same as host CPU architecture;
 b) these are also recommended for tools, when the tools are not used
    from the host OS (which is usually the case with "accel" and "devel" modes)
 
+c) The host OS contains buggy components (this currently applies to
+   64-bit Ubuntu Lucid; see detailed description below)
+
 Short description of the files:
 
 gdb-7.0.1+sb2.patch
@@ -150,4 +153,20 @@ glibc-2.10-ldso-nodefaultdirs-option.5.patch
 	without this, libraries may be incorrectly loaded from the
 	host environment (such libraries that are missing from
 	the "scratchboxed" environment but are present in the host)
+
+==========
+
+ubuntu_lucid_64bit_fakeroot_fix.patch
+-------------------------------------
+
+	32-bit libfakeroot is missing from 64-bit Ubuntu Lucid
+	(version 1.14.4-1ubuntu1 of fakeroot is buggy); the bug
+	has been reported but haven't been fixed (Dec 16, 2010);
+	https://bugs.launchpad.net/ubuntu/+source/fakeroot/+bug/571091
+
+	To fix the problem:
+	- get the sources (atp-get source fakeroot)
+	- apply the patch
+	- use dpkg-buidpackage
+	- install the fixed version (1.14.4-1ubuntu1.1)
 

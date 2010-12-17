@@ -1,4 +1,4 @@
-.TH sb2 1 "11 September 2007" "2.0" "sb2 man page"
+.TH sb2 1 "17 December 2010" "2.2" "sb2 man page"
 .SH NAME
 sb2 \- crosscompiling environment
 .SH SYNOPSIS
@@ -6,74 +6,141 @@ sb2 \- crosscompiling environment
 [options] [command] [arguments] [...]
 .SH DESCRIPTION
 .B sb2
-Runs command in scratchbox2. If no command is given, a bash shell
-in scratchbox2 environment is started.
+runs command in a scratchbox2 session. If no command is given, an interactive shell is started.
+.PP
+Scratchbox2 creates an environement with essential differences to the host OS environment:
+First, a virtual file system view is presented to the applications.
+In practise that means that the file names (paths) which an application
+uses may be modified before the OS does its operations;
+applications observe a different file system that what the real file system is. For example,
+common directories like /bin, /usr/lib and /lib can be changed to point to target-specific directories,
+which contain files for a different CPU architecture than what the host has.
+.PP
+Second, scratchbox2 makes execution of foreign binaries completely transparent. 
+Target's binaries can be executed on the host just as if they were host's binaries;
+scratchbox2 will start a 
+.I CPU transparency method
+automatically whenever needed (Qemu is typically used for this).
+.PP
+The result is that the development machine appears as a virtual target system to
+the software development tools, and complex tools (like GNU Autotools)
+can be used directly.
+.PP
+Scratchbox2 works by intercepting library calls of dynamically linked binaries.
+It uses a flexible and highly configurable rule engine, when deciding when, what, and how to
+modify parameters of the intercepted calls; this is completely
+transparent to the users and applications.
+Scratchbox2 2 does not need any special privileges or kernel-level services;
+it is completely based on features that are available for all ordinary users.
+.PP
+Configuration data is stored to a
+.I target
+(see sb2-init(1) for details about creating a target).
+The target contains defaults for all settings that are needed when a session is
+created.
+.PP
+A new session is created every time when the
+.B sb2
+command is used (unless one of the persistent session control options is present -
+see options -S,-J and -D below).
 .SH OPTIONS
 .TP
-\-v
-Display version number.
+\-c
+When creating a session, also create a private copy of the target root filesystem (rootstrap).
+Modifications done to the copy will be thrown away when the session is destroyed.
+Note that the copy operation can be really slow, depending on the size of the file system,
+but if the copy goes to a ramdisk, overall performance may much be better (see also option -W).
 .TP
-\-L LEVEL
-Enable logging. Following values for logging LEVEL are available: error, warning, notice, info, debug, noise, noise2.
+\-C DIR
+When creating a session, create copy of DIR and use it as the
+target root filesystem (rootstrap). Note that this can be really slow. See alse option -c.
 .TP
 \-d
-Use debug mode: log all redirections (logging LEVEL=debug) to log file under directory $HOME/sb2_logs .
-.TP
-\-h
-Print help.
-.TP
-\-t TARGET
-Define TARGET to use. Use sb2-config -d TARGET to set a default.
-.TP
-\-e
-Use emulation mode, avoid executing any host binaries except qemu.
-.TP
-\-m MODE
-Use mapping mode MODE given in argument. Following MODE values are supported: devel, emulate, install, simple, tools.
-.TP
-\-M FILE
-Read mapping rules from FILE.
-.TP
-\-s DIRECTORY
-Use redirection rules from the DIRECTORY given in argument.
-.TP
-\-Q BUGLIST
-Emulate bugs of the scratchbox 1 (BUGLIST consists of letters: 'x' enables exec permission checking bug emulation).
-.TP
-\-r
-Disable creating reverse mapping rules: functions like getcwd() and realpath() will always return the real path.
-.TP
-\-O OPTIONS
-Set options for the selected mapping mode. OPTIONS is a mode-specific string.
-.TP
-\-R
-Execute commands in fakeroot environment.
-.TP
-\-S FILE
-Create a persistent session: Write session information to FILE
-.TP
-\-J FILE
-Join a persistent session assossiated with FILE.
+Use debug mode: same as
+.B -L debug
 .TP
 \-D FILE
 Delete a persistent session assosiated with FILE. 
 Warning: this does not check if the session is still in use!
+(see also -S and -J)
+.TP
+\-e
+Same as
+.B -m emulate:
+Use emulation mode, avoid executing any host binaries except qemu.
+See
+.B mapping modes
+below.
+.TP
+\-f args
+additional fakeroot arguments (see option -R)
+.TP
+\-h
+Print help.
+.TP
+\-J FILE
+Join a persistent session assossiated with FILE (see also -D and -S) 
+.TP
+\-L LEVEL
+Enable logging. Following values for LEVEL are available (in order
+of increasing level of details): error, warning, notice, info, debug, noise, noise2.
+The default is
+.I warning.
+Logs can be post-processed with 
+.I sb2-logz,
+a tool which produces summaries and visualizes various things that were logged.
+.TP
+\-m MODE
+Use one of the pre-defined mapping modes.  See
+.B mapping modes
+below.
+.TP
+\-M FILE
+Read mapping rules from FILE.
+.TP
+\-O OPTIONS
+Set options for the selected mapping mode. OPTIONS is a mode-specific string.
+.TP
+\-Q BUGLIST
+Emulate bugs of scratchbox 1 (BUGLIST consists of letters: 'x' enables exec permission checking bug emulation).
+.TP
+\-r
+Disable creating reverse mapping rules: functions like getcwd() and realpath() will always return the real path.
+.TP
+\-R
+"superuser  mode":
+Execute commands in fakeroot environment (see fakeroot(1) for details).
+Depending on the selected mapping mode,
+this may also disables some mode-specific features, like simulated write protection
+of the target filesystem.
+.TP
+\-s DIRECTORY
+Use redirection rules from the DIRECTORY given in argument.
+.TP
+\-S FILE
+Create a persistent session: Write session information to FILE
+(see also -D and -J)
+.TP
+\-t TARGET
+Define TARGET to use. Use
+.I sb2-config -d TARGET
+to set a default.
+.TP
+\-T DIRECTORY
+Use DIRECTORY as tools_root (override the value which was specified to sb2-init when the target specification was created).
+.TP
+\-u
+Disable automatic configuration upgrade.
+.TP
+\-v
+Display version number.
+
 .TP
 \-W DIR
 Use DIR as the session directory when creating the session (The default is to
 create the session in /tmp). DIR must be an absolute path and must not exist.
 Note that long pathnames may cause trouble with socket operations, so try to
-keep DIR as short as possible. 
-.TP
-\-c
-When creating a session, also create a private copy of target_root (rootstrap). Note that this can be really slow, depending on the size of the orig.target_root.
-.TP
-\-C DIR
-When creating a session, create copy of DIR and use it as the
-target_root (rootstrap). Note that this can be really slow. See alse option -c.
-.TP
-\-T DIRECTORY
-Use DIRECTORY as tools_root (override the value which was specified to sb2-init when the target specification was created).
+keep DIR as short as possible.
 
 .SH EXAMPLES
 .TP
@@ -85,28 +152,74 @@ sb2 -eR make install
 .TP
 sb2 -R -m emulate make install
 
-.SH CONFIGURATION
-To configure sb2, do something like this:
-
-.nf
-mkdir $HOME/buildroot
-cd $HOME/buildroot
-[fetch a rootfs from somewhere and extract it here]
-sb2-init -c qemu-arm TARGET /path/to/cross-compiler/bin/arm-linux-gcc
-.fi
-
-To change default scratchbox2 target:
-
-sb2-config -d another_target
+.SH MAPPING MODES
+Scratchbox2 contains several ready-made rulesets, called
+.I mapping modes,
+for different purposes. This manual page presents only the
+basics of each. Full details can be found from the
+rulesets themselves.
+.PP
+There are three development-oriented modes, that are intended for
+cross-compilation:
+.PP
+"simple" makes only the very basic modifications to the file environment:
+For example,
+.I /usr/include
+refers to /usr/include in the target root file system, not to the real
+/usr/include of the host (and the same applies to /lib, /usr/lib, 
+and many other directories).
+Typical toolchain commands, i.e. commands that are used to
+create binary programs (like
+.I gcc, as
+and
+.I ld)
+refer to tools that were supplied with the the cross-compiler which was configured with
+.I sb2-init
+(also when used with full pathname: /usr/bin/gcc, /usr/bin/as, etc)
+.PP
+The "simple" mode usually takes other tools directly from the host OS.
+This approach means that simple tools work fine, and well-behaving
+OSS projects can be compiled with the "simple" mode. The drawback is that
+there are some cases, where such a simple approach fails.
+.PP
+The other two development modes, "accel" and "devel" have more complete
+support for different tools, but these are not necessarily as easy to
+set up as the "simple" mode is.
+Both "accel" and "devel" are intended to be used with a separate
+"tools root" directory, 
+consisting of host-compatible binaries of the same programs that 
+exist in the target file system as foreign binaries (e.g. target root can contain
+arm binaries, whereas tools root has x86 binaries of the exactly versions
+of the same programs). This is configured with the -t option of sb2-init(1).
+.PP
+In addition to the development-oriented modes, scratchbox2 also has an "emulate"
+mode, which sets up an environment without development tools: It maps as many paths
+to the target root as possible.  It can be used for
+installing programs to the target filesystem and testing them.
+.PP
+"tools" mode is very much like "emulate", except that there most
+things are mapped to tools root.
+.PP
+"nomap" mode is a special maping mode, which is mostly useful only
+for debugging purposes: It does not apply any file system related mappings,
+but otherwise scratchbox2 functions are fully operational.
 
 .SH FILES
 .P
-.I ~/.scratchbox2/config
+.I $HOME/.scratchbox2/*
+.P
+.I $HOME/sb2_logs
+.P
+.I /usr/share/scratchbox2/*
 .SH SEE ALSO
+.BR sb2-init (1),
+.BR sb2-config (1),
+.BR sb2-show (1),
 .BR fakeroot (1),
 .BR qemu (1)
+.SH BUGS
 No known bugs at this time.
-.SH AUTHOR
+.SH AUTHORS
 .nf
-Riku Voipio
+Lauri T. Aarnio, Riku Voipio
 .fi

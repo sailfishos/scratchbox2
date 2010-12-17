@@ -199,9 +199,7 @@ install-noarch: regular
 	$(Q)install -c -m 644 $(SRCDIR)/tests/* $(prefix)/share/scratchbox2/tests
 	$(Q)chmod a+x $(prefix)/share/scratchbox2/tests/run.sh
 
-	$(Q)install -c -m 644 $(SRCDIR)/docs/sb2.1 $(prefix)/share/man/man1/sb2.1
-	$(Q)install -c -m 644 $(SRCDIR)/docs/sb2-show.1 $(prefix)/share/man/man1/sb2-show.1
-	$(Q)install -c -m 644 $(SRCDIR)/docs/sb2-config.1 $(prefix)/share/man/man1/sb2-config.1
+	$(Q)install -c -m 644 $(SRCDIR)/docs/*.1 $(prefix)/share/man/man1
 	$(Q)rm -f $(prefix)/share/scratchbox2/host_usr
 	$(Q)ln -sf /usr $(prefix)/share/scratchbox2/host_usr
 	@# Wrappers:

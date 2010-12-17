@@ -1,29 +1,48 @@
-.TH sb2-config 1 "10 October 2008" "2.0" "sb2-config man page"
+.TH sb2-config 1 "17 December 2010" "2.2" "sb2-config man page"
 .SH NAME
-sb2-config \- set the default target or list available targets
+sb2-config \- scratchbox2 configuration tool
 .SH SYNOPSIS
-.B sb2-config [\-d default_target ] [\-l ] [\-h ] [\-v ]
+.B sb2-config [OPTION]... [COMMAND [PARAMS]]
 
 .SH DESCRIPTION
-.B sb2-config is part of the sb2 family of tools.
-You can set your default sb2 target with this tool and also get a listing of all available targets in your host.
+.B sb2-config
+is used to set and display configuration of existing targets.
 
 .SH OPTIONS
 .TP
 \-d default_target
 This option sets the default sb2 target. The name of the target will be written to your $HOME/.scratchbox2/config file.
 .TP
-\-l list targets
-This option lists all available targets in your system. The names listed can be used as a parameter to the -d option.
+\-l
+lists all available targets in your system. The names listed can be used as a parameter to the -d option.
 .TP
-\-L target_name
-Show configuration log ('-' as target name refers to the default target)
-.TP
-\-f
+\-h
 Display short help.
 .TP
 \-v
 Show version of this tool.
+.TP
+\-t target
+select target to be used with commands (below)
+
+.SH COMMANDS
+.TP
+showtarget
+show default target.
+.TP
+showlog
+show configuration log
+.TP
+showenv
+show target-specific environment variables
+.TP
+setenv VARIABLE VALUE
+set target-specific environment variable. The value becomes effective when
+.I sb2
+is executed.
+.TP
+unsetenv VARIABLE
+remove target-specific environment variable
 
 .SH EXAMPLES
 
@@ -41,7 +60,8 @@ This example lists all installed targets in your host. The names listed can be u
 
 .SH SEE ALSO
 .BR sb2 (1),
-.BR sb2-init (1)
+.BR sb2-init (1),
+.BR sb2-show (1)
 
 .SH AUTHOR
 .nf

@@ -1,33 +1,111 @@
-.TH sb2-show 1 "23 September 2008" "2.0" "sb2-show man page"
+.TH sb2-show 1 "17 December 2010" "2.2" "sb2-show man page"
 .SH NAME
 sb2-show \- sb2 diagnostics tool
 .SH SYNOPSIS
-.B sb2-show [\-b binary_name ] [\-m mode ] [\-f function ] [\-D ] [\-v ] command_tag [parameters] 
+.B sb2-show [\-b binary_name ] [\-m mode ] [\-f function ] [\-D ] [\-v ] command [parameters] 
 
 .SH DESCRIPTION
 .B sb2-show
-command must be run from inside scratchbox2. The sb2-show provides
-developer valuable information about pathmappings that the sb2
-pathmapping engine is executing during runtime. This diagnostics tool
-helps you understand what files are used and from what location when using
-the sb2 development environment.
+is a tool for querying and testing what scratchbox2 does "behind the scenes".
+.PP
+The two most common uses are testing path mapping (commands
+.I path
+and
+.I which
+) and finding out how programs are executed (the
+.I exec
+command). Additionally, there are some commands that are intended to
+be used internally by
+.I scratchbox2
+itself, and not so useful for a normal user.
+.PP
+.B sb2-show
+must be executed inside a scratchbox2 session (see 
+.I sb2(1)
+for details about creating sessions)
+
+.SH COMMANDS
+.B Common commands:
+.TP
+path [path1] [path2] [pathN]
+Show mapping results for listed pathnames
+.TP
+which [path1] [path2]..
+Show mappings of pathnames, a less verbose variant of
+the 
+.I path
+command (useful when using
+.I sb2-show
+from scripts) 
+.TP
+exec program_path [arg1] [arg2]..
+Show how a program would be executed, together with
+environment modifications.
+.TP
+realcwd
+Show real current working directory (Inside a session
+.I /bin/pwd
+will usually report virtual paths, and this is the only
+way to determine the real wroking directory).
+.PP
+.B Commands for non-interactive use and debugging of scratchbox2:
+.TP
+exec-cmdline file [argv1] [argv2]..
+show execve() modifications on a single line (does not show full
+details, useful when using
+.I sb2-show
+from scripts)
+.TP
+log-error 'message' 
+Add an error message to the logfile
+.TP
+log-warning 'message' 
+Add a warning message to the logfile
+.TP
+verify-pathlist-mappings required-fix [ignorelist] 
+Reads list of paths from stdin and checks that all paths will be mapped to a required prefix.
+This is used by
+.I sb2-check-pkg-mappings,
+(an internal utility).
+.TP
+execluafile filename
+Load and execute Lua code from file.
+.TP
+binarytype realpath
+detect & show type of program at 
+.I realpath
+(which is an already mapped path)
+.TP
+var variablename
+show value of an internal string variable
+.TP
+libraryinterface
+show preload library interface version (the Lua <-> C code interface)
+
+.TP
+qemu-debug-exec file argv0 [argv1] [argv2]..
+show command line that can be used to
+start target binary under qemu
+gdbserver
+
 
 .SH OPTIONS
 .TP
 \-v
-verbose. Give lots of output.
+verbose.
 .TP
 \-b binary_name
-This option outputs the mapping modifications that are related to the binary name ie program name that you specify with this option.
-.TP
-\-m mode
-Show using named mapping sb2 mode (default=current sb2 mode)
+show using binary_name as name of the calling program
 .TP
 \-f function
-This option can be used when you are debugging mapping rules in sb2. The function name is the full name of library or system call that you want to monitor.
+show using 
+.I function
+as callers name (full name of library or system call)
 .TP
 \-D
-Ignore directories while verifying path lists
+Ignore directories while verifying path lists (effective only for the 
+.I verify-pathlist-mappings
+command)
 .TP
 \-t
 report elapsed time (real time elapsed while executing the command)
@@ -39,67 +117,53 @@ Useful for debugging and tuning lua scripts of sb2.
 \-X file
 Load and execute Lua code from file after executing the command.
 Useful for debugging and tuning lua scripts of sb2.
-
-.SH COMMAND TAGS
 .TP
-path [path1] [path2] [pathN]
-Show mappings of pathnames
-.TP
-realcwd
-Show real current working directory
-.TP
-exec file [argv0] [argv1] [argvN] 
-Show execve() modifications done by sb2
-.TP
-log-error 'message' 
-Add an error message to logfile
-.TP
-log-warning 'message' 
-Add a warning message to the logfile
-.TP
-verify-pathlist-mappings required-fix [ignorelist] 
-Read list of paths from stdina and check that all paths will be mapped to required 'prefix/n'
-.TP
-execluafile filename
-Load and execute Lua code from file.
-
+\-g port
+use port as qemu gdbserver listening port (default port is 1234).
+See command
+.I qemu-debug-exec 
 
 .SH EXAMPLES
-
+.PP
+Show where the /etc directory gets mapped:
+.PP
 .nf
 $ sb2 sb2-show path /etc
-/etc => /opt/maemo/dists/etch/etc (readonly)
-
-This shows where the /etc directory gets mapped under your active sb2
-target.  In this example the /etc gets mapped to
-/opt/maemo/dists/etch/etc directory in your host.  The /etc directory
-has been defined to be readonly.
-
+/etc => /opt/maemo/tools/etc (readonly)
+.fi
+.PP
+(exact results depend on how 
+.I sb2-init
+was executed; what mapping mode is the default, etc.)
+.PP
+Typically, home directories are not mapped:
+.PP
+.nf
 $ sb2 sb2-show path /home/yourname
 /home/yourname => /home/yourname
-
-This example shows where your own home directory gets mapped. By
-default under sb2 environment your home directory is the one you use
-as your real home directory. Your home directory is read-write.
-
+.fi
+.PP
+In development modes, host-compatible versions of tools are executed:
+.PP
+.nf
 $ sb2 sb2-show exec /bin/ls
 File    /bin/ls
-Mapped  /opt/maemo/dists/etch/bin/ls (readonly)
+Mapped  /opt/maemo/tools/bin/ls (readonly)
 argv[0] /bin/ls
-
-This command shows what execve() modifications are done by sb2 engine
-to the binary that is being executed. It also shows you the argument
-vector.  In the above example you can see that in maemo mode (ie build
-mode) the /bin/ls program is actually executed from location
-/opt/maemo/dists/etch/bin/ls in your linux pc.
-
-
+ ...
 .fi
-
+.PP
+But in the emulation mode, only target's executables are used.
+Try also:
+.PP
+.nf
+$ sb2 -e sb2-show exec /bin/ls
+.fi
 
 .SH SEE ALSO
 .BR sb2 (1),
 .BR sb2-config (1),
+.BR sb2-logz (1),
 .BR sb2-init (1)
 
 .SH AUTHOR

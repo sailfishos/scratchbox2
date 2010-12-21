@@ -1,0 +1,103 @@
+.TH sb2-session 1 "21 December 2010" "2.2" "sb2-session man page"
+.SH NAME
+sb2-session \- manage scratchbox2 sessions
+.SH SYNOPSIS
+.B sb2-session [COMMAND [PARAMS]]
+
+.SH DESCRIPTION
+.B sb2-session
+is used to create attachable scratchbox2 sessions.
+You can save session even when you haven't done '-S session' during
+.I sb2
+startup.
+
+Note that you can give parameters to
+.B attach
+command which are passed verbatim to \fIsb2\fR. If there is only one
+session to attach, it is selected automatically.
+
+If no command is given, help text is printed.
+
+.SH COMMANDS
+.TP
+help
+shows help text
+.TP
+save
+saves current session
+.TP
+list
+lists detached sb2 sessions
+.TP
+delete SESSION
+deletes given session
+.TP
+attach [SESSION [PARAMS]]
+attaches to a given session
+.TP
+setenv VARIABLE VALUE
+store a value for an environment variable
+.TP
+showenv
+show stored environment variables
+
+.SH EXAMPLES
+Basic usage is:
+
+.RS 4
+.nf
+[SB2 .. ] $ sb2-session save	# save session
+[SB2 .. ] $ ^D				# exit
+.fi
+.RE
+
+Later we can then attach to this session:
+
+.RS 4
+.nf
+% sb2-session attach
+.fi
+.RE
+
+If there are more than one saved session, then:
+
+.RS 4
+.nf
+% sb2-session list
+session.XXXX    TARGET_ARM      My Comment
+session.YYYY    TARGET_ARM      My Comment 2
+session.ZZZZ    TARGET_MIPS
+% sb2-session attach session.YYYY
+.fi
+.RE
+
+Here we pass '-eR' to \fIsb2\fR and we only have one saved session:
+
+.RS 4
+.nf
+ % sb2-session attach -- -eR
+.fi
+.RE
+
+\&'--' marks end of parameter list for sb2-session.
+
+.B setenv VARIABLE VALUE
+can be used to add environment variables, that will become active
+when a saved session is later taken into use (either by
+.B sb2-session attach
+or by \fBsb2 -J\fR).
+
+.B setenv VARIABLE VALUE
+does not change environment of sessions that are already active.
+
+.B showenv
+lists environment variable settings which have been stored with this
+tool. It does not show environment variables from other sources.
+
+.SH SEE ALSO
+.BR sb2 (1)
+
+.SH AUTHOR
+.nf
+Mika Westerberg
+.fi

@@ -256,6 +256,14 @@ perl_lib_test = {
 	{ map_to = target_root, readonly = true }
 }
 
+-- /usr/bin/perl, /usr/bin/python and related tools should
+-- be mapped to target_root, but there are two exceptions:
+-- 1) perl and python scripts from tools_root need to get
+--    the interpreter from tools_root, too
+-- 2) if the program can not be found from target_root,
+--    but is present in tools_root, it will be used from
+--    tools. This produces a warnign, because it isn't always
+--    safe to do so.
 perl_bin_test = {
 	{ if_redirect_ignore_is_active = "/usr/bin/perl",
 	  map_to = target_root, readonly = true },
@@ -266,6 +274,10 @@ perl_bin_test = {
 	  map_to = target_root, readonly = true },
 	{ if_active_exec_policy_is = "Tools-perl",
 	  map_to = tools, readonly = true },
+	{ if_exists_then_map_to = target_root, readonly = true },
+	{ if_exists_then_map_to = tools,
+	  log_level = "warning", log_message = "Mapped to tools_root",
+	  readonly = true },
 	{ map_to = target_root, readonly = true }
 }
 
@@ -279,6 +291,10 @@ python_bin_test = {
 	  map_to = target_root, readonly = true },
 	{ if_active_exec_policy_is = "Tools-python",
 	  map_to = tools, readonly = true },
+	{ if_exists_then_map_to = target_root, readonly = true },
+	{ if_exists_then_map_to = tools,
+	  log_level = "warning", log_message = "Mapped to tools_root",
+	  readonly = true },
 	{ map_to = target_root, readonly = true }
 }
 

@@ -1,3 +1,11 @@
+scratchbox2 (2.2rc3-1) unstable; urgency=low
+
+  * "accel" mode: More rules for /usr/bin/perl, /usr/bin/python and
+    related tools. These are now mapped to tools_root if the tool does
+    not exist in target_root.
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Mon, 23 Dec 2010 12:56:00 +0200
+
 scratchbox2 (2.2rc2-1) unstable; urgency=low
 
   * Manual pages were updated (by Lauri Aarnio)

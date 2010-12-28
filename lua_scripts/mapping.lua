@@ -351,6 +351,19 @@ function sbox_execute_replace_rule(path, replacement, rule_selector)
 	return ret
 end
 
+function rule_logging(rule, path)
+	if (rule.log_level) then
+		if (rule.log_message) then
+			sb.log(rule.log_level, string.format("%s (%s)",
+				rule.log_message, path))
+		else
+			-- default message = log path
+			sb.log(rule.log_level, string.format("path=(%s)", path))
+		end
+	end
+end
+
+
 -- returns exec_policy, path, flags
 function sbox_execute_conditional_actions(binary_name,
 		func_name, rp, path, rule_selector)
@@ -391,6 +404,7 @@ function sbox_execute_conditional_actions(binary_name,
 				if (action_candidate.exec_policy ~= nil) then
 					ret_exec_policy = action_candidate.exec_policy
 				end
+				rule_logging(action_candidate, path)
 				return ret_exec_policy, tmp_dest, ret_flags
 			end
 		elseif (action_candidate.if_active_exec_policy_is) then
@@ -402,6 +416,7 @@ function sbox_execute_conditional_actions(binary_name,
 						"selected by exec_policy %s",
 						ep.name))
 				end
+				rule_logging(action_candidate, path)
 				return sbox_execute_rule(binary_name,
 					func_name, rp, path,
 					rule_selector, action_candidate)
@@ -414,6 +429,7 @@ function sbox_execute_conditional_actions(binary_name,
 				if (debug_messages_enabled) then
 					sb.log("debug", "selected; redirect ignore is active")
 				end
+				rule_logging(action_candidate, path)
 				return sbox_execute_rule(binary_name,
 					func_name, rp, path,
 					rule_selector, action_candidate)
@@ -426,6 +442,7 @@ function sbox_execute_conditional_actions(binary_name,
 				if (debug_messages_enabled) then
 					sb.log("debug", "selected; redirect force is active")
 				end
+				rule_logging(action_candidate, path)
 				return sbox_execute_rule(binary_name,
 					func_name, rp, path,
 					rule_selector, action_candidate)
@@ -440,6 +457,7 @@ function sbox_execute_conditional_actions(binary_name,
 				if (debug_messages_enabled) then
 					sb.log("debug", "using default (unconditional) rule")
 				end
+				rule_logging(action_candidate, path)
 				return sbox_execute_rule(binary_name,
 					func_name, rp, path,
 					rule_selector, action_candidate)

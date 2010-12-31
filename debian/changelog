@@ -1,3 +1,9 @@
+scratchbox2 (2.2.0-1) unstable; urgency=low
+
+  * scratchbox 2.2 release!
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Fri, 31 Dec 2010 17:00:00 +0200
+
 scratchbox2 (2.2rc3-1) unstable; urgency=low
 
   * "accel" mode: More rules for /usr/bin/perl, /usr/bin/python and

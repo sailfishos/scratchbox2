@@ -28,7 +28,7 @@ endif
 CC = gcc
 CXX = g++
 LD = ld
-PACKAGE_VERSION = 2.2rc3
+PACKAGE_VERSION = 2.2.0
 
 ifeq ($(shell if [ -d $(SRCDIR)/.git ]; then echo y; fi),y)
 GIT_PV_COMMIT := $(shell git --git-dir=$(SRCDIR)/.git log -1 --pretty="format:%h" $(PACKAGE_VERSION) -- 2>/dev/null)

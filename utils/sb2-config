@@ -36,6 +36,7 @@ Commands:
     showlog                  show configuration log
     showenv		     show target-specific environment variables
     setenv VARIABLE VALUE    set target-specific environment variable
+    clearenv VARIABLE        set clearing for target-specific environment variable
     unsetenv VARIABLE        remove target-specific environment variable
 
 Examples:
@@ -123,6 +124,20 @@ function setenv_var()
 	log_config_action "sb2-config: setenv $varname=$value"
 }
 
+function clearenv_var()
+{
+	varname="$1"
+	[ -z "$varname" ] && usage
+
+	shift
+	value="$*"
+
+	mkdir -p "$SBOX_CONFIG_DIR/env_vars"
+	:>$SBOX_CONFIG_DIR/env_vars/$varname
+
+	log_config_action "sb2-config: clearenv $varname"
+}
+
 function unsetenv_var()
 {
 	varname="$1"
@@ -143,7 +158,13 @@ function showenv_vars()
 	if [ -d $SBOX_CONFIG_DIR/env_vars ]; then
 		count=$( ls $SBOX_CONFIG_DIR/env_vars/* 2>/dev/null | wc -l )
 		if [ "$count" -gt 0 ]; then
-			cat $SBOX_CONFIG_DIR/env_vars/*
+			for i in $SBOX_CONFIG_DIR/env_vars/*; do
+				if [ -s "$i" ]; then
+					echo declare -x `cat "$i"`
+				else
+					echo unset `basename "$i"`
+				fi
+			done
 		fi
 	fi
 	# else there are none.
@@ -206,6 +227,7 @@ case "$command" in
 showtarget)	echo $targetname;;
 showenv)	showenv_vars $*;;
 setenv)		setenv_var $*;;
+clearenv)	clearenv_var $*;;
 unsetenv)	unsetenv_var $*;;
 showlog)	show_config_log $targetname;;
 *)		usage;;

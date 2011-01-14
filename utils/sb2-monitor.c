@@ -282,6 +282,9 @@ static void read_env_vars_from_dir(const char *envdir)
 						varbuf[len-1] = '\0'; /* replace \n */
 						DEBUG_MSG("set '%s'\n", varbuf);
 						putenv(strdup(varbuf));
+					} else {
+						DEBUG_MSG("unset '%s'\n", ent->d_name);
+						unsetenv(ent->d_name);
 					}
 					
 				} else {

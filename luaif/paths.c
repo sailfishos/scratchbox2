@@ -1570,6 +1570,7 @@ static void sbox_map_path_internal(
 	strings = backtrace_symbols(buffer, nptrs);
 	for (i = 0; i < nptrs; i++)
 		SB_LOG(SB_LOGLEVEL_DEBUG, "%s\n", strings[i]);
+	free(strings);
 #endif
 	if (!virtual_orig_path || !*virtual_orig_path) {
 		/* an empty path shall always remain empty */

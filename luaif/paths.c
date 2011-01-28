@@ -1320,6 +1320,19 @@ static void sb_path_resolution_resolve_symlink(
 
 		SB_LOG(SB_LOGLEVEL_NOISE, "absolute symlink");
 		symlink_entries = split_path_to_path_entries(link_dest, &flags);
+
+		/* If we aren't resolving last component of path
+		 * then we have to clear out the "trailing slash
+		 * flag".  Without this we would end up with '/'
+		 * appended when any of the symlinks we traverse
+		 * ends up with slash ("a -> b/").
+		 *
+		 * We have to do the same for relative symlinks
+		 * (see below).
+		 */
+		if (virtual_path_work_ptr->pe_next)
+		     flags &= ~PATH_FLAGS_HAS_TRAILING_SLASH;
+
 		if (rest_of_virtual_path) {
 			append_path_entries(symlink_entries, rest_of_virtual_path);
 			rest_of_virtual_path = NULL;
@@ -1355,6 +1368,13 @@ static void sb_path_resolution_resolve_symlink(
 		}
 
 		link_dest_entries = split_path_to_path_entries(link_dest, &flags);
+
+		/* Avoid problems with symlinks containing trailing
+		 * slash ("a -> b/").
+		 */
+		if (virtual_path_work_ptr->pe_next)
+		     flags &= ~PATH_FLAGS_HAS_TRAILING_SLASH;
+
 		symlink_entries = append_path_entries(
 			dirnam_entries, link_dest_entries);
 		link_dest_entries = NULL;

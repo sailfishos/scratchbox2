@@ -81,6 +81,11 @@ fi
 
 SBOX_CONFIG_DIR=~/.scratchbox2/$TARGET/sb2.config.d 
 
+if [ -f $SBOX_CONFIG_DIR/debian.conf -a ! -s $SBOX_CONFIG_DIR/debian.conf ]; then
+	# sb2-upgrade-config called us when creating initial environment
+	exit 0
+fi
+
 if [ -f $SBOX_CONFIG_DIR/gcc.config.sh ]; then
 	# configured with a cross-compiler;
 	# get ARCH from the primary gcc config file
@@ -149,13 +154,17 @@ esac
 if [ ! -f $SBOX_CONFIG_DIR/debian.conf ]; then
 	# first time here (maybe upgrading the configuration);
 	# debian.conf does not exist. Create a temporary
-	# file, otherwise "sb2 -u" will fail to run because
+	# file, otherwise "sb2" will fail to run because
 	# this config file is mandatory now.
-	echo "# temporary debian.conf" >$SBOX_CONFIG_DIR/debian.conf
+	#
+	# Create empty config file to allow us detect loops -
+	# "sb2-upgrade-config" needs to be called to upgrade ld*.conf
+	# files but it will also try to execute us again...
+	: >$SBOX_CONFIG_DIR/debian.conf
 fi
 
 # test if dpkg-architecture exists and can be executed
-DPKG_ARCHITECTURE_FULLPATH=$(sb2 -u -t $TARGET -m devel which dpkg-architecture)
+DPKG_ARCHITECTURE_FULLPATH=$(sb2 -t $TARGET -m devel which dpkg-architecture)
 if [ $? != 0 ]; then
 	# Can't locate or run dpkg-architecture. Set the values here.
 	# FIXME: I'm still not sure if these settings are sane,

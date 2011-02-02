@@ -185,24 +185,51 @@ static char *symlink_for_exe_path(
 	return(pathbuf);
 }
 
-static const char *select_exe_path_for_sb2(
+/* Determine best possible path specification for executable.
+ *
+ * Returns string in newly allocated buffer, caller should deallocate it.
+ */
+static char *select_exe_path_for_sb2(
 	const char *orig_binary_name, const char *real_binary_name)
 {
-	/* Try to use the unmapped path (..orig..) if
-	 * possible, otherwise use the mapped path
-	 */
-
-	/* use absolute unmapped path if possible: */
-	if (orig_binary_name && (*orig_binary_name == '/')) {
-		SB_LOG(SB_LOGLEVEL_NOISE,
-		       "procfs_mapping -> orig.name '%s'", orig_binary_name);
-		return(orig_binary_name);
+	if (real_binary_name) {
+		/* real_binary_name contains host real path */
+		/* try to determine virtal real path */
+		char *exe = scratchbox_reverse_path("select_exe_path_for_sb2", real_binary_name);
+		if (exe)
+			return(exe);
+		return(strdup(real_binary_name));
 	}
-	/* Alternative: absolute mapped path: */
-	if (real_binary_name && (*real_binary_name == '/')) {
-		SB_LOG(SB_LOGLEVEL_NOISE,
-		       "procfs_mapping -> real name '%s'", real_binary_name);
-		return(real_binary_name);
+
+	if (orig_binary_name) {
+		/* only unmapped, unclean path is available */
+		char *rp;
+		char *reverse;
+		struct lua_instance *luaif = get_lua();
+
+		/* lua mapping is disabled at this point, need to enable it */
+		enable_mapping(luaif);
+		/* calculate host real path */
+		rp = canonicalize_file_name(real_binary_name);
+		disable_mapping(luaif);
+		release_lua(luaif);
+
+		if (!rp) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"select_exe_path_for_sb2(%s, %s):"
+				" error while determining real path: %s",
+				orig_binary_name,
+				real_binary_name,
+				strerror(errno));
+			return(NULL);
+		}
+
+		reverse = scratchbox_reverse_path("select_exe_path_for_sb2", rp);
+		if (reverse) {
+			free(rp);
+			rp = reverse;
+		}
+		return(rp);
 	}
 
 	SB_LOG(SB_LOGLEVEL_DEBUG,
@@ -235,15 +262,18 @@ static char *procfs_mapping_request_for_my_files(
 				"procfs_mapping_request_for_my_files:"
 				" real link is ok (%s,%s)",
 				full_path, link_dest);
+			free(exe_path_inside_sb2);
 			return(NULL);
 		}
 		/* must create a replacement: */
 		if (symlink_for_exe_path(
 		    pathbuf, sizeof(pathbuf), exe_path_inside_sb2, getpid())) {
+			free(exe_path_inside_sb2);
 			return(strdup(pathbuf));
 		}
 		/* oops, failed to create the replacement.
 		 * must use the real link, it points to wrong place.. */
+		free(exe_path_inside_sb2);
 		return(NULL);
 	}
 	return(NULL);
@@ -301,17 +331,20 @@ static char *procfs_mapping_request_for_other_files(
                         SB_LOG(SB_LOGLEVEL_DEBUG,
 			       "procfs_mapping_request_for_other_files:"
 			       " real link is ok (%s,%s)",
-			       full_path, link_dest);	
+			       full_path, link_dest);
+			free(exe_path_inside_sb2);
 			return(NULL);
 		}
 		/* must create a replacement: */
 		if (symlink_for_exe_path(
 		    pathbuf, sizeof(pathbuf), exe_path_inside_sb2, pid)) {
+			free(exe_path_inside_sb2);
 			return(strdup(pathbuf));
 		}
 		/* oops, failed to create the replacement.
                  * must use the real link, it points to wrong place.. 
 		 */
+		free(exe_path_inside_sb2);
 		return(NULL);
 	}
 	return(NULL);

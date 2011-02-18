@@ -1,3 +1,9 @@
+scratchbox2 (2.2.1-1) unstable; urgency=low
+
+  * Six bugfixes; three from Rafal Krypa and three from Karol Lewandowski
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Fri, 18 Feb 2011 19:52:00 +0200
+
 scratchbox2 (2.2.0-1) unstable; urgency=low
 
   * scratchbox 2.2 release!

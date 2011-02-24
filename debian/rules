@@ -39,8 +39,7 @@ install: build
 	# make lintian happy
 	rm -f debian/scratchbox2/usr/share/scratchbox2/host_usr
 	ln -sf ../.. debian/scratchbox2/usr/share/scratchbox2/host_usr
-	mv debian/scratchbox2/usr/lib/libsb2/* debian/libsb2/usr/lib/libsb2
-	rm -rf debian/scratchbox2/usr/lib/
+	mv debian/scratchbox2/usr/lib* debian/libsb2/usr/
 
 binary-arch: install
 	dh_testdir -a

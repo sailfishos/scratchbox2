@@ -837,6 +837,18 @@ function sb_execve_postprocess_cpu_transparency_executable(exec_policy,
 			new_envp = envp
 		end
 
+		hack_envp = { }
+		for i = 1, #new_envp do
+			if string.match(new_envp[i], "^GCONV_PATH=.*") or
+			   string.match(new_envp[i], "^NLSPATH=.*") or
+			   string.match(new_envp[i], "^LOCPATH=.*") then
+				-- skip
+			else
+				table.insert(hack_envp, new_envp[i])
+			end
+		end
+		new_envp, hack_envp = hack_envp, nil
+
 		-- libsb2 will replace LD_PRELOAD and LD_LIBRARY_PATH
 		-- env.vars, we don't need to worry about what the
 		-- application will see in those - BUT we need

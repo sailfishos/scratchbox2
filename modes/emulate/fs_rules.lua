@@ -68,13 +68,41 @@ rootdir_rules = {
 		{path = "/", use_orig_path = true},
 }
 
+-- "dpkg" needs special processing for some files:
+-- we don't want to access wrapped launcher scripts
+-- because we might be installing (over) them.
+-- This is used for e.g.
+--     /etc/osso-af-init/dbus-systembus.sh
+--     /usr/bin/scratchbox-launcher.sh
+emulate_mode_map_to_sb1compat_unless_dpkg = {
+	rules = {
+		{ prefix = "/",
+		  binary_name = "dpkg",
+		  map_to = target_root,
+		  readonly = target_root_is_readonly },
+		--
+		-- All other programs than dpkg:
+		{ prefix = "/",
+		  map_to = sb1_compat_dir,
+		  readonly = target_root_is_readonly},
+	}
+}
+
 emulate_mode_rules_usr = {
 	rules = {
-		{dir = "/usr/share", chain = devel_mode_rules_usr_share},
-
 		-- gdb wants to have access to our dynamic linker also.
 		{path = "/usr/lib/libsb2/ld-2.5.so", use_orig_path = true,
 		readonly = true},
+
+		{path = "/usr/bin/sb2-show", use_orig_path = true,
+		 readonly = true},
+		{path = "/usr/bin/sb2-qemu-gdbserver-prepare",
+		    use_orig_path = true, readonly = true},
+		{path = "/usr/bin/sb2-session", use_orig_path = true,
+		 readonly = true},
+
+		{ path = "/usr/bin/scratchbox-launcher.sh",
+                  rules = emulate_mode_map_to_sb1compat_unless_dpkg},
 
 		{dir = "/usr", map_to = target_root,
 		readonly = target_root_is_readonly}
@@ -83,9 +111,8 @@ emulate_mode_rules_usr = {
 
 emulate_mode_rules_etc = {
 	rules = {
-		{ path = "/etc/osso-af-init/dbus-systembus.sh",
-		  map_to = sb1_compat_dir,
-		  readonly = target_root_is_readonly},
+                { path = "/etc/osso-af-init/dbus-systembus.sh",
+                  rules = emulate_mode_map_to_sb1compat_unless_dpkg},
 
 		-- Following rules are needed because package
 		-- "resolvconf" makes resolv.conf to be symlink that
@@ -123,7 +150,7 @@ emulate_mode_rules_var = {
 
 -- /scratchbox or /targets
 -- Note that when you add/remove these, check
--- also that dpkg_chain rules match these.
+-- also that the special cases for dpkg match these.
 --
 emulate_mode_rules_scratchbox1 = {
 	rules = {
@@ -162,7 +189,6 @@ emulate_mode_rules_scratchbox1 = {
 
 mapall_chain = {
 	next_chain = nil,
-	binary = nil,
 	rules = {
 		{dir = session_dir, use_orig_path = true},
 
@@ -229,35 +255,8 @@ mapall_chain = {
 -- Used only when tools_root is set.
 local tools_chain = {
 	next_chain = mapall_chain,
-	binary = nil,
 	rules = {
 		{dir = tools_root, use_orig_path = true},
-	},
-}
-
-if (tools_root ~= nil) and (tools_root ~= "/") then
-	-- Tools root is set.
-	default_chain = tools_chain
-else
-	-- No tools_root.
-	default_chain = mapall_chain
-end
-
---
--- Special case for dpkg: we don't want to use wrapped
--- launcher scripts here because we might be installing
--- (over) them.
---
-local dpkg_chain = {
-	next_chain = default_chain,
-	binary = "dpkg",
-	rules = {
-		{ path = "/usr/bin/scratchbox-launcher.sh",
-		    map_to = target_root,
-		    readonly = target_root_is_readonly },
-		{ path = "/etc/osso-af-init/dbus-systembus.sh",
-		    map_to = target_root,
-		    readonly = target_root_is_readonly },
 	},
 }
 
@@ -269,15 +268,13 @@ override_nomap = {
 if (tools_root ~= nil) and (tools_root ~= "/") then
         -- Tools root is set.
         export_chains = {
-                dpkg_chain,
                 tools_chain,
                 mapall_chain
         }
 else
         -- No tools_root.
         export_chains = {
-                dpkg_chain,
-                default_chain
+                mapall_chain
         }
 end
 

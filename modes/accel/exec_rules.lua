@@ -66,12 +66,10 @@ else
 end
 
 tools_script_interp_rules = {
-	rules = {
 		{dir = "/scratchbox/tools/bin",
 		 replace_by = tools .. "/usr/bin", log_level = "warning"},
 
 		{prefix = "/", map_to = tools}
-	}
 }
 
 exec_policy_tools = {
@@ -198,9 +196,7 @@ exec_policy_host_os = {
 	log_message = "executing in host OS mode",
 
 	script_interpreter_rules = {
-		rules = {
 			{prefix = "/", use_orig_path = true}
-		}
 	},
 
 	-- native_app_ld_library_path* can be left undefined,
@@ -213,10 +209,7 @@ exec_policy_host_os = {
 --
 -- Note that the real path (mapped path) is used
 --  when looking up rules from here!
-devel_exec_policies = {
-	next_chain = nil,
-	binary = nil,
-	rules = {
+exec_policy_rules = {
 		-- Tools:
 		-- (tools must be listed first, the tools directory
 		-- might be under user's home directory)
@@ -244,11 +237,6 @@ devel_exec_policies = {
 		-- -----------------------------------------------
 		-- DEFAULT RULE (must exist):
 		{prefix = "/", exec_policy_name = "Host"}
-	}
-}
-
-exec_policy_chains = {
-	devel_exec_policies
 }
 
 -- This table lists all exec policies - this is used when the current

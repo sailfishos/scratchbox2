@@ -27,16 +27,8 @@ rule_file_interface_version = "100"
 -- disable the gcc toolchain tricks.
 enable_cross_gcc_toolchain = false
 
-nomap_chain = {
-	next_chain = nil,
-	binary = nil,
-	rules = {
+fs_mapping_rules = {
 		-- Don't map.
 		{prefix = "/", force_orig_path = true},
-	}
-}
-
-export_chains = {
-	nomap_chain
 }
 

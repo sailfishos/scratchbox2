@@ -69,20 +69,12 @@ local exec_policy_tools = {
 }
 
 -- Note that the real path (mapped path) is used when looking up rules!
-all_exec_policies_chain = {
-	next_chain = nil,
-	binary = nil,
-	rules = {
+exec_policy_rules = {
 		-- Tools binaries:
 		{prefix = tools_root, exec_policy_name = "Tools_root"},
 
 		-- DEFAULT RULE (must exist):
 		{prefix = "/", exec_policy_name = "Default"}
-	}
-}
-
-exec_policy_chains = {
-	all_exec_policies_chain
 }
 
 -- This table lists all exec policies - this is used when the current

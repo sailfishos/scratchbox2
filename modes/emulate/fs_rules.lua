@@ -48,6 +48,12 @@ end
 -- under cpu transparency = very slowly..)
 enable_cross_gcc_toolchain = false
 
+test_first_target_then_host_default_is_target = {
+	{ if_exists_then_map_to = target_root, readonly = true },
+	{ if_exists_then_map_to = "/", readonly = true },
+	{ map_to = target_root, readonly = true }
+}
+
 test_first_usr_bin_default_is_bin__replace = {
 	{ if_exists_then_replace_by = target_root.."/usr/bin", readonly = true },
 	{ replace_by = target_root.."/bin", readonly = true }
@@ -75,7 +81,6 @@ rootdir_rules = {
 --     /etc/osso-af-init/dbus-systembus.sh
 --     /usr/bin/scratchbox-launcher.sh
 emulate_mode_map_to_sb1compat_unless_dpkg = {
-	rules = {
 		{ prefix = "/",
 		  binary_name = "dpkg",
 		  map_to = target_root,
@@ -85,11 +90,9 @@ emulate_mode_map_to_sb1compat_unless_dpkg = {
 		{ prefix = "/",
 		  map_to = sb1_compat_dir,
 		  readonly = target_root_is_readonly},
-	}
 }
 
 emulate_mode_rules_usr = {
-	rules = {
 		-- gdb wants to have access to our dynamic linker also.
 		{path = "/usr/lib/libsb2/ld-2.5.so", use_orig_path = true,
 		readonly = true},
@@ -106,11 +109,9 @@ emulate_mode_rules_usr = {
 
 		{dir = "/usr", map_to = target_root,
 		readonly = target_root_is_readonly}
-	}
 }
 
 emulate_mode_rules_etc = {
-	rules = {
                 { path = "/etc/osso-af-init/dbus-systembus.sh",
                   rules = emulate_mode_map_to_sb1compat_unless_dpkg},
 
@@ -126,11 +127,9 @@ emulate_mode_rules_etc = {
 
 		{dir = "/etc", map_to = target_root,
 		 readonly = target_root_is_readonly}
-	}
 }
 
 emulate_mode_rules_var = {
-	rules = {
 		-- Following rule are needed because package
 		-- "resolvconf" makes resolv.conf to be symlink that
 		-- points to /etc/resolvconf/run/resolv.conf and
@@ -145,7 +144,6 @@ emulate_mode_rules_var = {
 		{dir = "/var", map_to = target_root,
 		readonly = target_root_is_readonly}
 		}
-	}
 }
 
 -- /scratchbox or /targets
@@ -153,7 +151,6 @@ emulate_mode_rules_var = {
 -- also that the special cases for dpkg match these.
 --
 emulate_mode_rules_scratchbox1 = {
-	rules = {
 		{ dir = "/targets", map_to = sb1_compat_dir,
 		  readonly = target_root_is_readonly},
 
@@ -184,12 +181,9 @@ emulate_mode_rules_scratchbox1 = {
 		--
 		{dir = "/scratchbox", replace_by = sb1_compat_dir,
 		 readonly = true, virtual_path = true},
-	}
 }
 
-mapall_chain = {
-	next_chain = nil,
-	rules = {
+emulate_mode_rules = {
 		{dir = session_dir, use_orig_path = true},
 
 		{path = sbox_cputransparency_cmd, use_orig_path = true,
@@ -205,8 +199,8 @@ mapall_chain = {
 		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
 		 readonly = true},
 
-		{dir = "/scratchbox", chain = emulate_mode_rules_scratchbox1},
-		{dir = "/targets", chain = emulate_mode_rules_scratchbox1},
+		{dir = "/scratchbox", rules = emulate_mode_rules_scratchbox1},
+		{dir = "/targets", rules = emulate_mode_rules_scratchbox1},
 
 		-- 
 		{prefix = "/tmp", replace_by = tmp_dir_dest},
@@ -219,6 +213,16 @@ mapall_chain = {
 
 		{prefix = sbox_dir .. "/share/scratchbox2",
 		 use_orig_path = true},
+
+		-- The real sbox_dir.."/lib/libsb2" must be available:
+		--
+		-- When libsb2 is installed to target we don't want to map
+		-- the path where it is found.  For example gdb needs access
+		-- to the library and dynamic linker, and these may be in
+		-- target_root, or under sbox_dir.."/lib/libsb2", or
+		-- under ~/.scratchbox2.
+		{dir = sbox_dir .. "/lib/libsb2",
+		 actions = test_first_target_then_host_default_is_target},
 
 		-- -----------------------------------------------
 		{prefix = sbox_user_home_dir, use_orig_path = true},
@@ -239,25 +243,22 @@ mapall_chain = {
 		-- sb2 was started.
 		{prefix = unmapped_workdir, use_orig_path = true},
 
-		{dir = "/usr", chain = emulate_mode_rules_usr},
-		{dir = "/etc", chain = emulate_mode_rules_etc},
-		{dir = "/var", chain = emulate_mode_rules_var},
+		{dir = "/usr", rules = emulate_mode_rules_usr},
+		{dir = "/etc", rules = emulate_mode_rules_etc},
+		{dir = "/var", rules = emulate_mode_rules_var},
 
-		{path = "/", chain = rootdir_rules},
+		{path = "/", rules = rootdir_rules},
 		{prefix = "/", map_to = target_root,
 		 readonly = target_root_is_readonly}
-	}
 }
 
 -- This allows access to tools with full host paths,
 -- this is needed for example to be able to
 -- start CPU transparency from tools.
 -- Used only when tools_root is set.
-local tools_chain = {
-	next_chain = mapall_chain,
-	rules = {
+local tools_rules = {
 		{dir = tools_root, use_orig_path = true},
-	},
+		{prefix = "/", rules = emulate_mode_rules},
 }
 
 -- do not try to remap files from this table at all
@@ -267,14 +268,9 @@ override_nomap = {
 
 if (tools_root ~= nil) and (tools_root ~= "/") then
         -- Tools root is set.
-        export_chains = {
-                tools_chain,
-                mapall_chain
-        }
+	fs_mapping_rules = tools_rules
 else
         -- No tools_root.
-        export_chains = {
-                mapall_chain
-        }
+	fs_mapping_rules = emulate_mode_rules
 end
 

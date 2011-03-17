@@ -44,10 +44,7 @@ if var_lib_dpkg_status_location == nil or var_lib_dpkg_status_location == "" the
 	var_lib_dpkg_status_location = tools_root .. "/var/lib/dpkg/status"
 end
 
-mapall_chain = {
-	next_chain = nil,
-	binary = nil,
-	rules = {
+fs_mapping_rules = {
 		{dir = session_dir, use_orig_path = true},
 
 		{path = sbox_cputransparency_cmd, use_orig_path = true,
@@ -124,10 +121,5 @@ mapall_chain = {
 		{path = "/", use_orig_path = true},
 		{prefix = "/", map_to = tools_root,
 		 readonly = tools_root_is_readonly}
-	}
-}
-
-export_chains = {
-	mapall_chain
 }
 

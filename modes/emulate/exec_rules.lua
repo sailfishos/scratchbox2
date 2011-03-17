@@ -35,23 +35,7 @@ emulate_mode_target_ld_library_path_suffix = nil
 emulate_mode_target_ld_library_path_suffix = nil
 
 if (conf_target_sb2_installed) then
-	--
-	-- When libsb2 is installed to target we don't want to map
-	-- the path where it is found.  For example gdb needs access
-	-- to the library and dynamic linker.  So here we insert special
-	-- rules on top of mapall_chain that prevents sb2 to map these
-	-- paths.
-	--
-	if (conf_target_libsb2_dir ~= nil) then
-		table.insert(mapall_chain.rules, 1,
-		    { prefix = conf_target_libsb2_dir, use_orig_path = true,
-		      readonly = true }) 
-	end
 	if (conf_target_ld_so ~= nil) then
-		table.insert(mapall_chain.rules, 1,
-		    { path = conf_target_ld_so, use_orig_path = true,
-		      readonly = true }) 
-
 		-- use dynamic libraries from target, 
 		-- when executing native binaries!
 		emulate_mode_target_ld_so = conf_target_ld_so
@@ -133,10 +117,7 @@ local exec_policy_tools = {
 
 
 -- Note that the real path (mapped path) is used when looking up rules!
-all_exec_policies_chain = {
-	next_chain = nil,
-	binary = nil,
-	rules = {
+exec_policy_rules = {
 		-- Tools. at least qemu might be used from there.
 		{prefix = tools, exec_policy_name = "Tools"},
 
@@ -152,11 +133,6 @@ all_exec_policies_chain = {
 
 		-- DEFAULT RULE (must exist):
 		{prefix = "/", exec_policy_name = "Default"}
-	}
-}
-
-exec_policy_chains = {
-	all_exec_policies_chain
 }
 
 -- This table lists all exec policies - this is used when the current

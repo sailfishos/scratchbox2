@@ -228,8 +228,8 @@ function reverse_rules(output_rules, input_rules)
 		if rule.virtual_path then
 			-- don't reverse virtual paths
 			print("-- virtual_path set, not reversing", n)
-		elseif rule.chain then
-			reverse_rules(output_rules, rule.chain.rules)
+		elseif rule.rules then
+			reverse_rules(output_rules, rule.rules)
 		else
 			reverse_one_rule(output_rules, rule, n)
 		end
@@ -273,6 +273,10 @@ function print_rules(rules)
 		if (rule.force_orig_path) then
 			print("\t force_orig_path=true,")
 		end
+		if (rule.binary_name) then
+			print("\t binary_name=\""..rule.binary_name.."\",")
+		end
+
 		-- FIXME: To be implemented. See the "TODO" list at top.
 		-- elseif (rule.actions) then
 		--	print("\t -- FIXME: handle 'actions'")
@@ -295,71 +299,16 @@ function print_rules(rules)
         print("-- Printed",table.maxn(rules),"rules")
 end
 
-function process_chains(chains_table)
-        local n
-
-	-- ensure that all chains have names
-        for n=1,table.maxn(chains_table) do
-		if chains_table[n].name then
-			chains_table[n].rev_name = string.format(
-				"reverse_chain__%s", chains_table[n].name)
-		else
-			chains_table[n].rev_name = string.format(
-				"reverse_chain_%d", n)
-		end
-	end
-
-        for n=table.maxn(chains_table),1,-1 do
-		if chains_table[n].noentry then
-			print("-- ========== ",n)
-			print("-- noentry")
-		else
-			print(string.format("-- ======= %s =======",
-				chains_table[n].rev_name))
-			print(string.format("%s = {", chains_table[n].rev_name))
-
-			if chains_table[n].next_chain then
-				print(string.format("    next_chain=%s,",
-					chains_table[n].next_chain.rev_name))
-			else
-				print("    next_chain=nil,")
-			end
-
-			if chains_table[n].binary then
-				print(string.format("    binary=\"%s\",",
-					chains_table[n].binary,"\n"))
-			else
-				print("    binary=nil,")
-			end
-
-			local output_rules = {}
-			local rev_rules = reverse_rules(output_rules, chains_table[n].rules)
-			if (allow_reversing) then
-				print("    rules={")
-				print_rules(rev_rules)
-				print("    }")
-			end
-			print("}")
-		end
-	end
-
-	if (allow_reversing) then
-		print("reverse_chains = {")
-		for n=1,table.maxn(chains_table) do
-			if chains_table[n].noentry then
-				print(string.format("    -- %d = noentry",n))
-			else
-				print(string.format("    reverse_chain_%d,",n))
-			end
-		end
-		print("}")
-	else
-		print("-- Failed to create reverse rules (" ..
-			reversing_disabled_message .. ")")
-		print("reverse_chains = nil")
-	end
-end
-
 print("-- Reversed rules from "..rule_file_path)
-process_chains(active_mode_mapping_rule_chains)
 
+local output_rules = {}
+local rev_rules = reverse_rules(output_rules, fs_mapping_rules)
+if (allow_reversing) then
+	print("reverse_fs_mapping_rules={")
+	print_rules(rev_rules)
+	print("}")
+else
+	print("-- Failed to create reverse rules (" ..
+		reversing_disabled_message .. ")")
+	print("reverse_fs_mapping_rules = nil")
+end

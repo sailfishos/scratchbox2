@@ -104,7 +104,7 @@ end
 -- A mode file must define these variables:
 --  1. rule_file_interface_version (string) is checked and must match,
 --     mismatch is a fatal error.
---  2. export_chains (array) contains mapping rule chains; this array
+--  2. fs_mapping_rules (array) contains mapping rules; this array
 --     is searched sequentially with the original (unmapped) path as the key
 -- Additionally, following variables may be modified:
 -- "enable_cross_gcc_toolchain" (default=true): All special processing
@@ -115,7 +115,6 @@ function load_and_check_rules()
 
 	-- initialize global variables:
 	rule_file_interface_version = nil
-	export_chains = {}
 
 	tools = tools_root
 	if (not tools) then
@@ -192,37 +191,19 @@ function load_and_check_rules()
 			"Fatal: Rule file interface version check failed: "..
 			"No version information in %s",
 			rule_file_path))
-		os.exit(99)
+		os.exit(89)
 	end
 	if rule_file_interface_version ~= current_rule_interface_version then
 		sb.log("error", string.format(
 			"Fatal: Rule file interface version check failed: "..
 			"got %s, expected %s", rule_file_interface_version,
 			current_rule_interface_version))
-		os.exit(99)
+		os.exit(88)
 	end
 
-	-- export_chains variable contains now the mapping rule chains
-	-- from the chunk
-	for i = 1,table.maxn(export_chains) do
-		-- fill in the default values
-		if (not export_chains[i].rules) then
-			export_chains[i].rules = {}
-		end
-		-- loop through the rules
-		for r = 1, table.maxn(export_chains[i].rules) do
-			export_chains[i].rules[r].lua_script = filename
-			if (export_chains[i].binary) then
-				export_chains[i].rules[r].binary_name = export_chains[i].binary
-			end
-			if (export_chains[i].rules[r].name == nil) then
-				export_chains[i].rules[r].name = 
-					string.format("rule:%d.%d",
-						i, r)
-			end
-		end
-		export_chains[i].lua_script = filename
-		table.insert(active_mode_mapping_rule_chains, export_chains[i])
+        if (type(fs_mapping_rules) ~= "table") then
+		sb.log("error", "'fs_mapping_rule' is not an array.");
+		os.exit(87)
 	end
 end
 
@@ -238,19 +219,19 @@ end
 
 enable_cross_gcc_toolchain = true
 
-active_mode_mapping_rule_chains = {}
+fs_mapping_rules = nil
 
 load_and_check_rules()
 
 -- load reverse mapping rules, if those have been created
 -- (the file does not exist during the very first round here)
-reverse_chains = nil
+reverse_fs_mapping_rules = nil
 if (sb.path_exists(rev_rule_file_path)) then
 	sb.log("debug", "Loading reverse rules")
 	do_file(rev_rule_file_path)
 end
 if (debug_messages_enabled) then
-	if reverse_chains ~= nil then
+	if reverse_fs_mapping_rules ~= nil then
 		sb.log("debug", "Loaded reverse rules")
 	else
 		sb.log("debug", "No reverse rules")
@@ -490,17 +471,16 @@ end
 
 -- returns rule and min_path_len, minimum length which is needed for
 -- successfull mapping.
-function find_rule(chain, func, full_path, binary_name)
+function find_rule(mapping_rules, func, full_path, binary_name)
 	local i = 0
-	local wrk = chain
 	local min_path_len = 0
 	if (debug_messages_enabled) then
 		sb.log("noise", string.format("find_rule for (%s)", full_path))
 	end
-	while (wrk) do
-		-- travel the chains and loop the rules in a chain
-		for i = 1, table.maxn(wrk.rules) do
-			local rule = wrk.rules[i]
+
+	-- FIXME: Fix indentation:
+		for i = 1, table.maxn(mapping_rules) do
+			local rule = mapping_rules[i]
 			-- sb.test_path_match() is implemented in C (better
 			-- performance). It returns <0 if full_path doesn't
 			-- match, min.length otherwise
@@ -509,6 +489,10 @@ function find_rule(chain, func, full_path, binary_name)
 			if min_path_len >= 0 then
 				-- Path matches, test if other conditions
 				-- exist and are also OK:
+				if rule.chain then
+					sb.log("error", "rule.chain is not supported (%s)", full_path)
+				end
+
 				if rule.func_name then
 					if string.match(func, rule.func_name) then
 						if (debug_messages_enabled) then
@@ -543,14 +527,14 @@ function find_rule(chain, func, full_path, binary_name)
 					end
 				end
 
-				if rule and rule.chain then
+				if rule and rule.rules then
 					-- if rule can be found from
 					-- a subtree, return it,
 					-- otherwise continue looping here.
 					local s_rule
 					local s_min_len
 					s_rule, s_min_len = find_rule(
-						rule.chain, func, full_path, binary_name)
+						rule.rules, func, full_path, binary_name)
 					if (s_rule ~= nil) then
 						return s_rule, s_min_len
 					end
@@ -576,8 +560,7 @@ function find_rule(chain, func, full_path, binary_name)
 				end
 			end
 		end
-		wrk = wrk.next_chain
-	end
+	
 	if (debug_messages_enabled) then
 		sb.log("noise", string.format("rule not found"))
 	end
@@ -633,18 +616,6 @@ function sbox_translate_path(rule, binary_name, func_name, path)
 	return rule, exec_policy_name, ret, ret_flags
 end
 
-function find_chain(chains_table, binary_name)
-	local n
-
-	for n=1,table.maxn(chains_table) do
-		if (not chains_table[n].noentry
-		    and (not chains_table[n].binary
-		   	 or binary_name == chains_table[n].binary)) then
-				return(chains_table[n])
-		end
-	end
-end
-
 -- sbox_get_mapping_requirements is called from libsb2.so before
 -- path resolution takes place. The primary purpose of this is to
 -- determine where to start resolving symbolic links; shorter paths than
@@ -654,20 +625,11 @@ end
 -- is a flag which controls optimizations in
 -- the path resolution code)
 function sbox_get_mapping_requirements(binary_name, func_name, full_path)
-	-- loop through the chains, first match is used
+	-- loop through the rules, first match is used
 	local min_path_len = 0
 	local rule = nil
-	local chain
 
-	chain = find_chain(active_mode_mapping_rule_chains, binary_name)
-	if (chain == nil) then
-		sb.log("error", string.format("Unable to find chain for: %s(%s)",
-			func_name, full_path))
-
-		return nil, false, 0, 0
-	end
-
-	rule, min_path_len = find_rule(chain, func_name, full_path, binary_name)
+	rule, min_path_len = find_rule(fs_mapping_rules, func_name, full_path, binary_name)
 	if (not rule) then
 		-- error, not even a default rule found
 		sb.log("error", string.format("Unable to find rule for: %s(%s)", func_name, full_path))
@@ -686,25 +648,21 @@ end
 -- sbox_reverse_path is called from libsb2.so
 -- returns "orig_path", "flags"
 function sbox_reverse_path(binary_name, func_name, full_path)
-	-- loop through the chains, first match is used
+	-- loop through the rules, first match is used
 	local min_path_len = 0
 	local rule = nil
-	local chain = nil
 
-	if (reverse_chains ~= nil) then
-		chain = find_chain(reverse_chains, binary_name)
-	end
-	if (chain == nil) then
+	if (reverse_fs_mapping_rules == nil) then
 		-- reverse mapping is an optional feature,
 		-- so it isn't really an error if the rule
 		-- can't be found.
-		sb.log("info", string.format("Unable to find REVERSE chain for: %s(%s)",
+		sb.log("info", string.format("REVERSE rules are not available: %s(%s)",
 			func_name, full_path))
 
 		return nil, 0
 	end
 
-	rule, min_path_len = find_rule(chain, func_name, full_path, binary_name)
+	rule, min_path_len = find_rule(reverse_fs_mapping_rules, func_name, full_path, binary_name)
 	if (not rule) then
 		-- not even a default rule found
 		sb.log("info", string.format("Unable to find REVERSE rule for: %s(%s)", func_name, full_path))

@@ -38,7 +38,7 @@ do_file(session_dir .. "/exec_config.lua")
 -- * new_filename should probably be replaced by integrating argv/envp
 --   mangling with the path mapping machinery.
 
-active_mode_exec_policy_chains = {}
+exec_policy_rules = nil
 
 all_exec_policies = nil
 
@@ -47,7 +47,7 @@ all_exec_policies = nil
 --  1. rule_file_interface_version (string) is checked and must match,
 --     mismatch is a fatal error.
 --  2. all_exec_policies (array)
---  3. exec_policy_chains (array) contains default execution policies;
+--  3. exec_policy_rules (array) contains default execution policies;
 --     real path (mapped path) is used as the key. A default exec_policy
 --     must be present.
 -- Additionally, following variables may be modified:
@@ -59,7 +59,7 @@ function load_and_check_exec_rules()
 
 	-- initialize global variables:
 	rule_file_interface_version = nil
-	exec_policy_chains = {}
+	exec_policy_rules = nil
 
 	tools = tools_root
 	if (not tools) then
@@ -90,13 +90,12 @@ function load_and_check_exec_rules()
 			"Fatal: Exec rule file interface version check failed: "..
 			"got %s, expected %s", rule_file_interface_version,
 			current_rule_interface_version))
-		os.exit(99)
+		os.exit(98)
 	end
 
-	-- Handle exec_policy_chains variable from the chunk
-	for i = 1,table.maxn(exec_policy_chains) do
-		table.insert(active_mode_exec_policy_chains,
-			exec_policy_chains[i])
+        if (type(exec_policy_rules) ~= "table") then
+		sb.log("error", "'fs_mapping_rule' is not an array.");
+		os.exit(97)
 	end
 end
 
@@ -368,21 +367,15 @@ function setenv_native_app_ld_preload(exec_policy, envp)
 end
 
 --
--- Tries to find exec_policy for given binary using exec_policy_chains.
+-- Tries to find exec_policy for given binary using exec_policy_rules.
 --
 -- Returns: 1, exec_policy when exec_policy was found, otherwise
 -- returns 0, nil.
 --
 function sb_find_exec_policy(binaryname, mapped_file)
-	local rule = nil
-	local chain = nil
+	local rule
 
-	chain = find_chain(active_mode_exec_policy_chains, binaryname)
-	if chain ~= nil then
-		sb.log("debug", "chain found, find rule for "..mapped_file)
-		-- func_name == nil
-		rule = find_rule(chain, nil, mapped_file, binary_name)
-	end
+	rule = find_rule(exec_policy_rules, nil, mapped_file, binary_name)
 	if rule ~= nil then
 		sb.log("debug", "rule found..")
 		return 1, rule.exec_policy_name
@@ -404,11 +397,11 @@ function check_rule_and_policy(rule, exec_policy_name, filename, mapped_file)
 
 	-- if exec_policy_name was not provided by the caller (i.e. not
 	-- provided by the mapping rule), look up the policy from
-	-- exec_policy_chains array.
+	-- exec_policy_rules array.
 	if (exec_policy_name == nil) then
 		local res
 
-		sb.log("debug", "trying exec_policy_chains..")
+		sb.log("debug", "trying exec_policy_rules..")
 		res, exec_policy_name = sb_find_exec_policy(binaryname, mapped_file)
 		if (res == 0) or (exec_policy_name == nil) then
 			-- there is no default policy for this mode

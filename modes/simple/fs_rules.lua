@@ -18,7 +18,6 @@ end
 qemu_binary_name = basename(sbox_cputransparency_cmd)
 
 simple_rules_usr = {
-	rules = {
 		{path = "/usr/bin/sb2-show",
 		 use_orig_path = true, readonly = true},
 
@@ -42,13 +41,9 @@ simple_rules_usr = {
 		{prefix = "/usr/lib/git-core", use_orig_path = true, readonly = true},
 
 		{dir = "/usr", map_to = tools},
-	}
 }
 
-simple_chain = {
-	next_chain = nil,
-	binary = nil,
-	rules = {
+fs_mapping_rules = {
 		-- -----------------------------------------------
 		-- 1. The session directory
 		{dir = session_dir, use_orig_path = true},
@@ -101,10 +96,5 @@ simple_chain = {
 		{prefix = tools, use_orig_path = true},
 		{path = "/", use_orig_path = true},
 		{prefix = "/", map_to = tools}
-	}
-}
-
-export_chains = {
-	simple_chain
 }
 

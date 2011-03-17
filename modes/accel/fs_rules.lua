@@ -154,11 +154,10 @@ message_catalog_test = {
 	{ map_to = target_root, readonly = true }
 }
 
--- =========== Mapping rule chains ===========
+-- =========== Mapping rules ===========
 
 -- "/bin/*"
 devel_mode_rules_bin = {
-	rules = {
 		-- -----------------------------------------------
 		-- 20. /bin/*:
 		-- tools that need special processing:
@@ -179,12 +178,10 @@ devel_mode_rules_bin = {
 
 		{dir = "/bin",
 		 actions = test_first_tools_default_is_target},
-	}
 }
 
 -- Used when dir = "/usr/share":
 devel_mode_rules_usr_share = {
-	rules = {
 		-- -----------------------------------------------
 		-- 1. General SB2 environment:
 
@@ -209,12 +206,10 @@ devel_mode_rules_usr_share = {
 		-- 100. DEFAULT RULES:
 		{prefix = "/usr/share",
 		 actions = test_first_target_then_tools_default_is_target},
-	}
 }
 
 -- Used when dir = "/usr/bin":
 devel_mode_rules_usr_bin = {
-	rules = {
 		-- -----------------------------------------------
 		-- 1. General SB2 environment:
 
@@ -248,22 +243,20 @@ devel_mode_rules_usr_bin = {
 		{prefix = "/usr/bin/python", actions = python_bin_test},
 
 		-- next, automatically generated rules for /usr/bin:
-		{name = "/usr/bin autorules", dir = "/usr/bin", chain = argvmods_rules_for_usr_bin,
+		{name = "/usr/bin autorules", dir = "/usr/bin", rules = argvmods_rules_for_usr_bin,
 		 virtual_path = true}, -- don't reverse these.
 
 		-- and finally, the default:
 		{name = "/usr/bin default rule", dir = "/usr/bin",
 		 actions = test_first_tools_default_is_target},
-	}
 }
 
 
 -- Used when dir = "/usr":
 devel_mode_rules_usr = {
-	rules = {
-		{dir = "/usr/share", chain = devel_mode_rules_usr_share},
+		{dir = "/usr/share", rules = devel_mode_rules_usr_share},
 
-		{name = "/usr/bin branch", dir = "/usr/bin", chain = devel_mode_rules_usr_bin},
+		{name = "/usr/bin branch", dir = "/usr/bin", rules = devel_mode_rules_usr_bin},
 
 		-- -----------------------------------------------
 		-- 40. /usr/lib/*
@@ -312,11 +305,9 @@ devel_mode_rules_usr = {
 		-- 100. DEFAULT for /usr/*:
 		{prefix = "/usr",
 		 actions = test_first_tools_default_is_target},
-	}
 }
 
 devel_mode_rules_etc = {
-	rules = {
 		-- -----------------------------------------------
 		-- 70. /etc/*
 		--
@@ -353,11 +344,9 @@ devel_mode_rules_etc = {
 		-- default rules:
 		{dir = "/etc",
 		 actions = test_first_target_then_tools_default_is_target},
-	}
 }
 
 devel_mode_rules_var = {
-	rules = {
 		-- -----------------------------------------------
 		-- 80. /var/*
 
@@ -393,12 +382,10 @@ devel_mode_rules_var = {
 		-- default rules:
 		{dir = "/var",
 		 actions = test_first_target_then_tools_default_is_target},
-	}
 }
 
 -- Path == "/":
 devel_mode_rules_scratchbox1 = {
-	rules = {
 		-- -----------------------------------------------
 		-- 98. Scratchbox 1 emulation rules
 		-- (some packages have hard-coded paths to the SB1 enviroment;
@@ -457,13 +444,9 @@ devel_mode_rules_scratchbox1 = {
 		-- otherwise, don't map /scratchbox, some people still
 		-- keep their projects there.
 		{prefix = "/scratchbox", use_orig_path = true},
-	}
 }
 
-simple_chain = {
-	next_chain = nil,
-	binary = nil,
-	rules = {
+fs_mapping_rules = {
 		-- -----------------------------------------------
 		-- 1. The session directory
 		{dir = session_dir, use_orig_path = true},
@@ -517,16 +500,16 @@ simple_chain = {
 
 		-- -----------------------------------------------
 		-- 40. /usr
-		{dir = "/usr", chain = devel_mode_rules_usr},
+		{dir = "/usr", rules = devel_mode_rules_usr},
 
 		-- -----------------------------------------------
 		-- 70. /etc/*
 		--
-		{dir = "/etc", chain = devel_mode_rules_etc},
+		{dir = "/etc", rules = devel_mode_rules_etc},
 
 		-- -----------------------------------------------
 		-- 80. /var/*
-		{dir = "/var", chain = devel_mode_rules_var},
+		{dir = "/var", rules = devel_mode_rules_var},
 
 		-- -----------------------------------------------
 		-- 85. /tmp
@@ -555,7 +538,7 @@ simple_chain = {
 		-- (some packages have hard-coded paths to the SB1 enviroment;
 		-- replace those by the correct locations in our environment)
 		-- (these are marked "virtual"; these won't be reversed)
-		{dir = "/scratchbox", chain = devel_mode_rules_scratchbox1},
+		{dir = "/scratchbox", rules = devel_mode_rules_scratchbox1},
 
 		-- -----------------------------------------------
 		-- 100. DEFAULT RULES:
@@ -568,18 +551,12 @@ simple_chain = {
 		-- but everything else defaults to the host system
 		-- (so that things like /mnt, /media and /opt are
 		-- used from the host)
-		{dir = "/bin", chain = devel_mode_rules_bin},
+		{dir = "/bin", rules = devel_mode_rules_bin},
 
 		{dir = "/sbin",
 		 actions = test_first_tools_default_is_target},
 
 		-- Default = Host, R/W access
 		{prefix = "/", use_orig_path = true}
-	}
-}
-
--- Path mapping rules.
-export_chains = {
-	simple_chain
 }
 

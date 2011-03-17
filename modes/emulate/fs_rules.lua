@@ -53,14 +53,19 @@ test_first_usr_bin_default_is_bin__replace = {
 	{ replace_by = target_root.."/bin", readonly = true }
 }
 
+-- Path == "/":
 rootdir_rules = {
-	rules = {
+		-- Special case for /bin/pwd: Some versions don't use getcwd(),
+		-- but instead the use open() + fstat() + fchdir() + getdents()
+		-- in a loop, and that fails if "/" is mapped to target_root.
+		{path = "/", binary_name = "pwd", use_orig_path = true},
+
+		-- All other programs:
 		{path = "/", func_name = ".*stat.*",
                     map_to = target_root, readonly = target_root_is_readonly },
 		{path = "/", func_name = ".*open.*",
                     map_to = target_root, readonly = target_root_is_readonly },
 		{path = "/", use_orig_path = true},
-	}
 }
 
 mapall_chain = {
@@ -225,17 +230,6 @@ local dpkg_chain = {
 	},
 }
 
--- Special case for /bin/pwd: Some versions don't use getcwd(),
--- but instead the use open() + fstat() + fchdir() + getdents()
--- in a loop, and that fails if "/" is mapped to target_root.
-local pwd_chain = {
-	next_chain = default_chain,
-	binary = "pwd",
-	rules = {
-		{path = "/", use_orig_path = true},
-	},
-}
-
 -- do not try to remap files from this table at all
 override_nomap = {
 	os.getenv("SSH_AUTH_SOCK"),
@@ -245,7 +239,6 @@ if (tools_root ~= nil) and (tools_root ~= "/") then
         -- Tools root is set.
         export_chains = {
                 dpkg_chain,
-                pwd_chain,
                 tools_chain,
                 mapall_chain
         }
@@ -253,7 +246,6 @@ else
         -- No tools_root.
         export_chains = {
                 dpkg_chain,
-                pwd_chain,
                 default_chain
         }
 end

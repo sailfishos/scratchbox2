@@ -3,16 +3,16 @@
 #DEBHELPER#
 #
 # This scripts checks whether
-# /usr/share/scratchbox2/lua_scripts/pathmaps/maemo is
+# /usr/share/scratchbox2/modes/maemo is
 # empty directory and if it is, it replaces it with
 # symlink pointing to 'devel'.  This is done because
 # during upgrade, dpkg doesn't handle changing directory
 # to symlink correctly.
 #
 
-pathmaps=/usr/share/scratchbox2/lua_scripts/pathmaps
+modes_dir=/usr/share/scratchbox2/modes
 
-if [ -L $pathmaps/maemo ]; then
+if [ -L $modes_dir/maemo ]; then
 	#
 	# If symlink is already in place we don't
 	# do anything.
@@ -26,9 +26,9 @@ fi
 # probably done some changes into mappings so we just issue
 # a warning.
 #
-if [ -d $pathmaps/maemo ]; then
-	if /bin/rmdir $pathmaps/maemo > /dev/null 2>&1; then
-		ln -ns devel $pathmaps/maemo
+if [ -d $modes_dir/maemo ]; then
+	if /bin/rmdir $modes_dir/maemo > /dev/null 2>&1; then
+		ln -ns devel $modes_dir/maemo
 	else
 		echo "Can't symlink maemo -> devel, directory is not empty"
 		exit 0

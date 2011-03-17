@@ -11,6 +11,10 @@
 -- possible to stat() the destination)
 --
 
+if not exec_engine_loaded then
+	do_file(session_dir .. "/lua_scripts/argvenvp.lua")
+end
+
 gcc_rule_file_path = session_dir .. "/gcc-conf.lua"
 
 default_rule = os.getenv("SBOX_ARGVMODS_USR_BIN_DEFAULT_RULE")

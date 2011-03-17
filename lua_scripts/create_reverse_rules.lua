@@ -14,6 +14,10 @@
 -- conditions. It might be possible to fix that, but "func_names" certainly
 -- complicate sorting of the generated reversing rules.
 
+if not exec_engine_loaded then
+	do_file(session_dir .. "/lua_scripts/argvenvp.lua")
+end
+
 allow_reversing = true	-- default = create reverse rules.
 reversing_disabled_message = ""
 

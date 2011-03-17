@@ -429,6 +429,10 @@ function sboxify_environment()
 		exit_error "Incorrect target config in ~/.scratchbox2/$SBOX_TARGET/sb2.config"
 	fi
 
+	if [ -z "$SBOX_MODES_DIR" ]; then
+		SBOX_MODES_DIR="$SBOX_DIR/share/scratchbox2/modes"
+	fi
+
 	# This refers to the primary toolchain.
 	# FIXME: $SBOX_TARGET_TOOLCHAIN_DIR should be removed completely,
 	# but currently the "install" mode needs it.
@@ -1247,6 +1251,7 @@ function initialize_new_sb2_session()
 	mkdir $SBOX_SESSION_DIR/proc
 	mkdir $SBOX_SESSION_DIR/rules
 	mkdir $SBOX_SESSION_DIR/rev_rules
+	mkdir $SBOX_SESSION_DIR/exec_rules
 
 	ln -s $SBOX_DIR/bin $SBOX_SESSION_DIR/bin
 	ln -s $SBOX_DIR/share $SBOX_SESSION_DIR/share
@@ -1323,35 +1328,40 @@ function write_configfiles_and_rules_for_new_session()
 {
 	# creating a new session..
 	ln -s $SBOX_LUA_SCRIPTS $SBOX_SESSION_DIR/lua_scripts
+	ln -s $SBOX_MODES_DIR $SBOX_SESSION_DIR/modes
 
 	# Create rulefiles and set up wrappers
 	if [ -n "$SB2_INTERNAL_MAPMODES" ]; then
 		for amm in $SB2_INTERNAL_MAPMODES; do
-			ifiles=`ls $SBOX_SESSION_DIR/lua_scripts/pathmaps/$amm/*.lua`
 			write_rules_to_session_dir \
-				$SBOX_SESSION_DIR/rules/$amm.lua $amm $ifiles
+				$SBOX_SESSION_DIR/rules/$amm.lua $amm \
+				$SBOX_SESSION_DIR/modes/$amm/fs_rules.lua
+			ln -s $SBOX_SESSION_DIR/modes/$amm/exec_rules.lua \
+				$SBOX_SESSION_DIR/exec_rules/$amm.lua
 
 			link_wrappers_for_mapmode $amm
 		done
 	fi
 
-	if [ -n "$SB2_EXTERNAL_RULEFILES" ]; then
-		for ammf in $SB2_EXTERNAL_RULEFILES; do
-			amm=`basename $ammf .lua`
-			write_rules_to_session_dir \
-				$SBOX_SESSION_DIR/rules/$amm.lua $amm $ammf
-
-			# FIXME: Currently it is not possible to specify
-			# wrappers with option -M (maybe another option
-			# should be added to fix that?)
-		done
-	fi
+	##if [ -n "$SB2_EXTERNAL_RULEFILES" ]; then
+	##	for ammf in $SB2_EXTERNAL_RULEFILES; do
+	##		amm=`basename $ammf .lua`
+	##		write_rules_to_session_dir \
+	##			$SBOX_SESSION_DIR/rules/$amm.lua $amm $ammf
+	##
+	##		# FIXME: Currently it is not possible to specify
+	##		# wrappers with option -M (maybe another option
+	##		# should be added to fix that?)
+	##	done
+	##fi
 
 	# use a hard link for the rule file name, it is better (faster) than
 	# a symlink. "Default.lua" will be loaded, if SBOX_SESSION_MODE is
 	# unset (as it is usually)
 	ln $SBOX_SESSION_DIR/rules/$SBOX_MAPMODE.lua \
 		$SBOX_SESSION_DIR/rules/Default.lua
+	ln $SBOX_SESSION_DIR/exec_rules/$SBOX_MAPMODE.lua \
+		$SBOX_SESSION_DIR/exec_rules/Default.lua
 
 	create_exec_config_file
 	create_common_sb2_conf_file_for_session
@@ -1407,7 +1417,8 @@ do
 	(t) SBOX_TARGET=$OPTARG ;;
 	(e) add_map_mode emulate ;;
 	(m) add_map_mode $OPTARG ;;
-	(M) add_external_map_mode $OPTARG ;;
+	## (M) add_external_map_mode $OPTARG ;;
+	(M) echo "Option -M is disabled (temporarily)"; exit 1 ;;
 	(s) SBOX_LUA_SCRIPTS=$OPTARG;;
 	(Z) SBOX_OPT_Z_NO_LD_SO_EXEC="y";;
 	(r) SBOX_CREATE_REVERSE_RULES="n";;

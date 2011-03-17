@@ -7,6 +7,7 @@
 
 debug = os.getenv("SBOX_MAPPING_DEBUG")
 debug_messages_enabled = sb.debug_messages_enabled()
+exec_engine_loaded = false
 
 -- This version string is used to check that the lua scripts offer 
 -- what the C files expect, and v.v.
@@ -34,9 +35,8 @@ session_dir = os.getenv("SBOX_SESSION_DIR")
 
 -- Load session-specific settings
 do_file(session_dir .. "/sb2-session.conf")
-do_file(session_dir .. "/exec_config.lua")
 
--- Load mapping- and exec functions
+-- Load path mapping functions
 --
 -- NOTE: "mapping.lua" loads the mapping mode config, which may be needed
 -- by "argvenvp.lua", so order is important!

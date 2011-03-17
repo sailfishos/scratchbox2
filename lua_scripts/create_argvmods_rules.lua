@@ -9,6 +9,10 @@
 --
 argvmods = {}
 
+if not exec_engine_loaded then
+	do_file(session_dir .. "/lua_scripts/argvenvp.lua")
+end
+
 local argvmods_source_file = session_dir .. "/lua_scripts/" ..
     os.getenv("SBOX_ARGVMODS_SOURCE_FILE")
 do_file(argvmods_source_file)

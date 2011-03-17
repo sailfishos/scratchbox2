@@ -118,6 +118,7 @@ multilib:
 gcc_bins = addr2line ar as cc c++ c++filt cpp g++ gcc gcov gdb gdbtui gprof ld nm objcopy objdump ranlib rdi-stub readelf run size strings strip
 host_prefixed_gcc_bins = $(foreach v,$(gcc_bins),host-$(v))
 
+sb2_modes = emulate tools simple accel nomap
 
 tarball:
 	@git archive --format=tar --prefix=sbox2-$(PACKAGE_VERSION)/ $(PACKAGE_VERSION) | bzip2 >sbox2-$(PACKAGE_VERSION).tar.bz2
@@ -130,14 +131,13 @@ install-noarch: regular
 	else install -d -m 755 $(prefix)/bin ; \
 	fi
 	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts
-	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps
-	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/emulate
-	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/tools
-	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/simple
-	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/devel
-	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/accel
-	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/nomap
-	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lua_scripts/pathmaps/install
+	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/modes
+	$(Q)(set -e; for d in $(sb2_modes); do \
+		install -d -m 755 $(prefix)/share/scratchbox2/modes/$$d; \
+		for f in $(SRCDIR)/modes/$$d/*; do \
+			install -c -m 644 $$f $(prefix)/share/scratchbox2/modes/$$d; \
+		done; \
+	done)
 
 	# "scripts" and "wrappers" are visible to the user in some 
 	# mapping modes, "lib" is for sb2's internal use
@@ -180,19 +180,7 @@ install-noarch: regular
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/create_argvmods_rules.lua $(prefix)/share/scratchbox2/lua_scripts/create_argvmods_rules.lua
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/create_argvmods_usr_bin_rules.lua $(prefix)/share/scratchbox2/lua_scripts/create_argvmods_usr_bin_rules.lua
 
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/emulate/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/emulate/
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/tools/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/tools/
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/simple/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/simple/
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/devel/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/devel/
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/accel/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/accel/
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/nomap/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/nomap/
-	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/pathmaps/install/*.lua $(prefix)/share/scratchbox2/lua_scripts/pathmaps/install/
-	$(Q)(set -e; cd $(prefix)/share/scratchbox2/lua_scripts/pathmaps; ln -sf devel maemo)
-
 	$(Q)install -c -m 644 $(SRCDIR)/modeconf/* $(prefix)/share/scratchbox2/modeconf/
-	$(Q)(set -e; cd $(prefix)/share/scratchbox2/modeconf; for f in *.devel; do \
-		b=`basename $$f .devel`; ln -sf $$f $$b.maemo; \
-	done)
 	$(Q)(set -e; cd $(prefix)/share/scratchbox2/modeconf; for f in sb2rc.devel *-*.devel; do \
 		b=`basename $$f .devel`; ln -sf $$f $$b.accel; \
 	done)

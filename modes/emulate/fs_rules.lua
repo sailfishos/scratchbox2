@@ -68,45 +68,68 @@ rootdir_rules = {
 		{path = "/", use_orig_path = true},
 }
 
-mapall_chain = {
-	next_chain = nil,
-	binary = nil,
+emulate_mode_rules_usr = {
 	rules = {
-		{dir = session_dir, use_orig_path = true},
+		{dir = "/usr/share", chain = devel_mode_rules_usr_share},
 
-		{path = sbox_cputransparency_cmd, use_orig_path = true,
-		 readonly = true},
+		-- gdb wants to have access to our dynamic linker also.
+		{path = "/usr/lib/libsb2/ld-2.5.so", use_orig_path = true,
+		readonly = true},
 
-		{path = "/usr/bin/sb2-show", use_orig_path = true,
-		 readonly = true},
-		{path = "/usr/bin/sb2-qemu-gdbserver-prepare",
-		    use_orig_path = true, readonly = true},
-		{path = "/usr/bin/sb2-session", use_orig_path = true,
-		 readonly = true},
+		{dir = "/usr", map_to = target_root,
+		readonly = target_root_is_readonly}
+	}
+}
 
-		{prefix = target_root, use_orig_path = true,
-		 readonly = target_root_is_readonly},
+emulate_mode_rules_etc = {
+	rules = {
+		{ path = "/etc/osso-af-init/dbus-systembus.sh",
+		  map_to = sb1_compat_dir,
+		  readonly = target_root_is_readonly},
 
-		-- ldconfig is static binary, and needs to be wrapped
-		-- Gdb needs some special parameters before it
-		-- can be run so we wrap it.
-		{prefix = "/sb2/wrappers",
-		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
-		 readonly = true},
-
-		-- 
-		-- Scratchbox 1 compatibility rules:
-		-- Note that when you add/remove these, check
-		-- also that dpkg_chain rules match these.
+		-- Following rules are needed because package
+		-- "resolvconf" makes resolv.conf to be symlink that
+		-- points to /etc/resolvconf/run/resolv.conf and
+		-- we want them all to come from host.
 		--
-		{ prefix = "/targets/", map_to = sb1_compat_dir,
+		{prefix = "/etc/resolvconf", force_orig_path = true,
+		 readonly = true},
+		{path = "/etc/resolv.conf", force_orig_path = true,
+		 readonly = true},
+
+		{dir = "/etc", map_to = target_root,
+		 readonly = target_root_is_readonly}
+	}
+}
+
+emulate_mode_rules_var = {
+	rules = {
+		-- Following rule are needed because package
+		-- "resolvconf" makes resolv.conf to be symlink that
+		-- points to /etc/resolvconf/run/resolv.conf and
+		-- we want them all to come from host.
+		--
+		{prefix = "/var/run/resolvconf", force_orig_path = true,
+		readonly = true},
+
+		--
+		{prefix = "/var/run", map_to = session_dir},
+
+		{dir = "/var", map_to = target_root,
+		readonly = target_root_is_readonly}
+		}
+	}
+}
+
+-- /scratchbox or /targets
+-- Note that when you add/remove these, check
+-- also that dpkg_chain rules match these.
+--
+emulate_mode_rules_scratchbox1 = {
+	rules = {
+		{ dir = "/targets", map_to = sb1_compat_dir,
 		  readonly = target_root_is_readonly},
-		{ path = "/usr/bin/scratchbox-launcher.sh",
-                  map_to = sb1_compat_dir,
-		  readonly = target_root_is_readonly},
-                { path = "/etc/osso-af-init/dbus-systembus.sh",
-                  map_to = sb1_compat_dir,
-		  readonly = target_root_is_readonly},
+
 		-- "policy-rc.d" checks if scratchbox-version exists, 
 		-- to detect if it is running inside scratchbox..
 		{prefix = "/scratchbox/etc/scratchbox-version",
@@ -134,26 +157,30 @@ mapall_chain = {
 		--
 		{dir = "/scratchbox", replace_by = sb1_compat_dir,
 		 readonly = true, virtual_path = true},
+	}
+}
 
-		-- gdb wants to have access to our dynamic linker also.
-		{path = "/usr/lib/libsb2/ld-2.5.so", use_orig_path = true,
-		 readonly = true},
+mapall_chain = {
+	next_chain = nil,
+	binary = nil,
+	rules = {
+		{dir = session_dir, use_orig_path = true},
 
-		--
-		-- Following 3 rules are needed because package
-		-- "resolvconf" makes resolv.conf to be symlink that
-		-- points to /etc/resolvconf/run/resolv.conf and
-		-- we want them all to come from host.
-		--
-		{prefix = "/var/run/resolvconf", force_orig_path = true,
-		 readonly = true},
-		{prefix = "/etc/resolvconf", force_orig_path = true,
-		 readonly = true},
-		{path = "/etc/resolv.conf", force_orig_path = true,
+		{path = sbox_cputransparency_cmd, use_orig_path = true,
 		 readonly = true},
 
-		--
-		{prefix = "/var/run", map_to = session_dir},
+		{prefix = target_root, use_orig_path = true,
+		 readonly = target_root_is_readonly},
+
+		-- ldconfig is static binary, and needs to be wrapped
+		-- Gdb needs some special parameters before it
+		-- can be run so we wrap it.
+		{prefix = "/sb2/wrappers",
+		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
+		 readonly = true},
+
+		{dir = "/scratchbox", chain = emulate_mode_rules_scratchbox1},
+		{dir = "/targets", chain = emulate_mode_rules_scratchbox1},
 
 		-- 
 		{prefix = "/tmp", replace_by = tmp_dir_dest},
@@ -185,6 +212,10 @@ mapall_chain = {
 		-- except that we don't map the directory tree where
 		-- sb2 was started.
 		{prefix = unmapped_workdir, use_orig_path = true},
+
+		{dir = "/usr", chain = emulate_mode_rules_usr},
+		{dir = "/etc", chain = emulate_mode_rules_etc},
+		{dir = "/var", chain = emulate_mode_rules_var},
 
 		{path = "/", chain = rootdir_rules},
 		{prefix = "/", map_to = target_root,

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# "ldd" wrapper for scratchbox 2, to be used in the "devel" mode
+# "ldd" wrapper for scratchbox 2, to be used in the "devel"/"accel" modes
 # (this wrapper requires that target tools are available
 # at "/target_root")
 #

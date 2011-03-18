@@ -17,6 +17,8 @@ if [ $(basename $my_path) != $(basename $0) ]; then
 	fi
 fi
 
+mapping_mode_for_dpkg_utils=accel
+
 function log_config_action()
 {
 	tstamp=`/bin/date '+%Y-%m-%d %H:%M:%S'`
@@ -161,7 +163,7 @@ if [ ! -f $SBOX_CONFIG_DIR/debian.conf ]; then
 fi
 
 # test if dpkg-architecture exists and can be executed
-DPKG_ARCHITECTURE_FULLPATH=$(sb2 -t $TARGET -m devel which dpkg-architecture)
+DPKG_ARCHITECTURE_FULLPATH=$(sb2 -t $TARGET -m $mapping_mode_for_dpkg_utils which dpkg-architecture)
 if [ $? != 0 ]; then
 	# Can't locate or run dpkg-architecture. Set the values here.
 	# FIXME: I'm still not sure if these settings are sane,
@@ -219,13 +221,13 @@ else
 	# always when a session is created (that happens if
 	# the debian build system settings are already active),
 	# so we must build a script which clears the settings:
-	sb2 -u -t $TARGET -m devel dpkg-architecture -a$DEBIAN_CPU |
+	sb2 -u -t $TARGET -m $mapping_mode_for_dpkg_utils dpkg-architecture -a$DEBIAN_CPU |
 		sed -e 's/=.*//' -e 's/^/unset /' >$SBOX_CONFIG_DIR/debian.tmp0.$$
 	echo "dpkg-architecture -a$DEBIAN_CPU" >>$SBOX_CONFIG_DIR/debian.tmp0.$$
 
 	# Now we can run the script.
 	cat $SBOX_CONFIG_DIR/debian.tmp0.$$ |
-		sb2 -u -t $TARGET -m devel >$SBOX_CONFIG_DIR/debian.tmp1.$$
+		sb2 -u -t $TARGET -m $mapping_mode_for_dpkg_utils >$SBOX_CONFIG_DIR/debian.tmp1.$$
 
 	# the "-aARCH" flag of dpkg-architecture affect the target
 	# settings only (e.g. DEB_HOST_*). If we are cross-compiling

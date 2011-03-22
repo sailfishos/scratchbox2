@@ -91,10 +91,12 @@ struct lua_instance {
  *     arguments and return value lists of lua functions
  *     sb_execve_map_script_interpreter() and
  *     sb_execve_postprocess() were modified.
+ * * Differences between "90" and "77"
+ *   - Initial version for sb2, vrs 2.3.x
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "77"
+#define SB2_LUA_C_INTERFACE_VERSION "90"
 
 extern struct lua_instance *get_lua(void);
 extern void release_lua(struct lua_instance *ptr);

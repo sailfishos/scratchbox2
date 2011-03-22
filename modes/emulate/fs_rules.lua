@@ -143,7 +143,6 @@ emulate_mode_rules_var = {
 
 		{dir = "/var", map_to = target_root,
 		readonly = target_root_is_readonly}
-		}
 }
 
 -- /scratchbox or /targets
@@ -199,6 +198,8 @@ emulate_mode_rules = {
 		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
 		 readonly = true},
 
+		-- 
+		-- Scratchbox 1 compatibility rules:
 		{dir = "/scratchbox", rules = emulate_mode_rules_scratchbox1},
 		{dir = "/targets", rules = emulate_mode_rules_scratchbox1},
 

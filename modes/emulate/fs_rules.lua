@@ -183,6 +183,7 @@ emulate_mode_rules_scratchbox1 = {
 }
 
 emulate_mode_rules = {
+		-- First paths that should never be mapped:
 		{dir = session_dir, use_orig_path = true},
 
 		{path = sbox_cputransparency_cmd, use_orig_path = true,
@@ -190,6 +191,8 @@ emulate_mode_rules = {
 
 		{prefix = target_root, use_orig_path = true,
 		 readonly = target_root_is_readonly},
+
+		{path = os.getenv("SSH_AUTH_SOCK"), use_orig_path = true},
 
 		-- ldconfig is static binary, and needs to be wrapped
 		-- Gdb needs some special parameters before it
@@ -260,11 +263,6 @@ emulate_mode_rules = {
 local tools_rules = {
 		{dir = tools_root, use_orig_path = true},
 		{prefix = "/", rules = emulate_mode_rules},
-}
-
--- do not try to remap files from this table at all
-override_nomap = {
-	os.getenv("SSH_AUTH_SOCK"),
 }
 
 if (tools_root ~= nil) and (tools_root ~= "/") then

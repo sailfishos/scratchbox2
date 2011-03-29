@@ -81,10 +81,10 @@ fi
 
 SBOX_CONFIG_DIR=~/.scratchbox2/$TARGET/sb2.config.d 
 
-if [ -f $SBOX_CONFIG_DIR/debian.conf -a ! -s $SBOX_CONFIG_DIR/debian.conf ]; then
-	# sb2-upgrade-config called us when creating initial environment
-	exit 0
-fi
+# Handle recursive execution gracefully
+# (due to sb2-upgrade-config).
+[ "$SBOX_CONFIG_DEBIAN_UPGRADE" ] && exit 0
+export SBOX_CONFIG_DEBIAN_UPGRADE=yes
 
 if [ -f $SBOX_CONFIG_DIR/gcc.config.sh ]; then
 	# configured with a cross-compiler;
@@ -157,9 +157,6 @@ if [ ! -f $SBOX_CONFIG_DIR/debian.conf ]; then
 	# file, otherwise "sb2" will fail to run because
 	# this config file is mandatory now.
 	#
-	# Create empty config file to allow us detect loops -
-	# "sb2-upgrade-config" needs to be called to upgrade ld*.conf
-	# files but it will also try to execute us again...
 	: >$SBOX_CONFIG_DIR/debian.conf
 fi
 

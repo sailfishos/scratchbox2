@@ -63,6 +63,9 @@ Options:
                  target_root (rootstrap).
     -T dir       use "dir" as tools_root (overriding the value from config file)
     -u           Disable automatic configuration upgrade.
+    -g           Create a new session with setsid(); useful when executing
+                 commands in the background
+    -G file      Append process group number to "file"
 
 Examples:
     sb2 ./configure
@@ -1389,8 +1392,9 @@ OPT_CLONE_TARGET_ROOT_FROM=""
 OPT_SESSION_DIR=""
 SBOX_FORCED_TOOLS_ROOT=""
 OPT_DONT_UPGRADE_CONFIGURATION=""
+OPTS_FOR_SB2_MONITOR=""
 
-while getopts vdht:em:s:L:Q:M:ZrRS:J:D:W:O:cC:T:uf: foo
+while getopts vdht:em:s:L:Q:M:ZrRS:J:D:W:O:cC:T:uf:gG: foo
 do
 	case $foo in
 	(v) version; exit 0;;
@@ -1418,6 +1422,8 @@ do
 	(T) SBOX_FORCED_TOOLS_ROOT=$OPTARG ;;
 	(u) OPT_DONT_UPGRADE_CONFIGURATION="y" ;;
 	(f) SBOX_FAKEROOT_ARGS=$OPTARG ;;
+	(g) OPTS_FOR_SB2_MONITOR="$OPTS_FOR_SB2_MONITOR -g" ;;
+	(G) OPTS_FOR_SB2_MONITOR="$OPTS_FOR_SB2_MONITOR -G $OPTARG" ;;
 	(*) usage ;;
 	esac
 done
@@ -1648,14 +1654,14 @@ if [ $# -gt 0 -o "$STDIN" = true ]; then
 	binary="$1"
 	shift 1
 	args="$@"
-	exec $SBOX_FAKEROOT_PREFIX sb2-monitor \
+	exec $SBOX_FAKEROOT_PREFIX sb2-monitor $OPTS_FOR_SB2_MONITOR \
 		-L $SBOX_LIBSB2 \
 		-x $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
 		-e $SBOX_CONFIG_DIR/env_vars \
 		-- \
 		$SHELL -c "exec $SHELL -c '$binary $args'"
 else
-	exec $SBOX_FAKEROOT_PREFIX sb2-monitor \
+	exec $SBOX_FAKEROOT_PREFIX sb2-monitor $OPTS_FOR_SB2_MONITOR \
 		-L $SBOX_LIBSB2 \
 		-x $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
 		-e $SBOX_CONFIG_DIR/env_vars \

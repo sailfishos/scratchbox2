@@ -75,6 +75,14 @@ below.
 \-f args
 additional fakeroot arguments (see option -R)
 .TP
+\-g
+Create a new session with setsid(); useful when executing commands in the background
+(i.e. creates a system session and a new process group, and detaches from the
+controlling terminal. See setsid(2) for more info)
+.TP
+\-G file
+Append process group number to a file.
+.TP
 \-h
 Print help.
 .TP

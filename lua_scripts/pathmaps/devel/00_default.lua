@@ -666,6 +666,8 @@ devel_mode_rules_var = {
 		{prefix = "/var/log", map_to = target_root,
 		 readonly = true},
 
+		{dir = "/var/tmp", map_to = session_dir},
+
 		-- default rules:
 		{dir = "/var", map_to = tools, readonly = true},
 	}

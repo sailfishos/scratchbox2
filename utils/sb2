@@ -1239,6 +1239,8 @@ function initialize_new_sb2_session()
 		exit_error "Failed to create directory for session"
 	fi
 	mkdir $SBOX_SESSION_DIR/tmp
+	mkdir $SBOX_SESSION_DIR/var
+	mkdir $SBOX_SESSION_DIR/var/tmp
 	mkdir $SBOX_SESSION_DIR/proc
 	mkdir $SBOX_SESSION_DIR/rules
 	mkdir $SBOX_SESSION_DIR/rev_rules
@@ -1353,7 +1355,6 @@ function write_configfiles_and_rules_for_new_session()
 	create_gcc_conf_file_for_session
 
 	# Copy intial contents of /var/run from the rootstrap:
-	mkdir $SBOX_SESSION_DIR/var
 	if [ -d $SBOX_TARGET_ROOT/var ]; then
 		(cd $SBOX_TARGET_ROOT/var; find run -depth -print |
 			cpio -pamd $SBOX_SESSION_DIR/var 2>/dev/null)

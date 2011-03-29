@@ -66,11 +66,25 @@ static void usage_exit(const char *errmsg, int exitstatus)
 		"\t-d\tEnable debug messages\n"
 		"\t-L lib\tAdd 'lib' to LD_PRELOAD\n"
 		"\t-e envdir\tRead additional environment variables from 'envdir'\n"
+		"\t-g\tcreate a session and new process group by calling setsid()\n"
+		"\t-G pgrpfile\tappend process group ID to 'pgrpfile'\n"
 		"\nExample:\n"
 		"\t%s -x /bin/echo -- signaltester -n 5\n",
 		progname, progname, progname, progname);
 
 	exit(exitstatus);
+}
+
+static void set_process_group(pid_t new_pgrp)
+{
+	int r;
+
+	r = setpgid(0, new_pgrp);
+	DEBUG_MSG("set pgid to %d %s\n", (int)new_pgrp,
+		r < 0 ? "(failed)" : "(succeeded)");
+	if (r < 0) {
+		DEBUG_MSG("err: %s\n", strerror(errno));
+	}
 }
 
 /* Signal handler, which relays the signal sent by kill() or sigqueue()
@@ -90,7 +104,8 @@ static void signal_handler(int sig, siginfo_t *info, void *ptr)
 {
 	(void)ptr; /* unused param */
 
-	DEBUG_MSG("Got signal %d\n", sig);
+	DEBUG_MSG("Got signal %d (si_errno=%d,si_code=%d)\n",
+		sig, info->si_errno, info->si_code);
 
 	switch (sig) {
 	case SIGILL: case SIGFPE: case SIGSEGV:
@@ -106,6 +121,7 @@ static void signal_handler(int sig, siginfo_t *info, void *ptr)
 
 	case SIGCHLD:
 		if (info->si_code == CLD_STOPPED) {
+			DEBUG_MSG("SIGCHLD: CLD_STOPPED\n");
 			/* Job control needs special processing. Here the
 			 * child has been stopped - stop ourselves, too.
 			 * Now this is where things really get complicated:
@@ -116,10 +132,12 @@ static void signal_handler(int sig, siginfo_t *info, void *ptr)
 			 * must be changed back to the original value before
 			 * stopping ourselves..the story continues below..
 			*/
-			setpgid(0, original_process_group);
+			set_process_group(original_process_group);
 			
 			raise(SIGSTOP);
 			return;
+		} else {
+			DEBUG_MSG("SIGCHLD: other\n");
 		}
 		break;
 	
@@ -129,7 +147,8 @@ static void signal_handler(int sig, siginfo_t *info, void *ptr)
 		 * to be changed again away from the process group that
 		 * is used by child_pid.
 		*/
-		setpgid(0, new_process_group);
+		DEBUG_MSG("SIGCONT\n");
+		set_process_group(new_process_group);
 		break;
 	}
 
@@ -278,11 +297,11 @@ static void read_env_vars_from_dir(const char *envdir)
 	}
 }
 
-
 int main(int argc, char *argv[])
 {
 	int	status;
-	int	pipe_fds[2];
+	int	child2_to_master_pipe_fds[2];
+	int	master_to_child2_pipe_fds[2];
 	char	ch;
 	char	*command_to_exec_at_end = NULL;
 	int	opt;
@@ -292,16 +311,20 @@ int main(int argc, char *argv[])
 	char	*sbox_libsb2 = NULL;
 	int	resultcode;
 	char	*envdir = NULL;
+	int	new_session = 0;
+	char	*pgrpfile = NULL;
 
 	progname = argv[0];
 	
-	while ((opt = getopt(argc, argv, "L:x:dhe:")) != -1) {
+	while ((opt = getopt(argc, argv, "L:x:dhe:gG:")) != -1) {
 		switch (opt) {
 		case 'L': sbox_libsb2 = optarg; break;
 		case 'h': usage_exit(NULL, 0); break;
 		case 'd': debug = 1; break;
 		case 'x': command_to_exec_at_end = optarg; break;
 		case 'e': envdir = optarg; break;
+		case 'g': new_session = 1; break;
+		case 'G': pgrpfile = optarg; break;
 		default: usage_exit("Illegal option", 1); break;
 		}
 	}
@@ -309,7 +332,25 @@ int main(int argc, char *argv[])
 	if (optind >= argc) 
 		usage_exit("Wrong number of parameters", 1);
 
+	if (new_session) {
+		if (setsid() < 0) {
+			fprintf(stderr,
+				"%s: failed to create a new session (setsid() failed)\n", progname);
+		}
+	}
+
 	original_process_group = getpgrp();
+
+	if (pgrpfile) {
+		FILE *pfile;
+		if ((pfile = fopen(pgrpfile, "a")) == NULL) {
+			fprintf(stderr,
+				"%s: failed to open %s\n", progname, pgrpfile);
+		} else {
+			fprintf(pfile, "%d\n", (int)original_process_group);
+			fclose(pfile);
+		}
+	}
 
 	DEBUG_MSG("PGID=%d\n", (int)getpgrp());
 
@@ -421,7 +462,8 @@ int main(int argc, char *argv[])
 	 * N.B. When the process group has been changed, this process won't
 	 * be able to receive keyboard-generated signals (intr,tstp,..) anymore.
 	*/
-	if (pipe(pipe_fds) < 0) usage_exit("pipe() failed", 1);
+	if (pipe(child2_to_master_pipe_fds) < 0) usage_exit("pipe() failed", 1);
+	if (pipe(master_to_child2_pipe_fds) < 0) usage_exit("pipe() failed", 1);
 	new_process_group = fork();
 	switch (new_process_group) {
 	case -1:
@@ -436,26 +478,46 @@ int main(int argc, char *argv[])
 		 * never arrives - purpose of the pipe is only to keep
 		 * the PID reserved until the parent dies.
 		*/
+		DEBUG_MSG("2nd child\n");
 #ifdef __APPLE__
 		setpgrp(0, 0); /* change process group to
 				* avoid signals*/
 #else
 		setpgrp();
 #endif
-		close(pipe_fds[1]); /* close W-end */
-		while (read(pipe_fds[0], &ch, 1) > 0);
-		DEBUG_MSG("dummy child: done\n");
+		close(child2_to_master_pipe_fds[0]); /* close R-end */
+		close(master_to_child2_pipe_fds[1]); /* close W-end */
+
+		/* process group has been created and changed, 
+		 * let the parent continue by writing a byte. */
+		if (write(child2_to_master_pipe_fds[1], "a", 1) == 1) {
+			while (read(master_to_child2_pipe_fds[0], &ch, 1) > 0);
+		}
+		DEBUG_MSG("2nd child: done\n");
 		exit(0);
 	}
+
+	close(child2_to_master_pipe_fds[1]); /* close W-end */
+
+	/* syncronize: read one byte from the second child.
+	 * This ensures that new_process_group has been created
+	 * by the 2nd child before this process continues; if
+	 * we wouldn't syncronize, set_process_group() (below)
+	 * may be executed before the 2nd child executes setpgrp(0,0)
+	 * => setpgid() fails inside set_process_group().
+	*/
+	if (read(child2_to_master_pipe_fds[0], &ch, 1) < 1) {
+		DEBUG_MSG("failed fo synchronize with the 2nd child\n");
+	} 
 
 	/* close R-end of the pipe. After this there is no need to
 	 * do anything considering the second child, it will die away
 	 * when the parent process dies and the W-end of the pipe is 
 	 * closed automatically.
 	*/
-	close(pipe_fds[0]); 
-		
-	setpgid(0, new_process_group); /* finally, change process group! */
+	close(master_to_child2_pipe_fds[0]);
+
+	set_process_group(new_process_group); /* finally, change process group! */
 	
 	/* now catch all signals that are sent to this PID,
 	 * but since the process group was just changed, this won't catch

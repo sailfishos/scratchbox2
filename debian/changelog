@@ -1,3 +1,14 @@
+scratchbox2 (2.2.2-2) unstable; urgency=low
+
+  * Added options -g and -G to sb2 (Lauri T. Aarnio)
+  * "devel" and "accel" modes map /var/tmp to a session-specific
+    tmp.dir (Lauri)
+  * Fixed a bug in sb2-monitor (Lauri)
+  * Minor fixes to "README" (Lauri)
+  * Fixed a bug in sb2-config-debian (Karol Lewandowski)
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Tue, 29 Mar 2011 12:27:00 +0300
+
 scratchbox2 (2.2.1-1) unstable; urgency=low
 
   * Six bugfixes; three from Rafal Krypa and three from Karol Lewandowski

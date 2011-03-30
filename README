@@ -2,6 +2,7 @@ SCRATCHBOX 2 README
 
 author: Lauri Leukkunen <lle@rahina.org>
 date:   2008-10-20
+(minor updates by Lauri T. Aarnio, 2011-03-29)
 
 
 
@@ -15,7 +16,8 @@ stated otherwise in the file itself.
 GENERAL NOTICE
 
 This is no longer only development code, it is expected to work.
-If it doesn't, please file a bug at: https://bugs.freedesktop.org/
+If it doesn't, please report bugs to the scratchbox development
+mailing list (scratchbox-devel@lists.scratchbox.org)
 
 
 INSTALLATION
@@ -23,23 +25,39 @@ INSTALLATION
 You need git to work with sbox2, get it from http://git.or.cz/.
 
 Clone the scratchbox 2 repository:
-$ git clone git://anongit.freedesktop.org/git/sbox2
+$ git clone git://gitorious.org/scratchbox2/scratchbox2.git
 or if behind a corporate firewall, use http:
-$ git clone http://anongit.freedesktop.org/git/sbox2.git
+$ git clone http://git.gitorious.org/scratchbox2/scratchbox2.git
+
+(the old git repository at freedesktop.org is not used anymore)
 
 For x86_64 hosts Scratchbox 2 automatically builds both i386
 and x86_64 versions of libsb2.so, for this reason you need
 to have the necessary 32bit support libs available (libc6-dev-i386,
 lib32gcc1 & co. on debian).
 
-To build SB2:
+There are two ways to build and install SB2:
 
-$ cd sbox2
-$ ./autogen.sh
-$ make install prefix=$HOME/sb2
+1) for Debian (and derivatives, including Ubuntu):
+
+	$ cd scratchbox2
+	$ dpkg-buildpackage -rfakeroot
+	$ cd ..
+	$ sudo dpkg -i libsb2*deb scratchbox2*deb
+
+2) for non-debian systems:
+
+	$ cd scratchbox2
+	$ ./autogen.sh
+	$ make install prefix=$HOME/sb2
+
+	(Perhaps adding $HOME/sb2/bin to your PATH is also a good idea, put
+	"export PATH=$PATH:$HOME/sb2/bin")
 
 You need Qemu for cpu-transparency. As of 2009-03, qemu-0.10.1 seems to work
-pretty well.
+pretty well. In addition to that, "fakeroot" and "realpath" are required;
+these are usually available in the host OS (or can be installed with the
+usual system management utilities, like "apt-get")
 
 Latest Qemu can be retrieved with: 
 
@@ -66,7 +84,7 @@ To complete sb2 target setup:
 $ mkdir $HOME/buildroot
 $ cd $HOME/buildroot
 $ cp -a $HOME/arm-2008q3/arm-none-linux-gnueabi/libc/{lib,etc,usr} .
-$ $HOME/sb2/bin/sb2-init my_target arm-none-linux-gnueabi-gcc
+$ sb2-init my_target arm-none-linux-gnueabi-gcc
 
 That will automatically generate a working target config for the compiler
 given on the command line and run sb2-build-libtool script to get you a
@@ -76,16 +94,10 @@ can always run it manually later.
 
 At this point you can simply run sb2:
 
-$ $HOME/sb2/bin/sb2
+$ sb2
 
 sb2-init made this target your default if you had no prior sb2 targets
 configured. To change the default use sb2-config -d your_target.
-
-Perhaps adding $HOME/sb2/bin to your PATH is also a good idea, put
-this in your $HOME/.bashrc:
--- snip --
-export PATH=$PATH:$HOME/sb2/bin
--- snip --
 
 After that you can run sb2 easily from anywhere and it'll just do its magic.
 Continuing the above examples, here's how to compile and run a simple

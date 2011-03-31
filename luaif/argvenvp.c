@@ -170,9 +170,9 @@ int sb_execve_preprocess(char **file, char ***argv, char ***envp)
 }
 
 /* Exec Postprocessing:
- * Called with "rule" and "exec_policy" already in lua's stack.
 */
-int sb_execve_postprocess(char *exec_type, 
+int sb_execve_postprocess(const char *exec_type, 
+	const char *exec_policy_name,
 	char **mapped_file,
 	char **filename,
 	const char *binary_name,
@@ -202,10 +202,7 @@ int sb_execve_postprocess(char *exec_type,
 
 	lua_getfield(luaif->lua, LUA_GLOBALSINDEX, "sb_execve_postprocess");
 
-	/* stack now contains "rule", "exec_policy" and "sb_execve_postprocess".
-	 * move "sb_execve_postprocess" to the bottom : */
-	lua_insert(luaif->lua, -3);
-
+	lua_pushstring(luaif->lua, exec_policy_name);
 	lua_pushstring(luaif->lua, exec_type);
 	lua_pushstring(luaif->lua, *mapped_file);
 	lua_pushstring(luaif->lua, *filename);
@@ -213,10 +210,10 @@ int sb_execve_postprocess(char *exec_type,
 	strvec_to_lua_table(luaif, *argv);
 	strvec_to_lua_table(luaif, *envp);
 
-	/* args: rule, exec_policy, exec_type, mapped_file, filename,
+	/* args: exec_policy_name, exec_type, mapped_file, filename,
 	 *	 binaryname, argv, envp
 	 * returns: res, mapped_file, filename, argc, argv, envc, envp */
-	lua_call(luaif->lua, 8, 7);
+	lua_call(luaif->lua, 7, 7);
 	
 	res = lua_tointeger(luaif->lua, -7);
 	switch (res) {
@@ -274,21 +271,22 @@ int sb_execve_postprocess(char *exec_type,
 }
 
 /* Map script interpreter:
- * Called with "rule" and "exec_policy" already in lua's stack,
- * leaves (possibly modified) "rule" and "exec_policy" to lua's stack.
 */
 char *sb_execve_map_script_interpreter(
+	const char *exec_policy_name,
 	const char *interpreter, 
 	const char *interp_arg, 
 	const char *mapped_script_filename,
 	const char *orig_script_filename,
 	char ***argv,
-	char ***envp)
+	char ***envp,
+	char **new_exec_policy_name)
 {
 	struct lua_instance *luaif;
 	char *mapped_interpreter;
 	int new_argc, new_envc;
 	int res;
+	char *nep;
 
 	luaif = get_lua();
 	if (!luaif) return(0);
@@ -304,18 +302,16 @@ char *sb_execve_map_script_interpreter(
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"sb_execve_map_script_interpreter: gettop=%d"
 		" interpreter=%s interp_arg=%s "
-		"mapped_script_filename=%s orig_script_filename=%s",
+		"mapped_script_filename=%s orig_script_filename=%s "
+		"exec_policy_name=%s",
 		lua_gettop(luaif->lua), interpreter, interp_arg,
-		mapped_script_filename, orig_script_filename);
+		mapped_script_filename, orig_script_filename,
+		exec_policy_name ? exec_policy_name : "NULL");
 
 	lua_getfield(luaif->lua, LUA_GLOBALSINDEX,
 		"sb_execve_map_script_interpreter");
 
-	/* stack now contains "rule", "exec_policy" and
-	 * "sb_execve_map_script_interpreter".
-	 * move "sb_execve_map_script_interpreter" to the bottom : */
-	lua_insert(luaif->lua, -3);
-
+	lua_pushstring(luaif->lua, exec_policy_name);
 	lua_pushstring(luaif->lua, interpreter);
 	if (interp_arg) lua_pushstring(luaif->lua, interp_arg);
 	else lua_pushnil(luaif->lua);
@@ -324,10 +320,10 @@ char *sb_execve_map_script_interpreter(
 	strvec_to_lua_table(luaif, *argv);
 	strvec_to_lua_table(luaif, *envp);
 
-	/* args: rule, exec_policy, interpreter, interp_arg, 
+	/* args: exec_policy_name, interpreter, interp_arg, 
 	 *	 mapped_script_filename, orig_script_filename,
 	 *	 argv, envp
-	 * returns: rule, policy, result, mapped_interpreter, #argv, argv,
+	 * returns: exec_policy_name, result, mapped_interpreter, #argv, argv,
 	 *	#envp, envp
 	 * "result" is one of:
 	 *  0: argv / envp were modified; mapped_interpreter was set
@@ -340,7 +336,7 @@ char *sb_execve_map_script_interpreter(
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"sb_execve_map_script_interpreter: call lua, gettop=%d",
 		lua_gettop(luaif->lua));
-	lua_call(luaif->lua, 8, 8);
+	lua_call(luaif->lua, 7, 7);
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"sb_execve_map_script_interpreter: return from lua, gettop=%d",
 		lua_gettop(luaif->lua));
@@ -350,6 +346,10 @@ char *sb_execve_map_script_interpreter(
 	
 	mapped_interpreter = (char *)lua_tostring(luaif->lua, -5);
 	if (mapped_interpreter) mapped_interpreter = strdup(mapped_interpreter);
+
+	nep = (char *)lua_tostring(luaif->lua, -7);
+	if (new_exec_policy_name)
+		*new_exec_policy_name = nep ? strdup(nep) : NULL;
 
 	res = lua_tointeger(luaif->lua, -6);
 	switch (res) {
@@ -368,22 +368,22 @@ char *sb_execve_map_script_interpreter(
 		strvec_free(*envp);
 		lua_string_table_to_strvec(luaif->lua, -1, envp, new_envc);
 
-		/* remove return values from the stack, leave rule & policy.  */
-		lua_pop(luaif->lua, 6);
+		/* remove return values from the stack */
+		lua_pop(luaif->lua, 7);
 		break;
 
 	case 1:
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"sb_execve_map_script_interpreter: argv&envp were not modified");
-		/* remove return values from the stack, leave rule & policy.  */
-		lua_pop(luaif->lua, 6);
+		/* remove return values from the stack */
+		lua_pop(luaif->lua, 7);
 		break;
 
 	case 2:
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"sb_execve_map_script_interpreter: use sbox_map_path_for_exec");
-		/* remove return values from the stack, leave rule & policy.  */
-		lua_pop(luaif->lua, 6);
+		/* remove return values from the stack  */
+		lua_pop(luaif->lua, 7);
 		if (mapped_interpreter) free(mapped_interpreter);
 		mapped_interpreter = NULL;
 		{
@@ -396,18 +396,22 @@ char *sb_execve_map_script_interpreter(
 				mapped_interpreter =
 					strdup(mapping_result.mres_result_buf);
 			}
+			nep = mapping_result.mres_exec_policy_name;
+			if (new_exec_policy_name)
+				*new_exec_policy_name = nep ? strdup(nep) : NULL;
 			free_mapping_results(&mapping_result);
 		}
 		SB_LOG(SB_LOGLEVEL_DEBUG, "sb_execve_map_script_interpreter: "
-			"interpreter=%s mapped_interpreter=%s",
-			interpreter, mapped_interpreter);
+			"interpreter=%s mapped_interpreter=%s policy=%s",
+			interpreter, mapped_interpreter,
+			nep ? nep : "NULL");
 		break;
 
 	case -1:
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"sb_execve_map_script_interpreter: exec denied");
-		/* remove return values from the stack, leave rule & policy.  */
-		lua_pop(luaif->lua, 6);
+		/* remove return values from the stack */
+		lua_pop(luaif->lua, 7);
 		if (mapped_interpreter) free(mapped_interpreter);
 		mapped_interpreter = NULL;
 		break;
@@ -415,8 +419,8 @@ char *sb_execve_map_script_interpreter(
 	default:
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"sb_execve_map_script_interpreter: Unsupported result %d", res);
-		/* remove return values from the stack, leave rule & policy.  */
-		lua_pop(luaif->lua, 6);
+		/* remove return values from the stack */
+		lua_pop(luaif->lua, 7);
 		break;
 	}
 
@@ -426,8 +430,11 @@ char *sb_execve_map_script_interpreter(
 	}
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
-		"sb_execve_map_script_interpreter: at exit, gettop=%d",
-		lua_gettop(luaif->lua));
+		"sb_execve_map_script_interpreter: at exit, gettop=%d "
+		"*new_exec_policy_name=%s",
+		lua_gettop(luaif->lua),
+		(new_exec_policy_name && *new_exec_policy_name) ?
+			*new_exec_policy_name : "NULL");
 	release_lua(luaif);
 	return mapped_interpreter;
 }
@@ -443,7 +450,7 @@ void sb_get_host_policy_ld_params(char **p_ld_preload, char **p_ld_lib_path)
 
 	if (getenv("SBOX_DISABLE_ARGVENVP")) {
 		SB_LOG(SB_LOGLEVEL_DEBUG, "sb_argvenvp disabled(E):");
-		return 0;
+		return;
 	}
 	luaif = get_lua();
 	if (!luaif) return;

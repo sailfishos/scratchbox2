@@ -48,6 +48,13 @@ typedef struct mapping_results_s {
 
 	/* filled if orig.virtual path was relative: */
 	char	*mres_virtual_cwd;
+
+	/* exec policy name
+	*/
+	char	*mres_exec_policy_name;
+
+	const char	*mres_error_text; /* NULL if OK */
+
 } mapping_results_t;
 
 extern void clear_mapping_results_struct(mapping_results_t *res);
@@ -70,9 +77,12 @@ extern int sb_execve_preprocess(char **file, char ***argv, char ***envp);
 extern char *emumode_map(const char *path);
 extern void sb_push_string_to_lua_stack(char *str);
 extern char *sb_execve_map_script_interpreter(const char *interpreter,
+	const char *exec_policy_name,
         const char *interp_arg, const char *mapped_script_filename,
-	const char *orig_script_filename, char ***argv, char ***envp);
-extern int sb_execve_postprocess(char *exec_type,
+	const char *orig_script_filename, char ***argv, char ***envp,
+	char **new_exec_policy_name);
+extern int sb_execve_postprocess(const char *exec_type,
+	const char *exec_policy_name,
 	char **mapped_file, char **filename, const char *binary_name,
 	char ***argv, char ***envp);
 extern void sb_get_host_policy_ld_params(char **popen_ld_preload, char **popen_ld_lib_path);

@@ -385,15 +385,7 @@ end
 
 -- ------------------------------------
 -- returns args_ok, rule, exec_policy_name
-function check_rule_and_policy(rule, exec_policy_name, filename, mapped_file)
-
-	-- First, if the rule is a string, something
-	-- has failed during the previous steps or mapping has been disabled;
-	-- => fail
-	if (type(rule) == "string") then
-		sb.log("debug", "check_rule_and_policy:Fail: "..rule)
-		return false, rule, exec_policy_name
-	end
+function check_exec_policy(exec_policy_name, filename, mapped_file)
 
 	-- if exec_policy_name was not provided by the caller (i.e. not
 	-- provided by the mapping rule), look up the policy from
@@ -407,37 +399,37 @@ function check_rule_and_policy(rule, exec_policy_name, filename, mapped_file)
 			-- there is no default policy for this mode
 			sb.log("notice",
 				"sb_execve_postprocess: No exec_policy for "..filename)
-			return false, rule, exec_policy_name
+			return false, exec_policy_name
 		end
 	end
 
 	-- Exec policy is OK.
 	
-	return true, rule, exec_policy_name
+	return true, exec_policy_name
 end
 
 -- ------------------------------------
 -- Script interpreter mapping.
 
 -- This is called from C:
--- returns: rule, policy, result, mapped_interpreter, #argv, argv, #envp, envp
+-- returns: policy, result, mapped_interpreter, #argv, argv, #envp, envp
 -- "result" is one of:
 --  0: argv / envp were modified; mapped_interpreter was set
 --  1: argv / envp were not modified; mapped_interpreter was set
 --  2: argv / envp were not modified; caller should call ordinary path 
 --	mapping to find the interpreter
 -- -1: deny exec.
-function sb_execve_map_script_interpreter(rule, exec_policy_name, interpreter,
+function sb_execve_map_script_interpreter(exec_policy_name, interpreter,
 	interp_arg, mapped_script_filename, orig_script_filename, argv, envp)
 
 	local args_ok
-	args_ok, rule, exec_policy_name = check_rule_and_policy(rule,
+	args_ok, exec_policy_name = check_exec_policy(
 		exec_policy_name, orig_script_filename, mapped_script_filename) 
 
 	if args_ok == false then
 		-- no exec policy. Deny exec, we can't find the interpreter
 		sb.log("error", "Unable to map script interpreter.");
-		return rule, exec_policy_name, -1, interpreter, #argv, argv, #envp, envp
+		return exec_policy_name, -1, interpreter, #argv, argv, #envp, envp
 	end
 
 	-- Exec policy found.
@@ -451,7 +443,7 @@ function sb_execve_map_script_interpreter(rule, exec_policy_name, interpreter,
 	end
 
 	if (exec_policy.script_deny_exec == true) then
-		return rule, exec_policy_name, -1, interpreter, #argv, argv, #envp, envp
+		return exec_policy_name, -1, interpreter, #argv, argv, #envp, envp
 	end
 
 	if (exec_policy.name == nil) then
@@ -478,10 +470,10 @@ function sb_execve_map_script_interpreter(rule, exec_policy_name, interpreter,
 		
 			if exec_policy.script_set_argv0_to_mapped_interpreter then
 				argv[1] = mapped_interpreter
-				return rule, exec_pol_2, 0, 
+				return exec_pol_2, 0, 
 					mapped_interpreter, #argv, argv, #envp, envp
 			else
-				return rule, exec_pol_2, 1, 
+				return exec_pol_2, 1, 
 					mapped_interpreter, #argv, argv, #envp, envp
 			end
 		else
@@ -494,7 +486,7 @@ function sb_execve_map_script_interpreter(rule, exec_policy_name, interpreter,
 	-- The default case:
 	-- exec policy says nothing about the script interpreters.
 	-- use ordinary path mapping to find it
-	return rule, exec_policy_name, 2, interpreter, #argv, argv, #envp, envp
+	return exec_policy_name, 2, interpreter, #argv, argv, #envp, envp
 end
 
 -- ------------------------------------
@@ -508,20 +500,13 @@ end
 --    0 = argc&argv were updated, OK to execute with the new params
 --    1 = ok to exec directly with orig.arguments
 
-function sb_execve_postprocess_native_executable(rule, exec_policy,
+function sb_execve_postprocess_native_executable(exec_policy,
 	exec_type, mapped_file, filename, argv, envp)
 
 	-- Native binary. See what we need to do with it...
 	sb.log("debug", string.format("sb_execve_postprocess: Native binary"))
 	
 	sb.log("debug", "Rule: apply exec_policy")
-
-	if (rule.prefix ~= nil) then
-		sb.log("debug", string.format("rule.prefix=%s", rule.prefix))
-	end
-	if (rule.path ~= nil) then
-		sb.log("debug", string.format("rule.path=%s", rule.path))
-	end
 
 	local new_argv = {}
 	local new_envp = envp
@@ -667,7 +652,7 @@ function pick_and_remove_elems_from_string_table(tbl,pattern)
 	return(res)
 end
 
-function sb_execve_postprocess_sbrsh(rule, exec_policy,
+function sb_execve_postprocess_sbrsh(exec_policy,
 	exec_type, mapped_file, filename, argv, envp)
 
 	local new_argv = split_to_tokens(sbox_cputransparency_method,"[^%s]+")
@@ -773,7 +758,7 @@ function sb_execve_postprocess_sbrsh(rule, exec_policy,
 		#new_envp, new_envp
 end
 
-function sb_execve_postprocess_cpu_transparency_executable(rule, exec_policy,
+function sb_execve_postprocess_cpu_transparency_executable(exec_policy,
     exec_type, mapped_file, filename, argv, envp)
 
 	sb.log("debug", "postprocessing cpu_transparency for " .. filename)
@@ -899,7 +884,7 @@ function sb_execve_postprocess_cpu_transparency_executable(rule, exec_policy,
 		return 0, new_filename, filename, #new_argv, new_argv,
 			#new_envp, new_envp
 	elseif cputransparency_method_is_sbrsh then
-		return sb_execve_postprocess_sbrsh(rule, exec_policy,
+		return sb_execve_postprocess_sbrsh(exec_policy,
     			exec_type, mapped_file, filename, argv, envp)
 	end
 
@@ -926,11 +911,11 @@ end
 
 
 -- This is called from C:
-function sb_execve_postprocess(rule, exec_policy_name, exec_type,
+function sb_execve_postprocess(exec_policy_name, exec_type,
 	mapped_file, filename, binaryname, argv, envp)
 
 	local args_ok
-	args_ok, rule, exec_policy_name = check_rule_and_policy(rule,
+	args_ok, exec_policy_name = check_exec_policy(
 		exec_policy_name, filename, mapped_file) 
 
 	if args_ok == false then
@@ -973,11 +958,11 @@ function sb_execve_postprocess(rule, exec_policy_name, exec_type,
 	-- the executable.
 
 	if (exec_type == "native") then
-		return sb_execve_postprocess_native_executable(rule,
+		return sb_execve_postprocess_native_executable(
 			exec_policy, exec_type, mapped_file,
 			filename, argv, envp)
 	elseif (exec_type == "cpu_transparency") then
-		return sb_execve_postprocess_cpu_transparency_executable(rule,
+		return sb_execve_postprocess_cpu_transparency_executable(
 			exec_policy, exec_type, mapped_file,
 			filename, argv, envp)
 	elseif (exec_type == "static") then

@@ -86,10 +86,15 @@ struct lua_instance {
  *   - added many wrappers (__*_chk(), etc)
  * * Differences between "75" and "74"
  *   - added features for union directory simulation
+ * * Differences between "77" and "75"
+ *   - Mapping rule is not anymore relayed to the exec logic;
+ *     arguments and return value lists of lua functions
+ *     sb_execve_map_script_interpreter() and
+ *     sb_execve_postprocess() were modified.
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "75"
+#define SB2_LUA_C_INTERFACE_VERSION "77"
 
 extern struct lua_instance *get_lua(void);
 extern void release_lua(struct lua_instance *ptr);

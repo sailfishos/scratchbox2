@@ -156,6 +156,7 @@ static int elf_hdr_match(const char *region, uint16_t match, int ei_data);
 static enum binary_type inspect_elf_binary(const char *);
 
 static int prepare_exec(const char *exec_fn_name,
+	char *exec_policy_name,
 	const char *orig_file, int file_has_been_mapped,
 	char *const *orig_argv, char *const *orig_envp,
 	enum binary_type *typep,
@@ -508,7 +509,8 @@ static int prepare_hashbang(
 	char **mapped_file,	/* In: script, out: mapped script interpreter */
 	char *orig_file,
 	char ***argvp,
-	char ***envpp)
+	char ***envpp,
+	char *exec_policy_name)
 {
 	int argc, fd, c, i, j, n;
 	char ch;
@@ -519,6 +521,7 @@ static int prepare_hashbang(
 	char *interp_arg = NULL;
 	char *tmp, *mapped_binaryname;
 	int result = 0;
+	char *nep;
 
 	if ((fd = open_nomap(*mapped_file, O_RDONLY)) < 0) {
 		/* unexpected error, just run it */
@@ -583,14 +586,17 @@ static int prepare_hashbang(
 
 	/* rule & policy are in the stack */
 	mapped_interpreter = sb_execve_map_script_interpreter(
+		exec_policy_name,
 		interpreter, interp_arg, *mapped_file, orig_file,
-		&new_argv, envpp);
+		&new_argv, envpp, &nep);
 
 	if (!mapped_interpreter) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"failed to map script interpreter=%s", interpreter);
 		return(-1);
 	}
+
+	exec_policy_name = nep;
 
 	/*
 	 * Binaryname (the one expected by the rules) comes still from
@@ -607,12 +613,13 @@ static int prepare_hashbang(
 	SB_LOG(SB_LOGLEVEL_DEBUG, "prepare_hashbang(): interpreter=%s,"
 			"mapped_interpreter=%s", interpreter,
 			mapped_interpreter);
-	/* rule & policy are in still stack */
 
 	/* feed this through prepare_exec to let it deal with
 	 * cpu transparency etc.
 	 */
-	result = prepare_exec("run_hashbang", mapped_interpreter,
+	result = prepare_exec("run_hashbang",
+		exec_policy_name,
+		mapped_interpreter,
 		1/*file_has_been_mapped, and rue&policy exist*/,
 		new_argv, *envpp,
 		(enum binary_type*)NULL,
@@ -1014,6 +1021,7 @@ static void change_environment_variable(
 
 
 static int prepare_exec(const char *exec_fn_name,
+	char *exec_policy_name,
 	const char *orig_file,
 	int file_has_been_mapped,
 	char *const *orig_argv,
@@ -1056,8 +1064,7 @@ static int prepare_exec(const char *exec_fn_name,
 	 * (host-* tools disable it)
 	*/
 	if (file_has_been_mapped) {
-		/* rule and policy already in stack
-		 * (e.g. we came back from run_hashbang()) */
+		/* (e.g. we came back from run_hashbang()) */
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"prepare_exec(): no double mapping, my_file = %s", my_file);
 		mapped_file = strdup(my_file);
@@ -1067,11 +1074,7 @@ static int prepare_exec(const char *exec_fn_name,
 		mapped_file = strdup(my_file);
 
 		/* we won't call sbox_map_path_for_exec() because mapping
-		 * is disabled; instead we must push a string to Lua's stack
-		 * which explains the situation to the Lua code
-		*/
-		sb_push_string_to_lua_stack("no mapping rule (mapping disabled)");
-		sb_push_string_to_lua_stack("no exec_policy (mapping disabled)");
+		 * is disabled.  */
 	} else {
 		/* now we have to do path mapping for my_file to find exactly
 		 * what is the path we're supposed to deal with
@@ -1082,14 +1085,14 @@ static int prepare_exec(const char *exec_fn_name,
 		sbox_map_path_for_exec("do_exec", my_file, &mapping_result);
 		mapped_file = (mapping_result.mres_result_buf ?
 			strdup(mapping_result.mres_result_buf) : NULL);
+		exec_policy_name = (mapping_result.mres_exec_policy_name ?
+			strdup(mapping_result.mres_exec_policy_name) : NULL);
 			
 		free_mapping_results(&mapping_result);
 
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"do_exec(): my_file = %s, mapped_file = %s",
 			my_file, mapped_file);
-
-		/* Note: the Lua stack now contains rule and policy objects */
 	}
 
 	/*
@@ -1109,7 +1112,7 @@ static int prepare_exec(const char *exec_fn_name,
 			/* prepare_hashbang() will call prepare_exec()
 			 * recursively */
 			ret = prepare_hashbang(&mapped_file, my_file,
-					&my_argv, &my_envp);
+					&my_argv, &my_envp, exec_policy_name);
 			break;
 
 		case BIN_HOST_DYNAMIC:
@@ -1117,6 +1120,7 @@ static int prepare_exec(const char *exec_fn_name,
 					mapped_file);
 
 			postprocess_result = sb_execve_postprocess("native",
+				exec_policy_name,
 				&mapped_file, &my_file, binaryname,
 				&my_argv, &my_envp);
 
@@ -1162,6 +1166,7 @@ static int prepare_exec(const char *exec_fn_name,
 			 * binaries may be able to get back..
 			*/
 			postprocess_result = sb_execve_postprocess("static",
+				exec_policy_name,
 				&mapped_file, &my_file, binaryname,
 				&my_argv, &my_envp);
 			if (postprocess_result < 0) {
@@ -1175,7 +1180,9 @@ static int prepare_exec(const char *exec_fn_name,
 					mapped_file);
 
 			postprocess_result = sb_execve_postprocess(
-				"cpu_transparency", &mapped_file, &my_file,
+				"cpu_transparency",
+				exec_policy_name,
+				&mapped_file, &my_file,
 				binaryname, &my_argv, &my_envp);
 
 			if (postprocess_result < 0) {
@@ -1245,7 +1252,8 @@ int do_exec(int *result_errno_ptr,
 		
 		new_envp = prepare_envp_for_do_exec(orig_file, binaryname, orig_envp);
 
-		r = prepare_exec(exec_fn_name, orig_file, 0, orig_argv, orig_envp,
+		r = prepare_exec(exec_fn_name, NULL/*exec_policy_name: not yet known*/,
+			orig_file, 0, orig_argv, orig_envp,
 			&type, &new_file, &new_argv, &new_envp);
 
 		if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
@@ -1305,7 +1313,8 @@ int sb2show__execve_mods__(
 
 	*new_envp = prepare_envp_for_do_exec(file, binaryname, orig_envp);
 
-	ret = prepare_exec("sb2show_exec", file, 0, orig_argv, orig_envp,
+	ret = prepare_exec("sb2show_exec", NULL/*exec_policy_name*/,
+		file, 0, orig_argv, orig_envp,
 		NULL, new_file, new_argv, new_envp);
 
 	if (!*new_file) *new_file = strdup(file);

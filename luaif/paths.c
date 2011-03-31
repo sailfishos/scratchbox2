@@ -768,13 +768,14 @@ static void check_mapping_flags(int flags, const char *fn)
 
 /* note: this expects that the lua stack already contains the mapping rule,
  * needed by sbox_translate_path (lua code).
- * at exit this always leaves the rule AND exec policy to stack!
+ * at exit the rule is still there.
 */
 static char *call_lua_function_sbox_translate_path(
 	const path_mapping_context_t *ctx,
 	int result_log_level,
 	const char *abs_clean_virtual_path,
-	int *flagsp)
+	int *flagsp,
+	char **exec_policy_name_ptr)
 {
 	struct lua_instance	*luaif = ctx->pmc_luaif;
 	int flags;
@@ -813,7 +814,21 @@ static char *call_lua_function_sbox_translate_path(
 	flags = lua_tointeger(luaif->lua, -1);
 	check_mapping_flags(flags, "sbox_translate_path");
 	if (flagsp) *flagsp = flags;
-	lua_pop(luaif->lua, 2); /* leave rule and policy to the stack */
+
+	if (exec_policy_name_ptr) {
+		char *exec_policy_name;
+
+		if (*exec_policy_name_ptr) {
+			free(*exec_policy_name_ptr);
+			*exec_policy_name_ptr = NULL;
+		}
+		exec_policy_name = (char *)lua_tostring(luaif->lua, -3);
+		if (exec_policy_name) {
+			*exec_policy_name_ptr = strdup(exec_policy_name);
+		}
+	}
+
+	lua_pop(luaif->lua, 3); /* leave the rule to the stack */
 
 	if (host_path) {
 		/* sometimes a mapping rule may create paths that contain
@@ -895,7 +910,7 @@ static char *call_lua_function_sbox_translate_path(
 
 /* - returns 1 if ok (then *min_path_lenp is valid)
  * - returns 0 if failed to find the rule
- * Note: this leave the rule to the stack!
+ * Note: this leaves the rule to the stack!
 */
 static int call_lua_function_sbox_get_mapping_requirements(
 	const path_mapping_context_t *ctx,
@@ -993,16 +1008,12 @@ static char *call_lua_function_sbox_reverse_path(
 /* ========== Path resolution: ========== */
 
 /* clean up path resolution environment from lua stack */
-#define drop_policy_from_lua_stack(luaif) drop_from_lua_stack(luaif,"policy")
-#define drop_rule_from_lua_stack(luaif) drop_from_lua_stack(luaif,"rule")
-
-static void drop_from_lua_stack(struct lua_instance *luaif,
-	const char *o_name)
+static void drop_rule_from_lua_stack(struct lua_instance *luaif)
 {
 	lua_pop(luaif->lua, 1);
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
-		"drop %s from stack: at exit, gettop=%d", o_name,
+		"drop rule from stack: at exit, gettop=%d",
 		lua_gettop(luaif->lua));
 }
 
@@ -1117,8 +1128,8 @@ static void sb_path_resolution(
 
 		prefix_mapping_result_host_path = call_lua_function_sbox_translate_path(
 			&ctx_copy, SB_LOGLEVEL_NOISE,
-			clean_virtual_path_prefix_tmp, &prefix_mapping_result_host_path_flags);
-		drop_policy_from_lua_stack(ctx->pmc_luaif);
+			clean_virtual_path_prefix_tmp, &prefix_mapping_result_host_path_flags,
+			&resolved_virtual_path_res->mres_exec_policy_name);
 		free(clean_virtual_path_prefix_tmp);
 	}
 
@@ -1232,9 +1243,9 @@ static void sb_path_resolution(
 					call_lua_function_sbox_translate_path(
 						&ctx_copy, SB_LOGLEVEL_NOISE,
 						virtual_path_prefix_to_map,
-						&prefix_mapping_result_host_path_flags);
+						&prefix_mapping_result_host_path_flags,
+						&resolved_virtual_path_res->mres_exec_policy_name);
 				free (virtual_path_prefix_to_map);
-				drop_policy_from_lua_stack(ctx->pmc_luaif);
 			} else {
 				/* "standard mapping", based on prefix or
 				 * exact match. Ok to skip sbox_translate_path()
@@ -1536,7 +1547,7 @@ static int relative_virtual_path_to_abs_path(
 
 /* make sure to use disable_mapping(m); 
  * to prevent recursive calls to this function.
- * Returns a pointer to an allocated buffer which contains the result.
+ * Returns results in *res.
  */
 static void sbox_map_path_internal(
 	const char *binary_name,
@@ -1647,13 +1658,8 @@ static void sbox_map_path_internal(
 				"sbox_map_path_internal: "
 				"conversion to absolute path failed "
 				"(can't map '%s')", mapping_result);
-			if (process_path_for_exec) {
-				/* can't map, but still need to leave "rule"
-				 * (string) and "policy" (nil) to the stack */
-				lua_pushstring(ctx.pmc_luaif->lua,
-					"mapping failed (failed to make it absolute)");
-				lua_pushnil(ctx.pmc_luaif->lua);
-			}
+			res->mres_error_text = 
+				"mapping failed; failed to make absolute path";
 			goto forget_mapping;
 		}
 
@@ -1685,13 +1691,8 @@ static void sbox_map_path_internal(
 				"path resolution failed [%s]",
 				func_name);
 			mapping_result = NULL;
-			if (process_path_for_exec) {
-				/* can't map, but still need to leave "rule"
-				 * (string) and "policy" (nil) to the stack */
-				lua_pushstring(ctx.pmc_luaif->lua, 
-					"mapping failed (path resolution path failed)");
-				lua_pushnil(ctx.pmc_luaif->lua);
-			}
+			res->mres_error_text = 
+				"mapping failed; path resolution path failed";
 		} else {
 			int	flags;
 
@@ -1701,14 +1702,12 @@ static void sbox_map_path_internal(
 
 			mapping_result = call_lua_function_sbox_translate_path(
 				&ctx, SB_LOGLEVEL_INFO,
-				resolved_virtual_path_res.mres_result_path, &flags);
+				resolved_virtual_path_res.mres_result_path, &flags,
+				&res->mres_exec_policy_name);
 			res->mres_readonly = (flags & SB2_MAPPING_RULE_FLAGS_READONLY);
 
-			if (process_path_for_exec == 0) {
-				/* ...and remove rule and policy from stack */
-				drop_policy_from_lua_stack(ctx.pmc_luaif);
-				drop_rule_from_lua_stack(ctx.pmc_luaif);
-			}
+			/* ...and remove rule from stack */
+			drop_rule_from_lua_stack(ctx.pmc_luaif);
 		}
 	forget_mapping:
 		free_mapping_results(&resolved_virtual_path_res);
@@ -1899,6 +1898,8 @@ void	clear_mapping_results_struct(mapping_results_t *res)
 	res->mres_result_path_was_allocated = 0;
 	res->mres_errno = 0;
 	res->mres_virtual_cwd = NULL;
+	res->mres_exec_policy_name = NULL;
+	res->mres_error_text = NULL;
 }
 
 void	free_mapping_results(mapping_results_t *res)
@@ -1907,6 +1908,8 @@ void	free_mapping_results(mapping_results_t *res)
 	if (res->mres_result_path_was_allocated && res->mres_result_path)
 		free(res->mres_result_path);
 	if (res->mres_virtual_cwd) free(res->mres_virtual_cwd);
+	if (res->mres_exec_policy_name) free(res->mres_exec_policy_name);
+	/* res->mres_error_text is a constant string, and not freed, ever */
 	clear_mapping_results_struct(res);
 }
 

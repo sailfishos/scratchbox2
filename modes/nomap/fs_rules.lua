@@ -32,7 +32,7 @@ nomap_chain = {
 	binary = nil,
 	rules = {
 		-- Don't map.
-		{prefix = "/", use_orig_path = true},
+		{prefix = "/", force_orig_path = true},
 	}
 }
 

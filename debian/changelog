@@ -1,11 +1,32 @@
-scratchbox2 (2.3.0) unstable; urgency=low
+scratchbox2 (2.3.1-1) unstable; urgency=low
+  
+  [ Lauri Aarnio ]
+  * NOTE: this is the first usable test version in the 2.3-development
+    series; this is still alpha-level quality, and even if it seems
+    to work quite well in my test environment, more testing is 
+    still needed.
+  * Highlights of the changes:
+  - "accel" mode replaced "devel" mode. Both names can be used,
+    but they refer to the same thing.
+  - "install" and "maemo_simple" modes were removed; these have not
+    been maintained since 2009, as far as I know. Please let us know
+    if these are still needed for something.
+  - Added proto-level support for union directories; added some
+    rules to the accel/devel mode that will use union directories
+    for aclocal and pkg-config (making an union from selected subdirs
+    from the target- and tools directories).
+  - Mapping modes were reorganized; rule files were split to two
+    parts (separate files for pathmapping- and exec policy rules),
+    and other mode-specific configuration files were moved, too.
+  - There are changes to the mapping rule format; The new one is
+    simpler and makes some planned future enhancements possible.
+    Most notably, the old "chains" layer was eliminated completely
+    from pathmapping rules.
+  - There are some cleanups and code reorganizations in the "engine
+    room" as well. In particular, the pathmapping code (in C) was moved
+    to a new subdirectory and split to modules (one file/module).
 
-  * Created a branch for development; this 2.3.0 is just
-    a another stamp for the starting point (2.2.2). Please
-    wait until the patches are in, the first somewhat refreshed
-    version will be 2.3.1..
-
- -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 31 Mar 2011 14:46:00 +0300
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 31 Mar 2011 15:18:00 +0300
 
 scratchbox2 (2.2.2-2) unstable; urgency=low
 

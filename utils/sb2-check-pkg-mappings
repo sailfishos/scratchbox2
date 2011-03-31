@@ -126,7 +126,7 @@ if [ "$check_if_out_of_date" = "yes" ]; then
 		echo
 		check_all_pkgs="yes"
 	elif [ $sbox_temp_dpkg_admin_dir/status -ot \
-	       $sbox_dir/share/scratchbox2/lua_scripts/pathmaps/$sbox_mapmode/00_default.lua ]; then
+	       $sbox_dir/share/scratchbox2/modes/$sbox_mapmode/fs_rules.lua ]; then
 		echo "SB2's mapping rules have been updated =>"
 		echo "$sbox_temp_dpkg_admin_dir/status might be out of date."
 		echo "going to update it now. This is going to take a while.."

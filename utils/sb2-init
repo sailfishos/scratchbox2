@@ -290,7 +290,7 @@ if [ -z "$MAPPING_MODE" ]; then
 	echo "Info: Mapping mode not specified, using default ($MAPPING_MODE)"
 fi
 
-if [ ! -d $SBOX_DIR/share/scratchbox2/lua_scripts/pathmaps/$MAPPING_MODE ]; then
+if [ ! -d $SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE ]; then
 	echo "Invalid mapping mode: $MAPPING_MODE"
 	exit 1
 fi

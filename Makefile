@@ -138,6 +138,8 @@ install-noarch: regular
 			install -c -m 644 $$f $(prefix)/share/scratchbox2/modes/$$d; \
 		done; \
 	done)
+	# "accel" == "devel" mode in 2.3.x:
+	$(Q)ln -sf accel $(prefix)/share/scratchbox2/modes/devel
 
 	# "scripts" and "wrappers" are visible to the user in some 
 	# mapping modes, "lib" is for sb2's internal use

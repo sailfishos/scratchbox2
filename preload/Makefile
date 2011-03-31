@@ -24,6 +24,7 @@ endif
 
 $(D)/libsb2.$(SHLIBEXT): $(call O,$(objs))
 $(D)/libsb2.$(SHLIBEXT): luaif/libluaif.a luaif/liblua.a
+$(D)/libsb2.$(SHLIBEXT): pathmapping/libpaths.a
 $(D)/libsb2.$(SHLIBEXT): CFLAGS := $(CFLAGS) -fPIC -Wall -W \
 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS)
 $(D)/libsb2.$(SHLIBEXT): LDFLAGS := $(LDFLAGS) $(LIBSB2_LDFLAGS)

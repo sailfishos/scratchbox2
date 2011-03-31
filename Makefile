@@ -145,7 +145,6 @@ install-noarch: regular
 	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/scripts
 	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/wrappers
 	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/tests
-	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/modeconf
 	@if [ -d $(prefix)/share/man/man1 ] ; \
 	then echo "$(prefix)/share/man/man1 present" ; \
 	else install -d -m 755 $(prefix)/share/man/man1 ; \
@@ -180,10 +179,6 @@ install-noarch: regular
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/create_argvmods_rules.lua $(prefix)/share/scratchbox2/lua_scripts/create_argvmods_rules.lua
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/create_argvmods_usr_bin_rules.lua $(prefix)/share/scratchbox2/lua_scripts/create_argvmods_usr_bin_rules.lua
 
-	$(Q)install -c -m 644 $(SRCDIR)/modeconf/* $(prefix)/share/scratchbox2/modeconf/
-	$(Q)(set -e; cd $(prefix)/share/scratchbox2/modeconf; for f in *-*.devel; do \
-		b=`basename $$f .devel`; ln -sf $$f $$b.accel; \
-	done)
 	$(Q)install -c -m 644 $(SRCDIR)/tests/* $(prefix)/share/scratchbox2/tests
 	$(Q)chmod a+x $(prefix)/share/scratchbox2/tests/run.sh
 

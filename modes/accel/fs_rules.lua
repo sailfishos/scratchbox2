@@ -200,8 +200,21 @@ devel_mode_rules_usr_share = {
 
 		-- -----------------------------------------------
 
-		{dir = "/usr/share/aclocal", map_to = target_root,
-		 readonly = true},
+		{path = "/usr/share/aclocal",
+			union_dir = {
+				target_root.."/usr/share/aclocal",
+				tools.."/usr/share/aclocal",
+			},
+			readonly = true,
+		},
+
+		{path = "/usr/share/pkgconfig",
+			union_dir = {
+				target_root.."/usr/share/pkgconfig",
+				tools.."/usr/share/pkgconfig",
+			},
+			readonly = true,
+		},
 
 		-- 100. DEFAULT RULES:
 		{prefix = "/usr/share",
@@ -274,6 +287,14 @@ devel_mode_rules_usr = {
 		{prefix = "/usr/lib/apt", map_to = tools, readonly = true},
 
 		{prefix = "/usr/lib/libfakeroot", map_to = tools, readonly = true},
+
+		{path = "/usr/lib/pkgconfig",
+			union_dir = {
+				target_root.."/usr/lib/pkgconfig",
+				tools.."/usr/lib/pkgconfig",
+			},
+			readonly = true,
+		},
 
 		{prefix = "/usr/lib",
 		 actions = test_first_target_then_tools_default_is_target},
@@ -441,9 +462,22 @@ devel_mode_rules_scratchbox1 = {
 		 log_level = "warning",
 		 readonly = true, virtual_path = true},
 
-		-- otherwise, don't map /scratchbox, some people still
-		-- keep their projects there.
-		{prefix = "/scratchbox", use_orig_path = true},
+		{path = "/targets/links/arch_tools/share/aclocal",
+			union_dir = {
+				target_root.."/usr/share/aclocal",
+				tools.."/usr/share/aclocal",
+			},
+		 	log_level = "warning",
+			readonly = true,
+		},
+		{dir = "/targets/links/arch_tools/share/aclocal",
+		 actions = test_usr_share_aclocal__replace,
+		 log_level = "warning",
+		 readonly = true, virtual_path = true},
+
+		-- otherwise, don't map it, some people still
+		-- keep their projects in /scratchbox.
+		{prefix = "/", use_orig_path = true},
 }
 
 fs_mapping_rules = {
@@ -539,6 +573,7 @@ fs_mapping_rules = {
 		-- replace those by the correct locations in our environment)
 		-- (these are marked "virtual"; these won't be reversed)
 		{dir = "/scratchbox", rules = devel_mode_rules_scratchbox1},
+		{dir = "/targets", rules = devel_mode_rules_scratchbox1},
 
 		-- -----------------------------------------------
 		-- 100. DEFAULT RULES:

@@ -73,7 +73,7 @@ static void strvec_to_lua_table(struct lua_instance *luaif, char **args)
 	}
 }
 
-static void strvec_free(char **args)
+void strvec_free(char **args)
 {
 	char **p;
 
@@ -87,7 +87,7 @@ static void strvec_free(char **args)
 /* convert a lua table (table of strings) to a string vector,
  * the vector will be dynamically allocated.
 */
-static void lua_string_table_to_strvec(struct lua_instance *luaif,
+void lua_string_table_to_strvec(lua_State *l,
 	int lua_stack_offs, char ***args, int new_argc)
 {
 	int	i;
@@ -95,9 +95,9 @@ static void lua_string_table_to_strvec(struct lua_instance *luaif,
 	*args = calloc(new_argc + 1, sizeof(char *));
 
 	for (i = 0; i < new_argc; i++) {
-		lua_rawgeti(luaif->lua, lua_stack_offs, i + 1);
-		(*args)[i] = strdup(lua_tostring(luaif->lua, -1));
-		lua_pop(luaif->lua, 1); /* return stack state to what it
+		lua_rawgeti(l, lua_stack_offs, i + 1);
+		(*args)[i] = strdup(lua_tostring(l, -1));
+		lua_pop(l, 1); /* return stack state to what it
 					 * was before lua_rawgeti() */
 	}
 	(*args)[i] = NULL;
@@ -157,8 +157,8 @@ int sb_execve_preprocess(char **file, char ***argv, char ***envp)
 	new_argc = lua_tointeger(luaif->lua, -4);
 	new_envc = lua_tointeger(luaif->lua, -2);
 
-	lua_string_table_to_strvec(luaif, -3, argv, new_argc);
-	lua_string_table_to_strvec(luaif, -1, envp, new_envc);
+	lua_string_table_to_strvec(luaif->lua, -3, argv, new_argc);
+	lua_string_table_to_strvec(luaif->lua, -1, envp, new_envc);
 
 	/* remove sbox_execve_preprocess' return values from the stack.  */
 	lua_pop(luaif->lua, 6);
@@ -234,7 +234,7 @@ int sb_execve_postprocess(char *exec_type,
 
 		strvec_free(*argv);
 		new_argc = lua_tointeger(luaif->lua, -4);
-		lua_string_table_to_strvec(luaif, -3, argv, new_argc);
+		lua_string_table_to_strvec(luaif->lua, -3, argv, new_argc);
 
 		replace_environment = 1;
 		break;
@@ -261,7 +261,7 @@ int sb_execve_postprocess(char *exec_type,
 		int new_envc;
 		new_envc = lua_tointeger(luaif->lua, -2);
 		strvec_free(*envp);
-		lua_string_table_to_strvec(luaif, -1, envp, new_envc);
+		lua_string_table_to_strvec(luaif->lua, -1, envp, new_envc);
 	}
 
 	/* remove sb_execve_postprocess return values from the stack.  */
@@ -362,11 +362,11 @@ char *sb_execve_map_script_interpreter(
 
 		strvec_free(*argv);
 		new_argc = lua_tointeger(luaif->lua, -4);
-		lua_string_table_to_strvec(luaif, -3, argv, new_argc);
+		lua_string_table_to_strvec(luaif->lua, -3, argv, new_argc);
 
 		new_envc = lua_tointeger(luaif->lua, -2);
 		strvec_free(*envp);
-		lua_string_table_to_strvec(luaif, -1, envp, new_envc);
+		lua_string_table_to_strvec(luaif->lua, -1, envp, new_envc);
 
 		/* remove return values from the stack, leave rule & policy.  */
 		lua_pop(luaif->lua, 6);

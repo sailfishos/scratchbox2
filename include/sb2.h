@@ -84,10 +84,12 @@ struct lua_instance {
  *   - added wrapper for utimensat
  * * Differences between "74" and "72"
  *   - added many wrappers (__*_chk(), etc)
+ * * Differences between "75" and "74"
+ *   - added features for union directory simulation
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "74"
+#define SB2_LUA_C_INTERFACE_VERSION "75"
 
 extern struct lua_instance *get_lua(void);
 extern void release_lua(struct lua_instance *ptr);
@@ -162,5 +164,9 @@ extern int pthread_library_is_available; /* flag */
 extern pthread_t (*pthread_self_fnptr)(void);
 extern int (*pthread_mutex_lock_fnptr)(pthread_mutex_t *mutex);
 extern int (*pthread_mutex_unlock_fnptr)(pthread_mutex_t *mutex);
+
+extern void lua_string_table_to_strvec(lua_State *l,
+	int lua_stack_offs, char ***args, int new_argc);
+void strvec_free(char **args);
 
 #endif

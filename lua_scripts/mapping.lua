@@ -447,6 +447,26 @@ function sbox_execute_rule(binary_name, func_name, rp, path,
 	elseif (rule_conditions_and_actions.force_orig_path) then
 		ret_path = path
 		ret_flags = ret_flags + RULE_FLAGS_FORCE_ORIG_PATH
+	elseif (rule_conditions_and_actions.union_dir) then
+		local union_status
+		sb.log("debug", string.format("union directory '%s'", path))
+		sb.log("debug", string.format("type = %s", type(rule_conditions_and_actions.union_dir)))
+		union_status, ret_path = sb.prep_union_dir(path,
+			#(rule_conditions_and_actions.union_dir), rule_conditions_and_actions.union_dir)
+		if ret_path ~= nil then
+			sb.log("debug", string.format("ret_path '%s'", ret_path))
+		end
+		if union_status == true then
+			if (debug_messages_enabled) then
+				sb.log("debug", string.format(
+					"union directory '%s' => '%s'", path, ret_path))
+			end
+		else
+			sb.log("error", string.format(
+				"failed to make union directory '%s'", path))
+			ret_path = path
+		end
+		ret_flags = RULE_FLAGS_READONLY
 	else
 		ret_path = path
 		if (rule_selector.name) then

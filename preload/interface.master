@@ -427,7 +427,8 @@ WRAP: int nftw(const char *dir, int (*fn)(const char *file, const struct stat *s
 #ifdef HAVE_NFTW64
 WRAP: int nftw64(const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag, struct FTW *s), int nopenfd, int flags) : map(dir)
 #endif
-WRAP: DIR *opendir(const char *name) : map(name)
+WRAP: DIR *opendir(const char *name) : map(name) \
+        create_nomap_nolog_version
 WRAP: long pathconf(const char *path, int name) : map(path)
 
 WRAP: READLINK_TYPE readlink(const char *path, char *buf, size_t bufsize) : \

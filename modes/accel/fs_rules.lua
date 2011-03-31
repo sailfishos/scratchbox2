@@ -248,11 +248,11 @@ devel_mode_rules_usr_bin = {
 		{prefix = "/usr/bin/python", actions = python_bin_test},
 
 		-- next, automatically generated rules for /usr/bin:
-		{dir = "/usr/bin", chain = argvmods_rules_for_usr_bin,
+		{name = "/usr/bin autorules", dir = "/usr/bin", chain = argvmods_rules_for_usr_bin,
 		 virtual_path = true}, -- don't reverse these.
 
 		-- and finally, the default:
-		{dir = "/usr/bin",
+		{name = "/usr/bin default rule", dir = "/usr/bin",
 		 actions = test_first_tools_default_is_target},
 	}
 }
@@ -263,7 +263,7 @@ devel_mode_rules_usr = {
 	rules = {
 		{dir = "/usr/share", chain = devel_mode_rules_usr_share},
 
-		{dir = "/usr/bin", chain = devel_mode_rules_usr_bin},
+		{name = "/usr/bin branch", dir = "/usr/bin", chain = devel_mode_rules_usr_bin},
 
 		-- -----------------------------------------------
 		-- 40. /usr/lib/*

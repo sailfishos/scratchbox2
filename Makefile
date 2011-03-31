@@ -181,7 +181,7 @@ install-noarch: regular
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/create_argvmods_usr_bin_rules.lua $(prefix)/share/scratchbox2/lua_scripts/create_argvmods_usr_bin_rules.lua
 
 	$(Q)install -c -m 644 $(SRCDIR)/modeconf/* $(prefix)/share/scratchbox2/modeconf/
-	$(Q)(set -e; cd $(prefix)/share/scratchbox2/modeconf; for f in sb2rc.devel *-*.devel; do \
+	$(Q)(set -e; cd $(prefix)/share/scratchbox2/modeconf; for f in *-*.devel; do \
 		b=`basename $$f .devel`; ln -sf $$f $$b.accel; \
 	done)
 	$(Q)install -c -m 644 $(SRCDIR)/tests/* $(prefix)/share/scratchbox2/tests

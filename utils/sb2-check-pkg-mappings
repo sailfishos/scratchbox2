@@ -183,8 +183,8 @@ num_both_required=0
 
 # Read the mode-specific path ignore list.
 SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST=""
-if [ -f $sbox_dir/share/scratchbox2/modeconf/sb2rc.$sbox_mapmode ]; then
-	. $sbox_dir/share/scratchbox2/modeconf/sb2rc.$sbox_mapmode "sb2-check-pkg-mappings"
+if [ -f $SBOX_SESSION_DIR/modes/$sbox_mapmode/sb2rc ]; then
+	. $SBOX_SESSION_DIR/modes/$sbox_mapmode/sb2rc "sb2-check-pkg-mappings"
 fi
 
 # for all installed packages..

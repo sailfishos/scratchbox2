@@ -394,9 +394,9 @@ if ! expr "$ARCH" : "$HOST_ARCH" > /dev/null ; then
 fi
 
 # $ARCH has been set, get mode-specific settings..
-if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$MAPPING_MODE ]; then
+if [ -f $SBOX_SESSION_DIR/modes/$MAPPING_MODE/sb2rc ]; then
 	echo "Reading mode-specific settings.."
-	. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$MAPPING_MODE "initializing"
+	. $SBOX_SESSION_DIR/modes/$MAPPING_MODE/sb2rc "initializing"
 fi
 
 if [ ! $SB2INIT_SKIP_CHECKS ]; then

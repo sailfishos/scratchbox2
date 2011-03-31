@@ -35,9 +35,9 @@ fi
 sbox_ldconfig_path=""
 sbox_ldconfig_root=""
 # read-in mode-specific settings
-if [ -f $sbox_dir/share/scratchbox2/modeconf/sb2rc.$sbox_mapmode ]
+if [ -f $SBOX_SESSION_DIR/modes/$sbox_mapmode/sb2rc ]
 then
-	. $sbox_dir/share/scratchbox2/modeconf/sb2rc.$sbox_mapmode "$progbase"
+	. $SBOX_SESSION_DIR/modes/$sbox_mapmode/sb2rc "$progbase"
 fi
 
 if [ -z "$sbox_ldconfig_path" ]

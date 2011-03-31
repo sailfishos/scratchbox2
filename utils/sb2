@@ -411,8 +411,8 @@ function sboxify_environment()
 	fi
 
 	# SBOX_MAPMODE has been set, read mode-specific settings
-	if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$SBOX_MAPMODE ]; then
-		. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$SBOX_MAPMODE starting
+	if [ -f $SBOX_SESSION_DIR/modes/$SBOX_MAPMODE/sb2rc ]; then
+		. $SBOX_SESSION_DIR/modes/$SBOX_MAPMODE/sb2rc starting
 	fi
 
 	if [ "$SBOX_CONFIG_VERSION" -lt "9" ]; then
@@ -427,10 +427,6 @@ function sboxify_environment()
 		fi
 	else
 		exit_error "Incorrect target config in ~/.scratchbox2/$SBOX_TARGET/sb2.config"
-	fi
-
-	if [ -z "$SBOX_MODES_DIR" ]; then
-		SBOX_MODES_DIR="$SBOX_DIR/share/scratchbox2/modes"
 	fi
 
 	# This refers to the primary toolchain.
@@ -1252,9 +1248,12 @@ function initialize_new_sb2_session()
 	mkdir $SBOX_SESSION_DIR/rules
 	mkdir $SBOX_SESSION_DIR/rev_rules
 	mkdir $SBOX_SESSION_DIR/exec_rules
+	mkdir $SBOX_SESSION_DIR/modes
 
 	ln -s $SBOX_DIR/bin $SBOX_SESSION_DIR/bin
 	ln -s $SBOX_DIR/share $SBOX_SESSION_DIR/share
+	# FIXME: This should link only selected modes, not all:
+	ln -s $SBOX_DIR/share/scratchbox2/modes/* $SBOX_SESSION_DIR/modes
 
 	if [ -n "$SBOX_WRITE_SESSION_INFO_TO_FILE" ]; then
 		cat >$SBOX_WRITE_SESSION_INFO_TO_FILE <<END
@@ -1300,10 +1299,10 @@ function link_wrappers_for_mapmode()
 		return
 	fi
 
-	if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$w_mode ]; then
+	if [ -f $SBOX_SESSION_DIR/modes/$w_mode/sb2rc ]; then
 		# Get list of wrappers:
 		SBOX_WRAPPERS=""
-		. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$w_mode wrapper_list
+		. $SBOX_SESSION_DIR/modes/$w_mode/sb2rc wrapper_list
 		if [ "$SBOX_WRAPPERS" != '' ]; then
 			mkdir $SBOX_SESSION_DIR/wrappers.$w_mode
 
@@ -1328,7 +1327,6 @@ function write_configfiles_and_rules_for_new_session()
 {
 	# creating a new session..
 	ln -s $SBOX_LUA_SCRIPTS $SBOX_SESSION_DIR/lua_scripts
-	ln -s $SBOX_MODES_DIR $SBOX_SESSION_DIR/modes
 
 	# Create rulefiles and set up wrappers
 	if [ -n "$SB2_INTERNAL_MAPMODES" ]; then

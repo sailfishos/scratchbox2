@@ -266,16 +266,16 @@ fi
 SBOX_CROSS_GCC_PROGS_PATH=$($GCC -print-search-dirs|grep ^programs:|sed 's/programs: =//')
 
 # default for the cross-gcc prefix list:
-# these may be changed by sb2rc.$MAPPING_MODE
+# these may be changed by modes/$MAPPING_MODE/sb2rc
 
 SB2INIT_CROSS_GCC_PREFIX_LIST=$ARCH-linux-
 
 # $ARCH and $MACHINE_ARCH have been set, get mode-specific settings..
-if [ -f $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$MAPPING_MODE ]; then
+if [ -f $SBOX_SESSION_DIR/modes/$MAPPING_MODE/sb2rc ]; then
 	if [ -n "$verbose" ] ; then
 		echo "Reading mode-specific settings.."
 	fi
-	. $SBOX_DIR/share/scratchbox2/modeconf/sb2rc.$MAPPING_MODE "initializing"
+	. $SBOX_SESSION_DIR/modes/$MAPPING_MODE/sb2rc "initializing"
 fi
 
 

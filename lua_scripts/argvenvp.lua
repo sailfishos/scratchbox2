@@ -381,7 +381,7 @@ function sb_find_exec_policy(binaryname, mapped_file)
 	if chain ~= nil then
 		sb.log("debug", "chain found, find rule for "..mapped_file)
 		-- func_name == nil
-		rule = find_rule(chain, nil, mapped_file)
+		rule = find_rule(chain, nil, mapped_file, binary_name)
 	end
 	if rule ~= nil then
 		sb.log("debug", "rule found..")
@@ -474,8 +474,9 @@ function sb_execve_map_script_interpreter(rule, exec_policy_name, interpreter,
 		local rule = nil
 		local exec_pol_2, mapped_interpreter, ro_flag
 
+		-- FIXME: 4th parameter of find_rule() should be binary_name
 		rule, min_path_len = find_rule(exec_policy.script_interpreter_rules,
-			"map_script_interpreter", interpreter)
+			"map_script_interpreter", interpreter, nil)
 
 		if (rule) then
 			exec_pol_2, mapped_interpreter, ro_flag = sbox_execute_rule(

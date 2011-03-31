@@ -214,8 +214,6 @@ function load_and_check_rules()
 			export_chains[i].rules[r].lua_script = filename
 			if (export_chains[i].binary) then
 				export_chains[i].rules[r].binary_name = export_chains[i].binary
-			else
-				export_chains[i].rules[r].binary_name = "nil"
 			end
 			if (export_chains[i].rules[r].name == nil) then
 				export_chains[i].rules[r].name = 
@@ -492,7 +490,7 @@ end
 
 -- returns rule and min_path_len, minimum length which is needed for
 -- successfull mapping.
-function find_rule(chain, func, full_path)
+function find_rule(chain, func, full_path, binary_name)
 	local i = 0
 	local wrk = chain
 	local min_path_len = 0
@@ -509,27 +507,10 @@ function find_rule(chain, func, full_path)
 			min_path_len = sb.test_path_match(full_path,
 				rule.dir, rule.prefix, rule.path)
 			if min_path_len >= 0 then
-				if (rule.chain) then
-					-- if rule can be found from
-					-- a subtree, return it,
-					-- otherwise continue looping here.
-					local s_rule
-					local s_min_len
-					s_rule, s_min_len = find_rule(
-						rule.chain, func, full_path)
-					if (s_rule ~= nil) then
-						return s_rule, s_min_len
-					end
-					if (debug_messages_enabled) then
-						sb.log("noise",
-						  "rule not found from subtree")
-					end
-				else
-					-- Path matches, test if other conditions are
-					-- also OK:
-					if ((not rule.func_name
-						or string.match(func,
-							 rule.func_name))) then
+				-- Path matches, test if other conditions
+				-- exist and are also OK:
+				if rule.func_name then
+					if string.match(func, rule.func_name) then
 						if (debug_messages_enabled) then
 							local rulename = rule.name
 							if rulename == nil then
@@ -537,12 +518,61 @@ function find_rule(chain, func, full_path)
 							end
 
 							sb.log("noise", string.format(
-							  "selected rule '%s'",
+							  "func_name ok in rule '%s'",
 							  rulename))
 						end
-						return rule, min_path_len
+					else
+						rule = nil
+					end
+				end
+
+				if rule and rule.binary_name then
+					if rule.binary_name == binary_name then
+						if (debug_messages_enabled) then
+							local rulename = rule.name
+							if rulename == nil then
+								rulename = string.format("#%d",i)
+							end
+
+							sb.log("noise", string.format(
+							  "binary_name ok in rule '%s'",
+							  rulename))
+						end
+					else
+						rule = nil
+					end
+				end
+
+				if rule and rule.chain then
+					-- if rule can be found from
+					-- a subtree, return it,
+					-- otherwise continue looping here.
+					local s_rule
+					local s_min_len
+					s_rule, s_min_len = find_rule(
+						rule.chain, func, full_path, binary_name)
+					if (s_rule ~= nil) then
+						return s_rule, s_min_len
+					end
+					if (debug_messages_enabled) then
+						sb.log("noise",
+						  "rule not found from subtree")
 					end
 					rule = nil
+				end
+
+				if rule then
+					if (debug_messages_enabled) then
+						local rulename = rule.name
+						if rulename == nil then
+							rulename = string.format("#%d",i)
+						end
+
+						sb.log("noise", string.format(
+							"selected rule '%s'",
+							rulename))
+					end
+					return rule, min_path_len
 				end
 			end
 		end
@@ -637,7 +667,7 @@ function sbox_get_mapping_requirements(binary_name, func_name, full_path)
 		return nil, false, 0, 0
 	end
 
-	rule, min_path_len = find_rule(chain, func_name, full_path)
+	rule, min_path_len = find_rule(chain, func_name, full_path, binary_name)
 	if (not rule) then
 		-- error, not even a default rule found
 		sb.log("error", string.format("Unable to find rule for: %s(%s)", func_name, full_path))
@@ -674,7 +704,7 @@ function sbox_reverse_path(binary_name, func_name, full_path)
 		return nil, 0
 	end
 
-	rule, min_path_len = find_rule(chain, func_name, full_path)
+	rule, min_path_len = find_rule(chain, func_name, full_path, binary_name)
 	if (not rule) then
 		-- not even a default rule found
 		sb.log("info", string.format("Unable to find REVERSE rule for: %s(%s)", func_name, full_path))

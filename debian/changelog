@@ -1,3 +1,12 @@
+scratchbox2 (2.3.0) unstable; urgency=low
+
+  * Created a branch for development; this 2.3.0 is just
+    a another stamp for the starting point (2.2.2). Please
+    wait until the patches are in, the first somewhat refreshed
+    version will be 2.3.1..
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 31 Mar 2011 14:46:00 +0300
+
 scratchbox2 (2.2.2-2) unstable; urgency=low
 
   * Added options -g and -G to sb2 (Lauri T. Aarnio)

@@ -283,18 +283,21 @@ fi
 SBOX_CROSS_GCC_SPECS_FILE=""
 SBOX_EXTRA_CROSS_COMPILER_STDINC=""
 
+# FIXME: SBOX_CROSS_GCC_SPECS_FILE may point to $SBOX_DIR/share/scratchbox2/modes
+# after this. It should point to a session-specific location, but we don't have any
+# mechanism for that currently.
 if [ -n "$GCC_SPECS" ]; then
 	# the file was specified on the command line
 	SBOX_CROSS_GCC_SPECS_FILE="$GCC_SPECS"
 # else try to locate a specs file which was provided with gcc
-elif [ -f $SBOX_DIR/share/scratchbox2/modeconf/gcc-$SBOX_CROSS_GCC_VERSION-specs-$ARCH.$MAPPING_MODE ]; then
-	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modeconf/gcc-$SBOX_CROSS_GCC_VERSION-specs-$ARCH.$MAPPING_MODE"
-elif [ -f $SBOX_DIR/share/scratchbox2/modeconf/gcc-$SBOX_CROSS_GCC_VERSION-specs.$MAPPING_MODE ]; then
-	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modeconf/gcc-$SBOX_CROSS_GCC_VERSION-specs.$MAPPING_MODE"
-elif [ -f $SBOX_DIR/share/scratchbox2/modeconf/gcc-$SBOX_CROSS_GCC_SHORTVERSION-specs.$MAPPING_MODE ]; then
-	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modeconf/gcc-$SBOX_CROSS_GCC_SHORTVERSION-specs.$MAPPING_MODE"
-elif [ -f $SBOX_DIR/share/scratchbox2/modeconf/gcc-specs.$MAPPING_MODE ]; then
-	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modeconf/gcc-specs.$MAPPING_MODE"
+elif [ -f $SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_VERSION-specs-$ARCH ]; then
+	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_VERSION-specs-$ARCH"
+elif [ -f $SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_VERSION-specs ]; then
+	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_VERSION-specs"
+elif [ -f $SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_SHORTVERSION-specs ]; then
+	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_SHORTVERSION-specs"
+elif [ -f $SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-specs ]; then
+	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-specs"
 else
 	SBOX_EXTRA_CROSS_COMPILER_STDINC="-I/usr/include"
 fi

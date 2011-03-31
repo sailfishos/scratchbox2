@@ -84,8 +84,8 @@ fi
 # are usable thru the current mapping mode:
 TARGET_DPKG_ADMINDIR_USABLE_PKGS=$sbox_temp_dpkg_admin_dir
 
-cfgfile_host_accepted_pkgs=$sbox_dir/share/scratchbox2/modeconf/host-accepted-packages.$sbox_mapmode
-cfgfile_host_ignored_pkgs=$sbox_dir/share/scratchbox2/modeconf/host-ignored-packages.$sbox_mapmode
+cfgfile_host_accepted_pkgs=$sbox_dir/share/scratchbox2/modes/$sbox_mapmode/host-accepted-packages
+cfgfile_host_ignored_pkgs=$sbox_dir/share/scratchbox2/modes/$sbox_mapmode/host-ignored-packages
 
 # Execute a command in tools mode. forces /usr/bin/perl to tools,
 # otherwise the shell which is running this script may try to take perl from

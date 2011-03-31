@@ -105,7 +105,7 @@ extern char *call_lua_function_sbox_reverse_path(
 	const char *abs_host_path);
 extern void drop_rule_from_lua_stack(struct lua_instance *luaif);
 
-/* ----------- paths.c ----------- */
+/* ----------- pathresolution.c ----------- */
 
 /* "easy" path cleaning: */
 extern void remove_dots_from_path_list(struct path_entry_list *listp);

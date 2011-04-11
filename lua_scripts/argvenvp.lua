@@ -342,11 +342,13 @@ function sb_execve_postprocess_native_executable(exec_policy,
 	return 1, mapped_file, filename, #argv, argv, #envp, envp
 end
 
-if string.match(sbox_cputransparency_cmd, "qemu") then
-	cputransparency_method_is_qemu = true
-end
-if string.match(sbox_cputransparency_cmd, "sbrsh") then
-	cputransparency_method_is_sbrsh = true
+for k, v in pairs({conf_cputransparency_target, conf_cputransparency_native}) do
+	if string.match(v.cmd, "qemu") then
+		v.method_is_qemu = true
+	end
+	if string.match(v.cmd, "sbrsh") then
+		v.method_is_sbrsh = true
+	end
 end
 
 function split_to_tokens(text,delim)
@@ -495,30 +497,30 @@ function sb_execve_postprocess_sbrsh(exec_policy,
 end
 
 function sb_execve_postprocess_cpu_transparency_executable(exec_policy,
-    exec_type, mapped_file, filename, argv, envp)
+    exec_type, mapped_file, filename, argv, envp, conf_cputransparency)
 
 	if debug_messages_enabled then
 		sb.log("debug", "postprocessing cpu_transparency for " .. filename)
 	end
 
-	if cputransparency_method_is_qemu then
+	if conf_cputransparency.method_is_qemu then
 		local new_envp = {}
 		local new_argv = {}
 		local new_filename
 
-		if conf_cputransparency_qemu_argv == nil then
-			table.insert(new_argv, sbox_cputransparency_cmd)
-			new_filename = sbox_cputransparency_cmd
+		if conf_cputransparency.qemu_argv == nil then
+			table.insert(new_argv, conf_cputransparency.cmd)
+			new_filename = conf_cputransparency.cmd
 		else
-			for i = 1, table.maxn(conf_cputransparency_qemu_argv) do
-				table.insert(new_argv, conf_cputransparency_qemu_argv[i])
+			for i = 1, table.maxn(conf_cputransparency.qemu_argv) do
+				table.insert(new_argv, conf_cputransparency.qemu_argv[i])
 			end
-			new_filename = conf_cputransparency_qemu_argv[1]
+			new_filename = conf_cputransparency.qemu_argv[1]
 		end
 
-		if conf_cputransparency_qemu_env ~= nil then
-			for i = 1, table.maxn(conf_cputransparency_qemu_env) do
-				table.insert(new_envp, conf_cputransparency_qemu_env[i])
+		if conf_cputransparency.qemu_env ~= nil then
+			for i = 1, table.maxn(conf_cputransparency.qemu_env) do
+				table.insert(new_envp, conf_cputransparency.qemu_env[i])
 			end
 		end
 
@@ -526,13 +528,13 @@ function sb_execve_postprocess_cpu_transparency_executable(exec_policy,
 		table.insert(new_argv, "-L")
 		table.insert(new_argv, "/")
 
-		if conf_cputransparency_has_argv0_flag then
+		if conf_cputransparency.has_argv0_flag then
 			-- set target argv[0]
 			table.insert(new_argv, "-0")
 			table.insert(new_argv, argv[1])
 		end
 
-		if conf_cputransparency_qemu_has_libattr_hack_flag then
+		if conf_cputransparency.qemu_has_libattr_hack_flag then
 			-- For ARM emulation:
 			-- a nasty bug exists in some older libattr library
 			-- version (e.g. it causes "ls -l" to crash), this
@@ -542,7 +544,7 @@ function sb_execve_postprocess_cpu_transparency_executable(exec_policy,
 			table.insert(new_argv, "-libattr-hack")
 		end
 
-		if conf_cputransparency_qemu_has_env_control_flags then
+		if conf_cputransparency.qemu_has_env_control_flags then
 			for i = 1, #envp do
 				-- drop LD_TRACE_* from target environment
 				if string.match(envp[i], "^LD_TRACE_.*") then
@@ -582,15 +584,15 @@ function sb_execve_postprocess_cpu_transparency_executable(exec_policy,
 		-- Fortunately that is easy: 
 		local qemu_ldlibpath
 		local qemu_ldpreload
-		if conf_cputransparency_qemu_ld_library_path == "" then
+		if conf_cputransparency.qemu_ld_library_path == "" then
 			qemu_ldlibpath = "LD_LIBRARY_PATH=" .. host_ld_library_path
 		else
-			qemu_ldlibpath = conf_cputransparency_qemu_ld_library_path
+			qemu_ldlibpath = conf_cputransparency.qemu_ld_library_path
 		end
-		if conf_cputransparency_qemu_ld_preload == "" then
+		if conf_cputransparency.qemu_ld_preload == "" then
 			qemu_ldpreload = "LD_PRELOAD=" ..  host_ld_preload
 		else
-			qemu_ldpreload = conf_cputransparency_qemu_ld_preload
+			qemu_ldpreload = conf_cputransparency.qemu_ld_preload
 		end
 
 		table.insert(new_envp, qemu_ldlibpath)
@@ -609,7 +611,7 @@ function sb_execve_postprocess_cpu_transparency_executable(exec_policy,
 		-- environment&args were changed
 		return 0, new_filename, filename, #new_argv, new_argv,
 			#new_envp, new_envp
-	elseif cputransparency_method_is_sbrsh then
+	elseif conf_cputransparency.method_is_sbrsh then
 		return sb_execve_postprocess_sbrsh(exec_policy,
     			exec_type, mapped_file, filename, argv, envp)
 	end
@@ -683,8 +685,13 @@ function sb_execve_postprocess(exec_policy_name, exec_type,
 	elseif (exec_type == "cpu_transparency") then
 		return sb_execve_postprocess_cpu_transparency_executable(
 			exec_policy, exec_type, mapped_file,
-			filename, argv, envp)
+			filename, argv, envp, conf_cputransparency_target)
 	elseif (exec_type == "static") then
+		if (conf_cputransparency_native.cmd ~= "") then
+			return sb_execve_postprocess_cpu_transparency_executable(
+				exec_policy, exec_type, mapped_file,
+				filename, argv, envp, conf_cputransparency_native)
+		end
 		-- [see comment in sb_exec.c]
 		set_ld_preload(envp, host_ld_preload)
 		set_ld_library_path(envp, host_ld_library_path)

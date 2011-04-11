@@ -285,6 +285,25 @@ function load_configuration()
 		fi
 	fi
 
+	SBOX_CPUTRANSPARENCY_NATIVE_CMD=""
+	SBOX_CPUTRANSPARENCY_NATIVE_ARGS=""
+	if [ -n "$SBOX_CPUTRANSPARENCY_NATIVE_METHOD" ]; then
+		# $SBOX_CPUTRANSPARENCY_NATIVE_METHOD may contain options.
+		set $SBOX_CPUTRANSPARENCY_NATIVE_METHOD
+		SBOX_CPUTRANSPARENCY_NATIVE_CMD="$1"
+		shift
+		SBOX_CPUTRANSPARENCY_NATIVE_ARGS="$*"
+		_cputransp=$(which $SBOX_CPUTRANSPARENCY_NATIVE_CMD)
+		if [ -z "$_cputransp" ]; then
+			echo "Fatal: Native CPU transparency method not found ($SBOX_CPUTRANSPARENCY_NATIVE_METHOD)"
+			exit 1
+		fi
+		if [ -e "$_cputransp" ]; then
+			SBOX_CPUTRANSPARENCY_NATIVE_CMD=$(realpath $_cputransp)
+			export SBOX_NATIVE_HAS_CPUTRANSP=1
+		fi
+	fi
+
 	#-----------
 	# Time to set LD_LIBRARY_PATH for host-compatible programs:
 
@@ -527,6 +546,9 @@ sbox_cpu="$SBOX_CPU"
 sbox_cputransparency_method="$SBOX_CPUTRANSPARENCY_METHOD"
 sbox_cputransparency_cmd="$SBOX_CPUTRANSPARENCY_CMD"
 sbox_cputransparency_args="$SBOX_CPUTRANSPARENCY_ARGS"
+sbox_cputransparency_native_method="$SBOX_CPUTRANSPARENCY_NATIVE_METHOD"
+sbox_cputransparency_native_cmd="$SBOX_CPUTRANSPARENCY_NATIVE_CMD"
+sbox_cputransparency_native_args="$SBOX_CPUTRANSPARENCY_NATIVE_ARGS"
 sbox_sbrsh_config="$SBRSH_CONFIG"
 
 sbox_host_gcc_prefix_list="$SBOX_HOST_GCC_PREFIX_LIST"
@@ -1158,6 +1180,19 @@ END
 # can be executed in the sb2'ed environment.
 function add_cputransparency_settings_to_exec_config_file()
 {
+	type="$1"
+
+	case "$type" in
+	target)	conf='conf_cputransparency_target'
+		sbox_cputransparency_cmd="$SBOX_CPUTRANSPARENCY_CMD"
+		sbox_cputransparency_method="$SBOX_CPUTRANSPARENCY_METHOD"
+		;;
+	native)	conf='conf_cputransparency_native'
+		sbox_cputransparency_cmd="$SBOX_CPUTRANSPARENCY_NATIVE_CMD"
+		sbox_cputransparency_method="$SBOX_CPUTRANSPARENCY_NATIVE_METHOD"
+		;;
+	esac
+
 	conf_cputransparency_has_argv0_flag="false"
 	conf_cputransparency_qemu_has_env_control_flags="false"
 	conf_cputransparency_qemu_has_libattr_hack_flag="false"
@@ -1166,20 +1201,22 @@ function add_cputransparency_settings_to_exec_config_file()
 	conf_cputransparency_qemu_argv="nil"
 	conf_cputransparency_qemu_env="nil"
 
-	case "$SBOX_CPUTRANSPARENCY_CMD" in	
-	*qemu*)	check_qemu_features $SBOX_CPUTRANSPARENCY_METHOD
+	case "$sbox_cputransparency_cmd" in
+	*qemu*)	check_qemu_features $sbox_cputransparency_method
 		;;
 	esac
 
 	cat <<END >>$SBOX_SESSION_DIR/exec_config.lua
-
-conf_cputransparency_has_argv0_flag=$conf_cputransparency_has_argv0_flag
-conf_cputransparency_qemu_has_env_control_flags=$conf_cputransparency_qemu_has_env_control_flags
-conf_cputransparency_qemu_has_libattr_hack_flag=$conf_cputransparency_qemu_has_libattr_hack_flag
-conf_cputransparency_qemu_ld_library_path="$conf_cputransparency_qemu_ld_library_path"
-conf_cputransparency_qemu_ld_preload="$conf_cputransparency_qemu_ld_preload"
-conf_cputransparency_qemu_argv=$conf_cputransparency_qemu_argv
-conf_cputransparency_qemu_env=$conf_cputransparency_qemu_env
+$conf = {
+	cmd="$sbox_cputransparency_cmd",
+	has_argv0_flag=$conf_cputransparency_has_argv0_flag,
+	qemu_has_env_control_flags=$conf_cputransparency_qemu_has_env_control_flags,
+	qemu_has_libattr_hack_flag=$conf_cputransparency_qemu_has_libattr_hack_flag,
+	qemu_ld_library_path="$conf_cputransparency_qemu_ld_library_path",
+	qemu_ld_preload="$conf_cputransparency_qemu_ld_preload",
+	qemu_argv=$conf_cputransparency_qemu_argv,
+	qemu_env=$conf_cputransparency_qemu_env,
+}
 END
 }
 
@@ -1775,7 +1812,8 @@ export LD_LIBRARY_PATH
 # existing session.
 
 if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
-	add_cputransparency_settings_to_exec_config_file
+	add_cputransparency_settings_to_exec_config_file 'target'
+	add_cputransparency_settings_to_exec_config_file 'native'
 
 	# Instruct sb2d to execute init2.lua:
 	# the main purpose is to add CPU transparency settings

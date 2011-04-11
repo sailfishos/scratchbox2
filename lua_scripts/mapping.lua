@@ -81,6 +81,15 @@ function load_and_check_rules()
 	-- exec mapping code (argvenp.lua) and the
 	-- rule files:
 	--
+	-- Version 104:
+	-- - CPU Transparency for native architecture is implemented:
+	--    - sbox_cputransparency_native_method - defined by the '-p'
+	--      option of sb2-init,
+	--    - sbox_cputransparency_native_cmd,
+	--    - sbox_cputransparency_native_args,
+	--    All of the above are equivalent to sbox_cputransparency_*
+	--    variables.
+	--
 	-- Version 103:
 	-- - func_class (a bitmask) replaced func_name 
 	--   (a regexp) in rules.
@@ -148,7 +157,7 @@ function load_and_check_rules()
 	--   (previously only one was expected)
 	-- - variables "esc_tools_root" and "esc_target_root"
 	--   were removed
-	local current_rule_interface_version = "103"
+	local current_rule_interface_version = "104"
 
 	do_file(rule_file_path)
 

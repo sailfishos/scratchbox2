@@ -7,7 +7,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "25"
+rule_file_interface_version = "26"
 ----------------------------------
 
 tools = tools_root
@@ -85,42 +85,46 @@ simple_chain = {
 	}
 }
 
-qemu_chain = {
-	next_chain = nil,
-	binary = basename(sbox_cputransparency_cmd),
-	rules = {
-		{prefix = "/usr/lib", map_to = target_root},
-		{prefix = "/usr/local/lib", map_to = target_root},
-		{prefix = "/tmp", use_orig_path = true},
-		{prefix = "/dev", use_orig_path = true},
-		{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
-		 virtual_path = true},
-		{prefix = "/sys", use_orig_path = true},
+function qemu_chain(cputransparency_cmd)
+	local chain = {
+		next_chain = nil,
+		binary = basename(cputransparency_cmd),
+		rules = {
+			{prefix = "/usr/lib", map_to = target_root},
+			{prefix = "/usr/local/lib", map_to = target_root},
+			{prefix = "/tmp", use_orig_path = true},
+			{prefix = "/dev", use_orig_path = true},
+			{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
+			 virtual_path = true},
+			{prefix = "/sys", use_orig_path = true},
 
-		--
-		-- Following 3 rules are needed because package
-		-- "resolvconf" makes resolv.conf to be symlink that
-		-- points to /etc/resolvconf/run/resolv.conf and
-		-- we want them all to come from host.
-		--
-		{prefix = "/var/run/resolvconf", force_orig_path = true,
-		 readonly = true},
-		{prefix = "/etc/resolvconf", force_orig_path = true,
-		 readonly = true},
-		{prefix = "/etc/resolv.conf", force_orig_path = true,
-		 readonly = true},
+			--
+			-- Following 3 rules are needed because package
+			-- "resolvconf" makes resolv.conf to be symlink that
+			-- points to /etc/resolvconf/run/resolv.conf and
+			-- we want them all to come from host.
+			--
+			{prefix = "/var/run/resolvconf", force_orig_path = true,
+			 readonly = true},
+			{prefix = "/etc/resolvconf", force_orig_path = true,
+			 readonly = true},
+			{prefix = "/etc/resolv.conf", force_orig_path = true,
+			 readonly = true},
 
-		{prefix = "/lib", map_to = target_root},
-		--
+			{prefix = "/lib", map_to = target_root},
+			--
 
-		{prefix = tools, use_orig_path = true},
-		{path = "/", use_orig_path = true},
-		{prefix = "/", map_to = tools}
+			{prefix = tools, use_orig_path = true},
+			{path = "/", use_orig_path = true},
+			{prefix = "/", map_to = tools}
+		}
 	}
-}
+	return chain
+end
 
 export_chains = {
-	qemu_chain,
+	qemu_chain(sbox_cputransparency_cmd),
+	qemu_chain(sbox_cputransparency_native_cmd),
 	simple_chain
 }
 

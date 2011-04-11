@@ -70,6 +70,8 @@ are available by version number (e.g. if the primary is known as
 Options:
     -c "command"      specify cpu transparency command, for example:
                       "qemu-arm", "sbrsh" or "qemu-arm -m 512"
+    -p "command"      specify cpu transparency command for staticly linked
+                      native binaries
     -r [hostname]     generate sbrsh config using remote device address
     -l [hostname]     NFS server/localhost address seen by remote device
     -d                set target as default scratchbox2 target
@@ -120,6 +122,7 @@ SBOX_TARGET_ROOT=$SBOX_TARGET_ROOT
 
 SBOX_CPU=$ARCH
 SBOX_CPUTRANSPARENCY_METHOD="$SB2INIT_CPUTRANSP"
+SBOX_CPUTRANSPARENCY_NATIVE_METHOD="$SB2INIT_CPUTRANSP_NATIVE"
 SBOX_UNAME_MACHINE=$MACHINE_ARCH
 
 SBOX_HOST_GCC_NAME=host-gcc

@@ -343,10 +343,10 @@ function sb_execve_postprocess_native_executable(exec_policy,
 end
 
 for k, v in pairs({conf_cputransparency_target, conf_cputransparency_native}) do
-	if string.match(v.cmd, "qemu") then
+	if (v ~= nil and string.match(v.cmd, "qemu")) then
 		v.method_is_qemu = true
 	end
-	if string.match(v.cmd, "sbrsh") then
+	if (v ~= nil and string.match(v.cmd, "sbrsh")) then
 		v.method_is_sbrsh = true
 	end
 end
@@ -687,7 +687,7 @@ function sb_execve_postprocess(exec_policy_name, exec_type,
 			exec_policy, exec_type, mapped_file,
 			filename, argv, envp, conf_cputransparency_target)
 	elseif (exec_type == "static") then
-		if (conf_cputransparency_native.cmd ~= "") then
+		if (conf_cputransparency_native ~= nil and conf_cputransparency_native.cmd ~= "") then
 			return sb_execve_postprocess_cpu_transparency_executable(
 				exec_policy, exec_type, mapped_file,
 				filename, argv, envp, conf_cputransparency_native)

@@ -1,3 +1,13 @@
+scratchbox2 (2.3.2-1) unstable; urgency=low
+
+  * Added networking subsystem: Networking mode can be specified
+    with an option (e.g. "sb2 -n offline"), the subsystem filters
+    and rewrites IPv4 addresses if needed. (IPv6 is not yet
+    supported). "Standard" networking modes include "online",
+    "offline", "localhost" and "online_privatenets".
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 14 Apr 2011 17:48:00 +0300
+
 scratchbox2 (2.3.1-1) unstable; urgency=low
   
   [ Lauri Aarnio ]

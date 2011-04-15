@@ -93,10 +93,13 @@ struct lua_instance {
  *     sb_execve_postprocess() were modified.
  * * Differences between "90" and "77"
  *   - Initial version for sb2, vrs 2.3.x
+ * * New in version "91":
+ *   - networking rules have been added, couple
+ *     of new functions were introduced.
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "90"
+#define SB2_LUA_C_INTERFACE_VERSION "91"
 
 extern struct lua_instance *get_lua(void);
 extern void release_lua(struct lua_instance *ptr);
@@ -159,6 +162,7 @@ extern void sb2_initialize_global_variables(void);
 extern char *sbox_session_dir;
 extern char *sbox_session_mode;
 extern char *sbox_session_perm;
+extern char *sbox_network_mode;
 extern char *sbox_orig_ld_preload;
 extern char *sbox_orig_ld_library_path;
 extern char *sbox_binary_name;

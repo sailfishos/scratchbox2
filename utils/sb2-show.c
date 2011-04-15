@@ -113,6 +113,15 @@ LIBSB2_VOID_CALLER(sblog_vprintf_line_to_logfile,
 LIBSB2_CALLER(char *, sb2__read_string_variable_from_lua__,
 	(const char *name), (name), NULL)
 
+/* create call_sb2show__map_network_addr__() */
+LIBSB2_CALLER(int, sb2show__map_network_addr__,
+	(const char *binary_name, const char *fn_name,
+	 const char *protocol, const char *addr_type,
+	 const char *dst_addr, int port,
+	 char **addr_bufp, int *new_portp),
+	(binary_name, fn_name, protocol, addr_type,
+	 dst_addr, port, addr_bufp, new_portp), -1)
+
 int sb_loglevel__ = SB_LOGLEVEL_uninitialized;
 
 /* need to have a copy of sblog_printf_line_to_logfile() here;
@@ -468,6 +477,39 @@ static void print_qemu_debug_exec(void *priv,
 		printf(" %s", new_argv[i]);
 	}
 	printf("\n");
+}
+
+static void command_show_net(
+	const char *binary_name,
+	const char *fn_name,
+	const char *progname, 
+	int argc, char **argv,
+	int verbose)
+{
+	if (argc < 1) {
+		usage_exit(progname, "'net' command: No subcommand", 1);
+	}
+
+	(void)verbose;
+
+	if (!strcmp(argv[0], "addr")) {
+		int res;
+		char *new_addr;
+		int  new_port;
+
+		if (argc < 4) {
+			usage_exit(progname, "Too few parameters for subcommand 'net'", 1);
+		}
+		res = call_sb2show__map_network_addr__(binary_name,
+			fn_name, NULL/*protocol. currently unused.*/,
+			argv[1]/*addr_type*/, argv[2]/*dst_addr*/,
+			atoi(argv[3])/*port*/, &new_addr, &new_port);
+
+		printf("Result = %d, address = %s port = %d\n", 
+			res, new_addr, new_port);
+	} else {
+		usage_exit(progname, "Subcommand must be 'addr'", 1);
+	}
 }
 
 static void command_show_exec(
@@ -855,6 +897,10 @@ int main(int argc, char *argv[])
 			progname, argc - (optind+1), argv + optind + 1,
 			additional_env, verbose,
 			print_exec, NULL);
+	} else if (!strcmp(argv[optind], "net")) {
+		command_show_net(binary_name, function_name,
+			progname, argc - (optind+1), argv + optind + 1,
+			verbose);
 	} else if (!strcmp(argv[optind], "exec-cmdline")) {
 		command_show_exec(binary_name, function_name,
 			progname, argc - (optind+1), argv + optind + 1,

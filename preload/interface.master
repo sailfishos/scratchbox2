@@ -42,6 +42,9 @@ EXPORT: void sblog_printf_line_to_logfile(const char *file, int line, \
         int level, const char *format,...)
 EXPORT: void sblog_vprintf_line_to_logfile(const char *file, int line, \
 	int level, const char *format, va_list ap)
+EXPORT: int sb2show__map_network_addr__(const char *binary_name, \
+	const char *fn_name, const char *protocol, const char *addr_type, \
+	const char *dst_addr, int port, char **addr_bufp, int *new_portp)
 
 --    FIXME: The following two functions do not have anything to do with path
 --    remapping. Instead the implementations in libsb2.c prevent locking of

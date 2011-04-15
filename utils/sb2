@@ -40,6 +40,7 @@ Options:
     -e           emulation mode
     -m MODE      use mapping mode MODE
     -M file      read mapping rules from "file"
+    -n NET_MODE  use networking rules NET_MODE
     -s DIRECTORY load mapping scripts from alternative location
     -Q BUGLIST   emulate bugs of the old scratchbox 1 (BUGLIST consists of
                  letters: 'x' enables exec permission checking bug emulation)
@@ -409,6 +410,9 @@ function sboxify_environment()
 	else
 		SB2_TEMP_DPKG_ADMIN_DIR=$HOME/.scratchbox2/$SBOX_TARGET/tmp-pkg-db.$SBOX_MAPMODE
 	fi
+
+	# Default network rules; can be overridden from sb2rc
+	SBOX_DEFAULT_NETWORK_MODE=online
 
 	# SBOX_MAPMODE has been set, read mode-specific settings
 	if [ -f $SBOX_SESSION_DIR/modes/$SBOX_MAPMODE/sb2rc ]; then
@@ -1246,6 +1250,7 @@ function initialize_new_sb2_session()
 	mkdir $SBOX_SESSION_DIR/var/tmp
 	mkdir $SBOX_SESSION_DIR/proc
 	mkdir $SBOX_SESSION_DIR/rules
+	mkdir $SBOX_SESSION_DIR/net_rules
 	mkdir $SBOX_SESSION_DIR/rev_rules
 	mkdir $SBOX_SESSION_DIR/exec_rules
 	mkdir $SBOX_SESSION_DIR/modes
@@ -1341,6 +1346,13 @@ function write_configfiles_and_rules_for_new_session()
 		done
 	fi
 
+	# Create links to network rules
+	for netr in $SBOX_DIR/share/scratchbox2/net_rules/*; do
+		ln -s $netr $SBOX_SESSION_DIR/net_rules
+	done
+	# Create a link to the default mode
+	ln -s $SBOX_DIR/share/scratchbox2/net_rules/$SBOX_DEFAULT_NETWORK_MODE $SBOX_SESSION_DIR/net_rules/Default
+
 	##if [ -n "$SB2_EXTERNAL_RULEFILES" ]; then
 	##	for ammf in $SB2_EXTERNAL_RULEFILES; do
 	##		amm=`basename $ammf .lua`
@@ -1402,7 +1414,7 @@ SBOX_FORCED_TOOLS_ROOT=""
 OPT_DONT_UPGRADE_CONFIGURATION=""
 OPTS_FOR_SB2_MONITOR=""
 
-while getopts vdht:em:s:L:Q:M:ZrRS:J:D:W:O:cC:T:uf:gG: foo
+while getopts vdht:em:n:s:L:Q:M:ZrRS:J:D:W:O:cC:T:uf:gG: foo
 do
 	case $foo in
 	(v) version; exit 0;;
@@ -1415,6 +1427,7 @@ do
 	(t) SBOX_TARGET=$OPTARG ;;
 	(e) add_map_mode emulate ;;
 	(m) add_map_mode $OPTARG ;;
+	(n) export SBOX_NETWORK_MODE=$OPTARG ;;
 	## (M) add_external_map_mode $OPTARG ;;
 	(M) echo "Option -M is disabled (temporarily)"; exit 1 ;;
 	(s) SBOX_LUA_SCRIPTS=$OPTARG;;
@@ -1437,6 +1450,7 @@ do
 	esac
 done
 shift $(($OPTIND - 1))
+
 
 if [ -n "$SBOX_SESSION_DIR" -a -f "$SBOX_SESSION_DIR/rules/Default.lua" ]; then
 	# already inside an sb2 session; ignore all options and just exec the command.
@@ -1471,6 +1485,12 @@ if [ "$SBOX_MAPPING_DEBUG" == "1" ]; then
 else
 	# default logging level
 	export SBOX_MAPPING_LOGLEVEL=warning
+fi
+
+if [ -n "$SBOX_NETWORK_MODE" ]; then
+	if [ ! -d "$SBOX_DIR/share/scratchbox2/net_rules/$SBOX_NETWORK_MODE" ]; then
+		exit_error "'$SBOX_NETWORK_MODE' is not a valid networking mode."
+	fi
 fi
 
 if [ -z "$SBOX_WRITE_SESSION_INFO_TO_FILE" ]; then

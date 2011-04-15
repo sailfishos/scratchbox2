@@ -1,6 +1,7 @@
 LUASRC = luaif/lua-5.1.4/src
 
-objs := $(D)/luaif.o $(D)/sb_log.o $(D)/argvenvp.o
+objs := $(D)/luaif.o $(D)/sb_log.o $(D)/argvenvp.o \
+	$(D)/network_luaif.o
 
 $(D)/sb_log.o: preload/exported.h
 

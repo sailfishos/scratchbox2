@@ -65,6 +65,8 @@ pthread_t (*pthread_self_fnptr)(void) = NULL;
 int (*pthread_mutex_lock_fnptr)(pthread_mutex_t *mutex) = NULL;
 int (*pthread_mutex_unlock_fnptr)(pthread_mutex_t *mutex) = NULL;
 
+/* lua_sb_test_net_addr_match() is in network_luaif.c */
+extern int lua_sb_test_net_addr_match(lua_State *l);
 
 static void check_pthread_library()
 {
@@ -829,6 +831,14 @@ static int lua_sb_get_forced_mapmode(lua_State *l)
 	return 1;
 }
 
+/* "sb.get_forced_network_mode", to be called from lua code */
+static int lua_sb_get_forced_network_mode(lua_State *l)
+{
+	if (sbox_network_mode) lua_pushstring(l, sbox_network_mode);
+	else lua_pushnil(l);
+	return 1;
+}
+
 /* "sb.get_session_perm", to be called from lua code */
 static int lua_sb_get_session_perm(lua_State *l)
 {
@@ -1045,9 +1055,11 @@ static const luaL_reg reg[] =
 	{"get_binary_name",		lua_sb_get_binary_name},
 	{"get_active_exec_policy_name",	lua_sb_get_active_exec_policy_name},
 	{"get_forced_mapmode",		lua_sb_get_forced_mapmode},
+	{"get_forced_network_mode",	lua_sb_get_forced_network_mode},
 	{"get_session_perm",		lua_sb_get_session_perm},
 	{"isprefix",			lua_sb_isprefix},
 	{"test_path_match",		lua_sb_test_path_match},
+	{"test_net_addr_match",		lua_sb_test_net_addr_match},
 	{"procfs_mapping_request",	lua_sb_procfs_mapping_request},
 	{"test_if_listed_in_envvar",	lua_sb_test_if_listed_in_envvar},
 	{NULL,				NULL}

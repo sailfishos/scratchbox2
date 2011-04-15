@@ -119,6 +119,7 @@ gcc_bins = addr2line ar as cc c++ c++filt cpp g++ gcc gcov gdb gdbtui gprof ld n
 host_prefixed_gcc_bins = $(foreach v,$(gcc_bins),host-$(v))
 
 sb2_modes = emulate tools simple accel nomap
+sb2_net_modes = localhost offline online online_privatenets
 
 tarball:
 	@git archive --format=tar --prefix=sbox2-$(PACKAGE_VERSION)/ $(PACKAGE_VERSION) | bzip2 >sbox2-$(PACKAGE_VERSION).tar.bz2
@@ -136,6 +137,13 @@ install-noarch: regular
 		install -d -m 755 $(prefix)/share/scratchbox2/modes/$$d; \
 		for f in $(SRCDIR)/modes/$$d/*; do \
 			install -c -m 644 $$f $(prefix)/share/scratchbox2/modes/$$d; \
+		done; \
+	done)
+	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/net_rules
+	$(Q)(set -e; for d in $(sb2_net_modes); do \
+		install -d -m 755 $(prefix)/share/scratchbox2/net_rules/$$d; \
+		for f in $(SRCDIR)/net_rules/$$d/*; do \
+			install -c -m 644 $$f $(prefix)/share/scratchbox2/net_rules/$$d; \
 		done; \
 	done)
 	# "accel" == "devel" mode in 2.3.x:
@@ -174,6 +182,7 @@ install-noarch: regular
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-logz $(prefix)/bin/sb2-logz
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/main.lua $(prefix)/share/scratchbox2/lua_scripts/main.lua
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/mapping.lua $(prefix)/share/scratchbox2/lua_scripts/mapping.lua
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/network.lua $(prefix)/share/scratchbox2/lua_scripts/network.lua
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp.lua $(prefix)/share/scratchbox2/lua_scripts/argvenvp.lua
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp_gcc.lua $(prefix)/share/scratchbox2/lua_scripts/argvenvp_gcc.lua
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/argvenvp_misc.lua $(prefix)/share/scratchbox2/lua_scripts/argvenvp_misc.lua

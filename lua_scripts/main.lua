@@ -15,7 +15,7 @@ exec_engine_loaded = false
 --
 -- NOTE: the corresponding identifier for C is in include/sb2.h,
 -- see that file for description about differences
-sb2_lua_c_interface_version = "90"
+sb2_lua_c_interface_version = "91"
 
 function do_file(filename)
 	if (debug_messages_enabled) then
@@ -96,6 +96,26 @@ function sbox_get_host_policy_ld_params_loader()
 	-- This loader has been replaced. The following call is not
 	-- a recursive call to this function, even if it may look like one:
 	return sbox_get_host_policy_ld_params()
+end
+
+function sbox_map_network_addr(realfnname, protocol, addr_type,
+	orig_dst_addr, orig_port, binary_name)
+
+	local prev_fn = sbox_map_network_addr
+
+	sb.log("info", "sbox_map_network_addr called: loading network.lua")
+	do_file(session_dir .. "/lua_scripts/network.lua")
+
+	if prev_fn == sbox_map_network_addr then
+		sb.log("error",
+			"Fatal: Failed to load real sbox_map_network_addr")
+		os.exit(88)
+	end
+
+	-- This loader has been replaced. The following call is not
+	-- a recursive call to this function, even if it may look like one:
+	return sbox_map_network_addr(realfnname, protocol,
+		addr_type, orig_dst_addr, orig_port, binary_name)
 end
 
 local binary_name = sb.get_binary_name()

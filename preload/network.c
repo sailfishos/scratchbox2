@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include "libsb2.h"
 #include "exported.h"
 

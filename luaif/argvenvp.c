@@ -443,7 +443,7 @@ void sb_get_host_policy_ld_params(char **p_ld_preload, char **p_ld_lib_path)
 
 	if (getenv("SBOX_DISABLE_ARGVENVP")) {
 		SB_LOG(SB_LOGLEVEL_DEBUG, "sb_argvenvp disabled(E):");
-		return 0;
+		return;
 	}
 	luaif = get_lua();
 	if (!luaif) return;

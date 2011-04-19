@@ -244,7 +244,7 @@ static char *procfs_mapping_request_for_my_files(
 		full_path);
 
 	if (!strcmp(base_path,"exe")) {
-		const char *exe_path_inside_sb2;
+		char	*exe_path_inside_sb2;
 		char	pathbuf[PATH_MAX];
 		char    link_dest[PATH_MAX+1];
 		int	link_len;
@@ -286,7 +286,7 @@ static char *procfs_mapping_request_for_other_files(
 	       full_path);
 
         if (!strcmp(base_path,"exe")) {
-                const char *exe_path_inside_sb2;
+                char    *exe_path_inside_sb2;
                 char    *buffer;
                 char    pathbuf[PATH_MAX];
                 char    link_dest[PATH_MAX+1];

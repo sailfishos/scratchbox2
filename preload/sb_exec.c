@@ -1137,8 +1137,8 @@ static int prepare_exec(const char *exec_fn_name,
 
 				allow_static_bin = getenv(
 					"SBOX_ALLOW_STATIC_BINARY");
-				if (allow_static_bin &&
-				    !strcmp(allow_static_bin, mapped_file)
+				if ((allow_static_bin &&
+				     !strcmp(allow_static_bin, mapped_file))
 				    || getenv("SBOX_NATIVE_HAS_CPUTRANSP") != NULL) {
 					/* no warnning, just debug */
 					SB_LOG(SB_LOGLEVEL_DEBUG,

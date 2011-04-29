@@ -501,7 +501,7 @@ static void command_show_net(
 			usage_exit(progname, "Too few parameters for subcommand 'net'", 1);
 		}
 		res = call_sb2show__map_network_addr__(binary_name,
-			fn_name, NULL/*protocol. currently unused.*/,
+			fn_name, ""/*protocol. currently unused.*/,
 			argv[1]/*addr_type*/, argv[2]/*dst_addr*/,
 			atoi(argv[3])/*port*/, &new_addr, &new_port);
 

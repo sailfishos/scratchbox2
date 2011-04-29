@@ -1,3 +1,10 @@
+scratchbox2 (2.3.3-2) unstable; urgency=low
+
+  * fixes and patches from Rafal Krypa and Karol Lewandowski
+  * Initial (simple) support for IPv6 address filtering
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 28 Apr 2011 16:19:00 +0300
+
 scratchbox2 (2.3.2-1) unstable; urgency=low
 
   * Added networking subsystem: Networking mode can be specified

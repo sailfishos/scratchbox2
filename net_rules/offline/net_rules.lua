@@ -8,7 +8,7 @@
 net_rule_file_interface_version = "100"
 ---------------------------------------
 
-ipv4_rules = {
+deny_all_rules = {
 	{func_name = "connect", deny = true, errno = "EPERM"},
 	{func_name = "bind", deny = true, errno = "EADDRNOTAVAIL"},
 	-- 
@@ -16,6 +16,9 @@ ipv4_rules = {
 }
 
 net_rules = {
-	ipv4_out = ipv4_rules,
-	ipv4_in = ipv4_rules,
+	ipv4_out = deny_all_rules,
+	ipv4_in = deny_all_rules,
+
+	ipv6_out = deny_all_rules,
+	ipv6_in = deny_all_rules,
 }

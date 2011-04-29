@@ -216,6 +216,107 @@ static int map_sockaddr_in(
 	return 0;
 }
 
+/* returns 0 if success, errno code if failed */
+static int map_sockaddr_in6(
+	const char *realfnname,
+	struct sockaddr_in6 *orig_sockaddr_in6,
+	socklen_t orig_addrlen,
+	mapped_sockaddr_t *output_addr,
+	const char *addr_type/* ipv6_{in,out} */)
+{
+	char printable_dst_addr[200];
+
+	if (!orig_sockaddr_in6) return(EFAULT);
+
+	if (inet_ntop(AF_INET6, &(orig_sockaddr_in6->sin6_addr),
+		printable_dst_addr, sizeof(printable_dst_addr))) {
+
+		char mapped_dst_addr[200];
+		int mapping_result_code;
+		int mapped_port;
+
+		snprintf(output_addr->orig_printable_dst_addr,
+			sizeof(output_addr->orig_printable_dst_addr),
+			"AF_INET6 [%s]:%d", printable_dst_addr,
+			ntohs(orig_sockaddr_in6->sin6_port));
+		/* Call mapping/filtering code: */
+		*mapped_dst_addr = '\0';
+
+		/* call the mapping logic. Parameter "protocol" is currently
+		 * not used, because library calls like "connect()" do not
+		 * specify it - it has been defined earlier. SB2 should
+		 * either keep a table (cache) of socket types, or use
+		 * syscalls to dig it out. This has not been implemented.
+		 * To Be Fixed, if it turns out to be a real problem,
+		 * currently it isn't. We have been able to live with a
+		 * common set of protocol-independent rules. FIXME.
+		*/
+		mapping_result_code = call_lua_function_sbox_map_network_addr(
+			(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
+			realfnname, NULL/*protocol. unknown. FIXME */,
+			addr_type, printable_dst_addr,
+			ntohs(orig_sockaddr_in6->sin6_port),
+			mapped_dst_addr, sizeof(mapped_dst_addr),
+			&mapped_port);
+
+		if (mapping_result_code) return(mapping_result_code); /* errno-code */
+
+		if (!*mapped_dst_addr) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"%s: failed to map IPv6 address (internal error)",
+				realfnname);
+		} else {
+			struct in6_addr ina6;
+
+			switch(inet_pton(AF_INET6, mapped_dst_addr, (void*)&ina6)) {
+			case 1: /* success */
+				output_addr->mapped_addrlen = sizeof(struct sockaddr_in6);
+				output_addr->mapped_sockaddr_in6.sin6_port = htons(mapped_port);
+				output_addr->mapped_sockaddr_in6.sin6_addr = ina6;
+				output_addr->mapped_sockaddr.sa_family = AF_INET6;
+				
+				snprintf(output_addr->mapped_printable_dst_addr,
+					sizeof(output_addr->mapped_printable_dst_addr),
+					"AF_INET6 [%s]:%d", mapped_dst_addr, mapped_port);
+				return(0); /* ok to use this address */
+			case 0: 
+				SB_LOG(SB_LOGLEVEL_ERROR,
+					"%s: IPv6 address mapping returned an "
+					"illegal string (inet_pton() can't convert it;"
+					" this is an internal error)",
+					realfnname);
+				break;
+			case -1: /* EAFNOSUPPORT */
+			default:
+				SB_LOG(SB_LOGLEVEL_ERROR,
+					"%s: IPv6 address conversion error in "
+					"inet_pton() (internal error)",
+					realfnname);
+				break;
+			}
+			/* allow use of the orig.address because inet_pton() failed */
+			snprintf(output_addr->mapped_printable_dst_addr,
+				sizeof(output_addr->mapped_printable_dst_addr),
+				"%s", output_addr->orig_printable_dst_addr);
+		}
+	} else {
+		snprintf(output_addr->orig_printable_dst_addr,
+			sizeof(output_addr->orig_printable_dst_addr),
+			"<AF_INET6 address conversion failed>");
+		snprintf(output_addr->mapped_printable_dst_addr,
+			sizeof(output_addr->mapped_printable_dst_addr),
+			"<AF_INET6 address conversion failed>");
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"%s: failed to convert IPv6 address to string",
+			realfnname);
+	}
+
+	/* Use orig.address */
+	output_addr->mapped_sockaddr_in6 = *orig_sockaddr_in6;
+	output_addr->mapped_addrlen = orig_addrlen;
+	return 0;
+}
+
 static void log_mapped_net_op_result(
 	const char *realfnname,
 	int result_errno,
@@ -247,11 +348,8 @@ static int map_sockaddr(
 	const char *direction) /* "in" or "out", uset to build
 				* e.g. "ipv4_in", "ipv4_out",.. */
 {
-	int	result;
-	struct	sockaddr_in6 *ina6;
 	int	inet_mapping_result;
 	char	addr_type[100];
-	char	in6addrbuf[200];
 
 	memset(output_addr, 0, sizeof(*output_addr));
 	if (input_addr) {
@@ -269,53 +367,15 @@ static int map_sockaddr(
 			inet_mapping_result = map_sockaddr_in(realfnname,
 				(struct sockaddr_in*)input_addr, input_addrlen,
 				output_addr, addr_type);
-
-			if (inet_mapping_result != 0) {
-				/* return error */
-				*result_errno_ptr = inet_mapping_result;
-				SB_LOG(SB_LOGLEVEL_NETWORK,
-					"%s: denied (%s), errno=%d",
-					realfnname, output_addr->orig_printable_dst_addr,
-					inet_mapping_result);
-				return(MAP_SOCKADDR_OPERATION_DENIED);
-			}
-			if (strcmp(output_addr->orig_printable_dst_addr,
-			    output_addr->mapped_printable_dst_addr)) {
-				SB_LOG(SB_LOGLEVEL_NETWORK,
-					"%s: allowed, address changed "
-					"(orig.addr=%s, new addr=%s)", realfnname,
-					output_addr->orig_printable_dst_addr,
-					output_addr->mapped_printable_dst_addr);
-			} else {
-				SB_LOG(SB_LOGLEVEL_NETWORK,
-					"%s: allowed (%s)", realfnname,
-					output_addr->orig_printable_dst_addr);
-			}
-			return(MAP_SOCKADDR_MAPPED);
+			goto check_inet_mapping_result;
 
 		case AF_INET6:
-			/* FIXME: INET6 addresses are not yet mapped. */
-			ina6 = (struct sockaddr_in6*)input_addr;
-			output_addr->mapped_sockaddr_in6 = *ina6;
-			if (inet_ntop(input_addr->sa_family,
-				&ina6->sin6_addr, in6addrbuf, sizeof(in6addrbuf))) {
+			snprintf(addr_type, sizeof(addr_type), "ipv6_%s", direction);
+			inet_mapping_result = map_sockaddr_in6(realfnname,
+				(struct sockaddr_in6*)input_addr, input_addrlen,
+				output_addr, addr_type);
+			goto check_inet_mapping_result;
 
-				snprintf(output_addr->orig_printable_dst_addr,
-					sizeof(output_addr->orig_printable_dst_addr),
-					"AF_INET6 [%s]:%d", in6addrbuf,
-					ntohs(ina6->sin6_port));
-				snprintf(output_addr->mapped_printable_dst_addr,
-					sizeof(output_addr->mapped_printable_dst_addr),
-					"%s", output_addr->orig_printable_dst_addr);
-			} else {
-				snprintf(output_addr->orig_printable_dst_addr,
-					sizeof(output_addr->orig_printable_dst_addr),
-					"<address conversion failed / AF_INET6>");
-				snprintf(output_addr->mapped_printable_dst_addr,
-					sizeof(output_addr->mapped_printable_dst_addr),
-					"<address conversion failed / AF_INET6>");
-			}
-			return(MAP_SOCKADDR_MAPPED);
 		default:
 			snprintf(output_addr->orig_printable_dst_addr,
 				sizeof(output_addr->orig_printable_dst_addr),
@@ -332,6 +392,31 @@ static int map_sockaddr(
 		sizeof(output_addr->mapped_printable_dst_addr),
 		"%s", output_addr->orig_printable_dst_addr);
 	return(MAP_SOCKADDR_USE_ORIG_ADDR);
+
+    check_inet_mapping_result:
+	/* IPv4 or IPv6 address was processed: */
+	if (inet_mapping_result != 0) {
+		/* return error */
+		*result_errno_ptr = inet_mapping_result;
+		SB_LOG(SB_LOGLEVEL_NETWORK,
+			"%s: denied (%s), errno=%d",
+			realfnname, output_addr->orig_printable_dst_addr,
+			inet_mapping_result);
+		return(MAP_SOCKADDR_OPERATION_DENIED);
+	}
+	if (strcmp(output_addr->orig_printable_dst_addr,
+	    output_addr->mapped_printable_dst_addr)) {
+		SB_LOG(SB_LOGLEVEL_NETWORK,
+			"%s: allowed, address changed "
+			"(orig.addr=%s, new addr=%s)", realfnname,
+			output_addr->orig_printable_dst_addr,
+			output_addr->mapped_printable_dst_addr);
+	} else {
+		SB_LOG(SB_LOGLEVEL_NETWORK,
+			"%s: allowed (%s)", realfnname,
+			output_addr->orig_printable_dst_addr);
+	}
+	return(MAP_SOCKADDR_MAPPED);
 }
 
 /* ---------- Socket API ---------- */
@@ -474,7 +559,6 @@ ssize_t sendmsg_gate(
 		const struct sockaddr	*to = (struct sockaddr*)msg->msg_name;
 		mapped_sockaddr_t	mapped_addr;
 		struct msghdr		msg2 = *msg;
-		socklen_t		new_addrlen = msg->msg_namelen;
 
 		switch (map_sockaddr(result_errno_ptr, realfnname,
 			to, msg->msg_namelen, &mapped_addr, "out")) {
@@ -482,6 +566,7 @@ ssize_t sendmsg_gate(
 			return (-1);
 		case MAP_SOCKADDR_MAPPED:
 			msg2.msg_name = &mapped_addr.mapped_sockaddr;
+			msg2.msg_namelen = mapped_addr.mapped_addrlen;
 			errno = *result_errno_ptr; /* restore to orig.value */
 			result = (*real_sendmsg_ptr)(s, &msg2, flags);
 			*result_errno_ptr = errno;

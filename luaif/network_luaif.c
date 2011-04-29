@@ -136,7 +136,7 @@ static int compare_ipv4_addrs(const char *address, const char *address_pattern)
 
 	/* "address" must be in numeric format (e.g. "1.2.3.4") */
 	if (inet_pton(AF_INET, address, (void*)&addr) != 1) {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "inet_pton(addr:%s) FAILED",
+		SB_LOG(SB_LOGLEVEL_DEBUG, "inet_pton(IPv4 addr:%s) FAILED",
 			address);
 		/* can't compare it anyway. */
 		return(0);
@@ -199,6 +199,97 @@ static int compare_ipv4_addrs(const char *address, const char *address_pattern)
 	return(0); /* no match */
 }
 
+static struct in6_addr local_in6addr_any = IN6ADDR_ANY_INIT;
+
+static int compare_ipv6_addrs(const char *address, const char *address_pattern)
+{
+	struct in6_addr addr;
+
+	/* first test with strcmp.. the easy & fast way */
+	if (!strcmp(address, address_pattern)) return(1);
+
+	/* "address" must be in numeric format (e.g. "1.2.3.4") */
+	if (inet_pton(AF_INET6, address, (void*)&addr) != 1) {
+		SB_LOG(SB_LOGLEVEL_DEBUG, "inet_pton(IPv6 addr:%s) FAILED",
+			address);
+		/* can't compare it anyway. */
+		return(0);
+	}
+
+	if (!strcmp(address_pattern, "IN6ADDR_ANY")) {
+		/* IN6ADDR_ANY does *not* mean that any address
+		 * will match: It matches only if the address
+		 * *is* IN6ADDR_ANY, exactly. */
+		if (!memcmp(&addr, &local_in6addr_any, sizeof(addr))) {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"matched IN6ADDR_ANY");
+			return(1);
+		}
+	} else {
+		/* "numeric format":
+		 * - "3fff:ffff:8:9" requires an exact match
+		 * - "3fff:ffff::8:9/32" requires that the network part matches.
+		*/
+		char *s_mask = NULL;
+
+		s_mask = strchr(address_pattern, '/');
+		if (s_mask) {
+			int mask_bits = atoi(s_mask+1);
+
+			if ((mask_bits > 0) && (mask_bits <= 128)) {
+				struct in6_addr addr_mask;
+				struct in6_addr prefix;
+				struct in6_addr masked_addr;
+				int m = mask_bits;
+				int i;
+				char *prefix_copy = strdup(address_pattern);
+				char *cp = strchr(prefix_copy, '/');
+
+				*cp = '\0'; /* cut prefix_copy */
+				memset(&addr_mask, 0, sizeof(addr_mask));
+				for (i = 0; m >= 8; i++, m -= 8) {
+					addr_mask.s6_addr[i] = 0xFF;
+				}
+				if (m > 0) {
+					addr_mask.s6_addr[i] = ((0xFF << (8 - m)) & 0xFF);
+				}
+				if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE)) {
+					char printable_addr_mask[200];
+
+					if (!inet_ntop(AF_INET6, &addr_mask,
+						printable_addr_mask, sizeof(printable_addr_mask))) {
+						strcpy(printable_addr_mask, "<addr.conv.error>");
+					}
+					SB_LOG(SB_LOGLEVEL_NOISE,
+						"ipv6 addr mask = %s", printable_addr_mask);
+				}
+				switch(inet_pton(AF_INET6, prefix_copy,
+					(void*)&prefix)) {
+				case 1: /* success */
+					for (i = 0; i < 16; i++) {
+						masked_addr.s6_addr[i] =
+							addr_mask.s6_addr[i] & addr.s6_addr[i];
+					}
+					i = memcmp(&masked_addr, &prefix, sizeof(masked_addr));
+					SB_LOG(SB_LOGLEVEL_NOISE,
+						"cmp ipv6 addr w. prefix, result = %d", i);
+					if (!i) return(1);
+					break;
+				default:
+					SB_LOG(SB_LOGLEVEL_NOISE,
+						"inet_pton(IPv6 prefix:%s) FAILED",
+						prefix_copy);
+				}
+			} else {
+				SB_LOG(SB_LOGLEVEL_ERROR,
+					"incorrect number of bits in IPv6 prefix (%d)",
+					mask_bits);
+			}
+		} /* else no '/' in address_pattern */
+	}
+	return(0); /* no match */
+}
+
 /* "sb.test_net_addr_match(addr_type, address, address_pattern)":
  * This is used from find_net_rule(); implementing this in C improves preformance.
  * Returns result (true if matched, false if it didn't)
@@ -222,6 +313,9 @@ int lua_sb_test_net_addr_match(lua_State *l)
 		if (addr_type && !strncmp(addr_type, "ipv4", 4)) {
 			result = compare_ipv4_addrs(address, address_pattern);
 			match_type = "ipv4 test";
+		} else if (addr_type && !strncmp(addr_type, "ipv6", 4)) {
+			result = compare_ipv6_addrs(address, address_pattern);
+			match_type = "ipv6 test";
 		} else {
 			match_type = "Unsupported address type";
 		}

@@ -332,6 +332,8 @@ WRAP: int ftw(const char *dir, int (*fn)(const char *file, const struct stat *sb
 WRAP: int ftw64(const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag), int nopenfd) : map(dir)
 #endif
 
+WRAP: key_t ftok(const char *pathname, int proj_id) : map(pathname)
+
 WRAP: int utimensat(int dirfd, const char *pathname, \
 	     const struct timespec times[2], int flags) : \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \

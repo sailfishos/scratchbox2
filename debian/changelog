@@ -1,3 +1,11 @@
+scratchbox2 (2.3.4-2) unstable; urgency=low
+
+  * Added wrapper for ftok()
+  * "emulate": new rules for /var/tmp
+  * Added description of the networking modes to the man page (sb2.1)
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 11 May 2011 18:12:00 +0300
+
 scratchbox2 (2.3.3-2) unstable; urgency=low
 
   * fixes and patches from Rafal Krypa and Karol Lewandowski

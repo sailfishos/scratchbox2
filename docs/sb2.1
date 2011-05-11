@@ -9,6 +9,7 @@ sb2 \- crosscompiling environment
 runs command in a scratchbox2 session. If no command is given, an interactive shell is started.
 .PP
 Scratchbox2 creates an environement with essential differences to the host OS environment:
+.PP
 First, a virtual file system view is presented to the applications.
 In practise that means that the file names (paths) which an application
 uses may be modified before the OS does its operations;
@@ -21,6 +22,9 @@ Target's binaries can be executed on the host just as if they were host's binari
 scratchbox2 will start a 
 .I CPU transparency method
 automatically whenever needed (Qemu is typically used for this).
+.PP
+Third, scratchbox2 can also virtualize network (TCP/IP) addresses
+and connections.
 .PP
 The result is that the development machine appears as a virtual target system to
 the software development tools, and complex tools (like GNU Autotools)
@@ -91,7 +95,7 @@ Join a persistent session assossiated with FILE (see also -D and -S)
 .TP
 \-L LEVEL
 Enable logging. Following values for LEVEL are available (in order
-of increasing level of details): error, warning, notice, info, debug, noise, noise2.
+of increasing level of details): error, warning, net, notice, info, debug, noise, noise2.
 The default is
 .I warning.
 Logs can be post-processed with 
@@ -101,6 +105,11 @@ a tool which produces summaries and visualizes various things that were logged.
 \-m MODE
 Use one of the pre-defined mapping modes.  See
 .B mapping modes
+below.
+.TP
+\-n NET_MODE
+Use one of the pre-defined networking modes.  See
+.B networking modes
 below.
 .TP
 \-M FILE
@@ -212,13 +221,53 @@ things are mapped to tools root.
 for debugging purposes: It does not apply any file system related mappings,
 but otherwise scratchbox2 functions are fully operational.
 
+.SH NETWORKING MODES
+The networking subsystems is essentially a "mini-firewall", which
+makes it possible to allow or deny TCP/IP connections independently of
+host system settings. Decisions are typically made when network
+addresses are processed (e.g. when connect(2),
+bind(2), sendmsg(2) or sendto(2) is called). Scratchbox2 does
+not contain a full firewall which would process each networking
+packet separately.
+.PP
+There are four ready-made rulesets for networking. The mode
+is selected with option "-n NET_MODE" when a session is created (or joined)
+and the networking mode can be freely combined with any of the file
+system mapping modes.
+.PP
+"online" is the default mode. It allows unrestricted access to
+networking facilities of the host OS.
+.PP
+"offline" is the opposite of "online". It denies attempts
+to use networking. For example, connect(2) will return EPERM
+and bind(2) will return EADDRNOTAVAIL for all IP addresses.
+.PP
+"localhost" restricts networking to local addresses only.
+In this mode, attempts to bind() to INADDR_ANY will be changed
+to bind to 127.0.0.1.
+.PP
+"online_privatenets" restricts networking to private networks
+(e.g. 10.0.0.0/8, 172.16.0.0/12 and 192.168.0.0/16 for IPv4,
+and fc00::/7 etc. for IPv6 addresses)
+.PP
+Note that networking operations are not logged by default.
+Use "-L net" (or higher levels) to activate logging of
+network-related events.
+.PP
+N.B. Together with the "nomap" filesystem mapping mode,
+you can also test what ordinary programs (programs that
+belong to the host OS) are doing.
+
 .SH FILES
 .P
 .I $HOME/.scratchbox2/*
 .P
 .I $HOME/sb2_logs
 .P
-.I /usr/share/scratchbox2/*
+.I /usr/share/scratchbox2/*.
+In particular, /usr/share/scratchbox2/modes/* contains mapping modes
+and the networking modes can be found at /usr/share/scratchbox2/net_rules/*.
+
 .SH SEE ALSO
 .BR sb2-init (1),
 .BR sb2-config (1),

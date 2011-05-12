@@ -30,8 +30,10 @@ end
 -- string.match() is slow..
 if sbox_mode_specific_options == "use-global-tmp" then
 	tmp_dir_dest = "/tmp"
+	var_tmp_dir_dest = "/var/tmp"
 else
 	tmp_dir_dest = session_dir .. "/tmp"
+	var_tmp_dir_dest = session_dir .. "/var/tmp"
 end
 
 -- If the permission token exists and contains "root", target_root
@@ -153,6 +155,7 @@ mapall_chain = {
 
 		--
 		{prefix = "/var/run", map_to = session_dir},
+		{prefix = "/var/tmp", replace_by = var_tmp_dir_dest},
 
 		-- 
 		{prefix = "/tmp", replace_by = tmp_dir_dest},

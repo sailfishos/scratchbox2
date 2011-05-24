@@ -5,6 +5,7 @@
  */
 
 #include <unistd.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <dirent.h>
@@ -32,8 +33,9 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
-#include <mapping.h>
-#include <sb2.h>
+#include "mapping.h"
+#include "sb2.h"
+#include "rule_tree.h"
 
 /* ------------ WARNING WARNING WARNING ------------
  * A SERIOUS WARNING ABOUT THE "pthread" LIBRARY:
@@ -258,6 +260,7 @@ static struct lua_instance *alloc_lua(void)
 	disable_mapping(tmp);
 	luaL_openlibs(tmp->lua);
 	lua_bind_sb_functions(tmp->lua); /* register our sb_ functions */
+	lua_bind_ruletree_functions(tmp->lua); /* register our ruletree_ functions */
 
 	load_and_execute_lua_file(tmp, main_lua_script);
 

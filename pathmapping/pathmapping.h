@@ -115,7 +115,15 @@ extern void clean_dotdots_from_path(
 	const path_mapping_context_t *ctx,
 	struct path_entry_list *abs_path);
 
-extern void sbox_map_path_internal(
+extern void sbox_map_path_internal__lua_engine(
+	const char *binary_name,
+	const char *func_name,
+	const char *virtual_orig_path,
+	int dont_resolve_final_symlink,
+	int process_path_for_exec,
+	mapping_results_t *res);
+
+extern int sbox_map_path_internal__c_engine(
 	const char *binary_name,
 	const char *func_name,
 	const char *virtual_orig_path,

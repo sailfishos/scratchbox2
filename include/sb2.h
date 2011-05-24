@@ -26,10 +26,19 @@
 #include <dmalloc.h>
 #endif
 
-struct lua_instance {
+/* "sb2context" used to be called "lua_instance", but
+ * was renamed because it is now used for other purposes,
+ * too, and can even be used without activating Lua system
+ * (i.e. the "lua" pointer may remain NULL. See
+ * functions "get_sb2context() and get_sb2context_lua())
+*/
+struct sb2context {
+	/* Lua: */
 	lua_State *lua;
+
+	/* general: */
 	int mapping_disabled;
-	int lua_instance_in_use; /* used only if debug messages are active */
+	int sb2context_in_use; /* used only if debug messages are active */
 
 	/* for path mapping logic: */
 	char *host_cwd;
@@ -103,8 +112,12 @@ struct lua_instance {
 */
 #define SB2_LUA_C_INTERFACE_VERSION "92"
 
-extern struct lua_instance *get_lua(void);
-extern void release_lua(struct lua_instance *ptr);
+/* get sb2context, without activating lua: */
+extern struct sb2context *get_sb2context(void);
+/* get sb2context, activate lua if not already done: */
+extern struct sb2context *get_sb2context_lua(void);
+
+extern void release_sb2context(struct sb2context *ptr);
 
 #if 0
 extern char *sb_decolonize_path(const char *path);

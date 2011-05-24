@@ -67,7 +67,9 @@ pthread_t (*pthread_self_fnptr)(void) = NULL;
 int (*pthread_mutex_lock_fnptr)(pthread_mutex_t *mutex) = NULL;
 int (*pthread_mutex_unlock_fnptr)(pthread_mutex_t *mutex) = NULL;
 
-/* lua_sb_test_net_addr_match() is in network_luaif.c */
+static void sb2context_initialize_lua(struct sb2context *sb2ctx);
+
+/* lua_sb_test_net_addr_match() is in network_sb2if.c */
 extern int lua_sb_test_net_addr_match(lua_State *l);
 
 static void check_pthread_library()
@@ -131,26 +133,26 @@ static void check_pthread_library()
 void mapping_log_write(char *msg);
 static int lua_bind_sb_functions(lua_State *l);
 
-static pthread_key_t lua_key;
-static pthread_once_t lua_key_once = PTHREAD_ONCE_INIT;
+static pthread_key_t sb2context_key;
+static pthread_once_t sb2context_key_once = PTHREAD_ONCE_INIT;
 
 static char *read_string_variable_from_lua(
-	struct lua_instance *luaif,
+	struct sb2context *sb2if,
 	const char *name)
 {
 	char *result = NULL;
 
-	if (luaif && name && *name) {
-		lua_getglobal(luaif->lua, name);
-		result = (char *)lua_tostring(luaif->lua, -1);
+	if (sb2if && name && *name) {
+		lua_getglobal(sb2if->lua, name);
+		result = (char *)lua_tostring(sb2if->lua, -1);
 		if (result) {
 			result = strdup(result);
 		}
-		lua_pop(luaif->lua, 1);
+		lua_pop(sb2if->lua, 1);
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"Lua variable %s = '%s', gettop=%d",
 			name, (result ? result : "<NULL>"),
-			lua_gettop(luaif->lua));
+			lua_gettop(sb2if->lua));
 	}
 	return(result);
 }
@@ -160,25 +162,25 @@ static void free_lua(void *buf)
 	free(buf);
 }
 
-static void alloc_lua_key(void)
+static void alloc_sb2context_key(void)
 {
 	if (pthread_key_create_fnptr)
-		(*pthread_key_create_fnptr)(&lua_key, free_lua);
+		(*pthread_key_create_fnptr)(&sb2context_key, free_lua);
 }
 
 /* used only if pthread lib is not available: */
-static	struct lua_instance *my_lua_instance = NULL;
+static	struct sb2context *my_sb2context = NULL;
 
-static void load_and_execute_lua_file(struct lua_instance *luaif, const char *filename)
+static void load_and_execute_lua_file(struct sb2context *sb2if, const char *filename)
 {
 	const char *errmsg;
 
-	switch(luaL_loadfile(luaif->lua, filename)) {
+	switch(luaL_loadfile(sb2if->lua, filename)) {
 	case LUA_ERRFILE:
 		fprintf(stderr, "Error loading %s\n", filename);
 		exit(1);
 	case LUA_ERRSYNTAX:
-		errmsg = lua_tostring(luaif->lua, -1);
+		errmsg = lua_tostring(sb2if->lua, -1);
 		fprintf(stderr, "Syntax error in %s (%s)\n", filename, 
 			(errmsg?errmsg:""));
 		exit(1);
@@ -189,7 +191,7 @@ static void load_and_execute_lua_file(struct lua_instance *luaif, const char *fi
 	default:
 		;
 	}
-	lua_call(luaif->lua, 0, 0);
+	lua_call(sb2if->lua, 0, 0);
 }
 
 /* Lua calls this at panic: */
@@ -205,69 +207,78 @@ static int sb2_lua_panic(lua_State *l)
 	return 0;
 }
 
-static struct lua_instance *alloc_lua(void)
+static struct sb2context *alloc_sb2context(void)
 {
-	struct lua_instance *tmp;
-	char *main_lua_script = NULL;
-	char *lua_if_version = NULL;
+	struct sb2context *tmp;
 
 	if (pthread_getspecific_fnptr) {
-		tmp = (*pthread_getspecific_fnptr)(lua_key);
+		tmp = (*pthread_getspecific_fnptr)(sb2context_key);
 		if (tmp != NULL) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"alloc_lua: already done (pt-getspec.)");
+				"alloc_sb2context: already done (pt-getspec.)");
 			return(tmp);
 		}
-	} else if (my_lua_instance) {
+	} else if (my_sb2context) {
 		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"alloc_lua: already done (has my_lua_instance)");
-		return(my_lua_instance);
+			"alloc_sb2context: already done (has my_sb2context)");
+		return(my_sb2context);
 	}
 
-	tmp = malloc(sizeof(struct lua_instance));
+	tmp = malloc(sizeof(struct sb2context));
 	if (!tmp) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
-			"alloc_lua: Failed to allocate memory");
+			"alloc_sb2context: Failed to allocate memory");
 		return(NULL);
 	}
-	memset(tmp, 0, sizeof(struct lua_instance));
+	memset(tmp, 0, sizeof(struct sb2context));
 
 	if (pthread_setspecific_fnptr) {
-		(*pthread_setspecific_fnptr)(lua_key, tmp);
+		(*pthread_setspecific_fnptr)(sb2context_key, tmp);
 	} else {
-		my_lua_instance = tmp;
+		my_sb2context = tmp;
 	}
 	
 	if (!sbox_session_dir || !*sbox_session_dir) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
-			"alloc_lua: no SBOX_SESSION_DIR");
+			"alloc_sb2context: no SBOX_SESSION_DIR");
 		return(NULL); /* can't live without a session */
 	}
 	sbox_session_dir = strdup(sbox_session_dir);
+	tmp->lua = NULL;
+	return(tmp);
+}
+
+static void sb2context_initialize_lua(struct sb2context *sb2ctx)
+{
+	char *main_lua_script = NULL;
+	char *lua_if_version = NULL;
+
+	/* return immediately if already been here */
+	if (!sb2ctx || sb2ctx->lua) return;
 
 	if (asprintf(&main_lua_script, "%s/lua_scripts/main.lua",
 	     sbox_session_dir) < 0) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
-			"alloc_lua: asprintf failed to allocate memory");
-		return(NULL);
+			"sb2context_initialize_lua: asprintf failed to allocate memory");
+		return;
 	}
 		
 	SB_LOG(SB_LOGLEVEL_INFO, "Loading '%s'", main_lua_script);
 
-	tmp->lua = luaL_newstate();
-	lua_atpanic(tmp->lua, sb2_lua_panic);
+	sb2ctx->lua = luaL_newstate();
+	lua_atpanic(sb2ctx->lua, sb2_lua_panic);
 
-	disable_mapping(tmp);
-	luaL_openlibs(tmp->lua);
-	lua_bind_sb_functions(tmp->lua); /* register our sb_ functions */
-	lua_bind_ruletree_functions(tmp->lua); /* register our ruletree_ functions */
+	disable_mapping(sb2ctx);
+	luaL_openlibs(sb2ctx->lua);
+	lua_bind_sb_functions(sb2ctx->lua); /* register our sb_ functions */
+	lua_bind_ruletree_functions(sb2ctx->lua); /* register our ruletree_ functions */
 
-	load_and_execute_lua_file(tmp, main_lua_script);
+	load_and_execute_lua_file(sb2ctx, main_lua_script);
 
-	enable_mapping(tmp);
+	enable_mapping(sb2ctx);
 
 	/* check Lua/C interface version. */
-	lua_if_version = read_string_variable_from_lua(tmp,
+	lua_if_version = read_string_variable_from_lua(sb2ctx,
 		"sb2_lua_c_interface_version");
 	if (!lua_if_version) {
 		SB_LOG(SB_LOGLEVEL_ERROR, "FATAL ERROR: "
@@ -285,72 +296,76 @@ static struct lua_instance *alloc_lua(void)
 	free(lua_if_version);
 
 	SB_LOG(SB_LOGLEVEL_INFO, "lua initialized.");
-	SB_LOG(SB_LOGLEVEL_NOISE, "gettop=%d", lua_gettop(tmp->lua));
+	SB_LOG(SB_LOGLEVEL_NOISE, "gettop=%d", lua_gettop(sb2ctx->lua));
 
 	free(main_lua_script);
-	return(tmp);
 }
 
-static void increment_luaif_usage_counter(volatile struct lua_instance *ptr)
+static void increment_sb2if_usage_counter(volatile struct sb2context *ptr)
 {
 	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
-		/* Well, to make this bullet-proof the luaif structure
+		/* Well, to make this bullet-proof the sb2if structure
 		 * should be locked, but since this code is now used only for
 		 * producing debugging information and the pointer is marked
 		 * "volatile", the results are good enough. No need to slow 
 		 * down anything with additional locks - this function is 
 		 * called frequently. */
-		if (ptr->lua_instance_in_use > 0) SB_LOG(SB_LOGLEVEL_DEBUG,
+		if (ptr->sb2context_in_use > 0) SB_LOG(SB_LOGLEVEL_DEBUG,
 			"Lua instance already in use! (%d)",
-			ptr->lua_instance_in_use);
+			ptr->sb2context_in_use);
 
-		(ptr->lua_instance_in_use)++;
+		(ptr->sb2context_in_use)++;
 	}
 }
 
-void release_lua(struct lua_instance *luaif)
+void release_sb2context(struct sb2context *sb2if)
 {
 	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
 		int	i;
-		volatile struct lua_instance *ptr = luaif;
+		volatile struct sb2context *ptr = sb2if;
 
-		SB_LOG(SB_LOGLEVEL_NOISE, "release_lua()");
+		SB_LOG(SB_LOGLEVEL_NOISE, "release_sb2context()");
 
 		if (!ptr) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"release_lua(): ptr is NULL ");
+				"release_sb2context(): ptr is NULL ");
 			return;
 		}
 
-		i = ptr->lua_instance_in_use;
+		i = ptr->sb2context_in_use;
 		if (i > 1) SB_LOG(SB_LOGLEVEL_DEBUG,
 			"Lua instance usage counter was %d", i);
 
-		(ptr->lua_instance_in_use)--;
+		(ptr->sb2context_in_use)--;
 	}
 }
 
-/* get access to lua context. Remember to call release_lua() after the
+/* get access to sb2 context, create the structure 
+ * if it didn't exist; in that case, the structure is only
+ * cleared (most notably, the Lua system is not initialized
+ * by this routine!)
+ *
+ * Remember to call release_sb2context() after the
  * pointer is not needed anymore.
 */
-struct lua_instance *get_lua(void)
+struct sb2context *get_sb2context(void)
 {
-	struct lua_instance *ptr = NULL;
+	struct sb2context *ptr = NULL;
 
 	if (!sb2_global_vars_initialized__) sb2_initialize_global_variables();
 
 	if (!SB_LOG_INITIALIZED()) sblog_init();
 
-	SB_LOG(SB_LOGLEVEL_NOISE, "get_lua()");
+	SB_LOG(SB_LOGLEVEL_NOISE, "get_sb2context()");
 
 	if (pthread_detection_done == 0) check_pthread_library();
 
 	if (pthread_library_is_available) {
 		if (pthread_once_fnptr)
-			(*pthread_once_fnptr)(&lua_key_once, alloc_lua_key);
+			(*pthread_once_fnptr)(&sb2context_key_once, alloc_sb2context_key);
 		if (pthread_getspecific_fnptr)
-			ptr = (*pthread_getspecific_fnptr)(lua_key);
-		if (!ptr) ptr = alloc_lua();
+			ptr = (*pthread_getspecific_fnptr)(sb2context_key);
+		if (!ptr) ptr = alloc_sb2context();
 		if (!ptr) {
 			SB_LOG(SB_LOGLEVEL_ERROR,
 				"Something's wrong with"
@@ -362,8 +377,8 @@ struct lua_instance *get_lua(void)
 		}
 	} else {
 		/* no pthreads, single-thread application */
-		ptr = my_lua_instance;
-		if (!ptr) ptr = alloc_lua();
+		ptr = my_sb2context;
+		if (!ptr) ptr = alloc_sb2context();
 		if (!ptr) {
 			SB_LOG(SB_LOGLEVEL_ERROR,
 				"Failed to get Lua instance"
@@ -377,8 +392,19 @@ struct lua_instance *get_lua(void)
 	}
 
 	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
-		increment_luaif_usage_counter(ptr);
+		increment_sb2if_usage_counter(ptr);
 	}
+	return(ptr);
+}
+
+/* get access to sb2 context, and make sure that Lua
+ * has been initialized.
+*/
+struct sb2context *get_sb2context_lua(void)
+{
+	struct sb2context *ptr = get_sb2context();
+
+	if (ptr) sb2context_initialize_lua(ptr);
 	return(ptr);
 }
 
@@ -386,7 +412,7 @@ struct lua_instance *get_lua(void)
  * be called after other parts of this library have been called
  * if the program uses multiple threads (unbelievable, but true!),
  * so this isn't really too useful. Lua initialization was
- * moved to get_lua() because of this.
+ * moved to get_sb2context_lua() because of this.
 */
 #ifndef SB2_TESTER
 #ifdef __GNUC__
@@ -404,12 +430,12 @@ void sb2_preload_library_constructor(void)
  * Note that this function is exported from libsb2.so (for sb2-show etc): */
 char *sb2__read_string_variable_from_lua__(const char *name)
 {
-	struct lua_instance *luaif;
+	struct sb2context *sb2if;
 	char *cp;
 
-	luaif = get_lua();
-	cp = read_string_variable_from_lua(luaif, name);
-	release_lua(luaif);
+	sb2if = get_sb2context_lua();
+	cp = read_string_variable_from_lua(sb2if, name);
+	release_sb2context(sb2if);
 	return(cp);
 }
 
@@ -428,11 +454,11 @@ const char *sb2__lua_c_interface_version__(void)
 */
 void sb2__load_and_execute_lua_file__(const char *filename)
 {
-	struct lua_instance *luaif;
+	struct sb2context *sb2if;
 
-	luaif = get_lua();
-	load_and_execute_lua_file(luaif, filename);
-	release_lua(luaif);
+	sb2if = get_sb2context_lua();
+	load_and_execute_lua_file(sb2if, filename);
+	release_sb2context(sb2if);
 }
 
 #if 0 /* DISABLED 2008-10-23/LTA: sb_decolonize_path() is not currently available*/

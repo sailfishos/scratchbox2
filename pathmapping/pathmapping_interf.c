@@ -290,10 +290,10 @@ char *scratchbox_reverse_path(
 	ctx.pmc_func_name = func_name;
 	ctx.pmc_virtual_orig_path = "";
 	ctx.pmc_dont_resolve_final_symlink = 0;
-	ctx.pmc_luaif = get_lua();
+	ctx.pmc_luaif = get_sb2context_lua();
 
 	virtual_path = call_lua_function_sbox_reverse_path(&ctx, abs_host_path);
-	release_lua(ctx.pmc_luaif);
+	release_sb2context(ctx.pmc_luaif);
 	return(virtual_path);
 }
 

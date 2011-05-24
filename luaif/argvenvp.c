@@ -58,18 +58,18 @@ void dump_lua_stack(const char *msg, lua_State *L)
 /* Convert a vector of strings to a lua table, leaves that table to
  * lua's stack.
 */
-static void strvec_to_lua_table(struct lua_instance *luaif, char **args)
+static void strvec_to_lua_table(struct sb2context *sb2ctx, char **args)
 {
 	char	**p;
 	int	i;
 
-	lua_newtable(luaif->lua);
+	lua_newtable(sb2ctx->lua);
 	SB_LOG(SB_LOGLEVEL_NOISE2, "strvec_to_lua_table: ");
 	for (p = args, i = 1; p && *p; p++, i++) {
 		SB_LOG(SB_LOGLEVEL_NOISE2, "set element %d to '%s'", i, *p);
-		lua_pushnumber(luaif->lua, i);
-		lua_pushstring(luaif->lua, *p);
-		lua_settable(luaif->lua, -3);
+		lua_pushnumber(sb2ctx->lua, i);
+		lua_pushstring(sb2ctx->lua, *p);
+		lua_settable(sb2ctx->lua, -3);
 	}
 }
 
@@ -105,11 +105,11 @@ void lua_string_table_to_strvec(lua_State *l,
 
 void sb_push_string_to_lua_stack(char *str) 
 {
-	struct lua_instance *luaif = get_lua();
+	struct sb2context *sb2ctx = get_sb2context_lua();
 
-	if (luaif) {
-		lua_pushstring(luaif->lua, str);
-		release_lua(luaif);
+	if (sb2ctx) {
+		lua_pushstring(sb2ctx->lua, str);
+		release_sb2context(sb2ctx);
 	}
 }
 
@@ -118,7 +118,7 @@ void sb_push_string_to_lua_stack(char *str)
 */
 int sb_execve_preprocess(char **file, char ***argv, char ***envp)
 {
-	struct lua_instance *luaif = NULL;
+	struct sb2context *sb2ctx = NULL;
 	int res, new_argc, new_envc;
 
 	if (!argv || !envp) {
@@ -132,40 +132,40 @@ int sb_execve_preprocess(char **file, char ***argv, char ***envp)
 		return 0;
 	}
 
-	luaif = get_lua();
-	if (!luaif) return(0);
+	sb2ctx = get_sb2context_lua();
+	if (!sb2ctx) return(0);
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
-		"sb_execve_preprocess: gettop=%d", lua_gettop(luaif->lua));
+		"sb_execve_preprocess: gettop=%d", lua_gettop(sb2ctx->lua));
 
-	lua_getfield(luaif->lua, LUA_GLOBALSINDEX, "sbox_execve_preprocess");
-	lua_pushstring(luaif->lua, *file);
+	lua_getfield(sb2ctx->lua, LUA_GLOBALSINDEX, "sbox_execve_preprocess");
+	lua_pushstring(sb2ctx->lua, *file);
 	free(*file);
 
-	strvec_to_lua_table(luaif, *argv);
+	strvec_to_lua_table(sb2ctx, *argv);
 	strvec_free(*argv);
 
-	strvec_to_lua_table(luaif, *envp);
+	strvec_to_lua_table(sb2ctx, *envp);
 	strvec_free(*envp);
 
 	/* args:    binaryname, argv, envp
 	 * returns: err, file, argc, argv, envc, envp */
-	lua_call(luaif->lua, 3, 6);
+	lua_call(sb2ctx->lua, 3, 6);
 	
-	res = lua_tointeger(luaif->lua, -6);
-	*file = strdup(lua_tostring(luaif->lua, -5));
-	new_argc = lua_tointeger(luaif->lua, -4);
-	new_envc = lua_tointeger(luaif->lua, -2);
+	res = lua_tointeger(sb2ctx->lua, -6);
+	*file = strdup(lua_tostring(sb2ctx->lua, -5));
+	new_argc = lua_tointeger(sb2ctx->lua, -4);
+	new_envc = lua_tointeger(sb2ctx->lua, -2);
 
-	lua_string_table_to_strvec(luaif->lua, -3, argv, new_argc);
-	lua_string_table_to_strvec(luaif->lua, -1, envp, new_envc);
+	lua_string_table_to_strvec(sb2ctx->lua, -3, argv, new_argc);
+	lua_string_table_to_strvec(sb2ctx->lua, -1, envp, new_envc);
 
 	/* remove sbox_execve_preprocess' return values from the stack.  */
-	lua_pop(luaif->lua, 6);
+	lua_pop(sb2ctx->lua, 6);
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
-		"sb_execve_preprocess: at exit, gettop=%d", lua_gettop(luaif->lua));
-	release_lua(luaif);
+		"sb_execve_preprocess: at exit, gettop=%d", lua_gettop(sb2ctx->lua));
+	release_sb2context(sb2ctx);
 	return res;
 }
 
@@ -179,43 +179,43 @@ int sb_execve_postprocess(const char *exec_type,
 	char ***argv,
 	char ***envp)
 {
-	struct lua_instance *luaif;
+	struct sb2context *sb2ctx;
 	int res, new_argc;
 	int replace_environment = 0;
 
-	luaif = get_lua();
-	if (!luaif) return(0);
+	sb2ctx = get_sb2context_lua();
+	if (!sb2ctx) return(0);
 
 	if(SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE3)) {
-		dump_lua_stack("sb_execve_postprocess entry", luaif->lua);
+		dump_lua_stack("sb_execve_postprocess entry", sb2ctx->lua);
 	}
 
 	if (!argv || !envp) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"ERROR: sb_argvenvp: (argv || envp) == NULL");
-		release_lua(luaif);
+		release_sb2context(sb2ctx);
 		return -1;
 	}
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
-		"sb_execve_postprocess: gettop=%d", lua_gettop(luaif->lua));
+		"sb_execve_postprocess: gettop=%d", lua_gettop(sb2ctx->lua));
 
-	lua_getfield(luaif->lua, LUA_GLOBALSINDEX, "sb_execve_postprocess");
+	lua_getfield(sb2ctx->lua, LUA_GLOBALSINDEX, "sb_execve_postprocess");
 
-	lua_pushstring(luaif->lua, exec_policy_name);
-	lua_pushstring(luaif->lua, exec_type);
-	lua_pushstring(luaif->lua, *mapped_file);
-	lua_pushstring(luaif->lua, *filename);
-	lua_pushstring(luaif->lua, binary_name);
-	strvec_to_lua_table(luaif, *argv);
-	strvec_to_lua_table(luaif, *envp);
+	lua_pushstring(sb2ctx->lua, exec_policy_name);
+	lua_pushstring(sb2ctx->lua, exec_type);
+	lua_pushstring(sb2ctx->lua, *mapped_file);
+	lua_pushstring(sb2ctx->lua, *filename);
+	lua_pushstring(sb2ctx->lua, binary_name);
+	strvec_to_lua_table(sb2ctx, *argv);
+	strvec_to_lua_table(sb2ctx, *envp);
 
 	/* args: exec_policy_name, exec_type, mapped_file, filename,
 	 *	 binaryname, argv, envp
 	 * returns: res, mapped_file, filename, argc, argv, envc, envp */
-	lua_call(luaif->lua, 7, 7);
+	lua_call(sb2ctx->lua, 7, 7);
 	
-	res = lua_tointeger(luaif->lua, -7);
+	res = lua_tointeger(sb2ctx->lua, -7);
 	switch (res) {
 
 	case 0:
@@ -224,14 +224,14 @@ int sb_execve_postprocess(const char *exec_type,
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"sb_execve_postprocess: Updated argv&envp");
 		free(*mapped_file);
-		*mapped_file = strdup(lua_tostring(luaif->lua, -6));
+		*mapped_file = strdup(lua_tostring(sb2ctx->lua, -6));
 
 		free(*filename);
-		*filename = strdup(lua_tostring(luaif->lua, -5));
+		*filename = strdup(lua_tostring(sb2ctx->lua, -5));
 
 		strvec_free(*argv);
-		new_argc = lua_tointeger(luaif->lua, -4);
-		lua_string_table_to_strvec(luaif->lua, -3, argv, new_argc);
+		new_argc = lua_tointeger(sb2ctx->lua, -4);
+		lua_string_table_to_strvec(sb2ctx->lua, -3, argv, new_argc);
 
 		replace_environment = 1;
 		break;
@@ -256,17 +256,17 @@ int sb_execve_postprocess(const char *exec_type,
 
 	if (replace_environment) {
 		int new_envc;
-		new_envc = lua_tointeger(luaif->lua, -2);
+		new_envc = lua_tointeger(sb2ctx->lua, -2);
 		strvec_free(*envp);
-		lua_string_table_to_strvec(luaif->lua, -1, envp, new_envc);
+		lua_string_table_to_strvec(sb2ctx->lua, -1, envp, new_envc);
 	}
 
 	/* remove sb_execve_postprocess return values from the stack.  */
-	lua_pop(luaif->lua, 7);
+	lua_pop(sb2ctx->lua, 7);
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
-		"sb_execve_postprocess: at exit, gettop=%d", lua_gettop(luaif->lua));
-	release_lua(luaif);
+		"sb_execve_postprocess: at exit, gettop=%d", lua_gettop(sb2ctx->lua));
+	release_sb2context(sb2ctx);
 	return res;
 }
 
@@ -282,20 +282,20 @@ char *sb_execve_map_script_interpreter(
 	char ***envp,
 	char **new_exec_policy_name)
 {
-	struct lua_instance *luaif;
+	struct sb2context *sb2ctx;
 	char *mapped_interpreter;
 	int new_argc, new_envc;
 	int res;
 	char *nep;
 
-	luaif = get_lua();
-	if (!luaif) return(0);
+	sb2ctx = get_sb2context_lua();
+	if (!sb2ctx) return(0);
 
 	if (!argv || !envp) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"ERROR: sb_execve_map_script_interpreter: "
 			"(argv || envp) == NULL");
-		release_lua(luaif);
+		release_sb2context(sb2ctx);
 		return NULL;
 	}
 
@@ -304,21 +304,21 @@ char *sb_execve_map_script_interpreter(
 		" interpreter=%s interp_arg=%s "
 		"mapped_script_filename=%s orig_script_filename=%s "
 		"exec_policy_name=%s",
-		lua_gettop(luaif->lua), interpreter, interp_arg,
+		lua_gettop(sb2ctx->lua), interpreter, interp_arg,
 		mapped_script_filename, orig_script_filename,
 		exec_policy_name ? exec_policy_name : "NULL");
 
-	lua_getfield(luaif->lua, LUA_GLOBALSINDEX,
+	lua_getfield(sb2ctx->lua, LUA_GLOBALSINDEX,
 		"sb_execve_map_script_interpreter");
 
-	lua_pushstring(luaif->lua, exec_policy_name);
-	lua_pushstring(luaif->lua, interpreter);
-	if (interp_arg) lua_pushstring(luaif->lua, interp_arg);
-	else lua_pushnil(luaif->lua);
-	lua_pushstring(luaif->lua, mapped_script_filename);
-	lua_pushstring(luaif->lua, orig_script_filename);
-	strvec_to_lua_table(luaif, *argv);
-	strvec_to_lua_table(luaif, *envp);
+	lua_pushstring(sb2ctx->lua, exec_policy_name);
+	lua_pushstring(sb2ctx->lua, interpreter);
+	if (interp_arg) lua_pushstring(sb2ctx->lua, interp_arg);
+	else lua_pushnil(sb2ctx->lua);
+	lua_pushstring(sb2ctx->lua, mapped_script_filename);
+	lua_pushstring(sb2ctx->lua, orig_script_filename);
+	strvec_to_lua_table(sb2ctx, *argv);
+	strvec_to_lua_table(sb2ctx, *envp);
 
 	/* args: exec_policy_name, interpreter, interp_arg, 
 	 *	 mapped_script_filename, orig_script_filename,
@@ -331,27 +331,27 @@ char *sb_execve_map_script_interpreter(
 	 * -1: deny exec.
 	*/
 	if(SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE3)) {
-		dump_lua_stack("sb_execve_map_script_interpreter M1", luaif->lua);
+		dump_lua_stack("sb_execve_map_script_interpreter M1", sb2ctx->lua);
 	}
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"sb_execve_map_script_interpreter: call lua, gettop=%d",
-		lua_gettop(luaif->lua));
-	lua_call(luaif->lua, 7, 7);
+		lua_gettop(sb2ctx->lua));
+	lua_call(sb2ctx->lua, 7, 7);
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"sb_execve_map_script_interpreter: return from lua, gettop=%d",
-		lua_gettop(luaif->lua));
+		lua_gettop(sb2ctx->lua));
 	if(SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE3)) {
-		dump_lua_stack("sb_execve_map_script_interpreter M2", luaif->lua);
+		dump_lua_stack("sb_execve_map_script_interpreter M2", sb2ctx->lua);
 	}
 	
-	mapped_interpreter = (char *)lua_tostring(luaif->lua, -5);
+	mapped_interpreter = (char *)lua_tostring(sb2ctx->lua, -5);
 	if (mapped_interpreter) mapped_interpreter = strdup(mapped_interpreter);
 
-	nep = (char *)lua_tostring(luaif->lua, -7);
+	nep = (char *)lua_tostring(sb2ctx->lua, -7);
 	if (new_exec_policy_name)
 		*new_exec_policy_name = nep ? strdup(nep) : NULL;
 
-	res = lua_tointeger(luaif->lua, -6);
+	res = lua_tointeger(sb2ctx->lua, -6);
 	switch (res) {
 
 	case 0:
@@ -361,29 +361,29 @@ char *sb_execve_map_script_interpreter(
 			"sb_execve_map_script_interpreter: Updated argv&envp");
 
 		strvec_free(*argv);
-		new_argc = lua_tointeger(luaif->lua, -4);
-		lua_string_table_to_strvec(luaif->lua, -3, argv, new_argc);
+		new_argc = lua_tointeger(sb2ctx->lua, -4);
+		lua_string_table_to_strvec(sb2ctx->lua, -3, argv, new_argc);
 
-		new_envc = lua_tointeger(luaif->lua, -2);
+		new_envc = lua_tointeger(sb2ctx->lua, -2);
 		strvec_free(*envp);
-		lua_string_table_to_strvec(luaif->lua, -1, envp, new_envc);
+		lua_string_table_to_strvec(sb2ctx->lua, -1, envp, new_envc);
 
 		/* remove return values from the stack */
-		lua_pop(luaif->lua, 7);
+		lua_pop(sb2ctx->lua, 7);
 		break;
 
 	case 1:
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"sb_execve_map_script_interpreter: argv&envp were not modified");
 		/* remove return values from the stack */
-		lua_pop(luaif->lua, 7);
+		lua_pop(sb2ctx->lua, 7);
 		break;
 
 	case 2:
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"sb_execve_map_script_interpreter: use sbox_map_path_for_exec");
 		/* remove return values from the stack  */
-		lua_pop(luaif->lua, 7);
+		lua_pop(sb2ctx->lua, 7);
 		if (mapped_interpreter) free(mapped_interpreter);
 		mapped_interpreter = NULL;
 		{
@@ -411,7 +411,7 @@ char *sb_execve_map_script_interpreter(
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"sb_execve_map_script_interpreter: exec denied");
 		/* remove return values from the stack */
-		lua_pop(luaif->lua, 7);
+		lua_pop(sb2ctx->lua, 7);
 		if (mapped_interpreter) free(mapped_interpreter);
 		mapped_interpreter = NULL;
 		break;
@@ -420,22 +420,22 @@ char *sb_execve_map_script_interpreter(
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"sb_execve_map_script_interpreter: Unsupported result %d", res);
 		/* remove return values from the stack */
-		lua_pop(luaif->lua, 7);
+		lua_pop(sb2ctx->lua, 7);
 		break;
 	}
 
 
 	if(SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE3)) {
-		dump_lua_stack("sb_execve_map_script_interpreter E2", luaif->lua);
+		dump_lua_stack("sb_execve_map_script_interpreter E2", sb2ctx->lua);
 	}
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"sb_execve_map_script_interpreter: at exit, gettop=%d "
 		"*new_exec_policy_name=%s",
-		lua_gettop(luaif->lua),
+		lua_gettop(sb2ctx->lua),
 		(new_exec_policy_name && *new_exec_policy_name) ?
 			*new_exec_policy_name : "NULL");
-	release_lua(luaif);
+	release_sb2context(sb2ctx);
 	return mapped_interpreter;
 }
 
@@ -446,32 +446,32 @@ char *sb_execve_map_script_interpreter(
 */
 void sb_get_host_policy_ld_params(char **p_ld_preload, char **p_ld_lib_path)
 {
-	struct lua_instance *luaif;
+	struct sb2context *sb2ctx;
 
 	if (getenv("SBOX_DISABLE_ARGVENVP")) {
 		SB_LOG(SB_LOGLEVEL_DEBUG, "sb_argvenvp disabled(E):");
 		return;
 	}
-	luaif = get_lua();
-	if (!luaif) return;
+	sb2ctx = get_sb2context_lua();
+	if (!sb2ctx) return;
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
-		"sb_get_host_policy_ld_params: gettop=%d", lua_gettop(luaif->lua));
+		"sb_get_host_policy_ld_params: gettop=%d", lua_gettop(sb2ctx->lua));
 
-	lua_getfield(luaif->lua, LUA_GLOBALSINDEX, "sbox_get_host_policy_ld_params");
+	lua_getfield(sb2ctx->lua, LUA_GLOBALSINDEX, "sbox_get_host_policy_ld_params");
 
 	/* no args,    
 	 * returns: ld_preload, ld_library_path */
-	lua_call(luaif->lua, 0, 2);
+	lua_call(sb2ctx->lua, 0, 2);
 	
-	*p_ld_preload = strdup(lua_tostring(luaif->lua, -2));
-	*p_ld_lib_path = strdup(lua_tostring(luaif->lua, -1));
+	*p_ld_preload = strdup(lua_tostring(sb2ctx->lua, -2));
+	*p_ld_lib_path = strdup(lua_tostring(sb2ctx->lua, -1));
 
 	/* remove return values from the stack.  */
-	lua_pop(luaif->lua, 2);
+	lua_pop(sb2ctx->lua, 2);
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
-		"sb_get_host_policy_ld_params: at exit, gettop=%d", lua_gettop(luaif->lua));
-	release_lua(luaif);
+		"sb_get_host_policy_ld_params: at exit, gettop=%d", lua_gettop(sb2ctx->lua));
+	release_sb2context(sb2ctx);
 }
 

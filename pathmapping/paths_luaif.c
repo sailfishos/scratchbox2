@@ -10,6 +10,9 @@
  * Path mapping subsystem of SB2; interfaces to Lua functions.
 */
 
+/* FIXME: Temporary hack */
+#define lua_instance sb2context
+
 #if 0
 #include <unistd.h>
 #include <stdio.h>

@@ -43,41 +43,41 @@ int call_lua_function_sbox_map_network_addr(
 	int result_addr_buf_len,
 	int *result_port)
 {
-	struct lua_instance	*luaif = NULL;
+	struct sb2context	*sb2ctx = NULL;
 	char *result_code = NULL;
 	int return_value = 0;
 	char *log_level = NULL;
 
-	luaif = get_lua();
-        if (!luaif) return(EBADF);	/* overload EBADF; if get_lua() fails,
+	sb2ctx = get_sb2context_lua();
+        if (!sb2ctx) return(EBADF);	/* overload EBADF; if get_sb2context_lua() fails,
 					 * things are in a bad state anyway */
 
 	SB_LOG(SB_LOGLEVEL_NOISE, "calling sbox_map_network_addr for %s:%d",
 		orig_dst_addr, orig_port);
 	SB_LOG(SB_LOGLEVEL_NOISE, "binary_name = '%s'", binary_name);
 
-	lua_getfield(luaif->lua, LUA_GLOBALSINDEX, "sbox_map_network_addr");
+	lua_getfield(sb2ctx->lua, LUA_GLOBALSINDEX, "sbox_map_network_addr");
 	/* add parameters */
-	lua_pushstring(luaif->lua, realfnname);
-	lua_pushstring(luaif->lua, protocol);
-	lua_pushstring(luaif->lua, addr_type);
-	lua_pushstring(luaif->lua, orig_dst_addr);
-	lua_pushnumber(luaif->lua, orig_port);
-	lua_pushstring(luaif->lua, binary_name);
+	lua_pushstring(sb2ctx->lua, realfnname);
+	lua_pushstring(sb2ctx->lua, protocol);
+	lua_pushstring(sb2ctx->lua, addr_type);
+	lua_pushstring(sb2ctx->lua, orig_dst_addr);
+	lua_pushnumber(sb2ctx->lua, orig_port);
+	lua_pushstring(sb2ctx->lua, binary_name);
 
 	if(SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE3)) {
 		dump_lua_stack("call_lua_function_sbox_map_network_addr -> call",
-			luaif->lua);
+			sb2ctx->lua);
 	}
 	/* 6 arguments, returns result_code,address,port,log_level,log_msg */
-	lua_call(luaif->lua, 6, 5);
+	lua_call(sb2ctx->lua, 6, 5);
 
-	result_code = (char *)lua_tostring(luaif->lua, -5); /* result_code */
+	result_code = (char *)lua_tostring(sb2ctx->lua, -5); /* result_code */
 	if ((*result_code == '\0') || (!strcmp(result_code, "OK"))) {
 		/* empty string or "OK" == success */
-		char *result_addr = (char *)lua_tostring(luaif->lua, -4);
+		char *result_addr = (char *)lua_tostring(sb2ctx->lua, -4);
 		snprintf(result_addr_buf, result_addr_buf_len, "%s", result_addr);
-		*result_port = lua_tointeger(luaif->lua, -3);
+		*result_port = lua_tointeger(sb2ctx->lua, -3);
 		SB_LOG(SB_LOGLEVEL_NOISE, "sbox_map_network_addr => OK, addr=%s, port=%d",
 			result_addr_buf, *result_port);
 	} else {
@@ -95,9 +95,9 @@ int call_lua_function_sbox_map_network_addr(
 		SB_LOG(SB_LOGLEVEL_NOISE, "sbox_map_network_addr => ERROR, code=%s => #%d",
 			result_code, return_value);
 	}
-	log_level = (char *)lua_tostring(luaif->lua, -2);
+	log_level = (char *)lua_tostring(sb2ctx->lua, -2);
 	if (log_level) {
-		char *log_msg = (char *)lua_tostring(luaif->lua, -1);
+		char *log_msg = (char *)lua_tostring(sb2ctx->lua, -1);
 		if (log_msg) {
 			int lvl = SB_LOGLEVEL_ERROR; /* default */
 			if(!strcmp(log_level, "debug"))
@@ -122,7 +122,7 @@ int call_lua_function_sbox_map_network_addr(
 		}
 	}
 
-	lua_pop(luaif->lua, 5); /* drop return values from the stack */
+	lua_pop(sb2ctx->lua, 5); /* drop return values from the stack */
 	return(return_value);
 }
 

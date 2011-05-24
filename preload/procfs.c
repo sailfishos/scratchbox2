@@ -17,6 +17,7 @@
  *
  * (all other files under /proc are used directly)
 */
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -205,14 +206,14 @@ static char *select_exe_path_for_sb2(
 		/* only unmapped, unclean path is available */
 		char *rp;
 		char *reverse;
-		struct lua_instance *luaif = get_lua();
+		struct sb2context *sb2if = get_sb2context();
 
 		/* lua mapping is disabled at this point, need to enable it */
-		enable_mapping(luaif);
+		enable_mapping(sb2if);
 		/* calculate host real path */
 		rp = canonicalize_file_name(real_binary_name);
-		disable_mapping(luaif);
-		release_lua(luaif);
+		disable_mapping(sb2if);
+		release_sb2context(sb2if);
 
 		if (!rp) {
 			SB_LOG(SB_LOGLEVEL_ERROR,

@@ -96,10 +96,12 @@ struct lua_instance {
  * * New in version "91":
  *   - networking rules have been added, couple
  *     of new functions were introduced.
+ * * New in version "92":
+ *   - "ruletree" functions have been added.
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "91"
+#define SB2_LUA_C_INTERFACE_VERSION "92"
 
 extern struct lua_instance *get_lua(void);
 extern void release_lua(struct lua_instance *ptr);

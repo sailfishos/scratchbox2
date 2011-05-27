@@ -10,9 +10,6 @@
  * Path mapping subsystem of SB2; interfaces to Lua functions.
 */
 
-/* FIXME: Temporary hack */
-#define lua_instance sb2context
-
 #if 0
 #include <unistd.h>
 #include <stdio.h>
@@ -79,32 +76,33 @@ char *call_lua_function_sbox_translate_path(
 	int *flagsp,
 	char **exec_policy_name_ptr)
 {
-	struct lua_instance	*luaif = ctx->pmc_luaif;
+	struct sb2context	*sb2ctx = ctx->pmc_sb2ctx;
 	int flags;
 	char *host_path = NULL;
 
 	SB_LOG(SB_LOGLEVEL_NOISE, "calling sbox_translate_path for %s(%s)",
 		ctx->pmc_func_name, abs_clean_virtual_path);
+	if (!sb2ctx->lua) sb2context_initialize_lua(sb2ctx);
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"call_lua_function_sbox_translate_path: gettop=%d",
-		lua_gettop(luaif->lua));
+		lua_gettop(sb2ctx->lua));
 	if(SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE3)) {
 		dump_lua_stack("call_lua_function_sbox_translate_path entry",
-			luaif->lua);
+			sb2ctx->lua);
 	}
 
-	lua_getfield(luaif->lua, LUA_GLOBALSINDEX, "sbox_translate_path");
+	lua_getfield(sb2ctx->lua, LUA_GLOBALSINDEX, "sbox_translate_path");
 	/* stack now contains the rule object and string "sbox_translate_path",
          * move the string to the bottom: */
-	lua_insert(luaif->lua, -2);
+	lua_insert(sb2ctx->lua, -2);
 	/* add other parameters */
-	lua_pushstring(luaif->lua, ctx->pmc_binary_name);
-	lua_pushstring(luaif->lua, ctx->pmc_func_name);
-	lua_pushstring(luaif->lua, abs_clean_virtual_path);
+	lua_pushstring(sb2ctx->lua, ctx->pmc_binary_name);
+	lua_pushstring(sb2ctx->lua, ctx->pmc_func_name);
+	lua_pushstring(sb2ctx->lua, abs_clean_virtual_path);
 	 /* 4 arguments, returns rule,policy,path,flags */
-	lua_call(luaif->lua, 4, 4);
+	lua_call(sb2ctx->lua, 4, 4);
 
-	host_path = (char *)lua_tostring(luaif->lua, -2);
+	host_path = (char *)lua_tostring(sb2ctx->lua, -2);
 	if (host_path && (*host_path != '/')) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"Mapping failed: Result is not absolute ('%s'->'%s')",
@@ -113,7 +111,7 @@ char *call_lua_function_sbox_translate_path(
 	} else if (host_path) {
 		host_path = strdup(host_path);
 	}
-	flags = lua_tointeger(luaif->lua, -1);
+	flags = lua_tointeger(sb2ctx->lua, -1);
 	check_mapping_flags(flags, "sbox_translate_path");
 	if (flagsp) *flagsp = flags;
 
@@ -124,13 +122,13 @@ char *call_lua_function_sbox_translate_path(
 			free(*exec_policy_name_ptr);
 			*exec_policy_name_ptr = NULL;
 		}
-		exec_policy_name = (char *)lua_tostring(luaif->lua, -3);
+		exec_policy_name = (char *)lua_tostring(sb2ctx->lua, -3);
 		if (exec_policy_name) {
 			*exec_policy_name_ptr = strdup(exec_policy_name);
 		}
 	}
 
-	lua_pop(luaif->lua, 3); /* leave the rule to the stack */
+	lua_pop(sb2ctx->lua, 3); /* leave the rule to the stack */
 
 	if (host_path) {
 		/* sometimes a mapping rule may create paths that contain
@@ -202,10 +200,10 @@ char *call_lua_function_sbox_translate_path(
 	}
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"call_lua_function_sbox_translate_path: at exit, gettop=%d",
-		lua_gettop(luaif->lua));
+		lua_gettop(sb2ctx->lua));
 	if(SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE3)) {
 		dump_lua_stack("call_lua_function_sbox_translate_path exit",
-			luaif->lua);
+			sb2ctx->lua);
 	}
 	return(host_path);
 }
@@ -220,7 +218,7 @@ int call_lua_function_sbox_get_mapping_requirements(
 	int *min_path_lenp,
 	int *call_translate_for_all_p)
 {
-	struct lua_instance	*luaif = ctx->pmc_luaif;
+	struct sb2context	*sb2ctx = ctx->pmc_sb2ctx;
 	int rule_found;
 	int min_path_len;
 	int flags;
@@ -231,22 +229,23 @@ int call_lua_function_sbox_get_mapping_requirements(
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"calling sbox_get_mapping_requirements for %s(%s)",
 		ctx->pmc_func_name, abs_virtual_source_path_string);
+	if (!sb2ctx->lua) sb2context_initialize_lua(sb2ctx);
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"call_lua_function_sbox_get_mapping_requirements: gettop=%d",
-		lua_gettop(luaif->lua));
+		lua_gettop(sb2ctx->lua));
 
-	lua_getfield(luaif->lua, LUA_GLOBALSINDEX,
+	lua_getfield(sb2ctx->lua, LUA_GLOBALSINDEX,
 		"sbox_get_mapping_requirements");
-	lua_pushstring(luaif->lua, ctx->pmc_binary_name);
-	lua_pushstring(luaif->lua, ctx->pmc_func_name);
-	lua_pushstring(luaif->lua, abs_virtual_source_path_string);
+	lua_pushstring(sb2ctx->lua, ctx->pmc_binary_name);
+	lua_pushstring(sb2ctx->lua, ctx->pmc_func_name);
+	lua_pushstring(sb2ctx->lua, abs_virtual_source_path_string);
 	/* 3 arguments, returns 4: (rule, rule_found_flag,
 	 * min_path_len, flags) */
-	lua_call(luaif->lua, 3, 4);
+	lua_call(sb2ctx->lua, 3, 4);
 
-	rule_found = lua_toboolean(luaif->lua, -3);
-	min_path_len = lua_tointeger(luaif->lua, -2);
-	flags = lua_tointeger(luaif->lua, -1);
+	rule_found = lua_toboolean(sb2ctx->lua, -3);
+	min_path_len = lua_tointeger(sb2ctx->lua, -2);
+	flags = lua_tointeger(sb2ctx->lua, -1);
 	check_mapping_flags(flags, "sbox_get_mapping_requirements");
 	if (min_path_lenp) *min_path_lenp = min_path_len;
 	if (call_translate_for_all_p)
@@ -254,7 +253,7 @@ int call_lua_function_sbox_get_mapping_requirements(
 			(flags & SB2_MAPPING_RULE_FLAGS_CALL_TRANSLATE_FOR_ALL);
 
 	/* remove last 3 values; leave "rule" to the stack */
-	lua_pop(luaif->lua, 3);
+	lua_pop(sb2ctx->lua, 3);
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "sbox_get_mapping_requirements -> %d,%d,0%o",
 		rule_found, min_path_len, flags);
@@ -262,7 +261,7 @@ int call_lua_function_sbox_get_mapping_requirements(
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"call_lua_function_sbox_get_mapping_requirements:"
 		" at exit, gettop=%d",
-		lua_gettop(luaif->lua));
+		lua_gettop(sb2ctx->lua));
 	free(abs_virtual_source_path_string);
 	return(rule_found);
 }
@@ -272,30 +271,31 @@ char *call_lua_function_sbox_reverse_path(
 	const path_mapping_context_t *ctx,
 	const char *abs_host_path)
 {
-	struct lua_instance	*luaif = ctx->pmc_luaif;
+	struct sb2context	*sb2ctx = ctx->pmc_sb2ctx;
 	char *virtual_path = NULL;
 	int flags;
 
 	SB_LOG(SB_LOGLEVEL_NOISE, "calling sbox_reverse_path for %s(%s)",
 		ctx->pmc_func_name, abs_host_path);
+	if (!sb2ctx->lua) sb2context_initialize_lua(sb2ctx);
 
-	lua_getfield(luaif->lua, LUA_GLOBALSINDEX, "sbox_reverse_path");
-	lua_pushstring(luaif->lua, ctx->pmc_binary_name);
-	lua_pushstring(luaif->lua, ctx->pmc_func_name);
-	lua_pushstring(luaif->lua, abs_host_path);
+	lua_getfield(sb2ctx->lua, LUA_GLOBALSINDEX, "sbox_reverse_path");
+	lua_pushstring(sb2ctx->lua, ctx->pmc_binary_name);
+	lua_pushstring(sb2ctx->lua, ctx->pmc_func_name);
+	lua_pushstring(sb2ctx->lua, abs_host_path);
 	 /* 3 arguments, returns virtual_path and flags */
-	lua_call(luaif->lua, 3, 2);
+	lua_call(sb2ctx->lua, 3, 2);
 
-	virtual_path = (char *)lua_tostring(luaif->lua, -2);
+	virtual_path = (char *)lua_tostring(sb2ctx->lua, -2);
 	if (virtual_path) {
 		virtual_path = strdup(virtual_path);
 	}
 
-	flags = lua_tointeger(luaif->lua, -1);
+	flags = lua_tointeger(sb2ctx->lua, -1);
 	check_mapping_flags(flags, "sbox_reverse_path");
 	/* Note: "flags" is not yet used for anything, intentionally */
  
-	lua_pop(luaif->lua, 2); /* remove return values */
+	lua_pop(sb2ctx->lua, 2); /* remove return values */
 
 	if (virtual_path) {
 		SB_LOG(SB_LOGLEVEL_DEBUG, "virtual_path='%s'", virtual_path);
@@ -308,12 +308,13 @@ char *call_lua_function_sbox_reverse_path(
 }
 
 /* clean up path resolution environment from lua stack */
-void drop_rule_from_lua_stack(struct lua_instance *luaif)
+void drop_rule_from_lua_stack(struct sb2context *sb2ctx)
 {
-	lua_pop(luaif->lua, 1);
+	if (!sb2ctx->lua) sb2context_initialize_lua(sb2ctx);
+	lua_pop(sb2ctx->lua, 1);
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"drop rule from stack: at exit, gettop=%d",
-		lua_gettop(luaif->lua));
+		lua_gettop(sb2ctx->lua));
 }
 

@@ -11,6 +11,8 @@
 #ifndef __PATHMAPPING_INTERNAL_H
 #define __PATHMAPPING_INTERNAL_H
 
+#include "rule_tree.h"
+
 /* --------- Path & Path component handling primitives: --------- */
 
 struct path_entry {
@@ -83,7 +85,10 @@ typedef struct path_mapping_context_s {
 	const char		*pmc_func_name;
 	const char		*pmc_virtual_orig_path;
 	int			pmc_dont_resolve_final_symlink;
-	struct lua_instance	*pmc_luaif;
+	struct sb2context	*pmc_sb2ctx;
+
+	/* for paths_ruletree_mapping.c: */
+	ruletree_object_offset_t pmc_ruletree_offset;
 } path_mapping_context_t;
 
 #define clear_path_mapping_context(p) {memset((p),0,sizeof(*(p)));}
@@ -103,7 +108,21 @@ extern int call_lua_function_sbox_get_mapping_requirements(
 extern char *call_lua_function_sbox_reverse_path(
 	const path_mapping_context_t *ctx,
 	const char *abs_host_path);
-extern void drop_rule_from_lua_stack(struct lua_instance *luaif);
+extern void drop_rule_from_lua_stack(struct sb2context *sb2ctx);
+
+/* ----------- paths_ruletree_mapping.c ----------- */
+extern char *ruletree_translate_path(
+	const path_mapping_context_t *ctx,
+	int result_log_level,
+	const char *abs_clean_virtual_path,
+	int *flagsp,
+	char **exec_policy_name_ptr,
+	int *force_fallback_to_lua);
+extern int ruletree_get_mapping_requirements(
+	path_mapping_context_t *ctx,
+	const struct path_entry_list *abs_virtual_source_path_list,
+	int *min_path_lenp,
+	int *call_translate_for_all_p);
 
 /* ----------- pathresolution.c ----------- */
 
@@ -123,7 +142,7 @@ extern void sbox_map_path_internal__lua_engine(
 	int process_path_for_exec,
 	mapping_results_t *res);
 
-extern int sbox_map_path_internal__c_engine(
+extern void sbox_map_path_internal__c_engine(
 	const char *binary_name,
 	const char *func_name,
 	const char *virtual_orig_path,

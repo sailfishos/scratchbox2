@@ -69,24 +69,24 @@ static void check_mapping_method(void)
 		if (mp) {
 			if (strchr(mp,'c')|| strchr(mp,'C')) {
 				mapping_method |= MAPPING_METHOD_C_ENGINE;
-				SB_LOG(SB_LOGLEVEL_INFO,
+				SB_LOG(SB_LOGLEVEL_DEBUG,
 					"Activated 'C' mapping method");
 			}
 			if (strchr(mp,'l')|| strchr(mp,'L')) {
 				mapping_method |= MAPPING_METHOD_LUA_ENGINE;
-				SB_LOG(SB_LOGLEVEL_INFO,
+				SB_LOG(SB_LOGLEVEL_DEBUG,
 					"Activated 'Lua' mapping method");
 			}
 			if (mapping_method == MAPPING_METHOD_NOT_SET) {
 				/* default to both */
 				mapping_method = MAPPING_METHOD_BOTH_ENGINES;
-				SB_LOG(SB_LOGLEVEL_INFO,
+				SB_LOG(SB_LOGLEVEL_DEBUG,
 					"Error in SBOX_MAPPING_METHOD variable, using both mapping methods");
 			}
 		} else {
 			/* default to both */
 			mapping_method = MAPPING_METHOD_BOTH_ENGINES;
-			SB_LOG(SB_LOGLEVEL_INFO,
+			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"Activated both mapping methods");
 		}
 	}
@@ -99,22 +99,22 @@ static void compare_results_from_c_and_lua_engines(
 {
 	if (c_res && lua_res) {
 		if (!strcmp(c_res, lua_res)) {
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			SB_LOG(SB_LOGLEVEL_INFO,
 				"%s: ResultCheck: same, OK",
 				fn_name);
 		} else {
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			SB_LOG(SB_LOGLEVEL_NOTICE,
 				"%s: ResultCheck: DIFFERENT: C='%s', Lua='%s'",
 				fn_name, c_res, lua_res);
 		}
 	} else {
 		if (!c_res) {
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			SB_LOG(SB_LOGLEVEL_INFO,
 				"%s: ResultCheck: no result from C (Lua='%s')",
 				fn_name, lua_res);
 		}
 		if (!lua_res) {
-			SB_LOG(SB_LOGLEVEL_DEBUG,
+			SB_LOG(SB_LOGLEVEL_INFO,
 				"%s: ResultCheck: no result from Lua (C='%s')",
 				fn_name, c_res);
 		}
@@ -141,12 +141,14 @@ void fwd_map_path(
 
 		switch (mapping_method) {
 		case MAPPING_METHOD_C_ENGINE:
-			if (sbox_map_path_internal__c_engine(binary_name,
+			sbox_map_path_internal__c_engine(binary_name,
 				func_name, virtual_path,
-				dont_resolve_final_symlink, 0, res) < 0) {
-				SB_LOG(SB_LOGLEVEL_DEBUG,
-					"C path mapping engine failed, fallback to Lua (%s)",
-					virtual_path);
+				dont_resolve_final_symlink, 0, res);
+			if (res->mres_fallback_to_lua_mapping_engine) {
+				SB_LOG(SB_LOGLEVEL_NOTICE,
+					"C path mapping engine failed (%s), fallback to Lua (%s)",
+					res->mres_fallback_to_lua_mapping_engine, virtual_path);
+				free_mapping_results(res);
 				sbox_map_path_internal__lua_engine(binary_name,
 					func_name, virtual_path,
 					dont_resolve_final_symlink, 0, res);
@@ -160,11 +162,12 @@ void fwd_map_path(
 			clear_mapping_results_struct(&res2);
 			sbox_map_path_internal__lua_engine(binary_name, func_name, virtual_path,
 				dont_resolve_final_symlink, 0, res);
-			if (sbox_map_path_internal__c_engine(binary_name, func_name, virtual_path,
-				dont_resolve_final_symlink, 0, &res2) < 0) {
-				SB_LOG(SB_LOGLEVEL_DEBUG,
-					"C path mapping engine failed, can't compare (%s)",
-					virtual_path);
+			sbox_map_path_internal__c_engine(binary_name, func_name, virtual_path,
+				dont_resolve_final_symlink, 0, &res2);
+			if (res2.mres_fallback_to_lua_mapping_engine) {
+				SB_LOG(SB_LOGLEVEL_NOTICE,
+					"C path mapping engine failed (%s), can't compare (%s)",
+					res2.mres_fallback_to_lua_mapping_engine, virtual_path);
 			} else {
 				compare_results_from_c_and_lua_engines(
 					__func__, res2.mres_result_path,
@@ -290,10 +293,10 @@ char *scratchbox_reverse_path(
 	ctx.pmc_func_name = func_name;
 	ctx.pmc_virtual_orig_path = "";
 	ctx.pmc_dont_resolve_final_symlink = 0;
-	ctx.pmc_luaif = get_sb2context_lua();
+	ctx.pmc_sb2ctx = get_sb2context_lua();
 
 	virtual_path = call_lua_function_sbox_reverse_path(&ctx, abs_host_path);
-	release_sb2context(ctx.pmc_luaif);
+	release_sb2context(ctx.pmc_sb2ctx);
 	return(virtual_path);
 }
 
@@ -306,6 +309,9 @@ void	clear_mapping_results_struct(mapping_results_t *res)
 	res->mres_virtual_cwd = NULL;
 	res->mres_exec_policy_name = NULL;
 	res->mres_error_text = NULL;
+#if 1
+	res->mres_fallback_to_lua_mapping_engine = NULL;
+#endif
 }
 
 void	free_mapping_results(mapping_results_t *res)
@@ -316,6 +322,9 @@ void	free_mapping_results(mapping_results_t *res)
 	if (res->mres_virtual_cwd) free(res->mres_virtual_cwd);
 	if (res->mres_exec_policy_name) free(res->mres_exec_policy_name);
 	/* res->mres_error_text is a constant string, and not freed, ever */
+#if 1
+	/* res->mres_fallback_to_lua_mapping_engine is a constant string, and not freed, ever */
+#endif
 	clear_mapping_results_struct(res);
 }
 

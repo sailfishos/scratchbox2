@@ -116,7 +116,7 @@ struct sb2context {
 extern struct sb2context *get_sb2context(void);
 /* get sb2context, activate lua if not already done: */
 extern struct sb2context *get_sb2context_lua(void);
-
+extern void sb2context_initialize_lua(struct sb2context *sb2ctx);
 extern void release_sb2context(struct sb2context *ptr);
 
 #if 0
@@ -134,6 +134,8 @@ extern time_t get_sb2_timestamp(void);
 extern char *procfs_mapping_request(char *path);
 
 extern void dump_lua_stack(const char *msg, lua_State *L);
+
+extern int sb_path_exists(const char *path);
 
 /* ------ debug/trace logging system for sb2: */
 #define SB_LOGLEVEL_uninitialized (-1)

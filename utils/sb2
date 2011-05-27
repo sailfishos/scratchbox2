@@ -222,6 +222,24 @@ function create_argvmods_usr_bin_rules()
 	done
 }
 
+function add_rules_to_rule_tree_db()
+{
+	mkdir $SBOX_SESSION_DIR/ruletree.logs
+	for ammf in $SBOX_SESSION_DIR/rules/*.lua; do
+		amm_base=`basename $ammf .lua`
+
+		__SB2_BINARYNAME="sb2:CreatingRuleTree" \
+		SBOX_SESSION_MODE=$amm_base sb2-monitor \
+			-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
+			execluafile \
+			$SBOX_SESSION_DIR/lua_scripts/add_rules_to_rule_tree.lua \
+			>$SBOX_SESSION_DIR/ruletree.logs/$amm_base.out
+		if [ $? != 0 ]; then
+			exit_error "Failed to add rules from $amm_base to rule tree"
+		fi
+	done
+}
+
 function set_and_check_SBOX_TARGET()
 {
 	if [ -z "$SBOX_TARGET" ]; then
@@ -1634,6 +1652,12 @@ if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 		echo "-- Reverse rules disabled by command line option -r" \
 			>$SBOX_SESSION_DIR/rev_rules.note
 	fi
+
+	#
+	# Create the "rule tree" file for the C mapping
+	# engine:
+	add_rules_to_rule_tree_db
+
 	# session setup ok, stamp it.
 	touch $SBOX_SESSION_DIR/.session_stamp
 else

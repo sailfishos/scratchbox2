@@ -55,7 +55,7 @@ PROTOTYPEWARNINGS=-Wmissing-prototypes -Wstrict-prototypes
 
 # targets variable will be filled by llbuild
 targets = 
-subdirs = luaif pathmapping preload utils
+subdirs = luaif pathmapping rule_tree preload utils
 
 -include config.mak
 
@@ -189,6 +189,7 @@ install-noarch: regular
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/create_reverse_rules.lua $(prefix)/share/scratchbox2/lua_scripts/create_reverse_rules.lua
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/create_argvmods_rules.lua $(prefix)/share/scratchbox2/lua_scripts/create_argvmods_rules.lua
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/create_argvmods_usr_bin_rules.lua $(prefix)/share/scratchbox2/lua_scripts/create_argvmods_usr_bin_rules.lua
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/add_rules_to_rule_tree.lua $(prefix)/share/scratchbox2/lua_scripts/add_rules_to_rule_tree.lua
 
 	$(Q)install -c -m 644 $(SRCDIR)/tests/* $(prefix)/share/scratchbox2/tests
 	$(Q)chmod a+x $(prefix)/share/scratchbox2/tests/run.sh
@@ -228,7 +229,6 @@ do-install: install-noarch
 	$(Q)install -c -m 755 $(OBJDIR)/preload/libsb2.$(SHLIBEXT) $(prefix)/lib/libsb2/libsb2.so.$(PACKAGE_VERSION)
 	$(Q)install -c -m 755 $(OBJDIR)/utils/sb2-show $(prefix)/bin/sb2-show
 	$(Q)install -c -m 755 $(OBJDIR)/utils/sb2-monitor $(prefix)/bin/sb2-monitor
-	$(Q)install -c -m 755 $(OBJDIR)/utils/sb2-interp-wrapper $(prefix)/bin/sb2-interp-wrapper
 ifeq ($(OS),Linux)
 	$(Q)/sbin/ldconfig -n $(prefix)/lib/libsb2
 endif

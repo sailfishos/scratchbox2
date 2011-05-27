@@ -1,3 +1,8 @@
+/* NOTE: This is included from other files:
+ * SB2_PATHRESOLUTION_C_ENGINE or SB2_PATHRESOLUTION_LUA_ENGINE
+ * must be defined when compiling this file.
+*/
+
 /*
  * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
  * Portion Copyright (c) 2008 Nokia Corporation.
@@ -49,6 +54,13 @@
  * - Lua has been used for the mapping algorithm itself.
 */
 
+#if defined(SB2_PATHRESOLUTION_C_ENGINE) && defined(SB2_PATHRESOLUTION_LUA_ENGINE)
+#error "either SB2_PATHRESOLUTION_C_ENGINE or SB2_PATHRESOLUTION_LUA_ENGINE must be defined, not both"
+#endif
+#if !defined(SB2_PATHRESOLUTION_C_ENGINE) && !defined(SB2_PATHRESOLUTION_LUA_ENGINE)
+#error "either SB2_PATHRESOLUTION_C_ENGINE or SB2_PATHRESOLUTION_LUA_ENGINE must be defined"
+#endif
+
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -89,6 +101,15 @@
 
 #include "pathmapping.h" /* get private definitions of this subsystem */
 
+/* FIXME: Temporary hack. We have two versions of following
+ * functions, lets rename the c_engine versions:
+*/
+#ifdef SB2_PATHRESOLUTION_C_ENGINE
+#define clean_dotdots_from_path clean_dotdots_from_path__c_engine
+#define remove_dots_from_path_list remove_dots_from_path_list__c_engine
+#define sb_path_resolution sb_path_resolution__c_engine
+#define sb_path_resolution_resolve_symlink sb_path_resolution_resolve_symlink__c_engine
+#endif
 
 /* remove_dots_from_path_list(), "easy" path cleaning:
  * - all dots, i.e. "." as components, can be safely removed,
@@ -98,6 +119,10 @@
  * - doubled slashes ("//") have already been removed, when
  *   the path was split to components.
 */
+#ifdef SB2_PATHRESOLUTION_C_ENGINE
+/* the other one (from the Lua engine) is currently the public one*/
+static
+#endif
 void remove_dots_from_path_list(struct path_entry_list *listp)
 {
 	struct path_entry *work = listp->pl_first;
@@ -157,7 +182,7 @@ static struct path_entry *remove_dotdot_entry_and_prev_entry(
 }
 
 static void sb_path_resolution(
-	const path_mapping_context_t *ctx,
+	path_mapping_context_t *ctx,
 	mapping_results_t *resolved_virtual_path_res,
 	int nest_count,
 	struct path_entry_list *abs_virtual_clean_source_path_list);
@@ -168,6 +193,10 @@ static void sb_path_resolution(
  * by accident.
  * Can be used for both virtual paths and host paths.
 */
+#ifdef SB2_PATHRESOLUTION_C_ENGINE
+/* the other one (from the Lua engine) is currently the public one*/
+static
+#endif
 void clean_dotdots_from_path(
 	const path_mapping_context_t *ctx,
 	struct path_entry_list *abs_path)
@@ -388,7 +417,7 @@ void clean_dotdots_from_path(
 /* ========== ========== */
 
 static void sb_path_resolution_resolve_symlink(
-	const path_mapping_context_t *ctx,
+	path_mapping_context_t *ctx,
 	const char *link_dest,
 	const struct path_entry_list *virtual_source_path_list,
 	const struct path_entry *virtual_path_work_ptr,
@@ -402,7 +431,7 @@ static void sb_path_resolution_resolve_symlink(
  *       be called after it is not needed anymore!
 */
 static void sb_path_resolution(
-	const path_mapping_context_t *ctx,
+	path_mapping_context_t *ctx,
 	mapping_results_t *resolved_virtual_path_res,
 	int nest_count,
 	struct path_entry_list *abs_virtual_clean_source_path_list)
@@ -417,7 +446,7 @@ static void sb_path_resolution(
 
 	if (!abs_virtual_clean_source_path_list) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
-			"sb_path_resolution called with NULL path");
+			"%s called with NULL path", __func__);
 		return;
 	}
 
@@ -437,7 +466,7 @@ static void sb_path_resolution(
 	if (!(abs_virtual_clean_source_path_list->pl_flags & PATH_FLAGS_ABSOLUTE)) {
 		char *tmp_path_buf = path_list_to_string(abs_virtual_clean_source_path_list);
 		SB_LOG(SB_LOGLEVEL_ERROR,
-			"FATAL: sb_path_resolution called with relative path (%s)",
+			"FATAL: %s called with relative path (%s)", __func__,
 			tmp_path_buf);
 		assert(0);
 	}
@@ -445,7 +474,7 @@ static void sb_path_resolution(
 	if (is_clean_path(abs_virtual_clean_source_path_list) != 0) {
 		char *tmp_path_buf = path_list_to_string(abs_virtual_clean_source_path_list);
 		SB_LOG(SB_LOGLEVEL_ERROR,
-			"FATAL: sb_path_resolution must be called with a clean path (%s)",
+			"FATAL: %s must be called with a clean path (%s)", __func__,
 			tmp_path_buf);
 		assert(0);
 	}
@@ -454,9 +483,18 @@ static void sb_path_resolution(
 	abs_virtual_source_path_has_trailing_slash =
 		(abs_virtual_clean_source_path_list->pl_flags & PATH_FLAGS_HAS_TRAILING_SLASH);
 
-	if (call_lua_function_sbox_get_mapping_requirements(
+	if (
+#ifdef SB2_PATHRESOLUTION_C_ENGINE
+	    ruletree_get_mapping_requirements(
 		ctx, abs_virtual_clean_source_path_list,
-		&min_path_len_to_check, &call_translate_for_all)) {
+		&min_path_len_to_check, &call_translate_for_all)
+#endif
+#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
+	    call_lua_function_sbox_get_mapping_requirements(
+		ctx, abs_virtual_clean_source_path_list,
+		&min_path_len_to_check, &call_translate_for_all)
+#endif
+	   ) {
 		/* has requirements:
 		 * skip over path components that we are not supposed to check,
 		 * because otherwise rule recognition & execution could fail.
@@ -475,6 +513,14 @@ static void sb_path_resolution(
 			virtual_path_work_ptr = virtual_path_work_ptr->pe_next;
 		}
 	}
+#ifdef SB2_PATHRESOLUTION_C_ENGINE
+	  else {
+		/* no rule */
+		resolved_virtual_path_res->mres_fallback_to_lua_mapping_engine =
+			"no mapping requirements, no rule";
+		return;
+	}
+#endif
 
 	SB_LOG(SB_LOGLEVEL_NOISE, "Path resolutions starts from [%d] '%s'",
 		component_index, (virtual_path_work_ptr ?
@@ -484,6 +530,9 @@ static void sb_path_resolution(
 	{
 		char	*clean_virtual_path_prefix_tmp = NULL;
 		path_mapping_context_t	ctx_copy = *ctx;
+#ifdef SB2_PATHRESOLUTION_C_ENGINE
+		int force_fallback_to_lua = 0;
+#endif
 
 		ctx_copy.pmc_binary_name = "PATH_RESOLUTION";
 
@@ -494,10 +543,23 @@ static void sb_path_resolution(
 		SB_LOG(SB_LOGLEVEL_NOISE, "clean_virtual_path_prefix_tmp => %s",
 			clean_virtual_path_prefix_tmp);
 
+#ifdef SB2_PATHRESOLUTION_C_ENGINE
+		prefix_mapping_result_host_path = ruletree_translate_path(
+			&ctx_copy, SB_LOGLEVEL_NOISE,
+			clean_virtual_path_prefix_tmp, &prefix_mapping_result_host_path_flags,
+			&resolved_virtual_path_res->mres_exec_policy_name,
+			&force_fallback_to_lua);
+		if (force_fallback_to_lua) {
+			resolved_virtual_path_res->mres_fallback_to_lua_mapping_engine =
+				"forced by a rule, in PATH_RESOLUTION";
+		}
+#endif
+#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
 		prefix_mapping_result_host_path = call_lua_function_sbox_translate_path(
 			&ctx_copy, SB_LOGLEVEL_NOISE,
 			clean_virtual_path_prefix_tmp, &prefix_mapping_result_host_path_flags,
 			&resolved_virtual_path_res->mres_exec_policy_name);
+#endif
 		free(clean_virtual_path_prefix_tmp);
 	}
 
@@ -597,6 +659,9 @@ static void sb_path_resolution(
 				*/
 				char *virtual_path_prefix_to_map;
 				path_mapping_context_t	ctx_copy = *ctx;
+#ifdef SB2_PATHRESOLUTION_C_ENGINE
+				int force_fallback_to_lua = 0;
+#endif
 
 				ctx_copy.pmc_binary_name = "PATH_RESOLUTION/2";
 				if (prefix_mapping_result_host_path) {
@@ -607,12 +672,27 @@ static void sb_path_resolution(
 						abs_virtual_clean_source_path_list->pl_first,
 						virtual_path_work_ptr,
 						abs_virtual_clean_source_path_list->pl_flags);
+#ifdef SB2_PATHRESOLUTION_C_ENGINE
+				prefix_mapping_result_host_path =
+					ruletree_translate_path(
+						&ctx_copy, SB_LOGLEVEL_NOISE,
+						virtual_path_prefix_to_map,
+						&prefix_mapping_result_host_path_flags,
+						&resolved_virtual_path_res->mres_exec_policy_name,
+						&force_fallback_to_lua);
+				if (force_fallback_to_lua) {
+					resolved_virtual_path_res->mres_fallback_to_lua_mapping_engine =
+						"forced by a rule, in PATH_RESOLUTION/2";
+				}
+#endif
+#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
 				prefix_mapping_result_host_path =
 					call_lua_function_sbox_translate_path(
 						&ctx_copy, SB_LOGLEVEL_NOISE,
 						virtual_path_prefix_to_map,
 						&prefix_mapping_result_host_path_flags,
 						&resolved_virtual_path_res->mres_exec_policy_name);
+#endif
 				free (virtual_path_prefix_to_map);
 			} else {
 				/* "standard mapping", based on prefix or
@@ -653,7 +733,7 @@ static void sb_path_resolution(
 		resolved_virtual_path_buf = path_list_to_string(abs_virtual_clean_source_path_list);
 
 		SB_LOG(SB_LOGLEVEL_NOISE,
-			"sb_path_resolution returns '%s'", resolved_virtual_path_buf);
+			"%s returns '%s'", __func__, resolved_virtual_path_buf);
 		resolved_virtual_path_res->mres_result_buf =
 			resolved_virtual_path_res->mres_result_path =
 			resolved_virtual_path_buf;
@@ -661,7 +741,7 @@ static void sb_path_resolution(
 }
 
 static void sb_path_resolution_resolve_symlink(
-	const path_mapping_context_t *ctx,
+	path_mapping_context_t *ctx,
 	const char *link_dest,
 	const struct path_entry_list *virtual_source_path_list,
 	const struct path_entry *virtual_path_work_ptr,
@@ -785,8 +865,10 @@ static void sb_path_resolution_resolve_symlink(
 	 * resolution steps for the symlink target.
 	*/
 
+#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
 	/* First, forget the old rule: */
-	drop_rule_from_lua_stack(ctx->pmc_luaif);
+	drop_rule_from_lua_stack(ctx->pmc_sb2ctx);
+#endif
 
 	/* sb_path_resolution() needs to get clean path, but
 	 * new_abs_virtual_link_dest_path is not necessarily clean.
@@ -826,7 +908,7 @@ static int relative_virtual_path_to_abs_path(
 	size_t host_cwd_size,
 	struct path_entry_list *path_list)
 {
-	struct lua_instance	*luaif = ctx->pmc_luaif;
+	struct sb2context	*sb2ctx = ctx->pmc_sb2ctx;
 	char *virtual_reversed_cwd = NULL;
 	struct path_entry	*cwd_entries;
 	int			cwd_flags;
@@ -852,32 +934,41 @@ static int relative_virtual_path_to_abs_path(
 		return(-1);
 	}
 	SB_LOG(SB_LOGLEVEL_DEBUG,
-		"sbox_map_path_internal: converting to abs.path cwd=%s",
+		"relative_virtual_path_to_abs_path: converting to abs.path cwd=%s",
 		host_cwd);
 	
 	/* reversing of paths is expensive...try if a previous
 	 * result can be used, and call the reversing logic only if
 	 * CWD has been changed.
 	*/
-	if (luaif->host_cwd && luaif->virtual_reversed_cwd &&
-	    !strcmp(host_cwd, luaif->host_cwd)) {
+	if (sb2ctx->host_cwd && sb2ctx->virtual_reversed_cwd &&
+	    !strcmp(host_cwd, sb2ctx->host_cwd)) {
 		/* "cache hit" */
-		virtual_reversed_cwd = luaif->virtual_reversed_cwd;
+		virtual_reversed_cwd = sb2ctx->virtual_reversed_cwd;
 		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"sbox_map_path_internal: using cached rev_cwd=%s",
+			"relative_virtual_path_to_abs_path: using cached rev_cwd=%s",
 			virtual_reversed_cwd);
 	} else {
 		/* "cache miss" */
 		if ( (host_cwd[1]=='\0') && (*host_cwd=='/') ) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"sbox_map_path_internal: no need to reverse, '/' is always '/'");
+				"relative_virtual_path_to_abs_path: no need to reverse, '/' is always '/'");
 			/* reversed "/" is always "/" */
 			virtual_reversed_cwd = strdup(host_cwd);
 		} else {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"sbox_map_path_internal: reversing cwd(%s)", host_cwd);
+				"relative_virtual_path_to_abs_path: reversing cwd(%s)", host_cwd);
+#ifdef SB2_PATHRESOLUTION_C_ENGINE
+			/* FIXME: Reversion is still done with Lua. */
+#warning "Still using Lua for path reversing!"
+			if (!sb2ctx->lua) sb2context_initialize_lua(sb2ctx);
 			virtual_reversed_cwd = call_lua_function_sbox_reverse_path(
 				ctx, host_cwd);
+#endif
+#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
+			virtual_reversed_cwd = call_lua_function_sbox_reverse_path(
+				ctx, host_cwd);
+#endif
 			if (virtual_reversed_cwd == NULL) {
 				/*
 				 * In case reverse path couldn't be resolved
@@ -891,10 +982,10 @@ static int relative_virtual_path_to_abs_path(
 			}
 		}
 		/* put the reversed CWD to our one-slot cache: */
-		if (luaif->host_cwd) free(luaif->host_cwd);
-		if (luaif->virtual_reversed_cwd) free(luaif->virtual_reversed_cwd);
-		luaif->host_cwd = strdup(host_cwd);
-		luaif->virtual_reversed_cwd = virtual_reversed_cwd;
+		if (sb2ctx->host_cwd) free(sb2ctx->host_cwd);
+		if (sb2ctx->virtual_reversed_cwd) free(sb2ctx->virtual_reversed_cwd);
+		sb2ctx->host_cwd = strdup(host_cwd);
+		sb2ctx->virtual_reversed_cwd = virtual_reversed_cwd;
 	}
 	cwd_entries = split_path_to_path_entries(virtual_reversed_cwd, &cwd_flags);
 	/* getcwd() always returns a real path. Assume that the
@@ -907,7 +998,7 @@ static int relative_virtual_path_to_abs_path(
 	path_list->pl_flags |= cwd_flags;
 #if 0	
 	SB_LOG(SB_LOGLEVEL_DEBUG,
-		"sbox_map_path_internal: abs.path is '%s'",
+		"relative_virtual_path_to_abs_path: abs.path is '%s'",
 		*abs_virtual_path_buffer_p);
 #endif
 	return(0);
@@ -917,7 +1008,14 @@ static int relative_virtual_path_to_abs_path(
  * to prevent recursive calls to this function.
  * Returns results in *res.
  */
-void sbox_map_path_internal(
+void
+#ifdef SB2_PATHRESOLUTION_C_ENGINE
+   sbox_map_path_internal__c_engine
+#endif
+#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
+   sbox_map_path_internal__lua_engine
+#endif
+     (
 	const char *binary_name,
 	const char *func_name,
 	const char *virtual_orig_path,
@@ -937,7 +1035,7 @@ void sbox_map_path_internal(
 	ctx.pmc_virtual_orig_path = virtual_orig_path;
 	ctx.pmc_dont_resolve_final_symlink = dont_resolve_final_symlink;
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "sbox_map_path_internal: %s(%s)", func_name, virtual_orig_path);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: %s(%s)", __func__, func_name, virtual_orig_path);
 
 #ifdef EXTREME_DEBUGGING
 	#define SIZE 100
@@ -967,18 +1065,31 @@ void sbox_map_path_internal(
 		goto use_orig_path_as_result_and_exit;
 	}
 
-	ctx.pmc_luaif = get_lua();
-	if (!ctx.pmc_luaif) {
+#ifdef SB2_PATHRESOLUTION_C_ENGINE
+	/* ensure that rule tree is available */
+        if (ruletree_to_memory() < 0) {
+                SB_LOG(SB_LOGLEVEL_DEBUG, "%s: No ruletree, fallback to Lua engine", __func__);
+		res->mres_fallback_to_lua_mapping_engine = "No ruletree";
+                return;
+        }
+
+	ctx.pmc_sb2ctx = get_sb2context();
+#endif
+#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
+	ctx.pmc_sb2ctx = get_sb2context_lua();
+#endif
+
+	if (!ctx.pmc_sb2ctx) {
 		/* init in progress? */
 		goto use_orig_path_as_result_and_exit;
 	}
-	if (ctx.pmc_luaif->mapping_disabled) {
+	if (ctx.pmc_sb2ctx->mapping_disabled) {
 		/* NOTE: Following SB_LOG() call is used by the log
 		 *       postprocessor script "sb2logz". Do not change
 		 *       without making a corresponding change to the script!
 		*/
 		SB_LOG(SB_LOGLEVEL_INFO, "disabled(%d): %s '%s'",
-			ctx.pmc_luaif->mapping_disabled, func_name, virtual_orig_path);
+			ctx.pmc_sb2ctx->mapping_disabled, func_name, virtual_orig_path);
 		goto use_orig_path_as_result_and_exit;
 	}
 
@@ -993,10 +1104,15 @@ void sbox_map_path_internal(
 			&abs_virtual_path_for_rule_selection_list) < 0)
 			goto use_orig_path_as_result_and_exit;
 
+#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
 		/* return the virtual cwd to the caller. It is needed
 		 * at least if the mapped path must be registered to
 		 * the fdpathdb. */
-		res->mres_virtual_cwd = strdup(ctx.pmc_luaif->virtual_reversed_cwd);
+		res->mres_virtual_cwd = strdup(ctx.pmc_sb2ctx->virtual_reversed_cwd);
+#else
+		/* FIXME FIXME FIXME */
+		res->mres_virtual_cwd = NULL;
+#endif
 	}
 
 	switch (is_clean_path(&abs_virtual_path_for_rule_selection_list)) {
@@ -1011,7 +1127,11 @@ void sbox_map_path_internal(
 		break;
 	}
 
-	disable_mapping(ctx.pmc_luaif);
+#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
+	disable_mapping(ctx.pmc_sb2ctx);
+#else
+	/* FIXME FIXME FIXME */
+#endif
 	{
 		/* Mapping disabled inside this block - do not use "return"!! */
 		mapping_results_t	resolved_virtual_path_res;
@@ -1023,9 +1143,8 @@ void sbox_map_path_internal(
 			mapping_result = path_list_to_string(
 				&abs_virtual_path_for_rule_selection_list);
 			SB_LOG(SB_LOGLEVEL_ERROR,
-				"sbox_map_path_internal: "
-				"conversion to absolute path failed "
-				"(can't map '%s')", mapping_result);
+				"%s: conversion to absolute path failed "
+				"(can't map '%s')", __func__, mapping_result);
 			res->mres_error_text = 
 				"mapping failed; failed to make absolute path";
 			goto forget_mapping;
@@ -1035,15 +1154,24 @@ void sbox_map_path_internal(
 			char *tmp_path = path_list_to_string(
 				&abs_virtual_path_for_rule_selection_list);
 			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"sbox_map_path_internal: process '%s', n='%s'",
-				virtual_orig_path, tmp_path);
+				"%s: process '%s', n='%s'",
+				__func__, virtual_orig_path, tmp_path);
 			free(tmp_path);
 		}
 
+#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
 		/* sb_path_resolution() leaves the rule to the stack... */
+#endif
 		sb_path_resolution(&ctx, &resolved_virtual_path_res, 0,
 			&abs_virtual_path_for_rule_selection_list);
 
+#ifdef SB2_PATHRESOLUTION_C_ENGINE
+		if (resolved_virtual_path_res.mres_fallback_to_lua_mapping_engine) {
+			res->mres_fallback_to_lua_mapping_engine =
+				resolved_virtual_path_res.mres_fallback_to_lua_mapping_engine;
+			goto forget_mapping;
+		}
+#endif
 		if (resolved_virtual_path_res.mres_errno) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"path mapping fails, "
@@ -1055,32 +1183,52 @@ void sbox_map_path_internal(
 
 		if (!resolved_virtual_path_res.mres_result_path) {
 			SB_LOG(SB_LOGLEVEL_ERROR,
-				"sbox_map_path_internal: "
-				"path resolution failed [%s]",
-				func_name);
+				"%s: path resolution failed [%s]",
+				__func__, func_name);
 			mapping_result = NULL;
 			res->mres_error_text = 
 				"mapping failed; path resolution path failed";
 		} else {
 			int	flags;
+#ifdef SB2_PATHRESOLUTION_C_ENGINE
+			int	force_fallback_to_lua = 0;
+#endif
 
 			SB_LOG(SB_LOGLEVEL_NOISE2,
-				"sbox_map_path_internal: resolved_virtua='%s'",
-				resolved_virtual_path_res.mres_result_path);
+				"%s: resolved_virtual_path='%s'",
+				__func__, resolved_virtual_path_res.mres_result_path);
 
+#ifdef SB2_PATHRESOLUTION_C_ENGINE
+			mapping_result = ruletree_translate_path(
+				&ctx, SB_LOGLEVEL_INFO,
+				resolved_virtual_path_res.mres_result_path, &flags,
+				&res->mres_exec_policy_name,
+				&force_fallback_to_lua);
+			if (force_fallback_to_lua) {
+				res->mres_fallback_to_lua_mapping_engine =
+					"forced by a rule";
+				goto forget_mapping;
+			}
+#endif
+#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
 			mapping_result = call_lua_function_sbox_translate_path(
 				&ctx, SB_LOGLEVEL_INFO,
 				resolved_virtual_path_res.mres_result_path, &flags,
 				&res->mres_exec_policy_name);
+#endif
 			res->mres_readonly = (flags & SB2_MAPPING_RULE_FLAGS_READONLY);
 
+#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
 			/* ...and remove rule from stack */
-			drop_rule_from_lua_stack(ctx.pmc_luaif);
+			drop_rule_from_lua_stack(ctx.pmc_sb2ctx);
+#endif
 		}
 	forget_mapping:
 		free_mapping_results(&resolved_virtual_path_res);
 	}
-	enable_mapping(ctx.pmc_luaif);
+#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
+	enable_mapping(ctx.pmc_sb2ctx);
+#endif
 
 	free_path_list(&abs_virtual_path_for_rule_selection_list);
 
@@ -1103,7 +1251,7 @@ void sbox_map_path_internal(
 		if ((result_len == host_cwd_len) &&
 		    !strcmp(host_cwd, mapping_result)) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"sbox_map_path_internal: result==CWD");
+				"%s: result==CWD", __func__);
 			res->mres_result_path = strdup(".");
 			res->mres_result_path_was_allocated = 1;
 		} else if ((result_len > host_cwd_len) &&
@@ -1117,18 +1265,18 @@ void sbox_map_path_internal(
 			char *relative_result = mapping_result+host_cwd_len+1;
 			res->mres_result_path = relative_result;
 			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"sbox_map_path_internal: result==relative (%s) (%s)",
-				relative_result, mapping_result);
+				"%s: result==relative (%s) (%s)",
+				__func__, relative_result, mapping_result);
 		}
 	}
 
-	SB_LOG(SB_LOGLEVEL_NOISE, "sbox_map_path_internal: mapping_result='%s'",
-		mapping_result ? mapping_result : "<No result>");
-	release_lua(ctx.pmc_luaif);
+	SB_LOG(SB_LOGLEVEL_NOISE, "%s: mapping_result='%s'",
+		__func__, mapping_result ? mapping_result : "<No result>");
+	release_sb2context(ctx.pmc_sb2ctx);
 	return;
 
     use_orig_path_as_result_and_exit:
-	if(ctx.pmc_luaif) release_lua(ctx.pmc_luaif);
+	if(ctx.pmc_sb2ctx) release_sb2context(ctx.pmc_sb2ctx);
 	res->mres_result_buf = res->mres_result_path = strdup(virtual_orig_path);
 	return;
 }

@@ -11,6 +11,15 @@ $(D)/sb2-show: $(D)/sb2-show.o
 	$(P)LD
 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
+$(D)/sb2-ruletree: CFLAGS := $(CFLAGS) -Wall -W -Werror \
+		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
+		-I$(SRCDIR)/include -ldl
+
+$(D)/sb2-ruletree.o: preload/exported.h
+$(D)/sb2-ruletree: $(D)/sb2-ruletree.o $(D)/../rule_tree/rule_tree.o
+	$(MKOUTPUTDIR)
+	$(P)LD
+	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 $(D)/sb2-monitor: CFLAGS := $(CFLAGS) -Wall -W -Werror \
 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
@@ -31,4 +40,4 @@ $(D)/sb2-interp-wrapper: preload/libsb2.$(SHLIBEXT) $(D)/sb2-interp-wrapper.o
 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ldl
 
 
-targets := $(targets) $(D)/sb2-show $(D)/sb2-monitor $(D)/sb2-interp-wrapper
+targets := $(targets) $(D)/sb2-show $(D)/sb2-monitor $(D)/sb2-ruletree

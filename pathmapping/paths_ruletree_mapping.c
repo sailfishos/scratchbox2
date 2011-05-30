@@ -425,6 +425,24 @@ static int if_exists_then_map_to(ruletree_fsrule_t *action,
 	return(0);
 }
 
+static char *execute_map_to(const char *abs_clean_virtual_path,
+	const char *action_name, const char *prefix)
+{
+	char	*new_path = NULL;
+
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: %s", action_name,
+		prefix ? prefix : "<NULL>");
+
+	if (!prefix || !*prefix || !strcmp(prefix, "/")) {
+		return(strdup(abs_clean_virtual_path));
+	}
+	if (asprintf(&new_path, "%s%s", prefix, abs_clean_virtual_path) < 0) {
+		SB_LOG(SB_LOGLEVEL_ERROR, "asprintf failed");
+		return(NULL);
+	}
+	return(new_path);
+}
+
 /* "standard actions" = use_orig_path, force_orig_path, map_to, replace_by */
 static char *execute_std_action(ruletree_fsrule_t *rule,
 	const char *abs_clean_virtual_path, int *flagsp)
@@ -445,17 +463,7 @@ static char *execute_std_action(ruletree_fsrule_t *rule,
 
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO:
 		cp = offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs);
-		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"ruletree_translate_path: map_to by '%s'", cp);
-
-		if (!strcmp(cp, "/")) {
-			return(strdup(abs_clean_virtual_path));
-		}
-		if (asprintf(&new_path, "%s%s", cp, abs_clean_virtual_path) < 0) {
-			SB_LOG(SB_LOGLEVEL_ERROR, "asprintf failed");
-			return(NULL);
-		}
-		return(new_path);
+		return(execute_map_to(abs_clean_virtual_path, "map_to", cp));
 		
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY:
 		cp = offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs);
@@ -468,10 +476,19 @@ static char *execute_std_action(ruletree_fsrule_t *rule,
 		return(new_path);
 
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR:
+		cp = offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs);
+		cp = getenv(cp);
+		return(execute_map_to(abs_clean_virtual_path, "map_to_value_of_env_var", cp));
+
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR:
-		/* FIXME: implement these. */
+		cp = offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs);
+		cp = getenv(cp);
 		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"ruletree_translate_path: not yet implemented.");
+			"ruletree_translate_path: replace by env.var.value '%s'", cp);
+		new_path = ruletree_execute_replace_rule(abs_clean_virtual_path, cp/*replacement*/,
+			rule);
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"ruletree_translate_path: replaced/2: '%s'", cp);
 		break;
 
 	default:
@@ -523,11 +540,31 @@ char *ruletree_execute_conditional_actions(
 			char *mapping_result;
 
 			if (action_cand_p->rtree_fsr_condition_type != 0) {
-				SB_LOG(SB_LOGLEVEL_DEBUG,
-					"ruletree_execute_conditional_actions: "
-					" can't handle conditions, fail. @%d", action_offs);
-				/* FIXME */
-                                goto unimplemented_action_fallback_to_lua;
+				const char *cond_str;
+				const char *evp;
+
+				cond_str = offset_to_ruletree_string_ptr(action_cand_p->rtree_fsr_condition_offs);
+				
+				switch (action_cand_p->rtree_fsr_condition_type) {
+				case SB2_RULETREE_FSRULE_CONDITION_IF_ENV_VAR_IS_NOT_EMPTY:
+					if (!cond_str) continue;	/* continue if no env.var.name */
+					evp = getenv(cond_str);
+					if (!evp || !*evp) continue; /* continue if empty */
+					break;	/* else test passed. */
+					
+				case SB2_RULETREE_FSRULE_CONDITION_IF_ENV_VAR_IS_EMPTY:
+					if (!cond_str) continue;	/* continue if no env.var.name */
+					evp = getenv(cond_str);
+					if (evp && *evp) continue; /* continue if not empty */
+					break;	/* else test passed. */
+				
+				default:
+					SB_LOG(SB_LOGLEVEL_DEBUG,
+						"ruletree_execute_conditional_actions: "
+						" can't handle conditions, fail. @%d", action_offs);
+					/* FIXME */
+					goto unimplemented_action_fallback_to_lua;
+				}
 			}
 
 			switch (action_cand_p->rtree_fsr_action_type) {

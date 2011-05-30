@@ -18,10 +18,12 @@ readonly_fs_if_not_root = 1
 readonly_fs_always = 2
 
 -- rule_file_path and rev_rule_file_path are global varibales
-if forced_modename == nil then
+if forced_modename == nil or forced_modename == "Default" then
 	rule_file_path = session_dir .. "/rules/Default.lua"
 	rev_rule_file_path = session_dir .. "/rev_rules/Default.lua"
 	exec_rule_file_path = session_dir .. "/exec_rules/Default.lua"
+	-- set active_mapmode to the real name of the mapping mode,
+	-- even if forced_modename happens to be "Default"
 	active_mapmode = sbox_mapmode
 else
 	rule_file_path = session_dir .. "/rules/" .. forced_modename .. ".lua"

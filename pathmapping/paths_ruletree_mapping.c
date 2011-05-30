@@ -93,6 +93,8 @@ ruletree_object_offset_t add_rule_to_ruletree(
 	case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH:
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO:
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY:
+	case SB2_RULETREE_FSRULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR:
+	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR:
 	case SB2_RULETREE_FSRULE_ACTION_CONDITIONAL_ACTIONS:
 	case SB2_RULETREE_FSRULE_ACTION_SUBTREE:
 	case SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_THEN_MAP_TO:
@@ -112,6 +114,8 @@ ruletree_object_offset_t add_rule_to_ruletree(
 	case SB2_RULETREE_FSRULE_CONDITION_IF_ACTIVE_EXEC_POLICY_IS:
 	case SB2_RULETREE_FSRULE_CONDITION_IF_REDIRECT_IGNORE_IS_ACTIVE:
 	case SB2_RULETREE_FSRULE_CONDITION_IF_REDIRECT_FORCE_IS_ACTIVE:
+	case SB2_RULETREE_FSRULE_CONDITION_IF_ENV_VAR_IS_NOT_EMPTY:
+	case SB2_RULETREE_FSRULE_CONDITION_IF_ENV_VAR_IS_EMPTY:
 		/* OK */
 		break;
 
@@ -463,6 +467,13 @@ static char *execute_std_action(ruletree_fsrule_t *rule,
 			"ruletree_translate_path: replaced: '%s'", cp);
 		return(new_path);
 
+	case SB2_RULETREE_FSRULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR:
+	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR:
+		/* FIXME: implement these. */
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"ruletree_translate_path: not yet implemented.");
+		break;
+
 	default:
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"Internal error: execute_std_action: action code is %d",
@@ -531,6 +542,8 @@ char *ruletree_execute_conditional_actions(
 			case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH:
 			case SB2_RULETREE_FSRULE_ACTION_MAP_TO:
 			case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY:
+			case SB2_RULETREE_FSRULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR:
+			case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR:
 				return(execute_std_action(action_cand_p,
 					abs_clean_virtual_path, flagsp));
 
@@ -603,6 +616,8 @@ char *ruletree_translate_path(
 	case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH:
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO:
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY:
+	case SB2_RULETREE_FSRULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR:
+	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR:
 		host_path = execute_std_action(rule, abs_clean_virtual_path, flagsp);
 		break;
 

@@ -382,6 +382,29 @@ function sbox_execute_conditional_actions(binary_name,
 					func_name, rp, path,
 					rule_selector, action_candidate)
 			end
+		elseif (action_candidate.if_env_var_is_not_empty) then
+			local ev_value = os.getenv(action_candidate.if_env_var_is_not_empty)
+			if (ev_value ~= nil and ev_value ~= "") then
+				if (debug_messages_enabled) then
+					sb.log("debug", "selected; env.var '"..
+						action_candidate.if_env_var_is_not_empty..
+						"'='"..ev_value.."'")
+				end
+				return sbox_execute_rule(binary_name,
+					func_name, rp, path,
+					rule_selector, action_candidate)
+			end
+		elseif (action_candidate.if_env_var_is_empty) then
+			local ev_value = os.getenv(action_candidate.if_env_var_is_empty)
+			if (ev_value == nil or ev_value == "") then
+				if (debug_messages_enabled) then
+					sb.log("debug", "selected; env.var is empty '"..
+						action_candidate.if_env_var_is_empty.."'")
+				end
+				return sbox_execute_rule(binary_name,
+					func_name, rp, path,
+					rule_selector, action_candidate)
+			end
 		else
 			-- there MUST BE unconditional actions:
 			if (action_candidate.use_orig_path
@@ -440,8 +463,12 @@ function sbox_execute_rule(binary_name, func_name, rp, path,
 		else
 			ret_path = rule_conditions_and_actions.map_to .. path
 		end
+	elseif (rule_conditions_and_actions.map_to_value_of_env_var) then
+		ret_path = os.getenv(rule_conditions_and_actions.map_to_value_of_env_var) .. path
 	elseif (rule_conditions_and_actions.replace_by) then
 		ret_path = sbox_execute_replace_rule(path, rule_conditions_and_actions.replace_by, rule_selector)
+	elseif (rule_conditions_and_actions.replace_by_value_of_env_var) then
+		ret_path = sbox_execute_replace_rule(path, os.getenv(rule_conditions_and_actions.replace_by_value_of_env_var), rule_selector)
 	elseif (rule_conditions_and_actions.force_orig_path) then
 		ret_path = path
 		ret_flags = ret_flags + RULE_FLAGS_FORCE_ORIG_PATH

@@ -16,6 +16,8 @@ local RULE_ACTION_USE_ORIG_PATH = 201
 local RULE_ACTION_FORCE_ORIG_PATH = 202
 local RULE_ACTION_MAP_TO = 210
 local RULE_ACTION_REPLACE_BY = 211
+local RULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR = 212
+local RULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR = 213
 local RULE_ACTION_CONDITIONAL_ACTIONS = 220
 local RULE_ACTION_SUBTREE = 230
 local RULE_ACTION_IF_EXISTS_THEN_MAP_TO = 245
@@ -24,6 +26,8 @@ local RULE_ACTION_IF_EXISTS_THEN_REPLACE_BY = 246
 local RULE_CONDITION_IF_ACTIVE_EXEC_POLICY_IS = 301
 local RULE_CONDITION_IF_REDIRECT_IGNORE_IS_ACTIVE = 302
 local RULE_CONDITION_IF_REDIRECT_FORCE_IS_ACTIVE = 303
+local RULE_CONDITION_IF_ENV_VAR_IS_NOT_EMPTY = 304
+local RULE_CONDITION_IF_ENV_VAR_IS_EMPTY = 305
 
 -- and these  must match the flag definitions in mapping.h:
 local RULE_FLAGS_READONLY = 1
@@ -72,6 +76,12 @@ function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule)
 	elseif (rule.replace_by) then
 		action_type = RULE_ACTION_REPLACE_BY
 		action_str = rule.replace_by
+	elseif (rule.map_to_value_of_env_var) then
+		action_type = RULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR
+		action_str = rule.map_to_value_of_env_var
+	elseif (rule.replace_by_value_of_env_var) then
+		action_type = RULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR
+		action_str = rule.replace_by_value_of_env_var
 	else
 		-- conditional actions
 		if (rule.if_exists_then_map_to) then
@@ -106,6 +116,12 @@ function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule)
 	elseif (rule.if_redirect_force_is_active) then
 		condition_type = RULE_CONDITION_IF_REDIRECT_FORCE_IS_ACTIVE
 		condition_str = rule.if_redirect_force_is_active
+	elseif (rule.if_env_var_is_not_empty) then
+		condition_type = RULE_CONDITION_IF_ENV_VAR_IS_NOT_EMPTY
+		condition_str = rule.if_env_var_is_not_empty
+	elseif (rule.if_env_var_is_empty) then
+		condition_type = RULE_CONDITION_IF_ENV_VAR_IS_EMPTY
+		condition_str = rule.if_env_var_is_empty
 	end
 
 	-- Selectors. 

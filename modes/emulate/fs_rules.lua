@@ -38,12 +38,12 @@ end
 
 -- If the permission token exists and contains "root", target_root
 -- will be available in R/W mode. Otherwise it will be "mounted" R/O.
-local target_root_is_readonly
-if sb.get_session_perm() == "root" then
-	target_root_is_readonly = false
-else
-	target_root_is_readonly = true
-end
+--local target_root_is_readonly
+--if sb.get_session_perm() == "root" then
+--	target_root_is_readonly = false
+--else
+--	target_root_is_readonly = true
+--end
 
 -- disable the gcc toolchain tricks. gcc & friends will be available, if
 -- those have been installed to target_root (but then they will probably run
@@ -51,14 +51,14 @@ end
 enable_cross_gcc_toolchain = false
 
 test_first_target_then_host_default_is_target = {
-	{ if_exists_then_map_to = target_root, readonly = true },
-	{ if_exists_then_map_to = "/", readonly = true },
-	{ map_to = target_root, readonly = true }
+	{ if_exists_then_map_to = target_root, protection = readonly_fs_always },
+	{ if_exists_then_map_to = "/", protection = readonly_fs_always },
+	{ map_to = target_root, protection = readonly_fs_always }
 }
 
 test_first_usr_bin_default_is_bin__replace = {
-	{ if_exists_then_replace_by = target_root.."/usr/bin", readonly = true },
-	{ replace_by = target_root.."/bin", readonly = true }
+	{ if_exists_then_replace_by = target_root.."/usr/bin", protection = readonly_fs_always },
+	{ replace_by = target_root.."/bin", protection = readonly_fs_always }
 }
 
 -- Path == "/":
@@ -70,9 +70,9 @@ rootdir_rules = {
 
 		-- All other programs:
 		{path = "/", func_name = ".*stat.*",
-                    map_to = target_root, readonly = target_root_is_readonly },
+                    map_to = target_root, protection = readonly_fs_if_not_root },
 		{path = "/", func_name = ".*open.*",
-                    map_to = target_root, readonly = target_root_is_readonly },
+                    map_to = target_root, protection = readonly_fs_if_not_root },
 		{path = "/", use_orig_path = true},
 }
 
@@ -86,31 +86,31 @@ emulate_mode_map_to_sb1compat_unless_dpkg = {
 		{ prefix = "/",
 		  binary_name = "dpkg",
 		  map_to = target_root,
-		  readonly = target_root_is_readonly },
+		  protection = readonly_fs_if_not_root },
 		--
 		-- All other programs than dpkg:
 		{ prefix = "/",
 		  map_to = sb1_compat_dir,
-		  readonly = target_root_is_readonly},
+		  protection = readonly_fs_if_not_root},
 }
 
 emulate_mode_rules_usr = {
 		-- gdb wants to have access to our dynamic linker also.
 		{path = "/usr/lib/libsb2/ld-2.5.so", use_orig_path = true,
-		readonly = true},
+		protection = readonly_fs_always},
 
 		{path = "/usr/bin/sb2-show", use_orig_path = true,
-		 readonly = true},
+		 protection = readonly_fs_always},
 		{path = "/usr/bin/sb2-qemu-gdbserver-prepare",
-		    use_orig_path = true, readonly = true},
+		    use_orig_path = true, protection = readonly_fs_always},
 		{path = "/usr/bin/sb2-session", use_orig_path = true,
-		 readonly = true},
+		 protection = readonly_fs_always},
 
 		{ path = "/usr/bin/scratchbox-launcher.sh",
                   rules = emulate_mode_map_to_sb1compat_unless_dpkg},
 
 		{dir = "/usr", map_to = target_root,
-		readonly = target_root_is_readonly}
+		protection = readonly_fs_if_not_root}
 }
 
 emulate_mode_rules_etc = {
@@ -123,12 +123,12 @@ emulate_mode_rules_etc = {
 		-- we want them all to come from host.
 		--
 		{prefix = "/etc/resolvconf", force_orig_path = true,
-		 readonly = true},
+		 protection = readonly_fs_always},
 		{path = "/etc/resolv.conf", force_orig_path = true,
-		 readonly = true},
+		 protection = readonly_fs_always},
 
 		{dir = "/etc", map_to = target_root,
-		 readonly = target_root_is_readonly}
+		 protection = readonly_fs_if_not_root}
 }
 
 emulate_mode_rules_var = {
@@ -138,14 +138,14 @@ emulate_mode_rules_var = {
 		-- we want them all to come from host.
 		--
 		{prefix = "/var/run/resolvconf", force_orig_path = true,
-		readonly = true},
+		protection = readonly_fs_always},
 
 		--
 		{prefix = "/var/run", map_to = session_dir},
 		{prefix = "/var/tmp", replace_by = var_tmp_dir_dest},
 
 		{dir = "/var", map_to = target_root,
-		readonly = target_root_is_readonly}
+		protection = readonly_fs_if_not_root}
 }
 
 -- /scratchbox or /targets
@@ -154,13 +154,13 @@ emulate_mode_rules_var = {
 --
 emulate_mode_rules_scratchbox1 = {
 		{ dir = "/targets", map_to = sb1_compat_dir,
-		  readonly = target_root_is_readonly},
+		  protection = readonly_fs_if_not_root},
 
 		-- "policy-rc.d" checks if scratchbox-version exists, 
 		-- to detect if it is running inside scratchbox..
 		{prefix = "/scratchbox/etc/scratchbox-version",
 		 replace_by = "/usr/share/scratchbox2/version",
-		 readonly = true, virtual_path = true},
+		 protection = readonly_fs_always, virtual_path = true},
 
 		-- Stupid references to /scratchbox/tools/bin
 		-- and /scratchbox/compilers/bin: these should not
@@ -170,11 +170,11 @@ emulate_mode_rules_scratchbox1 = {
 		{prefix = "/scratchbox/tools/bin",
 		 actions = test_first_usr_bin_default_is_bin__replace,
 		 log_level = "warning",
-		 readonly = true, virtual_path = true},
+		 protection = readonly_fs_always, virtual_path = true},
 		{prefix = "/scratchbox/compilers/bin",
 		 actions = test_first_usr_bin_default_is_bin__replace,
 		 log_level = "warning",
-		 readonly = true, virtual_path = true},
+		 protection = readonly_fs_always, virtual_path = true},
 
 		--
 		-- Some of the scripts that starts up fremantle
@@ -182,7 +182,7 @@ emulate_mode_rules_scratchbox1 = {
 		-- it to sb1_compat_dir.
 		--
 		{dir = "/scratchbox", replace_by = sb1_compat_dir,
-		 readonly = true, virtual_path = true},
+		 protection = readonly_fs_always, virtual_path = true},
 }
 
 emulate_mode_rules = {
@@ -190,10 +190,10 @@ emulate_mode_rules = {
 		{dir = session_dir, use_orig_path = true},
 
 		{path = sbox_cputransparency_cmd, use_orig_path = true,
-		 readonly = true},
+		 protection = readonly_fs_always},
 
 		{prefix = target_root, use_orig_path = true,
-		 readonly = target_root_is_readonly},
+		 protection = readonly_fs_if_not_root},
 
 		{path = os.getenv("SSH_AUTH_SOCK"), use_orig_path = true},
 
@@ -202,7 +202,7 @@ emulate_mode_rules = {
 		-- can be run so we wrap it.
 		{prefix = "/sb2/wrappers",
 		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
-		 readonly = true},
+		 protection = readonly_fs_always},
 
 		-- 
 		-- Scratchbox 1 compatibility rules:
@@ -239,7 +239,7 @@ emulate_mode_rules = {
 		-- (but note that if the real user name is "user",
 		-- our previous rule handled that and this rule won't be used)
 		{prefix = "/home/user", map_to = target_root,
-		 readonly = target_root_is_readonly},
+		 protection = readonly_fs_if_not_root},
 
 		-- Other home directories = not mapped, R/W access
 		{prefix = "/home", use_orig_path = true},
@@ -256,7 +256,7 @@ emulate_mode_rules = {
 
 		{path = "/", rules = rootdir_rules},
 		{prefix = "/", map_to = target_root,
-		 readonly = target_root_is_readonly}
+		 protection = readonly_fs_if_not_root}
 }
 
 -- This allows access to tools with full host paths,

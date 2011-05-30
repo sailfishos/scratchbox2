@@ -212,8 +212,12 @@ const char *offset_to_ruletree_string_ptr(ruletree_object_offset_t offs)
 
 	if (strhdr) {
 		char *str = (char*)strhdr + sizeof(ruletree_string_hdr_t);
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"offset_to_ruletree_string_ptr returns '%s'", str);
 		return (str);
 	}
+	SB_LOG(SB_LOGLEVEL_NOISE2,
+		"offset_to_ruletree_string_ptr returns NULL");
 	return(NULL);
 }
 

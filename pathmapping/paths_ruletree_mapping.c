@@ -140,7 +140,7 @@ ruletree_object_offset_t add_rule_to_ruletree(
 	}
 
 	new_rule.rtree_fsr_condition_type = condition_type;
-	if (action_str) {
+	if (condition_str) {
 		new_rule.rtree_fsr_condition_offs = append_string_to_ruletree_file(condition_str);
 	}
 
@@ -173,7 +173,12 @@ static int ruletree_test_path_match(const char *full_path, ruletree_fsrule_t *rp
 	const char	*match_type = "no match";
 	int		result = -1;
 
-	if (!rp || !full_path) return(-1);
+	if (!rp || !full_path) {
+		SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_test_path_match fails"); 
+		return(-1);
+	}
+	SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_test_path_match (%s), type=%d", 
+		full_path, rp->rtree_fsr_selector_type);
 
 	selector = offset_to_ruletree_string_ptr(rp->rtree_fsr_selector_offs);
 
@@ -218,7 +223,7 @@ static int ruletree_test_path_match(const char *full_path, ruletree_fsrule_t *rp
 			"ruletree_test_path_match: "
 			"Unsupported selector type (rule='%s')",
 			offset_to_ruletree_string_ptr(rp->rtree_fsr_name_offs));
-		return(0);
+		return(-1);
 	}
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
@@ -444,13 +449,15 @@ static char *execute_map_to(const char *abs_clean_virtual_path,
 }
 
 /* "standard actions" = use_orig_path, force_orig_path, map_to, replace_by */
-static char *execute_std_action(ruletree_fsrule_t *rule,
+static char *execute_std_action(
+	ruletree_fsrule_t *rule_selector,
+	ruletree_fsrule_t *action,
 	const char *abs_clean_virtual_path, int *flagsp)
 {
 	const char	*cp;
 	char	*new_path = NULL;
 
-	switch (rule->rtree_fsr_action_type) {
+	switch (action->rtree_fsr_action_type) {
 	case SB2_RULETREE_FSRULE_ACTION_USE_ORIG_PATH:
 		return(strdup(abs_clean_virtual_path));
 
@@ -462,39 +469,39 @@ static char *execute_std_action(ruletree_fsrule_t *rule,
 		break;
 
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO:
-		cp = offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs);
+		cp = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs);
 		return(execute_map_to(abs_clean_virtual_path, "map_to", cp));
 		
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY:
-		cp = offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs);
+		cp = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs);
 		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"ruletree_translate_path: replace by '%s'", cp);
+			"execute_std_action: replace by '%s'", cp);
 		new_path = ruletree_execute_replace_rule(abs_clean_virtual_path, cp/*replacement*/,
-			rule);
+			rule_selector);
 		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"ruletree_translate_path: replaced: '%s'", cp);
+			"execute_std_action: replaced: '%s'", cp);
 		return(new_path);
 
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR:
-		cp = offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs);
+		cp = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs);
 		cp = getenv(cp);
 		return(execute_map_to(abs_clean_virtual_path, "map_to_value_of_env_var", cp));
 
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR:
-		cp = offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs);
+		cp = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs);
 		cp = getenv(cp);
 		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"ruletree_translate_path: replace by env.var.value '%s'", cp);
+			"execute_std_action: replace by env.var.value '%s'", cp);
 		new_path = ruletree_execute_replace_rule(abs_clean_virtual_path, cp/*replacement*/,
-			rule);
+			rule_selector);
 		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"ruletree_translate_path: replaced/2: '%s'", cp);
+			"execute_std_action: replaced/2: '%s'", cp);
 		break;
 
 	default:
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"Internal error: execute_std_action: action code is %d",
-			rule->rtree_fsr_action_type);
+			action->rtree_fsr_action_type);
 	}
 	return(NULL);
 }
@@ -544,6 +551,7 @@ char *ruletree_execute_conditional_actions(
 				const char *evp;
 
 				cond_str = offset_to_ruletree_string_ptr(action_cand_p->rtree_fsr_condition_offs);
+				SB_LOG(SB_LOGLEVEL_NOISE, "Condition test '%s'", cond_str);
 				
 				switch (action_cand_p->rtree_fsr_condition_type) {
 				case SB2_RULETREE_FSRULE_CONDITION_IF_ENV_VAR_IS_NOT_EMPTY:
@@ -619,7 +627,7 @@ char *ruletree_execute_conditional_actions(
 			case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY:
 			case SB2_RULETREE_FSRULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR:
 			case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR:
-				return(execute_std_action(action_cand_p,
+				return(execute_std_action(rule_selector, action_cand_p,
 					abs_clean_virtual_path, flagsp));
 
 			/* FIXME FIXME Implement other action types, too. */
@@ -693,7 +701,7 @@ char *ruletree_translate_path(
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY:
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR:
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR:
-		host_path = execute_std_action(rule, abs_clean_virtual_path, flagsp);
+		host_path = execute_std_action(rule, rule, abs_clean_virtual_path, flagsp);
 		break;
 
 	case SB2_RULETREE_FSRULE_ACTION_CONDITIONAL_ACTIONS:

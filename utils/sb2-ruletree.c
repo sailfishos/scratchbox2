@@ -112,7 +112,7 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 		const char *condstr = offset_to_ruletree_string_ptr(rule->rtree_fsr_condition_offs);
 
 		print_indent(indent+1);
-		printf("CONDITINAL: ");
+		printf("CONDITIONAL: ");
 		switch (rule->rtree_fsr_condition_type) {
 		case SB2_RULETREE_FSRULE_CONDITION_IF_ACTIVE_EXEC_POLICY_IS:
 			printf("if_active_exec_policy_is '%s'\n", condstr);

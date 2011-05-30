@@ -174,20 +174,15 @@ function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule)
 		func_class = 0;
 	end
 
-	--XXXXXX -- only add the rule if selector_type is set; it is possible
-	--XXXXXX -- to have defunct rules without any selectors (e.g. dir = variable,
-	--XXXXXX -- and 'variable' happens to be nil...)
-	--XXXXXX if selector_type > 0 then
-	print ("adding selector_type=",selector_type," selector=",selector,
-		"action_type=",action_type, " action_str=",action_str,
-		"condition_type=",condition_type, " condition_str=",condition_str)
-	return ruletree.add_rule_to_ruletree(name,
+	local rule_offs = ruletree.add_rule_to_ruletree(name,
 			selector_type, selector, action_type, action_str,
 			condition_type, condition_str,
 			rule_list_link, flags, rule.binary_name,
 			func_class, rule.exec_policy_name)
-	--XXXXXX end
-	--XXXXXX return 0
+	print (rule_offs,"adding selector_type=",selector_type," selector=",selector,
+		"action_type=",action_type, " action_str=",action_str,
+		"condition_type=",condition_type, " condition_str=",condition_str)
+	return rule_offs
 end
 
 function add_list_of_rules(rules, node_type_is_ordinary_rule)

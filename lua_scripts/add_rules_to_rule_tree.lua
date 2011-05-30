@@ -18,11 +18,12 @@ local RULE_ACTION_MAP_TO = 210
 local RULE_ACTION_REPLACE_BY = 211
 local RULE_ACTION_CONDITIONAL_ACTIONS = 220
 local RULE_ACTION_SUBTREE = 230
-local RULE_ACTION_IF_ACTIVE_EXEC_POLICY_IS = 244
 local RULE_ACTION_IF_EXISTS_THEN_MAP_TO = 245
 local RULE_ACTION_IF_EXISTS_THEN_REPLACE_BY = 246
-local RULE_ACTION_IF_REDIRECT_IGNORE_IS_ACTIVE = 247
-local RULE_ACTION_IF_REDIRECT_FORCE_IS_ACTIVE = 248
+
+local RULE_CONDITION_IF_ACTIVE_EXEC_POLICY_IS = 301
+local RULE_CONDITION_IF_REDIRECT_IGNORE_IS_ACTIVE = 302
+local RULE_CONDITION_IF_REDIRECT_FORCE_IS_ACTIVE = 303
 
 -- and these  must match the flag definitions in mapping.h:
 local RULE_FLAGS_READONLY = 1
@@ -32,10 +33,10 @@ local RULE_FLAGS_READONLY_FS_IF_NOT_ROOT = 8
 local RULE_FLAGS_READONLY_FS_ALWAYS = 16
 
 
-function get_rule_tree_offset_for_rule_list(rules)
+function get_rule_tree_offset_for_rule_list(rules, node_type_is_ordinary_rule)
 	if rules[1]._rule_tree_offset == nil then
 		-- Not yet in the tree, add it.
-		rules[1]._rule_tree_offset = add_list_of_rules(rules)
+		rules[1]._rule_tree_offset = add_list_of_rules(rules, node_type_is_ordinary_rule)
 	else
 print ("get..Return existing at ", rules[1]._rule_tree_offset)
 	end
@@ -45,7 +46,7 @@ end
 -- FIXME: add union directory support.
 
 -- Add a rule to the rule tree, return rule offset in the file.
-function add_one_rule_to_rule_tree(rule)
+function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule)
 	local action_type = 0
 	local action_str = nil
 	local name
@@ -73,33 +74,38 @@ function add_one_rule_to_rule_tree(rule)
 		action_str = rule.replace_by
 	else
 		-- conditional actions
-		if (rule.if_active_exec_policy_is) then
-			action_type = RULE_ACTION_IF_ACTIVE_EXEC_POLICY_IS
-			action_str = rule.if_active_exec_policy_is
-		elseif (rule.if_exists_then_map_to) then
+		if (rule.if_exists_then_map_to) then
 			action_type = RULE_ACTION_IF_EXISTS_THEN_MAP_TO
 			action_str = rule.if_exists_then_map_to
-print("if_exists_then_map_to "..action_str)
-		elseif (rule.if_exists_then_map_to) then
+		elseif (rule.if_exists_then_replace_by) then
 			action_type = RULE_ACTION_IF_EXISTS_THEN_REPLACE_BY
 			action_str = rule.if_exists_then_replace_by
-		elseif (rule.if_redirect_ignore_is_active) then
-			action_type = RULE_ACTION_IF_REDIRECT_IGNORE_IS_ACTIVE
-			action_str = rule.if_redirect_ignore_is_active
-		elseif (rule.if_redirect_force_is_active) then
-			action_type = RULE_ACTION_IF_REDIRECT_FORCE_IS_ACTIVE
-			action_str = rule.if_redirect_force_is_active
 		else
 			print("No action!")
 			action_type = 0;
 		end
 	end
+
 	if (rule.actions) then
 		action_type = RULE_ACTION_CONDITIONAL_ACTIONS
-		rule_list_link = get_rule_tree_offset_for_rule_list(rule.actions)
+		rule_list_link = get_rule_tree_offset_for_rule_list(rule.actions, false)
 	elseif (rule.rules) then
 		action_type = RULE_ACTION_SUBTREE
-		rule_list_link = get_rule_tree_offset_for_rule_list(rule.rules)
+		rule_list_link = get_rule_tree_offset_for_rule_list(rule.rules, true)
+	end
+
+	-- Aux.conditions. these can be used in conditional actions.
+	local condition_type = 0
+	local condition_str = 0
+	if (rule.if_active_exec_policy_is) then
+		condition_type = RULE_CONDITION_IF_ACTIVE_EXEC_POLICY_IS
+		condition_str = rule.if_active_exec_policy_is
+	elseif (rule.if_redirect_ignore_is_active) then
+		condition_type = RULE_CONDITION_IF_REDIRECT_IGNORE_IS_ACTIVE
+		condition_str = rule.if_redirect_ignore_is_active
+	elseif (rule.if_redirect_force_is_active) then
+		condition_type = RULE_CONDITION_IF_REDIRECT_FORCE_IS_ACTIVE
+		condition_str = rule.if_redirect_force_is_active
 	end
 
 	-- Selectors. 
@@ -156,15 +162,19 @@ print("if_exists_then_map_to "..action_str)
 	--XXXXXX -- to have defunct rules without any selectors (e.g. dir = variable,
 	--XXXXXX -- and 'variable' happens to be nil...)
 	--XXXXXX if selector_type > 0 then
-print ("adding selector_type=",selector_type," selector=",selector, "action_type=",action_type, " action_str=",action_str)
-		return ruletree.add_rule_to_ruletree(name,
-			selector_type, selector, action_type, action_str, rule_list_link,
-			flags, rule.binary_name, func_class, rule.exec_policy_name)
+	print ("adding selector_type=",selector_type," selector=",selector,
+		"action_type=",action_type, " action_str=",action_str,
+		"condition_type=",condition_type, " condition_str=",condition_str)
+	return ruletree.add_rule_to_ruletree(name,
+			selector_type, selector, action_type, action_str,
+			condition_type, condition_str,
+			rule_list_link, flags, rule.binary_name,
+			func_class, rule.exec_policy_name)
 	--XXXXXX end
 	--XXXXXX return 0
 end
 
-function add_list_of_rules(rules)
+function add_list_of_rules(rules, node_type_is_ordinary_rule)
         local n
 
 	print("-- add_list_of_rules:")
@@ -179,7 +189,7 @@ function add_list_of_rules(rules)
 			local rule = rules[n]
 			local new_rule_index
 
-			new_rule_index = add_one_rule_to_rule_tree(rule)
+			new_rule_index = add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule)
 			ruletree.objectlist_set(rule_list_index, n-1, new_rule_index)
 		end
 		print("-- Added to rule db: ",table.maxn(rules),"rules, idx=", rule_list_index)
@@ -195,9 +205,11 @@ if forced_modename then
 else
 	print("forced_modename = nil")
 end
+print("sbox_mapmode = "..sbox_mapmode)
+print("active_mapmode = "..active_mapmode)
 
 local ri
-ri = add_list_of_rules(fs_mapping_rules)
+ri = add_list_of_rules(fs_mapping_rules, true) -- add ordinary rules
 print("-- Added ruleset fwd rules")
 ruletree.set_ruletree_fsrules("rules", ri)
 

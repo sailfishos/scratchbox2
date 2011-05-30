@@ -37,8 +37,12 @@ typedef struct ruletree_object_hdr_s {
 typedef struct ruletree_hdr_s {
 	ruletree_object_hdr_t	rtree_hdr_objhdr;
 
+	uint32_t		rtree_version;
+
 	ruletree_object_offset_t	rtree_hdr_root_catalog;
 } ruletree_hdr_t;
+
+#define RULE_TREE_VERSION	3
 
 /* catalogs are lists of name+value pairs
  * (the value can be a rule, string, or another catalog).
@@ -67,6 +71,9 @@ typedef struct ruletree_fsrule_s {
 	ruletree_object_offset_t	rtree_fsr_action_offs;
 	ruletree_object_offset_t	rtree_fsr_rule_list_link;
 
+	uint32_t			rtree_fsr_condition_type;
+	ruletree_object_offset_t	rtree_fsr_condition_offs;
+
 	uint32_t			rtree_fsr_flags;
         ruletree_object_offset_t	rtree_fsr_binary_name;
         uint32_t			rtree_fsr_func_class;
@@ -89,6 +96,7 @@ typedef struct ruletree_objectlist_s {
 	uint32_t	rtree_olist_size;
 } ruletree_objectlist_t;
 
+/* the three "usual selectors", used in normal rules */
 #define SB2_RULETREE_FSRULE_SELECTOR_PATH		101
 #define SB2_RULETREE_FSRULE_SELECTOR_PREFIX		102
 #define SB2_RULETREE_FSRULE_SELECTOR_DIR		103
@@ -100,11 +108,14 @@ typedef struct ruletree_objectlist_s {
 #define SB2_RULETREE_FSRULE_ACTION_REPLACE_BY		211
 #define SB2_RULETREE_FSRULE_ACTION_CONDITIONAL_ACTIONS	220
 #define SB2_RULETREE_FSRULE_ACTION_SUBTREE		230
-#define SB2_RULETREE_FSRULE_ACTION_IF_ACTIVE_EXEC_POLICY_IS 244
 #define SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_THEN_MAP_TO	245
-#define SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_THEN_REPLACE_BY 246
-#define SB2_RULETREE_FSRULE_ACTION_IF_REDIRECT_IGNORE_IS_ACTIVE 247
-#define SB2_RULETREE_FSRULE_ACTION_IF_REDIRECT_FORCE_IS_ACTIVE 248
+#define SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_THEN_REPLACE_BY	246
+
+/* auxiliar conditions */ 
+#define SB2_RULETREE_FSRULE_CONDITION_IF_ACTIVE_EXEC_POLICY_IS 301
+#define SB2_RULETREE_FSRULE_CONDITION_IF_REDIRECT_IGNORE_IS_ACTIVE 302
+#define SB2_RULETREE_FSRULE_CONDITION_IF_REDIRECT_FORCE_IS_ACTIVE 303
+
 
 /* ----------- rule_tree.c: ----------- */
 extern int ruletree_to_memory(void); /* 0 if ok, negative if rule tree is not available. */
@@ -148,6 +159,7 @@ extern int lua_bind_ruletree_functions(lua_State *l);
 extern ruletree_object_offset_t add_rule_to_ruletree(
 	const char *name, int selector_type, const char *selector,
 	int action_type, const char *action_str,
+	int condition_type, const char *condition_str,
 	ruletree_object_offset_t rule_list_link,
 	int flags, const char *binary_name,
         int func_class, const char *exec_policy_name);

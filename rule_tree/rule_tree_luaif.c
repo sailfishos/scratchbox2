@@ -61,30 +61,32 @@ static int lua_sb_attach_ruletree(lua_State *l)
 	return(1);
 }
 
-/* "sb.add_rule_to_ruletree(rule.name, selector_type,
- *	selector (one of dir,prefix,path),
- *	action_type, action (either map_to or replace_by string),
- * 	rule_list_link":
+/* "sb.add_rule_to_ruletree(...)
 */
 static int lua_sb_add_rule_to_ruletree(lua_State *l)
 {
 	int	n = lua_gettop(l);
 	uint32_t rule_location = 0;
 
-	if (n == 10) {
+	if (n == 12) {
 		const char	*rule_name = lua_tostring(l, 1);
 		int		selector_type = lua_tointeger(l, 2);
 		const char	*selector = lua_tostring(l, 3);
 		int		action_type = lua_tointeger(l, 4);
 		const char	*action_str = lua_tostring(l, 5);
-		ruletree_object_offset_t rule_list_link = lua_tointeger(l, 6);
-		int		flags = lua_tointeger(l, 7);
-		const char	*binary_name = lua_tostring(l, 8);
-		int		func_class = lua_tointeger(l, 9);
-		const char	*exec_policy_name = lua_tostring(l, 10);
+		int		condition_type = lua_tointeger(l, 6);
+		const char	*condition_str = lua_tostring(l, 7);
+		ruletree_object_offset_t rule_list_link = lua_tointeger(l, 8);
+		int		flags = lua_tointeger(l, 9);
+		const char	*binary_name = lua_tostring(l, 10);
+		int		func_class = lua_tointeger(l, 11);
+		const char	*exec_policy_name = lua_tostring(l, 12);
 
-		rule_location = add_rule_to_ruletree(rule_name, selector_type,
-			selector, action_type, action_str, rule_list_link,
+		rule_location = add_rule_to_ruletree(rule_name,
+			selector_type, selector,
+			action_type, action_str,
+			condition_type, condition_str,
+			rule_list_link,
 			flags, binary_name, func_class, exec_policy_name);
 
 		SB_LOG(SB_LOGLEVEL_NOISE,

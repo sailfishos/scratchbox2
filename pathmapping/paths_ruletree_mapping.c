@@ -48,6 +48,8 @@ ruletree_object_offset_t add_rule_to_ruletree(
 	const char	*selector,
 	int		action_type,
 	const char	*action_str,
+	int		condition_type,
+	const char	*condition_str,
 	ruletree_object_offset_t rule_list_link,
 	int             flags,
 	const char      *binary_name,
@@ -93,11 +95,8 @@ ruletree_object_offset_t add_rule_to_ruletree(
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY:
 	case SB2_RULETREE_FSRULE_ACTION_CONDITIONAL_ACTIONS:
 	case SB2_RULETREE_FSRULE_ACTION_SUBTREE:
-	case SB2_RULETREE_FSRULE_ACTION_IF_ACTIVE_EXEC_POLICY_IS:
 	case SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_THEN_MAP_TO:
 	case SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_THEN_REPLACE_BY:
-	case SB2_RULETREE_FSRULE_ACTION_IF_REDIRECT_IGNORE_IS_ACTIVE:
-	case SB2_RULETREE_FSRULE_ACTION_IF_REDIRECT_FORCE_IS_ACTIVE:
 		/* OK */
 		break;
 
@@ -107,6 +106,22 @@ ruletree_object_offset_t add_rule_to_ruletree(
 			action_type, name);
 		return(0);
 	}
+
+	switch (condition_type) {
+	case 0: /* it is ok to live without one */
+	case SB2_RULETREE_FSRULE_CONDITION_IF_ACTIVE_EXEC_POLICY_IS:
+	case SB2_RULETREE_FSRULE_CONDITION_IF_REDIRECT_IGNORE_IS_ACTIVE:
+	case SB2_RULETREE_FSRULE_CONDITION_IF_REDIRECT_FORCE_IS_ACTIVE:
+		/* OK */
+		break;
+
+	default:
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"Unsupported condition type %d (rule='%s')",
+			action_type, name);
+		return(0);
+	}
+
 
 	new_rule.rtree_fsr_rule_list_link = rule_list_link;
 
@@ -118,6 +133,11 @@ ruletree_object_offset_t add_rule_to_ruletree(
 	new_rule.rtree_fsr_action_type = action_type;
 	if (action_str) {
 		new_rule.rtree_fsr_action_offs = append_string_to_ruletree_file(action_str);
+	}
+
+	new_rule.rtree_fsr_condition_type = condition_type;
+	if (action_str) {
+		new_rule.rtree_fsr_condition_offs = append_string_to_ruletree_file(condition_str);
 	}
 
 	new_rule.rtree_fsr_flags = flags;
@@ -229,6 +249,12 @@ static ruletree_object_offset_t ruletree_find_rule(
 		rp = offset_to_ruletree_fsrule_ptr(rule_offs);
 		if (rp) {
 			int min_path_len;
+
+			if (rp->rtree_fsr_condition_type != 0) {
+				SB_LOG(SB_LOGLEVEL_DEBUG,
+					"ruletree_find_rule: can't handle rules with conditions, fail. @%d", rule_offs);
+				return(0);
+			}
 
 			if (rp->rtree_fsr_selector_type == 0) {
 				SB_LOG(SB_LOGLEVEL_NOISE,
@@ -477,13 +503,21 @@ char *ruletree_execute_conditional_actions(
 		/* "rule_selector" is the rule which matched, and
 		 * brought us here (so it contains "dir","prefix"
 		 * or "path").
-		 * Aach member in the "actions" array is a 
+		 * Each member in the "actions" array is a 
                  * candidate for the rule which will be applied,
 		 * i.e. a suitable member from that array gives
 		 * instructions about what to do next */
 		action_cand_p = offset_to_ruletree_fsrule_ptr(action_offs);
 		if (action_cand_p) {
 			char *mapping_result;
+
+			if (action_cand_p->rtree_fsr_condition_type != 0) {
+				SB_LOG(SB_LOGLEVEL_DEBUG,
+					"ruletree_execute_conditional_actions: "
+					" can't handle conditions, fail. @%d", action_offs);
+				/* FIXME */
+                                goto unimplemented_action_fallback_to_lua;
+			}
 
 			switch (action_cand_p->rtree_fsr_action_type) {
 			case SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_THEN_MAP_TO:

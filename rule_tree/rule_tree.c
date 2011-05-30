@@ -150,6 +150,7 @@ int attach_ruletree(const char *ruletree_path,
 			result = 1;
 
 			memset(&hdr, 0, sizeof(hdr));
+			hdr.rtree_version = RULE_TREE_VERSION;
 			append_struct_to_ruletree_file(&hdr, sizeof(hdr),
 				SB2_RULETREE_OBJECT_TYPE_FILEHDR);
 			ruletree_ctx.rtree_ruletree_hdr_p =
@@ -168,7 +169,16 @@ int attach_ruletree(const char *ruletree_path,
 
 		if (ruletree_ctx.rtree_ruletree_hdr_p) {
 			SB_LOG(SB_LOGLEVEL_DEBUG, "header & magic ok");
-			result = 0; /* mapped to memory */
+			if (ruletree_ctx.rtree_ruletree_hdr_p->rtree_version ==
+			    RULE_TREE_VERSION) {
+				result = 0; /* mapped to memory */
+			} else {
+				SB_LOG(SB_LOGLEVEL_ERROR,
+					"Fatal: ruletree version mismatch: Got %d, expected %d",
+					ruletree_ctx.rtree_ruletree_hdr_p->rtree_version,
+					RULE_TREE_VERSION);
+				exit(44);
+			}
 		} else {
 			SB_LOG(SB_LOGLEVEL_ERROR, "Faulty ruletree header");
 			result = -1;
@@ -269,7 +279,7 @@ int ruletree_objectlist_set_item(
 	ruletree_objectlist_t		*listhdr;
 	ruletree_object_offset_t	*a;
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_objectlist_set_item(%d,%d,%d)", list_offs, n, value);
+	SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_objectlist_set_item(%d,%d,%d)", list_offs, n, value);
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (-1);
 	listhdr = offset_to_ruletree_object_ptr(list_offs,
 		SB2_RULETREE_OBJECT_TYPE_OBJECTLIST);
@@ -288,7 +298,7 @@ ruletree_object_offset_t ruletree_objectlist_get_item(
 	ruletree_objectlist_t		*listhdr;
 	ruletree_object_offset_t	*a;
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_objectlist_get_item(%d,%d)", list_offs, n);
+	SB_LOG(SB_LOGLEVEL_NOISE2, "ruletree_objectlist_get_item(%d,%d)", list_offs, n);
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (0);
 	listhdr = offset_to_ruletree_object_ptr(list_offs,
 		SB2_RULETREE_OBJECT_TYPE_OBJECTLIST);
@@ -304,7 +314,7 @@ uint32_t ruletree_objectlist_get_list_size(
 {
 	ruletree_objectlist_t		*listhdr;
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_objectlist_get_list_size(%d)", list_offs);
+	SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_objectlist_get_list_size(%d)", list_offs);
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (0);
 	listhdr = offset_to_ruletree_object_ptr(list_offs,
 		SB2_RULETREE_OBJECT_TYPE_OBJECTLIST);

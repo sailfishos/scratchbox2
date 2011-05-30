@@ -108,6 +108,29 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 		}
 	}
 
+	if (rule->rtree_fsr_condition_type) {
+		print_indent(indent+1);
+		printf("CONDITINAL: ");
+		switch (rule->rtree_fsr_condition_type) {
+		case SB2_RULETREE_FSRULE_CONDITION_IF_ACTIVE_EXEC_POLICY_IS:
+			printf("if_active_exec_policy_is '%s'\n",
+				offset_to_ruletree_string_ptr(rule->rtree_fsr_condition_offs));
+			break;
+		case SB2_RULETREE_FSRULE_CONDITION_IF_REDIRECT_IGNORE_IS_ACTIVE:
+			printf("if_redirect_ignore_is_active '%s'\n",
+				offset_to_ruletree_string_ptr(rule->rtree_fsr_condition_offs));
+			break;
+		case SB2_RULETREE_FSRULE_CONDITION_IF_REDIRECT_FORCE_IS_ACTIVE:
+			printf("if_redirect_force_is_active '%s'\n",
+				offset_to_ruletree_string_ptr(rule->rtree_fsr_condition_offs));
+			break;
+		default:
+			printf("ERROR: Unknown selector type %d\n",
+				rule->rtree_fsr_selector_type);
+			break;
+		}
+	}
+
 	print_indent(indent+1);
 	printf("ACTION: ");
 	switch (rule->rtree_fsr_action_type) {
@@ -138,24 +161,12 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 			rule->rtree_fsr_rule_list_link);
 		rule_list_link_label = "rules";
 		break;
-	case SB2_RULETREE_FSRULE_ACTION_IF_ACTIVE_EXEC_POLICY_IS:
-		printf("if_active_exec_policy_is '%s'\n",
-			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs));
-		break;
 	case SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_THEN_MAP_TO:
 		printf("if_exists_then_map_to '%s'\n",
 			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs));
 		break;
 	case SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_THEN_REPLACE_BY:
 		printf("if_exists_then_replace_by '%s'\n",
-			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs));
-		break;
-	case SB2_RULETREE_FSRULE_ACTION_IF_REDIRECT_IGNORE_IS_ACTIVE:
-		printf("if_redirect_ignore_is_active '%s'\n",
-			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs));
-		break;
-	case SB2_RULETREE_FSRULE_ACTION_IF_REDIRECT_FORCE_IS_ACTIVE:
-		printf("if_redirect_force_is_active '%s'\n",
 			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs));
 		break;
 	default:

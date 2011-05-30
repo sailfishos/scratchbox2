@@ -8,6 +8,14 @@ local forced_modename = sb.get_forced_mapmode()
 local RULE_FLAGS_READONLY = 1
 local RULE_FLAGS_CALL_TRANSLATE_FOR_ALL = 2
 local RULE_FLAGS_FORCE_ORIG_PATH = 4
+local RULE_FLAGS_READONLY_FS_IF_NOT_ROOT = 8
+local RULE_FLAGS_READONLY_FS_ALWAYS = 16
+
+-- Constants that can be used from the rules:
+--
+-- "protection" attribute:
+readonly_fs_if_not_root = 1
+readonly_fs_always = 2
 
 -- rule_file_path and rev_rule_file_path are global varibales
 if forced_modename == nil then
@@ -210,6 +218,16 @@ if (debug_messages_enabled) then
 	end
 end
 
+-- returns new value for "flags"
+function check_protection_attribute(rule, flags)
+	if rule.protection == readonly_fs_if_not_root then
+		flags = flags + RULE_FLAGS_READONLY_FS_IF_NOT_ROOT
+	elseif rule.protection == readonly_fs_always then
+		flags = flags + RULE_FLAGS_READONLY_FS_ALWAYS
+	end
+	return flags
+end
+
 function sbox_execute_replace_rule(path, replacement, rule_selector)
 	local ret = nil
 
@@ -295,6 +313,9 @@ function sbox_execute_conditional_actions(binary_name,
 		local ret_flags = 0
 		if (action_candidate.readonly) then
 			ret_flags = RULE_FLAGS_READONLY
+		end
+		if (action_candidate.protection) then
+			ret_flags = check_protection_attribute(action_candidate, ret_flags)
 		end
 
 		if (action_candidate.if_exists_then_map_to or
@@ -398,6 +419,9 @@ function sbox_execute_rule(binary_name, func_name, rp, path,
 
 	if (rule_conditions_and_actions.readonly) then
 		ret_flags = RULE_FLAGS_READONLY
+	end
+	if (rule_conditions_and_actions.protection) then
+		ret_flags = check_protection_attribute(rule_conditions_and_actions, ret_flags)
 	end
 	if (rule_conditions_and_actions.exec_policy_name ~= nil) then
 		ret_exec_policy_name = rule_conditions_and_actions.exec_policy_name
@@ -599,6 +623,9 @@ function sbox_translate_path(rule, binary_name, func_name, path)
 			binary_name, func_name, rp, path, rule)
 		if (rule.readonly) then
 			ret_flags = RULE_FLAGS_READONLY
+		end
+		if (rule.protection) then
+			ret_flags = check_protection_attribute(rule, ret_flags)
 		end
 	else
 		exec_policy_name, ret, ret_flags = sbox_execute_rule(

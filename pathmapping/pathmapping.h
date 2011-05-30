@@ -110,6 +110,11 @@ extern char *call_lua_function_sbox_reverse_path(
 	const char *abs_host_path);
 extern void drop_rule_from_lua_stack(struct sb2context *sb2ctx);
 
+extern char *clean_and_log_fs_mapping_result(
+	const path_mapping_context_t *ctx,
+	const char *abs_clean_virtual_path,
+	int result_log_level, char *host_path, int flags);
+
 /* ----------- paths_ruletree_mapping.c ----------- */
 extern char *ruletree_translate_path(
 	const path_mapping_context_t *ctx,

@@ -531,13 +531,14 @@ char *ruletree_translate_path(
 	int *force_fallback_to_lua)
 {
 	const char	*cp;
-	char	*new_path = NULL;
+	char	*host_path = NULL;
 	ruletree_fsrule_t *rule;
 
 	*force_fallback_to_lua = 0;
 
 	if (!ctx->pmc_ruletree_offset) {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_translate_path: No rule");
+		SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_translate_path: No rule tree");
+		*force_fallback_to_lua = 1;
 		return(NULL);
 	}
 	rule = offset_to_ruletree_fsrule_ptr(ctx->pmc_ruletree_offset);
@@ -561,29 +562,48 @@ char *ruletree_translate_path(
 	case SB2_RULETREE_FSRULE_ACTION_FALLBACK_TO_OLD_MAPPING_ENGINE:
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"ruletree_translate_path: Forced fallback.");
-		*force_fallback_to_lua = 1;
-		return (NULL);
+		host_path = NULL;
+		break;
 
 	case SB2_RULETREE_FSRULE_ACTION_USE_ORIG_PATH:
 	case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH:
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO:
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY:
-		return(execute_std_action(rule, abs_clean_virtual_path, flagsp));
+		host_path = execute_std_action(rule, abs_clean_virtual_path, flagsp);
+		break;
 
-	/* FIXME: Implement execution of conditional actions: */
 	case SB2_RULETREE_FSRULE_ACTION_CONDITIONAL_ACTIONS:
-		return(ruletree_execute_conditional_actions(
+		host_path = ruletree_execute_conditional_actions(
 			ctx, result_log_level, abs_clean_virtual_path,
 			flagsp, exec_policy_name_ptr, force_fallback_to_lua,
-			rule));
+			rule);
+		break;
 	
 	default:
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"ruletree_translate_path: Unknown action code %d",
 			rule->rtree_fsr_action_type);
+		host_path = NULL;
 		break;
 	}
-
-	return(NULL);
+	if (host_path) {
+		if (*host_path != '/') {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"Mapping failed: Result is not absolute ('%s'->'%s')",
+				abs_clean_virtual_path, host_path);
+			host_path = NULL;
+		} else {
+			char *new_host_path = clean_and_log_fs_mapping_result(ctx,
+				abs_clean_virtual_path, result_log_level, host_path, *flagsp);
+			free(host_path);
+			host_path = new_host_path;
+		}
+	} else {
+		SB_LOG(result_log_level,
+			"Mapping failed: Fallback to Lua mapping ('%s')",
+			abs_clean_virtual_path);
+		*force_fallback_to_lua = 1;
+	}
+	return(host_path);
 }
 

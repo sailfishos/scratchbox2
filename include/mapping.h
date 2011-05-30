@@ -103,10 +103,18 @@ extern const char *fdpathdb_find_path(int fd);
 
 /* ---- internal constants: ---- */
 
-/* "flags", returned from mapping.lua to the C code: */
+/* "flags", returned from mapping.lua to the C code:
+ *    RULE_FLAGS_READONLY_FS_ALWAYS is same as RULE_FLAGS_READONLY,
+ *    but it is easier to have two flags for this because Lua
+ *    does not have bit operations; also it enables us to find
+ *    rules that still use old syntax
+*/
 #define SB2_MAPPING_RULE_FLAGS_READONLY			01
 #define SB2_MAPPING_RULE_FLAGS_CALL_TRANSLATE_FOR_ALL	02
 #define SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH		04
+#define SB2_MAPPING_RULE_FLAGS_READONLY_FS_IF_NOT_ROOT	010
+#define SB2_MAPPING_RULE_FLAGS_READONLY_FS_ALWAYS	020
+
 /* list of all known flags: The preload library will log a warning, if 
  * the mapping code (in Lua) returns unknown flags. This is important
  * because it provides some kind of notification if/when new flags are
@@ -116,6 +124,8 @@ extern const char *fdpathdb_find_path(int fd);
 #define SB2_MAPPING_RULE_ALL_FLAGS \
 	(SB2_MAPPING_RULE_FLAGS_READONLY | \
 	 SB2_MAPPING_RULE_FLAGS_CALL_TRANSLATE_FOR_ALL | \
-	 SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH)
+	 SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH | \
+	 SB2_MAPPING_RULE_FLAGS_READONLY_FS_IF_NOT_ROOT | \
+	 SB2_MAPPING_RULE_FLAGS_READONLY_FS_ALWAYS)
 
 #endif

@@ -63,6 +63,81 @@ static void check_mapping_flags(int flags, const char *fn)
 	}
 }
 
+/* FIXME: This is now shared; Lua and C mapping use it.
+ * move this somewhere else. */
+char *clean_and_log_fs_mapping_result(
+	const path_mapping_context_t *ctx,
+	const char *abs_clean_virtual_path,
+	int result_log_level, char *host_path,
+	int flags)
+{
+	/* sometimes a mapping rule may create paths that contain
+	 * doubled slashes ("//") or end with a slash. We'll
+	 * need to clean the path here.
+	*/
+	char *cleaned_host_path;
+	struct path_entry_list list;
+	const char *readonly = "";
+
+	split_path_to_path_list(host_path, &list);
+	list.pl_flags|= PATH_FLAGS_HOST_PATH;
+
+	switch (is_clean_path(&list)) {
+	case 0: /* clean */
+		break;
+	case 1: /* . */
+		remove_dots_from_path_list(&list);
+		break;
+	case 2: /* .. */
+		/* The rule inserted ".." to the path?
+		 * not very wise move, maybe we should even log
+		 * warning about this? However, cleaning is
+		 * easy in this case; the result is a host
+		 * path => cleanup doesn't need to make
+		 * recursive calls to sb_path_resolution.
+		*/
+		remove_dots_from_path_list(&list);
+		clean_dotdots_from_path(ctx, &list);
+		break;
+	}
+	cleaned_host_path = path_list_to_string(&list);
+	free_path_list(&list);
+
+	if (*cleaned_host_path != '/') {
+		/* oops, got a relative path. CWD is too long. */
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"OOPS, call_lua_function_sbox_translate_path:"
+			" relative");
+	}
+
+	/* log the result */
+	if (flags & SB2_MAPPING_RULE_FLAGS_READONLY_FS_IF_NOT_ROOT) {
+		readonly = " (readonly-if-not-root)";
+	} else if (flags & (SB2_MAPPING_RULE_FLAGS_READONLY |
+			    SB2_MAPPING_RULE_FLAGS_READONLY_FS_ALWAYS)) {
+		readonly = " (readonly)";
+	}
+	if (strcmp(cleaned_host_path, abs_clean_virtual_path) == 0) {
+		/* NOTE: Following SB_LOG() call is used by the log
+		 *       postprocessor script "sb2logz". Do not change
+		 *       without making a corresponding change to
+		 *       the script!
+		*/
+		SB_LOG(result_log_level, "pass: %s '%s'%s",
+			ctx->pmc_func_name, abs_clean_virtual_path, readonly);
+	} else {
+		/* NOTE: Following SB_LOG() call is used by the log
+		 *       postprocessor script "sb2logz". Do not change
+		 *       without making a corresponding change to
+		 *       the script!
+		*/
+		SB_LOG(result_log_level, "mapped: %s '%s' -> '%s'%s",
+			ctx->pmc_func_name, abs_clean_virtual_path,
+			cleaned_host_path, readonly);
+	}
+	return (cleaned_host_path);
+}
+
 /* ========== Interfaces to Lua functions: ========== */
 
 /* note: this expects that the lua stack already contains the mapping rule,
@@ -131,67 +206,10 @@ char *call_lua_function_sbox_translate_path(
 	lua_pop(sb2ctx->lua, 3); /* leave the rule to the stack */
 
 	if (host_path) {
-		/* sometimes a mapping rule may create paths that contain
-		 * doubled slashes ("//") or end with a slash. We'll
-		 * need to clean the path here.
-		*/
-		char *cleaned_host_path;
-		struct path_entry_list list;
-
-		split_path_to_path_list(host_path, &list);
-		list.pl_flags|= PATH_FLAGS_HOST_PATH;
-
-		switch (is_clean_path(&list)) {
-		case 0: /* clean */
-			break;
-		case 1: /* . */
-			remove_dots_from_path_list(&list);
-			break;
-		case 2: /* .. */
-			/* The rule inserted ".." to the path?
-			 * not very wise move, maybe we should even log
-			 * warning about this? However, cleaning is
-			 * easy in this case; the result is a host
-			 * path => cleanup doesn't need to make
-			 * recursive calls to sb_path_resolution.
-			*/
-			remove_dots_from_path_list(&list);
-			clean_dotdots_from_path(ctx, &list);
-			break;
-		}
-		cleaned_host_path = path_list_to_string(&list);
-		free_path_list(&list);
-
-		if (*cleaned_host_path != '/') {
-			/* oops, got a relative path. CWD is too long. */
-			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"OOPS, call_lua_function_sbox_translate_path:"
-				" relative");
-		}
+		char *new_host_path = clean_and_log_fs_mapping_result(ctx,
+			abs_clean_virtual_path, result_log_level, host_path, flags);
 		free(host_path);
-		host_path = NULL;
-
-		/* log the result */
-		if (strcmp(cleaned_host_path, abs_clean_virtual_path) == 0) {
-			/* NOTE: Following SB_LOG() call is used by the log
-			 *       postprocessor script "sb2logz". Do not change
-			 *       without making a corresponding change to
-			 *       the script!
-			*/
-			SB_LOG(result_log_level, "pass: %s '%s'%s",
-				ctx->pmc_func_name, abs_clean_virtual_path,
-				((flags & SB2_MAPPING_RULE_FLAGS_READONLY) ? " (readonly)" : ""));
-		} else {
-			/* NOTE: Following SB_LOG() call is used by the log
-			 *       postprocessor script "sb2logz". Do not change
-			 *       without making a corresponding change to
-			 *       the script!
-			*/
-			SB_LOG(result_log_level, "mapped: %s '%s' -> '%s'%s",
-				ctx->pmc_func_name, abs_clean_virtual_path, cleaned_host_path,
-				((flags & SB2_MAPPING_RULE_FLAGS_READONLY) ? " (readonly)" : ""));
-		}
-		host_path = cleaned_host_path;
+		host_path = new_host_path;
 	}
 	if (!host_path) {
 		SB_LOG(SB_LOGLEVEL_ERROR,

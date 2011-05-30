@@ -1216,7 +1216,19 @@ void
 				resolved_virtual_path_res.mres_result_path, &flags,
 				&res->mres_exec_policy_name);
 #endif
-			res->mres_readonly = (flags & SB2_MAPPING_RULE_FLAGS_READONLY);
+			if (flags & SB2_MAPPING_RULE_FLAGS_READONLY_FS_IF_NOT_ROOT) {
+				if (sbox_session_perm &&
+				    !strcmp(sbox_session_perm, "root")) {
+					/* simulated root environment, allow writing */
+					res->mres_readonly = 0;
+				} else {
+					/* normal user, make it appear as read only */
+					res->mres_readonly = 1;
+				}
+			} else {
+				res->mres_readonly = (flags & (SB2_MAPPING_RULE_FLAGS_READONLY |
+					SB2_MAPPING_RULE_FLAGS_READONLY_FS_ALWAYS) ? 1 : 0);
+			}
 
 #ifdef SB2_PATHRESOLUTION_LUA_ENGINE
 			/* ...and remove rule from stack */

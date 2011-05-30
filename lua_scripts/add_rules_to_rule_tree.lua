@@ -28,6 +28,8 @@ local RULE_ACTION_IF_REDIRECT_FORCE_IS_ACTIVE = 248
 local RULE_FLAGS_READONLY = 1
 local RULE_FLAGS_CALL_TRANSLATE_FOR_ALL = 2
 local RULE_FLAGS_FORCE_ORIG_PATH = 4
+local RULE_FLAGS_READONLY_FS_IF_NOT_ROOT = 8
+local RULE_FLAGS_READONLY_FS_ALWAYS = 16
 
 
 function get_rule_tree_offset_for_rule_list(rules)
@@ -119,6 +121,12 @@ print("if_exists_then_map_to "..action_str)
 	if (rule.readonly) then
 		flags = flags + RULE_FLAGS_READONLY
 	end
+	if (rule.protection == readonly_fs_if_not_root) then
+		flags = flags + RULE_FLAGS_READONLY_FS_IF_NOT_ROOT
+	elseif (rule.protection == readonly_fs_always) then
+		flags = flags + RULE_FLAGS_READONLY_FS_ALWAYS
+	end
+
 	if (rule.force_orig_path) then
 		flags = flags + RULE_FLAGS_FORCE_ORIG_PATH
 	end
@@ -180,6 +188,13 @@ function add_list_of_rules(rules)
 end
 
 ruletree.attach_ruletree()
+
+local forced_modename = sb.get_forced_mapmode()
+if forced_modename then
+	print("forced_modename = "..forced_modename)
+else
+	print("forced_modename = nil")
+end
 
 local ri
 ri = add_list_of_rules(fs_mapping_rules)

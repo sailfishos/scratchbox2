@@ -38,11 +38,14 @@ enable_cross_gcc_toolchain = false
 
 -- This mode can also be used to redirect /var/lib/dpkg/status to another
 -- location (our dpkg-checkbuilddeps wrapper needs that)
-local var_lib_dpkg_status_location = os.getenv("SBOX_TOOLS_MODE_VAR_LIB_DPKG_STATUS_LOCATION")
-if var_lib_dpkg_status_location == nil or var_lib_dpkg_status_location == "" then
-	-- Use the default location
-	var_lib_dpkg_status_location = tools_root .. "/var/lib/dpkg/status"
-end
+var_lib_dpkg_status_actions = {
+	{ if_env_var_is_not_empty = "SBOX_TOOLS_MODE_VAR_LIB_DPKG_STATUS_LOCATION",
+	  replace_by_value_of_env_var = "SBOX_TOOLS_MODE_VAR_LIB_DPKG_STATUS_LOCATION", 
+	  readonly = tools_root_is_readonly},
+
+	-- Else use the default location
+	{ map_to = tools_root, readonly = tools_root_is_readonly}
+}
 
 fs_mapping_rules = {
 		{dir = session_dir, use_orig_path = true},
@@ -110,8 +113,7 @@ fs_mapping_rules = {
 
 		-- -----------------------------------------------
 
-		{path = "/var/lib/dpkg/status", replace_by = var_lib_dpkg_status_location,
-		 readonly = tools_root_is_readonly},
+		{path = "/var/lib/dpkg/status", actions = var_lib_dpkg_status_actions},
 
 		-- The default is to map everything to tools_root,
 		-- except that we don't map the directory tree where

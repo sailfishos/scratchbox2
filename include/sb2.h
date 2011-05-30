@@ -197,4 +197,7 @@ extern void lua_string_table_to_strvec(lua_State *l,
 	int lua_stack_offs, char ***args, int new_argc);
 void strvec_free(char **args);
 
+extern int test_if_str_in_colon_separated_list_from_env(
+	const char *str, const char *env_var_name);
+
 #endif

@@ -1005,7 +1005,7 @@ static int lua_sb_procfs_mapping_request(lua_State *l)
 	return 1;
 }
 
-static int test_if_str_in_colon_separated_list_from_env(
+int test_if_str_in_colon_separated_list_from_env(
 	const char *str, const char *env_var_name)
 {
 	int	result = 0;	/* boolean; default result is "not found" */

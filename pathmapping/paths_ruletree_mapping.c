@@ -550,19 +550,57 @@ char *ruletree_execute_conditional_actions(
 					if (!cond_str) continue;	/* continue if no env.var.name */
 					evp = getenv(cond_str);
 					if (!evp || !*evp) continue; /* continue if empty */
+					SB_LOG(SB_LOGLEVEL_NOISE, "Condition test: env.var was not empty");
 					break;	/* else test passed. */
 					
 				case SB2_RULETREE_FSRULE_CONDITION_IF_ENV_VAR_IS_EMPTY:
 					if (!cond_str) continue;	/* continue if no env.var.name */
 					evp = getenv(cond_str);
 					if (evp && *evp) continue; /* continue if not empty */
+					SB_LOG(SB_LOGLEVEL_NOISE, "Condition test: env.var was empty");
 					break;	/* else test passed. */
 				
+				case SB2_RULETREE_FSRULE_CONDITION_IF_ACTIVE_EXEC_POLICY_IS:
+					if (!cond_str ||
+					    !sbox_active_exec_policy_name ||
+					    strcmp(cond_str, sbox_active_exec_policy_name)) {
+						/* exec policy name did not match */
+						continue;
+					}
+					SB_LOG(SB_LOGLEVEL_NOISE, "Condition test: exec policy name matched");
+					break;
+
+				case SB2_RULETREE_FSRULE_CONDITION_IF_REDIRECT_IGNORE_IS_ACTIVE:
+					if (!cond_str) continue;	/* continue if no path */
+					if (test_if_str_in_colon_separated_list_from_env(
+						cond_str, "SBOX_REDIRECT_IGNORE")) {
+						SB_LOG(SB_LOGLEVEL_NOISE, "Condition test: redirect-ignore is active (%s)",
+							cond_str);
+					} else {
+						SB_LOG(SB_LOGLEVEL_NOISE, "Condition test: redirect-ignore is NOT active (%s)",
+							cond_str);
+						continue;
+					}
+					break;
+
+				case SB2_RULETREE_FSRULE_CONDITION_IF_REDIRECT_FORCE_IS_ACTIVE:
+					if (!cond_str) continue;	/* continue if no path */
+					if (test_if_str_in_colon_separated_list_from_env(
+						cond_str, "SBOX_REDIRECT_FORCE")) {
+						SB_LOG(SB_LOGLEVEL_NOISE, "Condition test: redirect-force is active (%s)",
+							cond_str);
+					} else {
+						SB_LOG(SB_LOGLEVEL_NOISE, "Condition test: redirect-force is NOT active (%s)",
+							cond_str);
+						continue;
+					}
+					break;
+
 				default:
-					SB_LOG(SB_LOGLEVEL_DEBUG,
+					SB_LOG(SB_LOGLEVEL_ERROR,
 						"ruletree_execute_conditional_actions: "
-						" can't handle conditions, fail. @%d", action_offs);
-					/* FIXME */
+						" unknown condition %d @%d",
+						action_cand_p->rtree_fsr_condition_type, action_offs);
 					goto unimplemented_action_fallback_to_lua;
 				}
 			}

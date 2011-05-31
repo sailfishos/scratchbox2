@@ -47,8 +47,6 @@ print ("get..Return existing at ", rules[1]._rule_tree_offset)
 	return rules[1]._rule_tree_offset
 end
 
--- FIXME: add union directory support.
-
 -- Add a rule to the rule tree, return rule offset in the file.
 function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule)
 	local action_type = 0
@@ -82,6 +80,9 @@ function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule)
 	elseif (rule.replace_by_value_of_env_var) then
 		action_type = RULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR
 		action_str = rule.replace_by_value_of_env_var
+	elseif (rule.union_dir) then
+		-- FIXME: Add union_dir support.
+		action_type = RULE_ACTION_FALLBACK_TO_OLD_MAPPING_ENGINE
 	else
 		-- conditional actions
 		if (rule.if_exists_then_map_to) then

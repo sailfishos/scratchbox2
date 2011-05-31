@@ -123,7 +123,7 @@ static void compare_results_from_c_and_lua_engines(
 
 /* ========== Public interfaces to the mapping & resolution code: ========== */
 
-void fwd_map_path(
+static void fwd_map_path(
 	const char *binary_name,
 	const char *func_name,
 	const char *virtual_path,
@@ -166,13 +166,12 @@ void fwd_map_path(
 				dont_resolve_final_symlink, 0, &res2);
 			if (res2.mres_fallback_to_lua_mapping_engine) {
 				SB_LOG(SB_LOGLEVEL_NOTICE,
-					"C path mapping engine failed (%s), can't compare (%s)",
+					"C path mapping engine forces fallback to Lua (%s), (%s)",
 					res2.mres_fallback_to_lua_mapping_engine, virtual_path);
-			} else {
-				compare_results_from_c_and_lua_engines(
-					__func__, res2.mres_result_path,
-					res->mres_result_path);
 			}
+			compare_results_from_c_and_lua_engines(
+				__func__, res2.mres_result_path,
+				res->mres_result_path);
 			free_mapping_results(&res2);
 			return;
 		default:
@@ -181,6 +180,59 @@ void fwd_map_path(
 				__func__);
 		}
 	}
+}
+
+char *reverse_map_path(
+	path_mapping_context_t	*ctx,
+	const char *abs_host_path)
+{
+	char *virtual_path = NULL, *vp2 = NULL;
+
+	if (!abs_host_path || !ctx) {
+		return(NULL);
+	}
+
+	check_mapping_method();
+
+	switch (mapping_method) {
+	case MAPPING_METHOD_C_ENGINE:
+		virtual_path = sbox_reverse_path_internal__c_engine(
+			ctx, abs_host_path);
+		if (!virtual_path) {
+			/* no answer from the C engine.
+			 * path reversing is optional, but we don't even
+			 * try to find out if this was caused by missing
+			 * rules etc. or failure in the C reversing engine;
+			 * just go and try again with Lua.
+			*/
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"No result for path reversing from C engine, try Lua (%s)",
+					abs_host_path);
+			if (!ctx->pmc_sb2ctx->lua) sb2context_initialize_lua(ctx->pmc_sb2ctx);
+			virtual_path = call_lua_function_sbox_reverse_path(ctx, abs_host_path);
+		}
+		break;
+
+	case MAPPING_METHOD_LUA_ENGINE:
+		if (!ctx->pmc_sb2ctx->lua) sb2context_initialize_lua(ctx->pmc_sb2ctx);
+		virtual_path = call_lua_function_sbox_reverse_path(ctx, abs_host_path);
+		break;
+
+	case MAPPING_METHOD_BOTH_ENGINES:
+		if (!ctx->pmc_sb2ctx->lua) sb2context_initialize_lua(ctx->pmc_sb2ctx);
+		virtual_path = call_lua_function_sbox_reverse_path(ctx, abs_host_path);
+		vp2 = sbox_reverse_path_internal__c_engine(ctx, abs_host_path);
+		compare_results_from_c_and_lua_engines(
+			__func__, vp2, virtual_path);
+		if (vp2) free(vp2);
+		break;
+
+	default:
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"%s: Invalid mapping method",
+			__func__);
+	}
+	return(virtual_path);
 }
 
 void sbox_map_path_for_sb2show(
@@ -293,9 +345,9 @@ char *scratchbox_reverse_path(
 	ctx.pmc_func_name = func_name;
 	ctx.pmc_virtual_orig_path = "";
 	ctx.pmc_dont_resolve_final_symlink = 0;
-	ctx.pmc_sb2ctx = get_sb2context_lua();
+	ctx.pmc_sb2ctx = get_sb2context();
 
-	virtual_path = call_lua_function_sbox_reverse_path(&ctx, abs_host_path);
+	virtual_path = reverse_map_path(&ctx, abs_host_path);
 	release_sb2context(ctx.pmc_sb2ctx);
 	return(virtual_path);
 }

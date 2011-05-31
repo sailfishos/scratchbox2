@@ -220,8 +220,12 @@ print("sbox_mapmode = "..sbox_mapmode)
 print("active_mapmode = "..active_mapmode)
 
 local ri
-ri = add_list_of_rules(fs_mapping_rules, true) -- add ordinary rules
+ri = add_list_of_rules(fs_mapping_rules, true) -- add ordinary (forward) rules
 print("-- Added ruleset fwd rules")
 ruletree.set_ruletree_fsrules("rules", ri)
 
+
+ri = add_list_of_rules(reverse_fs_mapping_rules, true) -- add reverse  rules
+print("-- Added ruleset rev.rules")
+ruletree.set_ruletree_fsrules("rev_rules", ri)
 

@@ -486,7 +486,7 @@ static void sb_path_resolution(
 	if (
 #ifdef SB2_PATHRESOLUTION_C_ENGINE
 	    ruletree_get_mapping_requirements(
-		ctx, abs_virtual_clean_source_path_list,
+		ctx, 1/*use_fwd_rules*/, abs_virtual_clean_source_path_list,
 		&min_path_len_to_check, &call_translate_for_all)
 #endif
 #ifdef SB2_PATHRESOLUTION_LUA_ENGINE
@@ -958,17 +958,7 @@ static int relative_virtual_path_to_abs_path(
 		} else {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"relative_virtual_path_to_abs_path: reversing cwd(%s)", host_cwd);
-#ifdef SB2_PATHRESOLUTION_C_ENGINE
-			/* FIXME: Reversion is still done with Lua. */
-#warning "Still using Lua for path reversing!"
-			if (!sb2ctx->lua) sb2context_initialize_lua(sb2ctx);
-			virtual_reversed_cwd = call_lua_function_sbox_reverse_path(
-				ctx, host_cwd);
-#endif
-#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
-			virtual_reversed_cwd = call_lua_function_sbox_reverse_path(
-				ctx, host_cwd);
-#endif
+			virtual_reversed_cwd = reverse_map_path(ctx, host_cwd);
 			if (virtual_reversed_cwd == NULL) {
 				/*
 				 * In case reverse path couldn't be resolved
@@ -1292,4 +1282,71 @@ void
 	res->mres_result_buf = res->mres_result_path = strdup(virtual_orig_path);
 	return;
 }
+
+#ifdef SB2_PATHRESOLUTION_C_ENGINE
+char *sbox_reverse_path_internal__c_engine(
+        path_mapping_context_t  *ctx,
+        const char *abs_host_path)
+{
+	/* duplicate context, so that ruletree_get_mapping_requirements()
+	 * won't overwrite original reference in the context structure
+	 * (what a terrible hack, but have to do it!)
+	*/
+        path_mapping_context_t  ctx2 = *ctx;
+	int	min_path_len_to_check = 0;
+	int	call_translate_for_all = 0;
+	struct path_entry_list	abs_host_path_for_rule_selection_list;
+	char	*result_virtual_path = NULL;
+
+	if (!abs_host_path) return(NULL);
+
+	/* ensure that rule tree is available */
+        if (ruletree_to_memory() < 0) {
+                SB_LOG(SB_LOGLEVEL_DEBUG, "%s: No ruletree, fallback to Lua engine", __func__);
+                return (NULL);
+        }
+
+	split_path_to_path_list(abs_host_path,
+		&abs_host_path_for_rule_selection_list);
+
+	/* abs_host_path should be a clean path always. */
+	if (is_clean_path(&abs_host_path_for_rule_selection_list) != 0) {
+                SB_LOG(SB_LOGLEVEL_NOTICE, "%s: Internal trouble: path is not clean (%s)",
+			__func__, abs_host_path);
+	}
+
+	/* identify the rule.. */
+	if (ruletree_get_mapping_requirements(
+		&ctx2, 0/*use_fwd_rules*/, &abs_host_path_for_rule_selection_list,
+		&min_path_len_to_check, &call_translate_for_all)) {
+
+		int force_fallback_to_lua = 0;
+		int result_flags = 0;
+		char *exec_policy_name = NULL;
+
+
+                SB_LOG(SB_LOGLEVEL_DEBUG, "%s: rule found..", __func__);
+
+		result_virtual_path = ruletree_translate_path(
+			&ctx2, SB_LOGLEVEL_NOISE,
+			abs_host_path, &result_flags, &exec_policy_name,
+			&force_fallback_to_lua);
+		if (force_fallback_to_lua) {
+                	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: mapping forced fallback to Lua engine", __func__);
+			if (result_virtual_path) free(result_virtual_path);
+			result_virtual_path = NULL;
+		} else {
+			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: reversed result '%s'", __func__,
+				result_virtual_path);
+		}
+	} else {
+                SB_LOG(SB_LOGLEVEL_DEBUG, "%s: rule not found, fallback to Lua engine", __func__);
+	}
+
+	free_path_list(&abs_host_path_for_rule_selection_list);
+
+	return (result_virtual_path);
+}
+#endif
+
 

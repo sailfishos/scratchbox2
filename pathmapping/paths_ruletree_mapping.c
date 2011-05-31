@@ -330,6 +330,7 @@ static ruletree_object_offset_t ruletree_find_rule(
 */
 int ruletree_get_mapping_requirements(
         path_mapping_context_t *ctx,
+	int use_fwd_rules, /* flag */
         const struct path_entry_list *abs_virtual_source_path_list,
         int *min_path_lenp,
         int *call_translate_for_all_p)
@@ -341,7 +342,11 @@ int ruletree_get_mapping_requirements(
 	if (!modename) modename = "Default";
         abs_virtual_source_path_string = path_list_to_string(abs_virtual_source_path_list);
 
-	rule_list_offs = find_from_mode_catalog(modename, "rules");
+	if (use_fwd_rules) {
+		rule_list_offs = find_from_mode_catalog(modename, "rules");
+	} else {
+		rule_list_offs = find_from_mode_catalog(modename, "rev_rules");
+	}
 	if (rule_list_offs) {
 		ctx->pmc_ruletree_offset = ruletree_find_rule(ctx,
 			rule_list_offs, abs_virtual_source_path_string,

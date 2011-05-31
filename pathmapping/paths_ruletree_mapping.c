@@ -435,6 +435,32 @@ static int if_exists_then_map_to(ruletree_fsrule_t *action,
 	return(0);
 }
 
+static int if_exists_then_replace_by(
+	ruletree_fsrule_t *action, ruletree_fsrule_t *rule_selector,
+	const char *abs_clean_virtual_path, char **resultp)
+{
+	char *test_path;
+	const char *replacement = NULL;
+
+	*resultp = NULL;
+	replacement = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs);
+
+	test_path = ruletree_execute_replace_rule(abs_clean_virtual_path,
+			replacement, rule_selector);
+	if (!test_path) return(0);
+
+	if (sb_path_exists(test_path)) {
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"if_exists_then_replace_by: True '%s'", test_path);
+		*resultp = test_path;
+		return(1);
+	}
+	SB_LOG(SB_LOGLEVEL_DEBUG,
+		"if_exists_then_replace_by: False '%s'", test_path);
+	free(test_path);
+	return(0);
+}
+
 static char *execute_map_to(const char *abs_clean_virtual_path,
 	const char *action_name, const char *prefix)
 {
@@ -622,6 +648,14 @@ char *ruletree_execute_conditional_actions(
 			case SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_THEN_MAP_TO:
 				if (if_exists_then_map_to(action_cand_p,
 				     abs_clean_virtual_path, &mapping_result)) {
+					return(mapping_result);
+				}
+				break;
+
+			case SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_THEN_REPLACE_BY:
+				if (if_exists_then_replace_by(action_cand_p,
+				     rule_selector, abs_clean_virtual_path,
+				     &mapping_result)) {
 					return(mapping_result);
 				}
 				break;

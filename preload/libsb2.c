@@ -211,6 +211,7 @@ char *sbox_exec_name = NULL;
 char *sbox_real_binary_name = NULL;
 char *sbox_orig_binary_name = NULL;
 char *sbox_active_exec_policy_name = NULL;
+char *sbox_mapping_method = NULL; /* optional */
 
 int sb2_global_vars_initialized__ = 0;
 
@@ -315,6 +316,10 @@ void sb2_initialize_global_variables(void)
 		if (!sbox_active_exec_policy_name) {
 			cp = getenv("__SB2_EXEC_POLICY_NAME");
 			if (cp) sbox_active_exec_policy_name = strdup(cp);
+		}
+		if (!sbox_mapping_method) {
+			cp = getenv("SBOX_MAPPING_METHOD");
+			if (cp) sbox_mapping_method = strdup(cp);
 		}
 
 		if (sbox_session_dir) {

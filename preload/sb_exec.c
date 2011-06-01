@@ -676,6 +676,7 @@ static int check_envp_has_ld_preload_and_ld_library_path(
  *   not have LD_LIBRARY_PATH at all.
  * - LD_PRELOAD gets the same treatment as LD_LIBRARY_PATH
  * - SBOX_SESSION_DIR can not be changed or removed
+ * - SBOX_MAPPING_METHOD can not be changed, if it has been set.
  *
  * N.B The lua scripts will set LD_LIBRARY_PATH and
  *    LD_PRELOAD to the actual values that should be active
@@ -700,8 +701,10 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 	int	has_sbox_session_dir = 0;
 	int	has_sbox_session_mode = 0;
 	int     has_sbox_sigtrap = 0;
+	int	has_sbox_mapping_method = 0;
 	const int sbox_session_dir_varname_len = strlen("SBOX_SESSION_DIR");
 	const int sbox_sigtrap_varname_len = strlen("SBOX_SIGTRAP");
+	const int sbox_mapping_method_varname_len = strlen("SBOX_MAPPING_METHOD");
 	const int sbox_session_varname_prefix_len = strlen("SBOX_SESSION_");
 
 	/* SBOX_SESSION_* is now preserved properly (these are practically
@@ -720,9 +723,11 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 
 	/* count the environment variables and arguments, also check
 	 * for LD_PRELOAD, LD_LIBRARY_PATH, SBOX_SESSION_* and
-	 * SBOX_SIGTRAP
+	 * SBOX_SIGTRAP (and SBOX_MAPPING_METHOD)
 	 */
 	for (p=(char **)envp, envc=0; *p; p++, envc++) {
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"%s: #%d env.var %s", __func__, envc, *p);
 		if (**p == 'L') {
 			if (strncmp("LD_PRELOAD=", *p, strlen("LD_PRELOAD=")) == 0) {
 				if (asprintf(&user_ld_preload,
@@ -753,6 +758,19 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 				}
 				continue;
 			}
+			if (sbox_mapping_method &&
+			    (strncmp("SBOX_MAPPING_METHOD=", *p,
+			      sbox_mapping_method_varname_len+1) == 0)) {
+				has_sbox_mapping_method = 1;
+				if (strcmp(*p+sbox_mapping_method_varname_len+1,
+					sbox_mapping_method)) {
+						SB_LOG(SB_LOGLEVEL_WARNING, 
+							"Detected attempt to set %s,"
+							" restored to %s",
+							*p, sbox_mapping_method);
+				}
+				continue;
+			}
 			if (strncmp("SBOX_SIGTRAP=", *p,
 			     sbox_sigtrap_varname_len+1) == 0) {
 				has_sbox_sigtrap = 1;
@@ -765,10 +783,15 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 			"Detected attempt to clear SBOX_SESSION_DIR, "
 				"restored to %s", sbox_session_dir);
 	}
+	if (sbox_mapping_method && !has_sbox_mapping_method) {
+		SB_LOG(SB_LOGLEVEL_WARNING, 
+			"Detected attempt to clear SBOX_MAPPING_METHOD, "
+				"restored to %s", sbox_mapping_method);
+	}
 
-	/* allocate new environment. Add 11 extra elements (all may not be
+	/* allocate new environment. Add 12 extra elements (all may not be
 	 * needed always) */
-	my_envp = (char **)calloc(envc + 11, sizeof(char *));
+	my_envp = (char **)calloc(envc + 12, sizeof(char *));
 
 	for (i = 0, p=(char **)envp; *p; p++) {
 		if (strncmp(*p, "__SB2_", strlen("__SB2_")) == 0) {
@@ -819,6 +842,12 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 				sbox_session_varname_prefix_len) == 0) {
 			/* this is user-provided SBOX_SESSION_*, skip it. */
 			continue;
+		} else if (sbox_mapping_method &&
+			   (strncmp(*p, "SBOX_MAPPING_METHOD=",
+				sbox_mapping_method_varname_len+1) == 0)) {
+			/* this is user-provided SBOX_MAPPING_METHOD,
+			 * but we already have sbox_mapping_method. Skip it. */
+			continue;
 		} else if ((strncmp(*p, "NLSPATH=", 8) == 0) ||
 		    		(strncmp(*p, "LOCPATH=", 8) == 0)) {
 			/*
@@ -838,6 +867,16 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 			"asprintf failed to create SBOX_SESSION_DIR");
 	} else {
 		i++;
+	}
+
+	/* add our mapping method, if needed */
+	if (sbox_mapping_method) {
+		if (asprintf(&(my_envp[i]), "SBOX_MAPPING_METHOD=%s", sbox_mapping_method) < 0) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"asprintf failed to create SBOX_MAPPING_METHOD");
+		} else {
+			i++;
+		}
 	}
 
 	/* add mode, if not using the default mode */

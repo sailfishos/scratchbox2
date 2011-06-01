@@ -63,31 +63,33 @@ static int mapping_method = MAPPING_METHOD_NOT_SET;
 static void check_mapping_method(void)
 {
 	if (mapping_method == MAPPING_METHOD_NOT_SET) {
-		const char *mp;
-		mp = getenv("SBOX_MAPPING_METHOD");
-
-		if (mp) {
-			if (strchr(mp,'c')|| strchr(mp,'C')) {
+		if (sbox_mapping_method) {
+			if (!strcmp(sbox_mapping_method,"c") ||
+			    !strcmp(sbox_mapping_method,"C")) {
 				mapping_method |= MAPPING_METHOD_C_ENGINE;
 				SB_LOG(SB_LOGLEVEL_DEBUG,
-					"Activated 'C' mapping method");
-			}
-			if (strchr(mp,'l')|| strchr(mp,'L')) {
+					"Selected 'C' mapping method");
+			} else if (!strcmp(sbox_mapping_method,"Lua") ||
+			   	   !strcmp(sbox_mapping_method,"lua")) {
 				mapping_method |= MAPPING_METHOD_LUA_ENGINE;
 				SB_LOG(SB_LOGLEVEL_DEBUG,
-					"Activated 'Lua' mapping method");
-			}
-			if (mapping_method == MAPPING_METHOD_NOT_SET) {
+					"Selected 'Lua' mapping method");
+			} else {
 				/* default to both */
 				mapping_method = MAPPING_METHOD_BOTH_ENGINES;
-				SB_LOG(SB_LOGLEVEL_DEBUG,
-					"Error in SBOX_MAPPING_METHOD variable, using both mapping methods");
+				if (strcmp(sbox_mapping_method,"Both") &&
+			   	    strcmp(sbox_mapping_method,"both")) {
+					SB_LOG(SB_LOGLEVEL_ERROR,
+						"Incorrect mapping method (SBOX_MAPPING_METHOD "
+						"should contain 'C','Lua' or 'Both'). "
+						"Activated both mapping methods");
+				}
 			}
 		} else {
 			/* default to both */
 			mapping_method = MAPPING_METHOD_BOTH_ENGINES;
 			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"Activated both mapping methods");
+				"Activated both mapping methods (default)");
 		}
 	}
 }
@@ -103,7 +105,7 @@ static void compare_results_from_c_and_lua_engines(
 				"%s: ResultCheck: same, OK",
 				fn_name);
 		} else {
-			SB_LOG(SB_LOGLEVEL_NOTICE,
+			SB_LOG(SB_LOGLEVEL_WARNING,
 				"%s: ResultCheck: DIFFERENT: C='%s', Lua='%s'",
 				fn_name, c_res, lua_res);
 		}

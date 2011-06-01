@@ -187,6 +187,7 @@ extern char *sbox_exec_name;
 extern char *sbox_real_binary_name;
 extern char *sbox_orig_binary_name;
 extern char *sbox_active_exec_policy_name;
+extern char *sbox_mapping_method;
 
 extern int pthread_library_is_available; /* flag */
 extern pthread_t (*pthread_self_fnptr)(void);

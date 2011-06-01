@@ -107,10 +107,12 @@ struct sb2context {
  *     of new functions were introduced.
  * * New in version "92":
  *   - "ruletree" functions have been added.
+ * * New in version "93":
+ *   - added sb.get_session_dir()
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "92"
+#define SB2_LUA_C_INTERFACE_VERSION "93"
 
 /* get sb2context, without activating lua: */
 extern struct sb2context *get_sb2context(void);

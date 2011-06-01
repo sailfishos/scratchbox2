@@ -15,7 +15,7 @@ exec_engine_loaded = false
 --
 -- NOTE: the corresponding identifier for C is in include/sb2.h,
 -- see that file for description about differences
-sb2_lua_c_interface_version = "92"
+sb2_lua_c_interface_version = "93"
 
 function do_file(filename)
 	if (debug_messages_enabled) then
@@ -31,7 +31,7 @@ function do_file(filename)
 	end
 end
 
-session_dir = os.getenv("SBOX_SESSION_DIR")
+session_dir = sb.get_session_dir()
 
 -- Load session-specific settings
 do_file(session_dir .. "/sb2-session.conf")

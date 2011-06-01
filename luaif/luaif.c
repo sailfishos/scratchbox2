@@ -880,6 +880,14 @@ static int lua_sb_get_session_perm(lua_State *l)
 	return 1;
 }
 
+/* "sb.get_session_dir", to be called from lua code */
+static int lua_sb_get_session_dir(lua_State *l)
+{
+	if (sbox_session_dir) lua_pushstring(l, sbox_session_dir);
+	else lua_pushnil(l);
+	return 1;
+}
+
 /* "sb.isprefix(a,b)", to be called from lua code
  * Return true if "a" is prefix of "b"
 */
@@ -1090,6 +1098,7 @@ static const luaL_reg reg[] =
 	{"get_forced_mapmode",		lua_sb_get_forced_mapmode},
 	{"get_forced_network_mode",	lua_sb_get_forced_network_mode},
 	{"get_session_perm",		lua_sb_get_session_perm},
+	{"get_session_dir",		lua_sb_get_session_dir},
 	{"isprefix",			lua_sb_isprefix},
 	{"test_path_match",		lua_sb_test_path_match},
 	{"test_net_addr_match",		lua_sb_test_net_addr_match},

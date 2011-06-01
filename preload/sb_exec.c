@@ -701,6 +701,7 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 	int	has_sbox_session_mode = 0;
 	int     has_sbox_sigtrap = 0;
 	const int sbox_session_dir_varname_len = strlen("SBOX_SESSION_DIR");
+	const int sbox_sigtrap_varname_len = strlen("SBOX_SIGTRAP");
 	const int sbox_session_varname_prefix_len = strlen("SBOX_SESSION_");
 
 	/* SBOX_SESSION_* is now preserved properly (these are practically
@@ -753,7 +754,7 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 				continue;
 			}
 			if (strncmp("SBOX_SIGTRAP=", *p,
-			     sbox_session_dir_varname_len+1) == 0) {
+			     sbox_sigtrap_varname_len+1) == 0) {
 				has_sbox_sigtrap = 1;
 				continue;
 			}

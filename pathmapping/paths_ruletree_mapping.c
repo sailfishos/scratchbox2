@@ -348,9 +348,9 @@ int ruletree_get_mapping_requirements(
         abs_virtual_source_path_string = path_list_to_string(abs_virtual_source_path_list);
 
 	if (use_fwd_rules) {
-		rule_list_offs = find_from_mode_catalog(modename, "rules");
+		rule_list_offs = ruletree_catalog_get("fs_rules", modename);
 	} else {
-		rule_list_offs = find_from_mode_catalog(modename, "rev_rules");
+		rule_list_offs = ruletree_catalog_get("rev_rules", modename);
 	}
 	if (rule_list_offs) {
 		ctx->pmc_ruletree_offset = ruletree_find_rule(ctx,

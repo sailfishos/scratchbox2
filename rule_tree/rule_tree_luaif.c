@@ -97,47 +97,6 @@ static int lua_sb_add_rule_to_ruletree(lua_State *l)
 	return 1;
 }
 
-#if 0
-static int lua_sb_link_ruletree_rules(lua_State *l)
-{
-	int	n = lua_gettop(l);
-	int	result = 0;
-
-	if (n == 2) {
-		uint32_t	rule1_location = lua_tointeger(l, 1);
-		uint32_t	rule2_location = lua_tointeger(l, 2);
-
-		result = link_ruletree_rules(rule1_location, rule2_location);
-
-		SB_LOG(SB_LOGLEVEL_NOISE,
-			"lua_sb_link_ruletree_rules => %d", result);
-	}
-	lua_pushnumber(l, result);
-	return 1;
-}
-#endif
-
-static int lua_sb_set_ruletree_fsrules(lua_State *l)
-{
-	int	n = lua_gettop(l);
-	int	result = 0;
-
-	if (n == 2) {
-		const char	*ruleset_name = lua_tostring(l, 1);
-		uint32_t	rule_location = lua_tointeger(l, 2);
-		const char *modename = sbox_session_mode;
-
-		if (!modename) modename = "Default";
-
-		result = set_ruletree_fsrules(modename, ruleset_name, rule_location);
-
-		SB_LOG(SB_LOGLEVEL_NOISE,
-			"lua_sb_set_ruletree_fsrules => %d", result);
-	}
-	lua_pushnumber(l, result);
-	return 1;
-}
-
 static int lua_sb_ruletree_objectlist_create_list(lua_State *l)
 {
 	int				n = lua_gettop(l);
@@ -202,6 +161,54 @@ static int lua_sb_ruletree_objectlist_get_list_size(lua_State *l)
 	return 1;
 }
 
+static int lua_sb_ruletree_catalog_get(lua_State *l)
+{
+	int				n = lua_gettop(l);
+	ruletree_object_offset_t	value = 0;
+
+	if (n == 2) {
+		const char	*catalog_name = lua_tostring(l, 1);
+		const char	*object_name = lua_tostring(l, 2);
+		value = ruletree_catalog_get(catalog_name, object_name);
+	}
+	SB_LOG(SB_LOGLEVEL_NOISE,
+		"lua_sb_ruletree_catalog_get => %d", (int)value);
+	lua_pushnumber(l, value);
+	return 1;
+}
+
+static int lua_sb_ruletree_catalog_set(lua_State *l)
+{
+	int	n = lua_gettop(l);
+	int	status = 0;
+
+	if (n == 3) {
+		const char	*catalog_name = lua_tostring(l, 1);
+		const char	*object_name = lua_tostring(l, 2);
+		ruletree_object_offset_t	value_offset = lua_tointeger(l, 3);
+		status = ruletree_catalog_set(catalog_name, object_name, value_offset);
+	}
+	SB_LOG(SB_LOGLEVEL_NOISE,
+		"lua_sb_ruletree_catalog_set => %d", status);
+	lua_pushnumber(l, status);
+	return 1;
+}
+
+static int lua_sb_ruletree_new_string(lua_State *l)
+{
+	int	n = lua_gettop(l);
+	ruletree_object_offset_t	str_offs = 0;
+
+	if (n == 1) {
+		const char	*str = lua_tostring(l, 1);
+		str_offs = append_string_to_ruletree_file(str);
+	}
+	SB_LOG(SB_LOGLEVEL_NOISE,
+		"lua_sb_ruletree_catalog_set => %d", str_offs);
+	lua_pushnumber(l, str_offs);
+	return 1;
+}
+
 /* mappings from c to lua */
 static const luaL_reg reg[] =
 {
@@ -210,15 +217,18 @@ static const luaL_reg reg[] =
 	{"objectlist_get",		lua_sb_ruletree_objectlist_get_item},
 	{"objectlist_size",		lua_sb_ruletree_objectlist_get_list_size},
 
-	{"set_ruletree_fsrules",	lua_sb_set_ruletree_fsrules},
+	{"catalog_get",			lua_sb_ruletree_catalog_get},
+	{"catalog_set",			lua_sb_ruletree_catalog_set},
 
-	/* OLD NAMES: */
+	/* 'ruletree.catalog_set("catalogname","itemname",
+	 *   ruletree.new_string("str")' can be used from Lua to
+	 * store configuration variables to rule tree.
+	*/
+	{"new_string",			lua_sb_ruletree_new_string},
+
 	{"attach_ruletree",		lua_sb_attach_ruletree},
 
 	{"add_rule_to_ruletree",	lua_sb_add_rule_to_ruletree},
-#if 0
-	{"link_ruletree_rules",		lua_sb_link_ruletree_rules},
-#endif
 
 	{NULL,				NULL}
 };

@@ -300,6 +300,8 @@ static void dump_catalog(ruletree_object_offset_t catalog_offs, const char *cata
 				catp->rtree_cat_value_offs, 0/*any type is ok*/);
 
 			if (hdr) {
+				const char *cp;
+
 				switch (hdr->rtree_obj_type) {
 				case SB2_RULETREE_OBJECT_TYPE_FILEHDR:
 					printf("FILEHDR\t");
@@ -314,6 +316,10 @@ static void dump_catalog(ruletree_object_offset_t catalog_offs, const char *cata
 					break;
 				case SB2_RULETREE_OBJECT_TYPE_STRING:
 					printf("STRING\t");
+					cp = offset_to_ruletree_string_ptr(
+						catp->rtree_cat_value_offs);
+					if (cp) printf("'%s'", cp);
+					else printf("NULL");
 					break;
 				case SB2_RULETREE_OBJECT_TYPE_OBJECTLIST:
 					printf("LIST: -> %u",
@@ -358,6 +364,12 @@ static void dump_catalog(ruletree_object_offset_t catalog_offs, const char *cata
 					break;
 				case SB2_RULETREE_OBJECT_TYPE_OBJECTLIST:
 					printf("\n");
+					if (catp->rtree_cat_name_offs) {
+						print_indent(indent+1);
+						name = offset_to_ruletree_string_ptr(catp->rtree_cat_name_offs);
+						if (name) printf("'%s'\t", name);
+						printf("\n");
+					}
 					dump_objectlist(catp->rtree_cat_value_offs, indent+2);
 					break;
 				default:

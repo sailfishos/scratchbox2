@@ -328,7 +328,7 @@ uint32_t ruletree_objectlist_get_list_size(
 
 /* =================== catalogs =================== */
 
-ruletree_object_offset_t ruletree_create_catalog_entry(
+static ruletree_object_offset_t ruletree_create_catalog_entry(
 	const char	*name,
 	ruletree_object_offset_t	value_offs)
 {
@@ -365,6 +365,9 @@ static ruletree_catalog_entry_t *find_last_catalog_entry(
 		}
 		catalog_offs = ruletree_ctx.rtree_ruletree_hdr_p->rtree_hdr_root_catalog;
 	}
+	SB_LOG(SB_LOGLEVEL_NOISE2,
+		"find_last_catalog_entry: catalog @%d",
+		(int)catalog_offs);
 
 	catp = offset_to_ruletree_object_ptr(catalog_offs,
 				SB2_RULETREE_OBJECT_TYPE_CATALOG);
@@ -376,14 +379,18 @@ static ruletree_catalog_entry_t *find_last_catalog_entry(
 	}
 
 	while (catp->rtree_cat_next_entry_offs) {
+		SB_LOG(SB_LOGLEVEL_NOISE3,
+			"find_last_catalog_entry: move to @%d",
+			(int)catp->rtree_cat_next_entry_offs);
 		catp = offset_to_ruletree_object_ptr(
 			catp->rtree_cat_next_entry_offs,
 			SB2_RULETREE_OBJECT_TYPE_CATALOG);
 	}
 
 	if (!catp) {
-		/* Failed to link it, parent catalog is broken. */
-		/* FIXME: Add error message */
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"find_last_catalog_entry: Error: parent catalog is broken, catalog @%d",
+			(int)catalog_offs);
 		return(NULL);
 	}
 	return(catp);
@@ -395,13 +402,19 @@ static void link_entry_to_ruletree_catalog(
 {
 	ruletree_catalog_entry_t	*prev_entry;
 
+	SB_LOG(SB_LOGLEVEL_NOISE2,
+		"link_entry_to_ruletree_catalog");
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) return;
 	prev_entry = find_last_catalog_entry(catalog_offs);
 	if (!prev_entry && !catalog_offs) {
-		/* this will be the first entry in the root catalog. */
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"link_entry_to_ruletree_catalog: "
+			"this will be the first entry in the root catalog.");
 		ruletree_ctx.rtree_ruletree_hdr_p->rtree_hdr_root_catalog = new_entry_offs;
 	}
 	if (prev_entry) {
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"link_entry_to_ruletree_catalog: linking");
 		prev_entry->rtree_cat_next_entry_offs = new_entry_offs;
 	}
 }
@@ -409,7 +422,7 @@ static void link_entry_to_ruletree_catalog(
 /* add an entry to catalog. if "catalog_offs" is zero, adds to the root catalog.
  * returns location of the new entry.
 */
-ruletree_object_offset_t add_entry_to_ruletree_catalog(
+static ruletree_object_offset_t add_entry_to_ruletree_catalog(
 	ruletree_object_offset_t	catalog_offs,
 	const char	*name,
 	ruletree_object_offset_t	value_offs)
@@ -418,12 +431,18 @@ ruletree_object_offset_t add_entry_to_ruletree_catalog(
 
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (0);
 
+	SB_LOG(SB_LOGLEVEL_NOISE2,
+		"add_entry_to_ruletree_catalog: catalog @%d, name=%s",
+		(int)catalog_offs, name);
 	entry_location = ruletree_create_catalog_entry(name, value_offs);
 	link_entry_to_ruletree_catalog(catalog_offs, entry_location);
+	SB_LOG(SB_LOGLEVEL_NOISE2,
+		"add_entry_to_ruletree_catalog: new entry @%d",
+		(int)entry_location);
 	return(entry_location);
 }
 
-ruletree_object_offset_t ruletree_find_catalog_entry(
+static ruletree_object_offset_t ruletree_find_catalog_entry(
 	ruletree_object_offset_t	catalog_offs,
 	const char	*name)
 {
@@ -465,118 +484,193 @@ ruletree_object_offset_t ruletree_find_catalog_entry(
 	return(0);
 }
 
-ruletree_object_offset_t ruletree_find_or_add_catalog_entry(
-	ruletree_object_offset_t	catalog_offs,
-	const char	*name)
+/* --- public routines --- */
+
+/* get a value for "object_name" from catalog "catalog_name".
+ * returns 0 if:
+ *  - "name" does not exist
+ *  - there is no catalog at "catalog_offs"
+ *  - or any other error.
+*/
+ruletree_object_offset_t ruletree_catalog_get(
+	const char *catalog_name,
+	const char *object_name)
 {
-	ruletree_object_offset_t entry_location = 0;
-
-	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (0);
-	entry_location = ruletree_find_catalog_entry(catalog_offs, name);
-	if (!entry_location) {
-		/* not found, must add it. */
-		entry_location = add_entry_to_ruletree_catalog(catalog_offs,
-			name, 0);
-	}
-	return (entry_location);
-}
-
-/* =================== "mode catalogs". OLD CODE. FIXME. =================== */
-
-static ruletree_catalog_entry_t *get_mode_catalog(const char *modename,
-	ruletree_object_offset_t *catalog_offs_p)
-{
-	ruletree_object_offset_t mode_catalog_location;
-
-	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (NULL);
-	mode_catalog_location = ruletree_find_or_add_catalog_entry(0, modename);
-	if (catalog_offs_p) *catalog_offs_p = mode_catalog_location;
-	if (mode_catalog_location) {
-		ruletree_catalog_entry_t *mode_catalog;
-
-		mode_catalog = offset_to_ruletree_object_ptr(
-			mode_catalog_location, SB2_RULETREE_OBJECT_TYPE_CATALOG);
-		SB_LOG(SB_LOGLEVEL_NOISE2,
-			"get_mode_catalog(%s) => %u",
-			 modename, mode_catalog_location);
-		return(mode_catalog);
-	}
-	return(NULL);
-}
-
-ruletree_object_offset_t find_from_mode_catalog(
-	const char *modename, const char *objectname)
-{
-	ruletree_object_offset_t mode_catalog_location;
-	ruletree_catalog_entry_t *mode_catalog;
-	ruletree_object_offset_t object_location = 0;
-
-	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (0);
-
-	mode_catalog = get_mode_catalog(modename, &mode_catalog_location);
-
-	if (mode_catalog) {
-		ruletree_object_offset_t object_catalog_entry_location;
-		ruletree_catalog_entry_t *object_catalog_entry;
-
-		object_catalog_entry_location = ruletree_find_catalog_entry(
-			mode_catalog->rtree_cat_value_offs, objectname);
-
-		object_catalog_entry = offset_to_ruletree_object_ptr(
-			object_catalog_entry_location, SB2_RULETREE_OBJECT_TYPE_CATALOG);
-		if (object_catalog_entry) {
-			object_location = object_catalog_entry->rtree_cat_value_offs;
-		}
-	}
+	ruletree_object_offset_t	root_catalog_offs = 0;
+	ruletree_object_offset_t	catalog_entry_in_root_catalog_offs = 0;
+	ruletree_object_offset_t	subcatalog_start_offs = 0;
+	ruletree_catalog_entry_t	*catalog_cat_entry = NULL;
+	ruletree_catalog_entry_t	*object_cat_entry = NULL;
+	ruletree_object_offset_t	object_offs = 0;
 
 	SB_LOG(SB_LOGLEVEL_NOISE2,
-		"find_from_mode_catalog(%s,%s) => %u",
-		 modename, objectname, object_location);
+		"ruletree_catalog_get(catalog=%s,object_name=%s)",
+		catalog_name, object_name);
 
-	return(object_location);
+	if (!ruletree_ctx.rtree_ruletree_hdr_p) {
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"ruletree_catalog_get: Failed, no rule tree");
+		return (0);
+	}
+
+	/* find the catalog from the root catalog. */
+	root_catalog_offs = ruletree_ctx.rtree_ruletree_hdr_p->rtree_hdr_root_catalog;
+	if (!root_catalog_offs) {
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"ruletree_catalog_get: Failed, no root catalog.");
+			return(0);
+	}
+	catalog_entry_in_root_catalog_offs = ruletree_find_catalog_entry(
+		0/*root catalog*/, catalog_name);
+	if (!catalog_entry_in_root_catalog_offs) {
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"ruletree_catalog_get: Failed, no subcatalog.");
+		return(0);
+	}
+	SB_LOG(SB_LOGLEVEL_NOISE2,
+		"ruletree_catalog_get: catalog @%d",
+		(int)catalog_entry_in_root_catalog_offs);
+
+	catalog_cat_entry = offset_to_ruletree_object_ptr(catalog_entry_in_root_catalog_offs,
+		SB2_RULETREE_OBJECT_TYPE_CATALOG);
+	if (!catalog_cat_entry) {
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"ruletree_catalog_get: Failed: not a catalog entry @%d",
+			(int)catalog_entry_in_root_catalog_offs);
+		return(0);
+	}
+
+	subcatalog_start_offs = catalog_cat_entry->rtree_cat_value_offs;
+	if (!subcatalog_start_offs) {
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"ruletree_catalog_get: Failed: nothing in the subcatalog");
+		return(0);
+	}
+
+	object_offs = ruletree_find_catalog_entry(subcatalog_start_offs, object_name);
+	if (!object_offs) {
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"ruletree_catalog_get: Failed: not found from the subcatalog");
+		return(0);
+	}
+	object_cat_entry = offset_to_ruletree_object_ptr(object_offs,
+		SB2_RULETREE_OBJECT_TYPE_CATALOG);
+	if (!object_cat_entry) {
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"ruletree_catalog_get: Failed: not a catalog entry @%d",
+				(int)object_offs);
+		return(0);
+	}
+	SB_LOG(SB_LOGLEVEL_NOISE2,
+		"ruletree_catalog_get: Found value=@%d",
+			(int)object_cat_entry->rtree_cat_value_offs);
+	return(object_cat_entry->rtree_cat_value_offs);
 }
 
-static void add_object_to_mode_catalog(
-	const char *modename, const char *newobjectname, ruletree_object_offset_t loc)
+/* set a value for "name" in a catalog.
+ * returns positive if OK, or 0 if failed:
+ * side effects: creates a new catalog and/or
+ * entry if needed.
+*/
+int ruletree_catalog_set(
+	const char	*catalog_name,
+	const char	*object_name,
+	ruletree_object_offset_t value_offset)
 {
-	ruletree_object_offset_t mode_catalog_location;
-	ruletree_catalog_entry_t *mode_catalog;
+	ruletree_object_offset_t	root_catalog_offs = 0;
+	ruletree_object_offset_t	catalog_entry_in_root_catalog_offs = 0;
+	ruletree_object_offset_t	subcatalog_start_offs = 0;
+	ruletree_catalog_entry_t	*catalog_cat_entry = NULL;
+	ruletree_catalog_entry_t	*object_cat_entry = NULL;
+	ruletree_object_offset_t	object_offs = 0;
 
-	if (!ruletree_ctx.rtree_ruletree_hdr_p) return;
+	SB_LOG(SB_LOGLEVEL_NOISE2,
+		"ruletree_catalog_set(catalog=%s,object_name=%s,object_offset=%d)",
+		catalog_name, object_name, (int)value_offset);
 
-	mode_catalog = get_mode_catalog(modename, &mode_catalog_location);
-	if (mode_catalog) {
-		ruletree_object_offset_t new_object_entry_location;
+	if (!ruletree_ctx.rtree_ruletree_hdr_p) {
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"ruletree_catalog_set: Failed, no rule tree");
+		return (0);
+	}
 
-		new_object_entry_location = ruletree_create_catalog_entry(
-			newobjectname, loc);
-
-		if (mode_catalog->rtree_cat_value_offs == 0) {
-			/* first entry */
-			mode_catalog->rtree_cat_value_offs = new_object_entry_location;
-		} else {
-			/* the catalog exist, add another entry to it. */
-			link_entry_to_ruletree_catalog(
-				mode_catalog->rtree_cat_value_offs,
-				new_object_entry_location);
+	/* find the catalog from the root catalog. */
+	root_catalog_offs = ruletree_ctx.rtree_ruletree_hdr_p->rtree_hdr_root_catalog;
+	if (!root_catalog_offs) {
+		/* no root catalog, try to create it first. */
+		if (ruletree_ctx.rtree_ruletree_fd < 0) {
+			SB_LOG(SB_LOGLEVEL_NOISE2,
+				"ruletree_catalog_set: no root catalog, can't create it.");
+			return(0);
 		}
-	} else {
-		/* FIXME: failed to get catalog location - add error message */
-	}
-	
-}
+		/* create the catalog. */
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"ruletree_catalog_set: create root catalog, add %s",
+				catalog_name);
 
-/* FIXME: sensible name needed */
-int set_ruletree_fsrules(const char *modename, const char *rules_name, int loc)
-{
-	int result = 0; /* boolean; default result is "false" */
-	
-	if (ruletree_ctx.rtree_ruletree_hdr_p) {
-		add_object_to_mode_catalog(modename, rules_name, loc);
-		result = 1;
+		catalog_entry_in_root_catalog_offs = add_entry_to_ruletree_catalog(
+			0/*root catalog*/, catalog_name, 0);
+	} else {
+		catalog_entry_in_root_catalog_offs = ruletree_find_catalog_entry(
+			0/*root catalog*/, catalog_name);
+		if (!catalog_entry_in_root_catalog_offs) {
+			if (ruletree_ctx.rtree_ruletree_fd < 0) {
+				SB_LOG(SB_LOGLEVEL_NOISE2,
+					"ruletree_catalog_set: no catalog, can't create it.");
+				return(0);
+			}
+			catalog_entry_in_root_catalog_offs = add_entry_to_ruletree_catalog(
+				0/*root catalog*/, catalog_name, 0);
+		} else {
+			SB_LOG(SB_LOGLEVEL_NOISE2,
+				"ruletree_catalog_set: catalog @%d",
+				(int)catalog_entry_in_root_catalog_offs);
+		}
 	}
-	
-	return(result);
+	catalog_cat_entry = offset_to_ruletree_object_ptr(catalog_entry_in_root_catalog_offs,
+		SB2_RULETREE_OBJECT_TYPE_CATALOG);
+	if (!catalog_cat_entry) {
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"ruletree_catalog_set: Error: not a catalog entry @%d",
+			(int)catalog_entry_in_root_catalog_offs);
+		return(0);
+	}
+	subcatalog_start_offs = catalog_cat_entry->rtree_cat_value_offs;
+	if (subcatalog_start_offs) {
+		/* the catalog already has something */
+		object_offs = ruletree_find_catalog_entry(subcatalog_start_offs, object_name);
+		if (!object_offs) {
+			SB_LOG(SB_LOGLEVEL_NOISE2,
+				"ruletree_catalog_set: add %s=%d to catalog @%d",
+				object_name, (int)value_offset, (int)subcatalog_start_offs);
+			object_offs = add_entry_to_ruletree_catalog(
+				subcatalog_start_offs, object_name, (int)value_offset);
+			if (!object_offs) {
+				SB_LOG(SB_LOGLEVEL_NOISE2,
+					"ruletree_catalog_set: failed to create %s", object_name);
+				return(0);
+			}
+		} else {
+			SB_LOG(SB_LOGLEVEL_NOISE2,
+				"ruletree_catalog_set: set %s=%d", object_name, (int)value_offset);
+		}
+		object_cat_entry = offset_to_ruletree_object_ptr(object_offs,
+			SB2_RULETREE_OBJECT_TYPE_CATALOG);
+		if (!object_cat_entry) {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"ruletree_catalog_set: Error: not a catalog entry @%d",
+				(int)object_offs);
+			return(0);
+		}
+		object_cat_entry->rtree_cat_value_offs = value_offset;
+	} else {
+		/* nothing in the subcatalog, add object */
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"ruletree_catalog_set: add first entry %s=%d", object_name, (int)value_offset);
+		object_offs = ruletree_create_catalog_entry(object_name, value_offset);
+		catalog_cat_entry->rtree_cat_value_offs = object_offs;
+	}
+	return(1);
 }
 
 /* =================== FS rules =================== */

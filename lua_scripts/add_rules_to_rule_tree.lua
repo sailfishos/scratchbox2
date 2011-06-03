@@ -223,19 +223,21 @@ ruletree.attach_ruletree()
 local forced_modename = sb.get_forced_mapmode()
 if forced_modename then
 	print("forced_modename = "..forced_modename)
+	modename_in_ruletree = forced_modename
 else
 	print("forced_modename = nil")
+	modename_in_ruletree = sbox_mapmode
 end
 print("sbox_mapmode = "..sbox_mapmode)
 print("active_mapmode = "..active_mapmode)
+print("modename_in_ruletree = "..modename_in_ruletree)
 
 local ri
 ri = add_list_of_rules(fs_mapping_rules, true) -- add ordinary (forward) rules
 print("-- Added ruleset fwd rules")
-ruletree.set_ruletree_fsrules("rules", ri)
-
+ruletree.catalog_set("fs_rules", modename_in_ruletree, ri)
 
 ri = add_list_of_rules(reverse_fs_mapping_rules, true) -- add reverse  rules
 print("-- Added ruleset rev.rules")
-ruletree.set_ruletree_fsrules("rev_rules", ri)
+ruletree.catalog_set("rev_rules", modename_in_ruletree, ri)
 

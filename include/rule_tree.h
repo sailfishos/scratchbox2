@@ -142,9 +142,6 @@ extern void *offset_to_ruletree_object_ptr(ruletree_object_offset_t offs, uint32
 extern const char *offset_to_ruletree_string_ptr(ruletree_object_offset_t offs);
 extern ruletree_fsrule_t *offset_to_ruletree_fsrule_ptr(int loc);
 
-extern ruletree_object_offset_t find_from_mode_catalog(
-	const char *modename, const char *objectname);
-
 /* strings */
 extern ruletree_object_offset_t append_string_to_ruletree_file(const char *str);
 
@@ -156,6 +153,12 @@ extern ruletree_object_offset_t ruletree_objectlist_get_item(
         ruletree_object_offset_t list_offs, uint32_t n);
 extern uint32_t ruletree_objectlist_get_list_size(
         ruletree_object_offset_t list_offs);
+
+/* catalogs */
+extern ruletree_object_offset_t ruletree_catalog_get(
+	const char *catalog_name, const char *object_name);
+extern int ruletree_catalog_set(const char *catalog_name,
+	const char *object_name, ruletree_object_offset_t value_offset);
 
 /* ------------ rule_tree_luaif.c: ------------ */
 extern int lua_bind_ruletree_functions(lua_State *l);

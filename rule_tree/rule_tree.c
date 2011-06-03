@@ -431,7 +431,7 @@ ruletree_object_offset_t ruletree_find_catalog_entry(
 	ruletree_object_offset_t entry_location = 0;
 	const char	*entry_name;
 
-	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (NULL);
+	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (0);
 
 	if (!catalog_offs) {
 		/* use the root catalog. */
@@ -610,12 +610,16 @@ int ruletree_to_memory(void)
                 char *rule_tree_path = NULL;
 
                 /* map the rule tree to memory: */
-                asprintf(&rule_tree_path, "%s/RuleTree.bin", sbox_session_dir);
-                attach_result = attach_ruletree(rule_tree_path,
-                        0/*create if needed*/, 0/*keep open*/);
-                SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_to_memory: attach(%s) = %d",
-			rule_tree_path, attach_result);
-                free(rule_tree_path);
+                if (asprintf(&rule_tree_path, "%s/RuleTree.bin", sbox_session_dir) < 0) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"asprintf failed to create file name for rule tree");
+		} else {
+			attach_result = attach_ruletree(rule_tree_path,
+				0/*create if needed*/, 0/*keep open*/);
+			SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_to_memory: attach(%s) = %d",
+				rule_tree_path, attach_result);
+			free(rule_tree_path);
+		}
         } else {
                 SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_to_memory: no session dir");
 	}

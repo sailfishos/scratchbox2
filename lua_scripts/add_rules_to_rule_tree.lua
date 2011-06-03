@@ -22,6 +22,7 @@ local RULE_ACTION_CONDITIONAL_ACTIONS = 220
 local RULE_ACTION_SUBTREE = 230
 local RULE_ACTION_IF_EXISTS_THEN_MAP_TO = 245
 local RULE_ACTION_IF_EXISTS_THEN_REPLACE_BY = 246
+local RULE_ACTION_PROCFS = 250
 
 local RULE_CONDITION_IF_ACTIVE_EXEC_POLICY_IS = 301
 local RULE_CONDITION_IF_REDIRECT_IGNORE_IS_ACTIVE = 302
@@ -157,11 +158,19 @@ function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule)
 		flags = flags + RULE_FLAGS_CALL_TRANSLATE_FOR_ALL
 	end
 
-	-- FIXME: Some features are not yet supported:
 	if (rule.custom_map_funct) then
-		action_type = RULE_ACTION_FALLBACK_TO_OLD_MAPPING_ENGINE
-		action_str = nil
+		if (rule.custom_map_funct == sb2_procfs_mapper) then
+			action_type = RULE_ACTION_PROCFS
+			action_str = nil
+		else
+			-- user-provided custom mapping functions
+			-- are not supported by C mapping engine,
+			-- only way to support them is to fallback to Lua.
+			action_type = RULE_ACTION_FALLBACK_TO_OLD_MAPPING_ENGINE
+			action_str = nil
+		end
 	end
+
 	-- FIXME: func_name is a Lua-style pattern, which isn't usable
 	--	in C code. It should be converted to a func_class (which
 	--	should be a bitmask, and classes should be defined for

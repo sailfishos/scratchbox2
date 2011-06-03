@@ -89,6 +89,7 @@ ruletree_object_offset_t add_rule_to_ruletree(
 
 	switch (action_type) {
 	case SB2_RULETREE_FSRULE_ACTION_FALLBACK_TO_OLD_MAPPING_ENGINE:
+	case SB2_RULETREE_FSRULE_ACTION_PROCFS:
 	case SB2_RULETREE_FSRULE_ACTION_USE_ORIG_PATH:
 	case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH:
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO:
@@ -364,18 +365,16 @@ int ruletree_get_mapping_requirements(
 	}
 
 	if (call_translate_for_all_p) {
-		/* FIXME: Lua code has:
-		 * 	if (rule.custom_map_funct or rule.actions) then
-                 *		ret_flags = RULE_FLAGS_CALL_TRANSLATE_FOR_ALL
-		 * ...but C mapping engine does not yet support any
-		 * custom map functs, not even for /proc mapping.
-		 * Remember to add code to set call_translate_for_all once /proc
-		 * support has been added.
-		*/
-		if (rule &&
-		    (rule->rtree_fsr_action_type == 
-		     SB2_RULETREE_FSRULE_ACTION_CONDITIONAL_ACTIONS)) {
-			*call_translate_for_all_p = 1;
+		if (rule) {
+			switch (rule->rtree_fsr_action_type) {
+			case SB2_RULETREE_FSRULE_ACTION_CONDITIONAL_ACTIONS:
+			case SB2_RULETREE_FSRULE_ACTION_PROCFS:
+				*call_translate_for_all_p = 1;
+				break;
+			default:
+				*call_translate_for_all_p = 0;
+				break;
+			}
 		} else {
 			*call_translate_for_all_p = 0;
 		}
@@ -548,6 +547,18 @@ static char *execute_std_action(
 			"execute_std_action: replaced/2: '%s'", cp);
 		break;
 
+	case SB2_RULETREE_FSRULE_ACTION_PROCFS:
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"execute_std_action: /proc: %s", abs_clean_virtual_path);
+		cp = procfs_mapping_request(abs_clean_virtual_path);
+		if (cp) {
+		        /* mapped to somewhere else */
+			return(cp);
+		}
+                /* no need to map this path */
+		return(strdup(abs_clean_virtual_path));
+		break;
+
 	default:
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"Internal error: execute_std_action: action code is %d",
@@ -685,6 +696,7 @@ char *ruletree_execute_conditional_actions(
 			case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY:
 			case SB2_RULETREE_FSRULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR:
 			case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR:
+			case SB2_RULETREE_FSRULE_ACTION_PROCFS:
 				return(execute_std_action(rule_selector, action_cand_p,
 					abs_clean_virtual_path, flagsp));
 
@@ -759,6 +771,7 @@ char *ruletree_translate_path(
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY:
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR:
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR:
+	case SB2_RULETREE_FSRULE_ACTION_PROCFS:
 		host_path = execute_std_action(rule, rule, abs_clean_virtual_path, flagsp);
 		break;
 

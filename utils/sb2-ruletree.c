@@ -142,6 +142,9 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 	case SB2_RULETREE_FSRULE_ACTION_FALLBACK_TO_OLD_MAPPING_ENGINE:
 		printf("FALLBACK_TO_OLD_MAPPING_ENGINE\n");
 		break;	
+	case SB2_RULETREE_FSRULE_ACTION_PROCFS:
+		printf("sb2_procfs_mapper\n");
+		break;	
 	case SB2_RULETREE_FSRULE_ACTION_USE_ORIG_PATH:
 		printf("use_orig_path\n");
 		break;	

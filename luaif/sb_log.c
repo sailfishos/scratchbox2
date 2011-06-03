@@ -229,12 +229,14 @@ void sblog_init(void)
 		SB_LOG(SB_LOGLEVEL_INFO,
 			 "---------- Starting (" SCRATCHBOX2_VERSION ")"
 			" [" __DATE__ " " __TIME__ "] "
-			"ppid=%d <%s> (%s) ----------",
+			"ppid=%d <%s> (%s) ----------%s",
 			getppid(),
 			sbox_exec_name ? 
 				sbox_exec_name : "",
 			sbox_active_exec_policy_name ?
-				sbox_active_exec_policy_name : "");
+				sbox_active_exec_policy_name : "",
+			sbox_mapping_method ?
+				sbox_mapping_method : "");
 
 		sb_log_initial_pid__ = getpid();
 	}

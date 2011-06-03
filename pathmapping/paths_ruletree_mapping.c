@@ -236,7 +236,8 @@ static ruletree_object_offset_t ruletree_find_rule(
         path_mapping_context_t *ctx,
 	ruletree_object_offset_t rule_list_offs,
 	const char *virtual_path,
-	int *min_path_lenp)
+	int *min_path_lenp,
+	ruletree_fsrule_t	**rule_p)
 {
 	uint32_t	rule_list_size;
 	uint32_t	i;
@@ -245,6 +246,7 @@ static ruletree_object_offset_t ruletree_find_rule(
 	rule_list_size = ruletree_objectlist_get_list_size(rule_list_offs);
 
 	if (min_path_lenp) *min_path_lenp = 0;
+	if (rule_p) *rule_p = NULL;
 
 	if (rule_list_size == 0) return(0);
 
@@ -309,7 +311,7 @@ static ruletree_object_offset_t ruletree_find_rule(
 							rp->rtree_fsr_rule_list_link);
 						subtree_offs = ruletree_find_rule(ctx,
 							rp->rtree_fsr_rule_list_link,
-							virtual_path, min_path_lenp);
+							virtual_path, min_path_lenp, rule_p);
 						if (subtree_offs) return(subtree_offs);
 					} else {
 						SB_LOG(SB_LOGLEVEL_NOISE,
@@ -318,6 +320,7 @@ static ruletree_object_offset_t ruletree_find_rule(
 					continue;
 				}
 				/* found it! */
+				if (rule_p) *rule_p = rp;
 				return(rule_offs);
 			}
 		}
@@ -338,6 +341,7 @@ int ruletree_get_mapping_requirements(
 	char    *abs_virtual_source_path_string;
 	ruletree_object_offset_t rule_list_offs;
 	const char *modename = sbox_session_mode;
+	ruletree_fsrule_t	*rule = NULL;
 
 	if (!modename) modename = "Default";
         abs_virtual_source_path_string = path_list_to_string(abs_virtual_source_path_list);
@@ -350,7 +354,7 @@ int ruletree_get_mapping_requirements(
 	if (rule_list_offs) {
 		ctx->pmc_ruletree_offset = ruletree_find_rule(ctx,
 			rule_list_offs, abs_virtual_source_path_string,
-			min_path_lenp);
+			min_path_lenp, &rule);
 	} else {
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"%s: no rule list (mode=%s,path=%s)",
@@ -359,8 +363,23 @@ int ruletree_get_mapping_requirements(
 		if (min_path_lenp) *min_path_lenp = 0;
 	}
 
-	/* FIXME: get real value for this: */
-	if (call_translate_for_all_p) *call_translate_for_all_p = 0;
+	if (call_translate_for_all_p) {
+		/* FIXME: Lua code has:
+		 * 	if (rule.custom_map_funct or rule.actions) then
+                 *		ret_flags = RULE_FLAGS_CALL_TRANSLATE_FOR_ALL
+		 * ...but C mapping engine does not yet support any
+		 * custom map functs, not even for /proc mapping.
+		 * Remember to add code to set call_translate_for_all once /proc
+		 * support has been added.
+		*/
+		if (rule &&
+		    (rule->rtree_fsr_action_type == 
+		     SB2_RULETREE_FSRULE_ACTION_CONDITIONAL_ACTIONS)) {
+			*call_translate_for_all_p = 1;
+		} else {
+			*call_translate_for_all_p = 0;
+		}
+	}
 
 	free(abs_virtual_source_path_string);
 

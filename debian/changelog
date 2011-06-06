@@ -1,3 +1,16 @@
+scratchbox2 (2.3.5-3) unstable; urgency=low
+
+  * A new mapping engine, written in C, has been added.
+    It handles most mapping rules, but still fallbacks to
+    Lua mapping in some cases (e.g. union directories,
+    func_name requirements). Mapping method can be
+    selected by setting SBOX_MAPPING_METHOD to "C",
+    "Lua" or "Both". Default is "Both"; different mapping
+    results will be logged as warnings.
+  * See README_2.3_development for details.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 01 Jun 2011 13:48:00 +0300
+
 scratchbox2 (2.3.4-2) unstable; urgency=low
 
   * Added wrapper for ftok()

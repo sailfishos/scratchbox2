@@ -1,0 +1,205 @@
+
+Notes about Scratchbox2, development versions 2.3.x:
+====================================================
+Author: Lauri T. Aarnio
+
+Disclaimer:
+	All versions in the 2.3.x are development snapshots.
+	There are new features, but everything may not work as expected.
+	The next stable version will be 2.4.
+
+Overview:
+---------
+2.3 has currently three focus areas, which can be considered either
+new features or improvements of old ones:
+
+1) Union directory support: Two or more directories can be bound together,
+   so that opendir() will see all entries from all component directories.
+
+2) A networking subsystem. It is bit like a firewall - adds rules
+   for controlling IP address operations: What addresses can be connected to,
+   and what addresses the listeners can use.
+
+3) Path mapping logic has been re-implemented in C (originally, it was
+   written in Lua).
+
+In addition to these, there are smaller improvements here and there.
+For example, rule files have been reorganized, and there are some changes
+in them that had to be made because of other changes.
+
+Bug reporting: Please send bug reports, improvement ideas (or even
+better, patches) to <scratchbox-devel@lists.scratchbox.org>
+
+
+More detailed description about the main areas follows:
+
+1. Union directories
+--------------------
+
+The algorithm: Union directories are simulated by creating temporary
+directories, which contain names from all component directories.
+opendir() is redirected to open that kind of temp.directory, and the
+result is that readdir() etc will then return all names just as expected.
+This is done for directories that are listed in the rule file, not for
+every directory.
+
+Status: The implementation works, but could be improved. 
+First weakness is that the temporary directory is populated every time
+when opendir() is called, even if it exists already. The second thing
+is that if files are removed from the component directories, the names
+won't be removed from the temp.directory. Together these two mean that
+union directories are fully usable only with read only targets, and even
+there they should not be used for performance-critical location
+(ideally, it would be great if union directories could be used for
+most directories in the development-oriented modes, "accel" and "simple").
+But this feature solved some nasty problems with some tools (pkg-config,
+at least)
+
+The rule syntax is currently too simple: It requires full, real paths
+to the component directories. Supporting at least prefix mapping in the
+rules would make this a lot more generic feature.
+
+2. Networking subsystem
+-----------------------
+
+The networking subsystem is bit like a firewall - adds rules for
+controlling IP address operations: What addresses can be connected to,
+and what addresses the listeners can use. Same kind of rules that are used
+to virtualize your filesystem namespace, but now applied to a slightly
+different domain.
+
+Unlike typical firewalls, that have most focus on protecting you from
+unwanted incoming traffic, the primary motivation for this was to control
+outgoing connections. 
+We have seen that there are really strange, unexpected outgoing connections
+from various places, even while building some OSS packages.
+
+So, now it is possible to execute the builds like
+
+$ sb2 -n offline dpkg-buildpackage
+
+...and the network appears to be offline for all processes that run inside
+the SB2 session (but see "limitations" below).
+
+Or, you can test your software with
+
+$ sb2 -e -n localhost ./yourprogram
+
+...and "yourprogram" will observe that it will be able to connect to
+local addresses only.
+
+Another useful feature is logging: Set level to "net", and SB2 logs
+network-related events. Together with the "nomap" filesystem mapping mode,
+you can also test what ordinary programs (programs that belong to the
+host OS) are doing. For example:
+
+$ sb2 -m nomap -n localhost -L net nc www.nokia.com 80
+
+...and you should see some denied connection attempts to port
+53 (dns), at least.
+
+Standard networking modes include "online" (which is the default, unless
+the new "-n" option is used), "offline", "localhost" and "online_privatenets". 
+I hope that the names are descriptive enough.. These networking modes can be
+freely mixed with the filesystem mapping modes ("emulate", "simple", etc).
+
+It should be quite straightforward to add more rulesets, if needed.
+For example, the "online_privatenets" mode uses rules like
+
+	{address = "10.0.0.0/8", allow = true},
+
+and these should be easy to extend by anyone who have written any firewalling
+rules, I think.
+
+How it works internally:
+
+SB2 attaches to connect(), bind(), sendto() and sendmsg() functions and
+examines socket address structures whenever needed. It isn't a real firewall,
+which would process each IP packet separately.
+
+Other limitations, missing things and bugs:
+
+The implementation is somewhat connection-oriented. For example, receiving
+UDP packets with recvfrom() is still possible regardless of networking mode.
+
+Another limitation (or a feature that would be useful, but doesn't exist) is
+that it doesn't process names, i.e. gethostbyname(), getaddrinfo(), etc could
+be handled by SB2, and then it could make decisions based on names - a somewhat
+higher level than what is possible with raw IP addresses. But that haven't
+been implemented.
+
+
+3. Path mapping logic in C
+--------------------------
+
+General: The path mapping subsystem consists of two main parts: Path resolution
+logic replaces OS's path resolution (SB2 can't rely on OS's path resolution
+due to mapping of symbolic links). It is quite strictly defined (see "man
+path_resolution"). And implemented in C.
+The other part, path mapping logic, was implemented in Lua in the early
+days of SB2 development. However, having the Lua interpreter running in
+every process is not really an optimal solution (there are several reasons
+for this, including performance).
+So, it was decided to create another implementation of path mapping logic
+in C. This would not solve all Lua-related problems instantly; the other
+two Lua-based subsystems (exec and networking) still mean that the Lua
+interpreter is needed, but it isn't necessarily initialized every time
+anymore [hopefully someday those could be re-implemented in C, too]
+
+Current status: The new path mapping logic is available for testing.
+Version 2.3.5 has two mapping engines: The old one (in Lua)
+and the new one (in C) are both active by default. Paths are mapped
+with both and differences are logged. Alternatively, mapping method
+can be selected by an environment variable (set SBOX_MAPPING_METHOD
+to "Lua" or "C").  A side-effect of the default mode is that since
+all paths are mapped twice, 2.3.5 is probably slower than any other
+version in the past. Unless the env.var. is set...
+N.B. The new path mapping logic is not 100% complete. All common rule
+types are implemented, but there are some not-so-frequently used rules
+that still cause a fallback to Lua-based mapping.
+
+The algorithms: The old implementation (in Lua) is considered stable,
+and produces correct results (AFAIK). Therefore, the C engine replicates
+same algorithms, even if they are not the most powerful algorithms 
+on this planet. Replacing e.g. the string lookup algorithms would be
+a different story.
+There is one big difference in these two implementations: The old
+thing loads all rules when a process is started inside a session,
+while the new implementation loads rules  only once when session 
+is created. Some changes had to be done to the rule files (and syntax)
+because of this.
+
+The rule database, "ruletree":
+The C-based implementation collects rules to a binary, memory mapped
+database when a session is created (rules are still expressed as
+Lua data structures). This "ruletree" structure can also be used to 
+store other rules (exec rules, networking rules) in the future.
+Note that the binary structures are position independent; no pointers,
+just offsets there. And the ruletree shall not be modified after it has
+been created (no locks, etc)
+
+Testing and debugging:
+1) To verify the results, use SB2 as usual. If there are
+different results from Lua and C mappings, those will be logged
+as warnings. 
+2) activate debug messages (-d) and check if there are cases that
+the C engine can't map at all; grep for "ResultCheck" from the
+debug log.
+3) Run your processes with SBOX_MAPPING_METHOD=C and check that
+the results are the same as without it.
+4) the ruletree can be dumped with utils/sb2-ruletree. 
+
+Still missing / not implemented:
+1. There are still many "FIXME" comments in the source. Check and fix..
+2. No code reviews have been done. there might be memory leaks, etc.
+3. "func_name" conditions are not supported, and won't be supported.
+   instead, a new condition will replace those (reason: "func_name"
+   is a Lua regexp. It's insane to try to support those in the future.
+   The replacement mechanism, "func_class", should be a simple bitmask)
+   (rules with "func_name" conditions will cause fallback to Lua mapping)
+4. Union directory rules are not supported currently (those will be
+   mapped by the Lua engine). Support for the current union directory
+   system would be easy to add, but I'm still thinking about the correct
+   rule syntax...see the chapter about union directories)
+5. Probably there are also other, undocumented restrictions :-)
+

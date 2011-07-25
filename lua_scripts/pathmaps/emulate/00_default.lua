@@ -365,6 +365,10 @@ all_exec_policies_chain = {
 	next_chain = nil,
 	binary = nil,
 	rules = {
+		-- SB2 binaries and scripts must be run directly
+		{prefix = sbox_dir .. '/bin', exec_policy = default_exec_policy},
+		{prefix = sbox_dir .. '/share/scratchbox2', exec_policy = default_exec_policy},
+
 		-- Tools. at least qemu might be used from there.
 		{prefix = tools, exec_policy = exec_policy_tools},
 

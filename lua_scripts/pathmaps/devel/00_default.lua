@@ -868,6 +868,9 @@ devel_exec_policies = {
 	next_chain = nil,
 	binary = nil,
 	rules = {
+		-- SB2 binaries and scripts must be run directly
+		{prefix = sbox_dir .. '/bin', exec_policy = exec_policy_host_os},
+		{prefix = sbox_dir .. '/share/scratchbox2', exec_policy = exec_policy_host_os},
 
 		-- Tools:
 		-- (tools must be listed first, the tools directory

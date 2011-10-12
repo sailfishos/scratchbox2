@@ -328,7 +328,7 @@ function load_configuration()
 			exit 1
 		fi
 		if [ -e "$_cputransp" ]; then
-			SBOX_CPUTRANSPARENCY_CMD=$(realpath $_cputransp)
+			SBOX_CPUTRANSPARENCY_CMD=$(sb2-show realpath $_cputransp)
 		fi
 	fi
 

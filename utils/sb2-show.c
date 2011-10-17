@@ -890,9 +890,43 @@ static int cmd_execluafile(const command_table_t *cmdp,
 	return(0);
 }
 
+static int cmd_acct_on(const command_table_t *cmdp,
+			const cmdline_options_t *opts,
+			int cmd_argc, char *cmd_argv[])
+{
+	(void)cmdp;
+	(void)cmd_argc;
+	(void)opts;
+	if (acct(cmd_argv[1]) < 0) {
+		perror(opts->progname);
+		return(1);
+	}
+	return(0);
+}
+
+static int cmd_acct_off(const command_table_t *cmdp,
+			const cmdline_options_t *opts,
+			int cmd_argc, char *cmd_argv[])
+{
+	(void)cmdp;
+	(void)cmd_argc;
+	(void)opts;
+	(void)cmd_argv;
+	if (acct(NULL) < 0) {
+		perror(opts->progname);
+		return(1);
+	}
+	return(0);
+}
+
 const command_table_t commands[] = {
 	/* name	 must_have_session	min_argc,max_argc, fn
 	 * helptext */
+	{ "acct_on",	0,		2,	2,	cmd_acct_on,
+	  "\tacct_on file           activate process accounting, see man acct(2)\n"
+	  "\t                       (requires superuser rights)"},
+	{ "acct_off",	0,		1,	1,	cmd_acct_off,
+	  "\tacct_off               deactivate process accounting"},
 	{ "binarytype",	1,		1,	9999,	cmd_binarytype,
 	  "\tbinarytype realpath    detect & show type of program at\n"
 	  "\t                       'realpath' (already mapped path)"},

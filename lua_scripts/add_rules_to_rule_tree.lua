@@ -39,7 +39,10 @@ local RULE_FLAGS_READONLY_FS_ALWAYS = 16
 
 
 function get_rule_tree_offset_for_rule_list(rules, node_type_is_ordinary_rule)
-	if rules[1]._rule_tree_offset == nil then
+	if #rules < 1 then
+		print ("-- NO RULES!")
+		return 0
+	elseif rules[1]._rule_tree_offset == nil then
 		-- Not yet in the tree, add it.
 		rules[1]._rule_tree_offset = add_list_of_rules(rules, node_type_is_ordinary_rule)
 	else

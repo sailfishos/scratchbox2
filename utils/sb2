@@ -309,8 +309,8 @@ function load_configuration()
 
 	#-----------
 	# Read in primary toolchain config, if it has been defined
-	if [ -f $HOME/.scratchbox2/$TARGET/sb2.config.d/gcc.config.sh ]; then
-		. $HOME/.scratchbox2/$TARGET/sb2.config.d/gcc.config.sh
+	if [ -f $HOME/.scratchbox2/$SBOX_TARGET/sb2.config.d/gcc.config.sh ]; then
+		. $HOME/.scratchbox2/$SBOX_TARGET/sb2.config.d/gcc.config.sh
 	fi
 	# attempt to make SBOX_CPUTRANSPARENCY_METHOD path absolute
 	# and remove symlinks from it

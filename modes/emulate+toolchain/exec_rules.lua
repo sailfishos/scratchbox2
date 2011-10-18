@@ -14,8 +14,13 @@ end
 
 -- Exec policy rules.
 
-default_exec_policy = {
-	name = "Default",
+exec_policy_host = {
+	name = "Host",
+	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
+}
+
+exec_policy_toolchain = {
+	name = "Toolchain",
 	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
 }
 
@@ -124,8 +129,11 @@ exec_policy_rules = {
 		-- Tools. at least qemu might be used from there.
 		{prefix = tools, exec_policy_name = "Tools"},
 
+                -- the toolchain, if not from Tools:
+                {dir = sbox_target_toolchain_dir, exec_policy_name = "Toolchain"},
+
                 -- the home directory is expected to contain target binaries:
-                {prefix = sbox_user_home_dir, exec_policy_name = "Target"},
+                {dir = sbox_user_home_dir, exec_policy_name = "Target"},
 
 		-- Target binaries:
 		{prefix = target_root, exec_policy_name = "Target"},
@@ -135,7 +143,7 @@ exec_policy_rules = {
 		{prefix = sbox_workdir, exec_policy_name = "Target"},
 
 		-- DEFAULT RULE (must exist):
-		{prefix = "/", exec_policy_name = "Default"}
+		{prefix = "/", exec_policy_name = "Host"}
 }
 
 -- This table lists all exec policies - this is used when the current
@@ -143,6 +151,7 @@ exec_policy_rules = {
 all_exec_policies = {
 	exec_policy_target,
 	exec_policy_tools,
-	default_exec_policy,
+	exec_policy_toolchain,
+	exec_policy_host,
 }
 

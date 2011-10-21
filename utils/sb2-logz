@@ -434,6 +434,19 @@ my $max_elapsed = 0;
 my $total_user = 0;
 my $total_sys = 0;
 
+sub acct_data_comp_t_type_to_number {
+	my $c = shift;
+
+	# From the manual page: "the comp_t data type is a floating-point
+	# value consisting of a 3-bit, base-8 exponent,  and  a  13-bit
+	# mantissa.  A value, c, of this type can be converted to a 
+	# (long) integer as follows:"
+	#	 v = (c & 0x1fff) << (((c >> 13) & 0x7) * 3);
+
+	my $v = ($c & 0x1fff) << ((($c >> 13) & 0x7) * 3);
+	return($v);
+}
+
 sub read_acct_file {
 	return if(!defined $acct_file);
 
@@ -459,11 +472,14 @@ sub read_acct_file {
 
 		my $r_proc = $all_processes_by_pid{$a_pid};
 		if (defined($r_proc) && ($r_proc->{'ppid'} == $a_ppid)) {
-			printf "Found process $a_pid: etime=%f utime=%d stime=%d\n",
-				$acctdata[9],$acctdata[10],$acctdata[11];
+			my $a_comm = $acctdata[18];
+			my $ac_utime = acct_data_comp_t_type_to_number($acctdata[10]);
+			my $ac_stime = acct_data_comp_t_type_to_number($acctdata[11]);
+			printf "Found process $a_pid: etime=%f utime=%d stime=%d comm='%s'\n",
+				$acctdata[9],$ac_utime,$ac_stime,$a_comm;
 			my $time_elapsed = $acctdata[9] / $ticks;
-			my $time_user = $acctdata[10] / $ticks;
-			my $time_sys = $acctdata[11] / $ticks;
+			my $time_user = $ac_utime / $ticks;
+			my $time_sys = $ac_stime / $ticks;
 
 			$r_proc->{'time_elapsed'} = $time_elapsed;
 			$r_proc->{'time_user'} = $time_user;
@@ -504,6 +520,12 @@ sub select_exec_policy_colors {
 
 	if ($exec_policy =~ m/^Target/) {
 		$ep_color_begin = "<font color=\"darkgreen\">";
+		$ep_color_end = "</font>";
+	} elsif($exec_policy =~ m/^Host/) {
+		$ep_color_begin = "<font color=\"coral3\">";
+		$ep_color_end = "</font>";
+	} elsif($exec_policy =~ m/^Toolchain/) {
+		$ep_color_begin = "<font color=\"blueviolet\">";
 		$ep_color_end = "</font>";
 	} elsif($exec_policy =~ m/^Tools/) {
 		$ep_color_begin = "<font color=\"blue\">";

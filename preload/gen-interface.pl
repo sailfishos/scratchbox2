@@ -71,6 +71,10 @@
 #   - "no_libsb2_init_check" disables the call to sb2_initialize_global_variables()
 #   - "log_params(sb_log_params)" calls SB_LOG(sb_log_params); this can be
 #     used to log parameters of the call.
+#   - class(CLASSNAME,...) defines API class attributes (a comma-separated
+#     list can be used to specify multiple classes). The classname
+#     can be OPEN, STAT, EXEC, or other pre-defined name (see
+#     SB2_INTERFACE_CLASS_* constant definitions)
 # For "GATE" only:
 #   - "pass_va_list" is used for generic varargs processing: It passes a
 #     "va_list" to the gate function.
@@ -85,17 +89,18 @@
 
 use strict;
 
-our($opt_d, $opt_W, $opt_E, $opt_L, $opt_M);
+our($opt_d, $opt_W, $opt_E, $opt_L, $opt_M, $opt_n);
 use Getopt::Std;
 use File::Basename;
 
 # Process options:
-getopts("dW:E:L:M:");
+getopts("dW:E:L:M:n:");
 my $debug = $opt_d;
 my $wrappers_c_output_file = $opt_W;		# -W generated_c_filename
 my $export_h_output_file = $opt_E;		# -E generated_h_filename
 my $export_list_for_ld_output_file = $opt_L;	# -L generated_list_for_ld
 my $export_map_for_ld_output_file = $opt_M;	# -M generated_export_map_for_ld
+my $interface_name = $opt_n;			# -n interface_name
 
 
 my $num_errors = 0;
@@ -449,6 +454,16 @@ sub process_readonly_check_modifier {
 		"\t}\n";
 }
 
+sub class_list_to_expr {
+	my $class_list = shift;
+	my @class_arr;
+	my $class;
+        foreach $class (split(/,/,$class_list)) {
+		push(@class_arr, 'SB2_INTERFACE_CLASS_'.$class);
+	}
+	return ('('.join(' | ',@class_arr).')');
+}
+
 # Process the modifier section coming from the original input line.
 # This returns undef if failed, or a structure containing code fragments
 # and other information for the actual code generation phase.
@@ -490,6 +505,7 @@ sub process_wrap_or_gate_modifiers {
 		'returns_string' => 0,			# flag
 		'check_libsb2_has_been_initialized' => 1, # flag
 		'log_params' => undef,
+		'class' => '0',
 
 		# name of the function pointer variable
 		'real_fn_pointer_name' => "${fn_name}_next__",
@@ -536,7 +552,7 @@ sub process_wrap_or_gate_modifiers {
 				"\tsbox_map_path(__func__, ".
 					"$param_to_be_mapped, ".
 					"$no_symlink_resolve, ".
-					"&res_$new_name);\n".
+					"&res_$new_name, classmask);\n".
 				"\tif (res_$new_name.mres_errno) {\n".
 				"\t\tSB_LOG(SB_LOGLEVEL_DEBUG, \"mapping failed, errno %d\",".
 					" res_$new_name.mres_errno);\n".
@@ -583,7 +599,7 @@ sub process_wrap_or_gate_modifiers {
 					"$fd_param, ".
 					"$param_to_be_mapped, ".
 					"$no_symlink_resolve, ".
-					"&res_$new_name);\n".
+					"&res_$new_name, classmask);\n".
 				"\tif (res_$new_name.mres_errno) {\n".
 				"\t\terrno = res_$new_name.mres_errno;\n".
 				"\t\tfree_mapping_results(&res_$new_name);\n".
@@ -673,6 +689,14 @@ sub process_wrap_or_gate_modifiers {
 			$mods->{'log_params'} = $1;
 		} elsif($modifiers[$i] eq 'no_libsb2_init_check') {
 			$mods->{'check_libsb2_has_been_initialized'} = 0;
+		} elsif($modifiers[$i] =~ m/^class\((.*)\)$/) {
+			if ($mods->{'class'} ne '0') {
+				printf "ERROR: redefinition of 'class' for '%s'\n",
+					$fn_name;
+				$num_errors++;
+			} else {
+				$mods->{'class'} = class_list_to_expr($1);
+			}
 		} else {
 			printf "ERROR: unsupported modifier '%s'\n",
 				$modifiers[$i];
@@ -912,6 +936,8 @@ typedef const void scandir64_arg_t;
 
 ";
 
+my %fn_to_classmasks;
+
 # Handle "WRAP" and "GATE" commands.
 sub command_wrap_or_gate {
 	my $command = shift;
@@ -977,6 +1003,8 @@ sub command_wrap_or_gate {
 	}
 	$wrapper_fn_c_code .=	"\tint saved_errno = errno;\n".
 				"\tint result_errno = saved_errno;\n".
+				"\tconst uint32_t classmask = ".$mods->{'class'}.";\n".
+				"\t(void)classmask; /* ok, if it isn't used */\n".
 				"\terrno = 0;\n";
 	$nomap_fn_c_code .=	"\tint saved_errno = errno;\n".
 				"\tint result_errno = saved_errno;\n";
@@ -1166,6 +1194,11 @@ sub command_wrap_or_gate {
 		$wrappers_c_buffer .= $nomap_nolog_fn_c_code;
 	}
 	$wrappers_c_buffer .= "\n";
+
+	# Finally, add name of the function and the classmask
+	# to the table, used to create interface_functions_and_classes
+	# table at end.
+	$fn_to_classmasks{$fn_name} = $mods->{'class'};
 }
 
 # Handle the "EXPORT" command.
@@ -1292,11 +1325,21 @@ if(defined $wrappers_c_output_file) {
 		my $bn = basename($export_h_output_file);
 		$include_h_file = '#include "'.$bn.'"'."\n";
 	}
+	my $interface_functions_and_classes =
+		"interface_function_and_classes_t ".
+		"interface_functions_and_classes__".$interface_name."[] = {\n";
+	my $fnn;
+	foreach $fnn (sort(keys(%fn_to_classmasks))) {
+		$interface_functions_and_classes .= "\t{\"".$fnn."\", ".
+			$fn_to_classmasks{$fnn}."},\n";
+	}
+	$interface_functions_and_classes .= "\t{NULL, 0},\n};\n";
 	write_output_file($wrappers_c_output_file,
 		$file_header_comment.
 		'#include "libsb2.h"'."\n".
 		$include_h_file.
-		$wrappers_c_buffer);
+		$wrappers_c_buffer.
+		$interface_functions_and_classes);
 }
 if(defined $export_h_output_file) {
 	write_output_file($export_h_output_file,

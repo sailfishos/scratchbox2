@@ -23,6 +23,7 @@
 #define lua_State void /* FIXME */
 
 #include "rule_tree.h"
+#include "mapping.h"
 
 /* Fake logger. needed by the ruletree routines */
 
@@ -134,6 +135,44 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 				rule->rtree_fsr_condition_type);
 			break;
 		}
+	}
+
+	if (rule->rtree_fsr_func_class) {
+		print_indent(indent+1);
+		printf("IF_CLASS: 0%o ( ", rule->rtree_fsr_func_class);
+		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_OPEN)
+		       printf("open ");
+		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_STAT)
+		       printf("stat ");
+		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_EXEC)
+		       printf("exec ");
+		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_SOCKADDR)
+		       printf("sockaddr ");
+		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_FTSOPEN)
+		       printf("ftsopen ");
+		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_GLOB)
+		       printf("glob ");
+		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_GETCWD)
+		       printf("getcwd ");
+		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_REALPATH)
+		       printf("realpath ");
+		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_L10N)
+		       printf("l10n ");
+		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_PROC_FS_OP)
+		       printf("proc_fs_op ");
+		printf(")\n");
+	}
+	
+	if (rule->rtree_fsr_binary_name) {
+		const char *bin_name = offset_to_ruletree_string_ptr(rule->rtree_fsr_binary_name);
+		print_indent(indent+1);
+		printf("BINARY_NAME: '%s'\n", bin_name);
+	}
+
+	if (rule->rtree_fsr_exec_policy_name) {
+		const char *ep_name = offset_to_ruletree_string_ptr(rule->rtree_fsr_exec_policy_name);
+		print_indent(indent+1);
+		printf("EXEC_POLICY_NAME: '%s'\n", ep_name);
 	}
 
 	print_indent(indent+1);

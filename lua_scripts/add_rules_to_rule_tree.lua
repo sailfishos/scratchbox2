@@ -37,6 +37,9 @@ local RULE_FLAGS_FORCE_ORIG_PATH = 4
 local RULE_FLAGS_READONLY_FS_IF_NOT_ROOT = 8
 local RULE_FLAGS_READONLY_FS_ALWAYS = 16
 
+local SB2_INTERFACE_CLASS_OPEN = 1
+local SB2_INTERFACE_CLASS_STAT = 2
+local SB2_INTERFACE_CLASS_EXEC = 4
 
 function get_rule_tree_offset_for_rule_list(rules, node_type_is_ordinary_rule)
 	if #rules < 1 then
@@ -49,6 +52,24 @@ function get_rule_tree_offset_for_rule_list(rules, node_type_is_ordinary_rule)
 print ("get..Return existing at ", rules[1]._rule_tree_offset)
 	end
 	return rules[1]._rule_tree_offset
+end
+
+-- Convert func_name, which is actually a Lua regexp, to 
+-- classmask. This supports only a fixed set of predefined
+-- masks, that are known to be in use.
+--
+-- FIXME: the real solution is to define the classmask in the rules
+-- and obsole 'func_name' attributes completely.
+function func_name_to_classmask(func_name)
+	local mask = -1; -- default mask == -1 causes fallback to Lua mapping.
+	if (func_name == ".*open.*") then
+		mask = SB2_INTERFACE_CLASS_OPEN
+	elseif (func_name == ".*stat.*") then
+		mask = SB2_INTERFACE_CLASS_STAT
+	elseif (func_name == ".*exec.*") then
+		mask = SB2_INTERFACE_CLASS_EXEC
+	end
+	return mask
 end
 
 -- Add a rule to the rule tree, return rule offset in the file.
@@ -174,17 +195,18 @@ function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule)
 		end
 	end
 
-	-- FIXME: func_name is a Lua-style pattern, which isn't usable
-	--	in C code. It should be converted to a func_class (which
-	--	should be a bitmask, and classes should be defined for
-	--	each interface function in interface.master). To Be Implemented.
+	-- NOTE: func_name is a Lua-style pattern, which isn't usable
+	--	in C code. We'll try to convert it to a classmask (a bitmask)
 	local func_class = 0;
 	if (rule.func_name) then
-		-- FIXME: 
-		action_type = RULE_ACTION_FALLBACK_TO_OLD_MAPPING_ENGINE
-		action_str = nil
-		-- non-zero func_class causes fallback to Lua mapping. FIXME.
-		func_class = 0;
+		func_class = func_name_to_classmask(rule.func_name)
+		if func_class == -1 then
+			-- Unsupported func_name. Fallback to Lua mapping.
+			action_type = RULE_ACTION_FALLBACK_TO_OLD_MAPPING_ENGINE
+			action_str = nil
+			-- non-zero func_class causes fallback to Lua mapping. FIXME.
+			func_class = 0;
+		end
 	end
 
 	local rule_offs = ruletree.add_rule_to_ruletree(name,
@@ -194,7 +216,8 @@ function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule)
 			func_class, rule.exec_policy_name)
 	print (rule_offs,"adding selector_type=",selector_type," selector=",selector,
 		"action_type=",action_type, " action_str=",action_str,
-		"condition_type=",condition_type, " condition_str=",condition_str)
+		"condition_type=",condition_type, " condition_str=",condition_str,
+		"func_class=",func_class)
 	return rule_offs
 end
 

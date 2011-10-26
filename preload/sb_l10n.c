@@ -37,7 +37,7 @@ char *bindtextdomain_gate(int *result_errno_ptr,
 	clear_mapping_results_struct(&res);
 
 	if (dirname != NULL) { 
-		sbox_map_path(realfn_name, dirname, 0, &res);
+		sbox_map_path(realfn_name, dirname, 0, &res, SB2_INTERFACE_CLASS_L10N);
 		assert(res.mres_result_path != NULL);
 
 		mapped_dirname = res.mres_result_path;
@@ -53,7 +53,8 @@ char *bindtextdomain_gate(int *result_errno_ptr,
 	free_mapping_results(&res);
 	if (result && (*result != '\0')) {
 		char *sbox_path = NULL;
-		sbox_path = scratchbox_reverse_path(realfn_name, result);
+		sbox_path = scratchbox_reverse_path(realfn_name, result,
+				SB2_INTERFACE_CLASS_L10N);
 		if (sbox_path) {
 			/* FIXME: this will leak memory. nobody will free
 			 * the buffer at *sbox_path; in fact the manual

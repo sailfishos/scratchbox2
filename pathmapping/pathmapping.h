@@ -83,6 +83,7 @@ extern int is_clean_path(struct path_entry_list *listp);
 typedef struct path_mapping_context_s {
 	const char		*pmc_binary_name;
 	const char		*pmc_func_name;
+	uint32_t		pmc_fn_class;
 	const char		*pmc_virtual_orig_path;
 	int			pmc_dont_resolve_final_symlink;
 	struct sb2context	*pmc_sb2ctx;
@@ -134,7 +135,8 @@ extern int ruletree_get_mapping_requirements(
 	int use_fwd_rules /* a flag */,
 	const struct path_entry_list *abs_virtual_source_path_list,
 	int *min_path_lenp,
-	int *call_translate_for_all_p);
+	int *call_translate_for_all_p,
+	uint32_t fn_class);
 
 /* ----------- pathresolution.c ----------- */
 
@@ -152,6 +154,7 @@ extern void sbox_map_path_internal__lua_engine(
 	const char *virtual_orig_path,
 	int dont_resolve_final_symlink,
 	int process_path_for_exec,
+	uint32_t fn_class,
 	mapping_results_t *res);
 
 extern void sbox_map_path_internal__c_engine(
@@ -160,6 +163,7 @@ extern void sbox_map_path_internal__c_engine(
 	const char *virtual_orig_path,
 	int dont_resolve_final_symlink,
 	int process_path_for_exec,
+	uint32_t fn_class,
 	mapping_results_t *res);
 
 extern char *sbox_reverse_path_internal__c_engine(

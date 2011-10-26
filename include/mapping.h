@@ -8,6 +8,7 @@
 #define MAPPING_H
 
 #include <sys/types.h>
+#include <stdint.h>
 
 
 #define enable_mapping(a) ((a)->mapping_disabled--)
@@ -70,11 +71,11 @@ extern void clear_mapping_results_struct(mapping_results_t *res);
 extern void free_mapping_results(mapping_results_t *res);
 
 extern void sbox_map_path(const char *func_name, const char *path,
-	int dont_resolve_final_symlink, mapping_results_t *res);
+	int dont_resolve_final_symlink, mapping_results_t *res, uint32_t classmask);
 
 extern void sbox_map_path_at(const char *func_name, int dirfd,
 	const char *path, int dont_resolve_final_symlink,
-	mapping_results_t *res);
+	mapping_results_t *res, uint32_t classmask);
 
 extern void sbox_map_path_for_sb2show(const char *binary_name,
 	const char *func_name, const char *path, mapping_results_t *res);
@@ -97,7 +98,7 @@ extern int sb_execve_postprocess(const char *exec_type,
 extern void sb_get_host_policy_ld_params(char **popen_ld_preload, char **popen_ld_lib_path);
 
 extern char *scratchbox_reverse_path(
-	const char *func_name, const char *full_path);
+	const char *func_name, const char *full_path, uint32_t classmask);
 
 extern const char *fdpathdb_find_path(int fd);
 
@@ -127,5 +128,35 @@ extern const char *fdpathdb_find_path(int fd);
 	 SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH | \
 	 SB2_MAPPING_RULE_FLAGS_READONLY_FS_IF_NOT_ROOT | \
 	 SB2_MAPPING_RULE_FLAGS_READONLY_FS_ALWAYS)
+
+/* Interface classes. 
+ * These can be used as conditions in path mapping rules.
+ * The interface definition files use these without prefix
+ * (SB2_INTERFACE_CLASS_). see interface.master for examples.
+ * Note: multiple values can be ORed.
+*/
+#define SB2_INTERFACE_CLASS_OPEN	01
+#define SB2_INTERFACE_CLASS_STAT	02
+#define SB2_INTERFACE_CLASS_EXEC	04
+
+#define SB2_INTERFACE_CLASS_SOCKADDR	010	/* address in bind, connect */
+#define SB2_INTERFACE_CLASS_FTSOPEN	020	/* ftsopen */
+#define SB2_INTERFACE_CLASS_GLOB	040	/* glob */
+
+#define SB2_INTERFACE_CLASS_GETCWD	0100	/* getcwd() etc */
+#define SB2_INTERFACE_CLASS_REALPATH	0200	/* realpath */
+
+#define SB2_INTERFACE_CLASS_L10N	01000	/* gettextdomain etc. */
+
+#define SB2_INTERFACE_CLASS_PROC_FS_OP	010000	/* /proc file system operation */
+
+/* interface funtion ->  class(es) mapping table, 
+ * created by gen-interface.c */
+typedef struct {
+	const	char	*fn_name;
+	uint32_t	fn_classmask;
+} interface_function_and_classes_t;
+extern interface_function_and_classes_t interface_functions_and_classes__public[];
+extern interface_function_and_classes_t interface_functions_and_classes__private[];
 
 #endif

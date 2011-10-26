@@ -487,7 +487,8 @@ static void sb_path_resolution(
 #ifdef SB2_PATHRESOLUTION_C_ENGINE
 	    ruletree_get_mapping_requirements(
 		ctx, 1/*use_fwd_rules*/, abs_virtual_clean_source_path_list,
-		&min_path_len_to_check, &call_translate_for_all)
+		&min_path_len_to_check, &call_translate_for_all,
+		ctx->pmc_fn_class)
 #endif
 #ifdef SB2_PATHRESOLUTION_LUA_ENGINE
 	    call_lua_function_sbox_get_mapping_requirements(
@@ -1011,6 +1012,7 @@ void
 	const char *virtual_orig_path,
 	int dont_resolve_final_symlink,
 	int process_path_for_exec,
+	uint32_t fn_class,
 	mapping_results_t *res)
 {
 	char *mapping_result = NULL;
@@ -1022,6 +1024,7 @@ void
 	clear_path_mapping_context(&ctx);
 	ctx.pmc_binary_name = binary_name;
 	ctx.pmc_func_name = func_name;
+	ctx.pmc_fn_class = fn_class;
 	ctx.pmc_virtual_orig_path = virtual_orig_path;
 	ctx.pmc_dont_resolve_final_symlink = dont_resolve_final_symlink;
 
@@ -1318,7 +1321,8 @@ char *sbox_reverse_path_internal__c_engine(
 	/* identify the rule.. */
 	if (ruletree_get_mapping_requirements(
 		&ctx2, 0/*use_fwd_rules*/, &abs_host_path_for_rule_selection_list,
-		&min_path_len_to_check, &call_translate_for_all)) {
+		&min_path_len_to_check, &call_translate_for_all,
+		ctx2.pmc_fn_class)) {
 
 		int force_fallback_to_lua = 0;
 		int result_flags = 0;

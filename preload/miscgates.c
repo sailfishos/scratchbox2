@@ -62,7 +62,8 @@ FTS * fts_open_gate(
 		clear_mapping_results_struct(&res);
 		path = *p;
 		sbox_map_path(realfnname, path,
-			0/*dont_resolve_final_symlink*/, &res);
+			0/*dont_resolve_final_symlink*/, &res,
+			SB2_INTERFACE_CLASS_FTSOPEN);
 		if (res.mres_result_path) {
 			/* Mapped OK */
 			*np = strdup(res.mres_result_path);
@@ -96,7 +97,8 @@ char * get_current_dir_name_gate(
 	}
 	*result_errno_ptr = errno;
 	if (*cwd != '\0') {
-		sbox_path = scratchbox_reverse_path(realfnname, cwd);
+		sbox_path = scratchbox_reverse_path(realfnname, cwd,
+				SB2_INTERFACE_CLASS_GETCWD);
 	}
 	if (sbox_path) {
 		free(cwd);
@@ -111,7 +113,8 @@ static char *getcwd_common(char *buf, size_t size,
 	char *sbox_path = NULL;
 
 	if (*cwd != '\0') {
-		sbox_path = scratchbox_reverse_path(realfnname, cwd);
+		sbox_path = scratchbox_reverse_path(realfnname, cwd,
+				SB2_INTERFACE_CLASS_GETCWD);
 	}
 	if (sbox_path) {
 SB_LOG(SB_LOGLEVEL_DEBUG, "GETCWD: '%s'", sbox_path);
@@ -183,7 +186,8 @@ static char *getwd_common(char *cwd, const char *realfnname, char *buf)
 	char *sbox_path = NULL;
 
 	if (*cwd != '\0') {
-		sbox_path = scratchbox_reverse_path(realfnname, cwd);
+		sbox_path = scratchbox_reverse_path(realfnname, cwd,
+				SB2_INTERFACE_CLASS_GETCWD);
 	}
 	if (sbox_path) {
 		if(buf) {
@@ -255,7 +259,8 @@ char *realpath_gate(
 	}
 	*result_errno_ptr = errno;
 	if (*rp != '\0') {
-		sbox_path = scratchbox_reverse_path(realfnname, rp);
+		sbox_path = scratchbox_reverse_path(realfnname, rp,
+				SB2_INTERFACE_CLASS_REALPATH);
 		if (sbox_path) {
 			if (resolved) {
 				strncpy(resolved, sbox_path, PATH_MAX);
@@ -297,7 +302,8 @@ char *__realpath_chk_gate(
 	}
 	*result_errno_ptr = errno;
 	if (*rp != '\0') {
-		sbox_path = scratchbox_reverse_path(realfnname, rp);
+		sbox_path = scratchbox_reverse_path(realfnname, rp,
+				SB2_INTERFACE_CLASS_REALPATH);
 		if (sbox_path) {
 			if (__resolved) {
 				strncpy(__resolved, sbox_path, __resolvedlen);
@@ -333,7 +339,8 @@ static char *check_and_prepare_glob_pattern(
 	*/
 	if (*pattern == '/') { /* if absolute path in pattern.. */
 		mapped__pattern = sbox_map_path(realfnname, pattern,
-			NULL/*RO-flag*/, 0/*dont_resolve_final_symlink*/);
+			NULL/*RO-flag*/, 0/*dont_resolve_final_symlink*/,
+			SB2_INTERFACE_CLASS_GLOB);
 		if (!strcmp(mapped__pattern, pattern)) {
 			/* no change */
 			free(mapped__pattern);

@@ -133,50 +133,60 @@ GATE: pid_t waitpid(pid_t pid, int *status, int options)
 WRAP: int __open(const char *pathname, int flags, ...) : \
 	map(pathname) optional_arg_is_create_mode(flags&O_CREAT) \
 	postprocess(pathname) \
-	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
+	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
+	class(OPEN)
 WRAP: int __open64(const char *pathname, int flags, ...) : \
 	map(pathname) optional_arg_is_create_mode(flags&O_CREAT) \
 	postprocess(pathname) \
-	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
+	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
+	class(OPEN)
 WRAP: int open(const char *pathname, int flags, ...) : \
 	map(pathname) optional_arg_is_create_mode(flags&O_CREAT) \
 	postprocess(pathname) \
 	create_nomap_nolog_version \
-	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
+	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
+	class(OPEN)
 WRAP: int open64(const char *pathname, int flags, ...) : \
 	map(pathname) optional_arg_is_create_mode(flags&O_CREAT) \
 	postprocess(pathname) \
-	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
+	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
+	class(OPEN)
 
 -- open; variants witout varargs
 WRAP: int __open_2(const char *pathname, int flags) : \
 	map(pathname) \
 	postprocess(pathname) \
-	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
+	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
+	class(OPEN)
 WRAP: int __open64_2(const char *pathname, int flags) : \
 	map(pathname) \
 	postprocess(pathname) \
-	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
+	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
+	class(OPEN)
 
 -- openat:
 WRAP: int openat(int dirfd, const char *pathname, int flags, ...) : \
 	map_at(dirfd,pathname) optional_arg_is_create_mode(flags&O_CREAT) \
 	postprocess(pathname) \
-	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
+	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
+	class(OPEN)
 WRAP: int openat64(int dirfd, const char *pathname, int flags, ...) : \
 	map_at(dirfd,pathname) optional_arg_is_create_mode(flags&O_CREAT) \
 	postprocess(pathname) \
-	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
+	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
+	class(OPEN)
 
 -- openat; variants witout varargs
 WRAP: int __openat_2(int dirfd, const char *pathname, int flags) : \
  	map_at(dirfd,pathname) \
  	postprocess(pathname) \
- 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
+ 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
+	class(OPEN)
 WRAP: int __openat64_2(int dirfd, const char *pathname, int flags) : \
  	map_at(dirfd,pathname) \
  	postprocess(pathname) \
- 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS)
+ 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
+	class(OPEN)
 
 -- close:
 WRAP: int close(int fd) : \
@@ -207,34 +217,35 @@ WRAP: int fcntl64(int fd, int cmd, ...) : \
 --
 
 WRAP: int __lxstat(int ver, const char *filename, struct stat *buf) : \
-	dont_resolve_final_symlink map(filename)
+	dont_resolve_final_symlink map(filename) class(STAT)
 
 #ifdef HAVE___LXSTAT64
 WRAP: int __lxstat64(int ver, const char *filename, struct stat64 *buf) : \
-	dont_resolve_final_symlink map(filename)
+	dont_resolve_final_symlink map(filename) class(STAT)
 #endif
 
 -- N.B. 2nd parameter of '__opendir2' is bufsize, at least on 
 -- some implementations
-WRAP: DIR *__opendir2(const char *name, int flags) : map(name)
+WRAP: DIR *__opendir2(const char *name, int flags) : map(name) \
+	class(OPEN)
 
 WRAP: int __xmknod(int ver, const char *path, mode_t mode, dev_t *dev) : \
 	dont_resolve_final_symlink map(path) fail_if_readonly(path,-1,EROFS)
 WRAP: int __xmknodat(int ver, int dirfd, const char *pathname, mode_t mode, dev_t *dev) : \
 	dont_resolve_final_symlink map_at(dirfd,pathname) fail_if_readonly(pathname,-1,EROFS)
 
-WRAP: int __xstat(int ver, const char *filename, struct stat *buf) : map(filename)
+WRAP: int __xstat(int ver, const char *filename, struct stat *buf) : map(filename) class(STAT)
 #ifdef HAVE___XSTAT64
-WRAP: int __xstat64(int ver, const char *filename, struct stat64 *buf) : map(filename)
+WRAP: int __xstat64(int ver, const char *filename, struct stat64 *buf) : map(filename) class(STAT)
 #endif
 
 #ifdef AT_SYMLINK_NOFOLLOW
 WRAP: int __fxstatat(int ver, int dirfd, const char *pathname, struct stat *buf, int flags) : \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
-	map_at(dirfd,pathname)
+	map_at(dirfd,pathname) class(STAT)
 WRAP: int __fxstatat64(int ver, int dirfd, const char *pathname, struct stat64 *buf, int flags) : \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
-	map_at(dirfd,pathname)
+	map_at(dirfd,pathname) class(STAT)
 #endif
 
 WRAP: int _xftw(int mode, const char *dir, int (*fn)(const char *file, const struct stat *sb, int flag), int nopenfd) : map(dir)
@@ -269,9 +280,11 @@ WRAP: int creat64(const char *pathname, mode_t mode) : \
 
 -- dlmopen was introduced in glibc 2.3.4 and not present before that
 #if __GLIBC__ > 2 || (__GLIBC__ == 2 && (__GLIBC_MINOR__ > 3 || (__GLIBC_MINOR__ == 3 && __GLIBC_PATCHLEVEL__ > 3)))
-WRAP: void *dlmopen(Lmid_t nsid, const char *filename, int flag) : map(filename)
+WRAP: void *dlmopen(Lmid_t nsid, const char *filename, int flag) : map(filename) \
+	class(OPEN)
 #endif
-WRAP: void *dlopen(const char *filename, int flag) : map(filename)
+WRAP: void *dlopen(const char *filename, int flag) : map(filename) \
+	class(OPEN)
 
 WRAP: int euidaccess(const char *pathname, int mode) : \
 	map(pathname) \
@@ -307,24 +320,28 @@ WRAP: int fchownat(int dirfd, const char *pathname, uid_t owner, gid_t group, \
 
 WRAP: FILE *fopen(const char *path, const char *mode) : \
 	map(path) \
-	check_and_fail_if_readonly(fopen_mode_w_perm(mode),path,NULL,EROFS)
+	check_and_fail_if_readonly(fopen_mode_w_perm(mode),path,NULL,EROFS) \
+	class(OPEN)
 WRAP: FILE *fopen64(const char *path, const char *mode) : \
 	map(path) \
-	check_and_fail_if_readonly(fopen_mode_w_perm(mode),path,NULL,EROFS)
+	check_and_fail_if_readonly(fopen_mode_w_perm(mode),path,NULL,EROFS) \
+	class(OPEN)
 WRAP: FILE *freopen(const char *path, const char *mode, FILE *stream) : \
 	map(path) \
-	check_and_fail_if_readonly(fopen_mode_w_perm(mode),path,NULL,freopen_errno(stream))
+	check_and_fail_if_readonly(fopen_mode_w_perm(mode),path,NULL,freopen_errno(stream)) \
+	class(OPEN)
 WRAP: FILE *freopen64(const char *path, const char *mode, FILE *stream) : \
 	map(path) \
-	check_and_fail_if_readonly(fopen_mode_w_perm(mode),path,NULL,freopen_errno(stream))
+	check_and_fail_if_readonly(fopen_mode_w_perm(mode),path,NULL,freopen_errno(stream)) \
+	class(OPEN)
 
 #ifdef AT_SYMLINK_NOFOLLOW
 WRAP: int fstatat(int dirfd, const char *pathname, struct stat *buf, int flags) : \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
-	map_at(dirfd,pathname)
+	map_at(dirfd,pathname) class(STAT)
 WRAP: int fstatat64(int dirfd, const char *pathname, struct stat64 *buf, int flags) : \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
-	map_at(dirfd,pathname)
+	map_at(dirfd,pathname) class(STAT)
 #endif
 
 WRAP: int ftw(const char *dir, int (*fn)(const char *file, const struct stat *sb, int flag), int nopenfd) : map(dir)
@@ -404,11 +421,11 @@ WRAP: int lsetxattr(const char *path, const char *name, const void *value, size_
 #endif
 
 WRAP: int lstat(const char *file_name, struct stat *buf) : \
-	dont_resolve_final_symlink map(file_name)
+	dont_resolve_final_symlink map(file_name) class(STAT)
 
 #ifdef HAVE_LSTAT64
 WRAP: int lstat64(const char *file_name, struct stat64 *buf) : \
-	dont_resolve_final_symlink map(file_name)
+	dont_resolve_final_symlink map(file_name) class(STAT)
 #endif
 
 WRAP: int lutimes(const char *filename, const struct timeval tv[2]) : \
@@ -433,7 +450,8 @@ WRAP: int nftw(const char *dir, int (*fn)(const char *file, const struct stat *s
 WRAP: int nftw64(const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag, struct FTW *s), int nopenfd, int flags) : map(dir)
 #endif
 WRAP: DIR *opendir(const char *name) : map(name) \
-        create_nomap_nolog_version
+        create_nomap_nolog_version \
+	class(OPEN)
 WRAP: long pathconf(const char *path, int name) : map(path)
 
 WRAP: READLINK_TYPE readlink(const char *path, char *buf, size_t bufsize) : \
@@ -513,13 +531,13 @@ WRAP: int setxattr(const char *path, const char *name, const void *value, \
 #endif
 #endif
 
-WRAP: int statfs(const char *path, struct statfs *buf) : map(path)
-WRAP: int statfs64(const char *path, struct statfs64 *buf) : map(path)
-WRAP: int statvfs(const char *path, struct statvfs *buf) : map(path)
+WRAP: int statfs(const char *path, struct statfs *buf) : map(path) class(STAT)
+WRAP: int statfs64(const char *path, struct statfs64 *buf) : map(path) class(STAT)
+WRAP: int statvfs(const char *path, struct statvfs *buf) : map(path) class(STAT)
 
-WRAP: int stat(const char *file_name, struct stat *buf) : map(file_name)
+WRAP: int stat(const char *file_name, struct stat *buf) : map(file_name) class(STAT)
 #ifdef HAVE_STAT64
-WRAP: int stat64(const char *file_name, struct stat64 *buf) : map(file_name)
+WRAP: int stat64(const char *file_name, struct stat64 *buf) : map(file_name) class(STAT)
 #endif
 
 -- symlink and symlinkat:

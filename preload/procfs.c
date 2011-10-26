@@ -196,7 +196,8 @@ static char *select_exe_path_for_sb2(
 	if (real_binary_name) {
 		/* real_binary_name contains host real path */
 		/* try to determine virtal real path */
-		char *exe = scratchbox_reverse_path("select_exe_path_for_sb2", real_binary_name);
+		char *exe = scratchbox_reverse_path("select_exe_path_for_sb2", real_binary_name,
+				SB2_INTERFACE_CLASS_PROC_FS_OP);
 		if (exe)
 			return(exe);
 		return(strdup(real_binary_name));
@@ -225,7 +226,8 @@ static char *select_exe_path_for_sb2(
 			return(NULL);
 		}
 
-		reverse = scratchbox_reverse_path("select_exe_path_for_sb2", rp);
+		reverse = scratchbox_reverse_path("select_exe_path_for_sb2", rp,
+				SB2_INTERFACE_CLASS_PROC_FS_OP);
 		if (reverse) {
 			free(rp);
 			rp = reverse;
@@ -263,18 +265,18 @@ static char *procfs_mapping_request_for_my_files(
 				"procfs_mapping_request_for_my_files:"
 				" real link is ok (%s,%s)",
 				full_path, link_dest);
-			free(exe_path_inside_sb2);
+			free((void*)exe_path_inside_sb2);
 			return(NULL);
 		}
 		/* must create a replacement: */
 		if (symlink_for_exe_path(
 		    pathbuf, sizeof(pathbuf), exe_path_inside_sb2, getpid())) {
-			free(exe_path_inside_sb2);
+			free((void*)exe_path_inside_sb2);
 			return(strdup(pathbuf));
 		}
 		/* oops, failed to create the replacement.
 		 * must use the real link, it points to wrong place.. */
-		free(exe_path_inside_sb2);
+		free((void*)exe_path_inside_sb2);
 		return(NULL);
 	}
 	return(NULL);
@@ -312,7 +314,7 @@ static char *procfs_mapping_request_for_other_files(
                                                   buffer, len);
 
 		/* we don't need buffer anymore */
-		free(buffer);
+		free((void*)buffer);
 
 		orig_binary_name = read_env_value(orig_binary_name);
 		real_binary_name = read_env_value(real_binary_name);
@@ -333,19 +335,19 @@ static char *procfs_mapping_request_for_other_files(
 			       "procfs_mapping_request_for_other_files:"
 			       " real link is ok (%s,%s)",
 			       full_path, link_dest);
-			free(exe_path_inside_sb2);
+			free((void*)exe_path_inside_sb2);
 			return(NULL);
 		}
 		/* must create a replacement: */
 		if (symlink_for_exe_path(
 		    pathbuf, sizeof(pathbuf), exe_path_inside_sb2, pid)) {
-			free(exe_path_inside_sb2);
+			free((void*)exe_path_inside_sb2);
 			return(strdup(pathbuf));
 		}
 		/* oops, failed to create the replacement.
                  * must use the real link, it points to wrong place.. 
 		 */
-		free(exe_path_inside_sb2);
+		free((void*)exe_path_inside_sb2);
 		return(NULL);
 	}
 	return(NULL);

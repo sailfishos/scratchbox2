@@ -238,6 +238,7 @@ static ruletree_object_offset_t ruletree_find_rule(
 	ruletree_object_offset_t rule_list_offs,
 	const char *virtual_path,
 	int *min_path_lenp,
+	uint32_t fn_class,
 	ruletree_fsrule_t	**rule_p)
 {
 	uint32_t	rule_list_size;
@@ -282,12 +283,10 @@ static ruletree_object_offset_t ruletree_find_rule(
 					rule_offs);
 
 				if (rp->rtree_fsr_func_class) {
-					/* FIXME: Function classes are not yet supported.
-					 * if we run into a rule which has func_class
-					 * conditions, we can't do anything else than
-					 * fallback to Lua mapping.
-					*/
-					return (0);
+					if ((rp->rtree_fsr_func_class & fn_class) == 0) {
+						/* Function class does not match.. */
+						continue;
+					}
 				}
 
 				if (rp->rtree_fsr_binary_name) {
@@ -312,7 +311,8 @@ static ruletree_object_offset_t ruletree_find_rule(
 							rp->rtree_fsr_rule_list_link);
 						subtree_offs = ruletree_find_rule(ctx,
 							rp->rtree_fsr_rule_list_link,
-							virtual_path, min_path_lenp, rule_p);
+							virtual_path, min_path_lenp,
+							fn_class, rule_p);
 						if (subtree_offs) return(subtree_offs);
 					} else {
 						SB_LOG(SB_LOGLEVEL_NOISE,
@@ -337,7 +337,8 @@ int ruletree_get_mapping_requirements(
 	int use_fwd_rules, /* flag */
         const struct path_entry_list *abs_virtual_source_path_list,
         int *min_path_lenp,
-        int *call_translate_for_all_p)
+        int *call_translate_for_all_p,
+	uint32_t fn_class)
 {
 	char    *abs_virtual_source_path_string;
 	ruletree_object_offset_t rule_list_offs;
@@ -355,7 +356,7 @@ int ruletree_get_mapping_requirements(
 	if (rule_list_offs) {
 		ctx->pmc_ruletree_offset = ruletree_find_rule(ctx,
 			rule_list_offs, abs_virtual_source_path_string,
-			min_path_lenp, &rule);
+			min_path_lenp, fn_class, &rule);
 	} else {
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"%s: no rule list (mode=%s,path=%s)",

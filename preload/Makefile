@@ -39,6 +39,7 @@ $(D)/wrappers.c: preload/interface.master preload/gen-interface.pl
 	$(MKOUTPUTDIR)
 	$(P)PERL
 	$(Q)$(SRCDIR)/preload/gen-interface.pl \
+		-n public \
 		-W preload/wrappers.c \
 		-E preload/exported.h \
 		-M preload/export.map \
@@ -49,6 +50,7 @@ $(D)/privatewrappers.c: preload/interface.private preload/gen-interface.pl
 	$(MKOUTPUTDIR)
 	$(P)PERL
 	$(Q)$(SRCDIR)/preload/gen-interface.pl \
+		-n private \
 		-W preload/privatewrappers.c \
 		-E preload/privatewrappers.h \
 		<$(SRCDIR)/preload/interface.private

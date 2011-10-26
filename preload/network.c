@@ -83,7 +83,7 @@ static void map_sockaddr_un(
 	clear_mapping_results_struct(&res);
 	/* FIXME: implement if(pathname_is_readonly!=0)... */
 	sbox_map_path(realfnname, orig_serv_addr_un->sun_path,
-		0/*dont_resolve_final_symlink*/, &res);
+		0/*dont_resolve_final_symlink*/, &res, SB2_INTERFACE_CLASS_SOCKADDR);
 	if (res.mres_result_path == NULL) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"%s: Failed to map AF_UNIX address '%s'",
@@ -623,7 +623,8 @@ static void reverse_sockaddr_un(
 	}
 
 	/* a non-abstract unix domain socket address, reverse it */
-	sbox_path = scratchbox_reverse_path(realfnname, from_un->sun_path);
+	sbox_path = scratchbox_reverse_path(realfnname, from_un->sun_path,
+			SB2_INTERFACE_CLASS_SOCKADDR);
 	if (sbox_path) {
 		size_t max_path_size = orig_from_size -
 			 offsetof(struct sockaddr_un, sun_path);

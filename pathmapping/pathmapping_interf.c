@@ -131,6 +131,7 @@ static void fwd_map_path(
 	const char *virtual_path,
 	int dont_resolve_final_symlink,
 	int exec_mode,
+	uint32_t fn_class,
 	mapping_results_t *res)
 {
 	if (!virtual_path) {
@@ -145,7 +146,7 @@ static void fwd_map_path(
 		case MAPPING_METHOD_C_ENGINE:
 			sbox_map_path_internal__c_engine(binary_name,
 				func_name, virtual_path,
-				dont_resolve_final_symlink, 0, res);
+				dont_resolve_final_symlink, 0, fn_class, res);
 			if (res->mres_fallback_to_lua_mapping_engine) {
 				SB_LOG(SB_LOGLEVEL_NOTICE,
 					"C path mapping engine failed (%s), fallback to Lua (%s)",
@@ -153,19 +154,19 @@ static void fwd_map_path(
 				free_mapping_results(res);
 				sbox_map_path_internal__lua_engine(binary_name,
 					func_name, virtual_path,
-					dont_resolve_final_symlink, 0, res);
+					dont_resolve_final_symlink, 0, fn_class, res);
 			}
 			return;
 		case MAPPING_METHOD_LUA_ENGINE:
 			sbox_map_path_internal__lua_engine(binary_name, func_name, virtual_path,
-				dont_resolve_final_symlink, 0, res);
+				dont_resolve_final_symlink, 0, fn_class, res);
 			return;
 		case MAPPING_METHOD_BOTH_ENGINES:
 			clear_mapping_results_struct(&res2);
 			sbox_map_path_internal__lua_engine(binary_name, func_name, virtual_path,
-				dont_resolve_final_symlink, 0, res);
+				dont_resolve_final_symlink, 0, fn_class, res);
 			sbox_map_path_internal__c_engine(binary_name, func_name, virtual_path,
-				dont_resolve_final_symlink, 0, &res2);
+				dont_resolve_final_symlink, 0, fn_class, &res2);
 			if (res2.mres_fallback_to_lua_mapping_engine) {
 				SB_LOG(SB_LOGLEVEL_NOTICE,
 					"C path mapping engine forces fallback to Lua (%s), (%s)",
@@ -243,20 +244,32 @@ void sbox_map_path_for_sb2show(
 	const char *virtual_path,
 	mapping_results_t *res)
 {
+	interface_function_and_classes_t	*ifp = interface_functions_and_classes__public;
+	uint32_t	fn_class = 0;
+
+	while (ifp && ifp->fn_name) {
+		if (!strcmp(func_name, ifp->fn_name)) {
+			fn_class = ifp->fn_classmask;
+			break;
+		}
+		ifp++;
+	}
+
 	fwd_map_path(binary_name, func_name, virtual_path,
-		0/*dont_resolve_final_symlink*/, 0/*exec_mode*/, res);
+		0/*dont_resolve_final_symlink*/, 0/*exec_mode*/, fn_class, res);
 }
 
 void sbox_map_path(
 	const char *func_name,
 	const char *virtual_path,
 	int dont_resolve_final_symlink,
-	mapping_results_t *res)
+	mapping_results_t *res,
+	uint32_t classmask)
 {
 	fwd_map_path(
 		(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
 		func_name, virtual_path,
-		dont_resolve_final_symlink, 0/*exec_mode*/, res);
+		dont_resolve_final_symlink, 0/*exec_mode*/, classmask, res);
 }
 
 
@@ -265,7 +278,8 @@ void sbox_map_path_at(
 	int dirfd,
 	const char *virtual_path,
 	int dont_resolve_final_symlink,
-	mapping_results_t *res)
+	mapping_results_t *res,
+	uint32_t classmask)
 {
 	const char *dirfd_path;
 
@@ -284,7 +298,7 @@ void sbox_map_path_at(
 		fwd_map_path(
 			(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
 			func_name, virtual_path,
-			dont_resolve_final_symlink, 0/*exec_mode*/, res);
+			dont_resolve_final_symlink, 0/*exec_mode*/, classmask, res);
 		return;
 	}
 
@@ -306,7 +320,7 @@ void sbox_map_path_at(
 		fwd_map_path(
 			(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
 			func_name,
-			virtual_abs_path_at_fd, dont_resolve_final_symlink, 0/*exec_mode*/, res);
+			virtual_abs_path_at_fd, dont_resolve_final_symlink, 0/*exec_mode*/, classmask, res);
 		free(virtual_abs_path_at_fd);
 
 		return;
@@ -332,12 +346,14 @@ void sbox_map_path_for_exec(
 	fwd_map_path(
 		(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
 		func_name,
-		virtual_path, 0/*dont_resolve_final_symlink*/, 1/*exec mode*/, res);
+		virtual_path, 0/*dont_resolve_final_symlink*/, 1/*exec mode*/, 
+		SB2_INTERFACE_CLASS_EXEC, res);
 }
 
 char *scratchbox_reverse_path(
 	const char *func_name,
-	const char *abs_host_path)
+	const char *abs_host_path,
+	uint32_t classmask)
 {
 	char *virtual_path;
 	path_mapping_context_t	ctx;
@@ -345,6 +361,7 @@ char *scratchbox_reverse_path(
 	clear_path_mapping_context(&ctx);
 	ctx.pmc_binary_name = (sbox_binary_name ? sbox_binary_name : "UNKNOWN");
 	ctx.pmc_func_name = func_name;
+	ctx.pmc_fn_class = classmask;
 	ctx.pmc_virtual_orig_path = "";
 	ctx.pmc_dont_resolve_final_symlink = 0;
 	ctx.pmc_sb2ctx = get_sb2context();

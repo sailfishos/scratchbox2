@@ -137,7 +137,7 @@ extern int do_exec(int *result_errno_ptr, const char *exec_fn_name, const char *
 
 extern time_t get_sb2_timestamp(void);
 
-extern char *procfs_mapping_request(char *path);
+extern char *procfs_mapping_request(const char *path);
 
 extern void dump_lua_stack(const char *msg, lua_State *L);
 

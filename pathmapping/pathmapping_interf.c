@@ -186,7 +186,7 @@ static void fwd_map_path(
 }
 
 char *reverse_map_path(
-	path_mapping_context_t	*ctx,
+	const path_mapping_context_t	*ctx,
 	const char *abs_host_path)
 {
 	char *virtual_path = NULL, *vp2 = NULL;
@@ -371,27 +371,13 @@ char *scratchbox_reverse_path(
 	return(virtual_path);
 }
 
-void	clear_mapping_results_struct(mapping_results_t *res)
-{
-	res->mres_result_buf = res->mres_result_path = NULL;
-	res->mres_readonly = 0;
-	res->mres_result_path_was_allocated = 0;
-	res->mres_errno = 0;
-	res->mres_virtual_cwd = NULL;
-	res->mres_exec_policy_name = NULL;
-	res->mres_error_text = NULL;
-#if 1
-	res->mres_fallback_to_lua_mapping_engine = NULL;
-#endif
-}
-
 void	free_mapping_results(mapping_results_t *res)
 {
 	if (res->mres_result_buf) free(res->mres_result_buf);
 	if (res->mres_result_path_was_allocated && res->mres_result_path)
 		free(res->mres_result_path);
 	if (res->mres_virtual_cwd) free(res->mres_virtual_cwd);
-	if (res->mres_exec_policy_name) free(res->mres_exec_policy_name);
+	if (res->mres_allocated_exec_policy_name) free(res->mres_allocated_exec_policy_name);
 	/* res->mres_error_text is a constant string, and not freed, ever */
 #if 1
 	/* res->mres_fallback_to_lua_mapping_engine is a constant string, and not freed, ever */

@@ -182,7 +182,7 @@ static struct path_entry *remove_dotdot_entry_and_prev_entry(
 }
 
 static void sb_path_resolution(
-	path_mapping_context_t *ctx,
+	const path_mapping_context_t *ctx,
 	mapping_results_t *resolved_virtual_path_res,
 	int nest_count,
 	struct path_entry_list *abs_virtual_clean_source_path_list);
@@ -417,7 +417,7 @@ void clean_dotdots_from_path(
 /* ========== ========== */
 
 static void sb_path_resolution_resolve_symlink(
-	path_mapping_context_t *ctx,
+	const path_mapping_context_t *ctx,
 	const char *link_dest,
 	const struct path_entry_list *virtual_source_path_list,
 	const struct path_entry *virtual_path_work_ptr,
@@ -431,7 +431,7 @@ static void sb_path_resolution_resolve_symlink(
  *       be called after it is not needed anymore!
 */
 static void sb_path_resolution(
-	path_mapping_context_t *ctx,
+	const path_mapping_context_t *ctx,
 	mapping_results_t *resolved_virtual_path_res,
 	int nest_count,
 	struct path_entry_list *abs_virtual_clean_source_path_list)
@@ -443,6 +443,10 @@ static void sb_path_resolution(
 	int	prefix_mapping_result_host_path_flags;
 	int	call_translate_for_all = 0;
 	int	abs_virtual_source_path_has_trailing_slash;
+#ifdef SB2_PATHRESOLUTION_C_ENGINE
+	ruletree_object_offset_t	rule_offs;
+	path_mapping_context_t		ctx2;
+#endif
 
 	if (!abs_virtual_clean_source_path_list) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
@@ -483,19 +487,28 @@ static void sb_path_resolution(
 	abs_virtual_source_path_has_trailing_slash =
 		(abs_virtual_clean_source_path_list->pl_flags & PATH_FLAGS_HAS_TRAILING_SLASH);
 
-	if (
 #ifdef SB2_PATHRESOLUTION_C_ENGINE
-	    ruletree_get_mapping_requirements(
+	rule_offs = ruletree_get_mapping_requirements(
 		ctx, 1/*use_fwd_rules*/, abs_virtual_clean_source_path_list,
 		&min_path_len_to_check, &call_translate_for_all,
-		ctx->pmc_fn_class)
+		ctx->pmc_fn_class);
+	if (rule_offs == 0) {
+		/* no rule */
+		resolved_virtual_path_res->mres_fallback_to_lua_mapping_engine =
+			"no mapping requirements, no rule";
+		return;
+	}
+	/* switch to a new context structure. */
+	ctx2 = *ctx;
+	ctx2.pmc_ruletree_offset = rule_offs;
+	ctx = &ctx2;
 #endif
 #ifdef SB2_PATHRESOLUTION_LUA_ENGINE
-	    call_lua_function_sbox_get_mapping_requirements(
+	if (call_lua_function_sbox_get_mapping_requirements(
 		ctx, abs_virtual_clean_source_path_list,
-		&min_path_len_to_check, &call_translate_for_all)
+		&min_path_len_to_check, &call_translate_for_all))
 #endif
-	   ) {
+       	    {
 		/* has requirements:
 		 * skip over path components that we are not supposed to check,
 		 * because otherwise rule recognition & execution could fail.
@@ -514,14 +527,6 @@ static void sb_path_resolution(
 			virtual_path_work_ptr = virtual_path_work_ptr->pe_next;
 		}
 	}
-#ifdef SB2_PATHRESOLUTION_C_ENGINE
-	  else {
-		/* no rule */
-		resolved_virtual_path_res->mres_fallback_to_lua_mapping_engine =
-			"no mapping requirements, no rule";
-		return;
-	}
-#endif
 
 	SB_LOG(SB_LOGLEVEL_NOISE, "Path resolutions starts from [%d] '%s'",
 		component_index, (virtual_path_work_ptr ?
@@ -559,7 +564,9 @@ static void sb_path_resolution(
 		prefix_mapping_result_host_path = call_lua_function_sbox_translate_path(
 			&ctx_copy, SB_LOGLEVEL_NOISE,
 			clean_virtual_path_prefix_tmp, &prefix_mapping_result_host_path_flags,
-			&resolved_virtual_path_res->mres_exec_policy_name);
+			&resolved_virtual_path_res->mres_allocated_exec_policy_name);
+		resolved_virtual_path_res->mres_exec_policy_name = 
+			resolved_virtual_path_res->mres_allocated_exec_policy_name;
 #endif
 		free(clean_virtual_path_prefix_tmp);
 	}
@@ -692,7 +699,9 @@ static void sb_path_resolution(
 						&ctx_copy, SB_LOGLEVEL_NOISE,
 						virtual_path_prefix_to_map,
 						&prefix_mapping_result_host_path_flags,
-						&resolved_virtual_path_res->mres_exec_policy_name);
+						&resolved_virtual_path_res->mres_allocated_exec_policy_name);
+				resolved_virtual_path_res->mres_exec_policy_name = 
+					resolved_virtual_path_res->mres_allocated_exec_policy_name;
 #endif
 				free (virtual_path_prefix_to_map);
 			} else {
@@ -742,7 +751,7 @@ static void sb_path_resolution(
 }
 
 static void sb_path_resolution_resolve_symlink(
-	path_mapping_context_t *ctx,
+	const path_mapping_context_t *ctx,
 	const char *link_dest,
 	const struct path_entry_list *virtual_source_path_list,
 	const struct path_entry *virtual_path_work_ptr,
@@ -1207,7 +1216,8 @@ void
 			mapping_result = call_lua_function_sbox_translate_path(
 				&ctx, SB_LOGLEVEL_INFO,
 				resolved_virtual_path_res.mres_result_path, &flags,
-				&res->mres_exec_policy_name);
+				&res->mres_allocated_exec_policy_name);
+			res->mres_exec_policy_name = res->mres_allocated_exec_policy_name;
 #endif
 			if (flags & SB2_MAPPING_RULE_FLAGS_READONLY_FS_IF_NOT_ROOT) {
 				if (sbox_session_perm &&
@@ -1288,18 +1298,14 @@ void
 
 #ifdef SB2_PATHRESOLUTION_C_ENGINE
 char *sbox_reverse_path_internal__c_engine(
-        path_mapping_context_t  *ctx,
+        const path_mapping_context_t  *ctx,
         const char *abs_host_path)
 {
-	/* duplicate context, so that ruletree_get_mapping_requirements()
-	 * won't overwrite original reference in the context structure
-	 * (what a terrible hack, but have to do it!)
-	*/
-        path_mapping_context_t  ctx2 = *ctx;
 	int	min_path_len_to_check = 0;
 	int	call_translate_for_all = 0;
 	struct path_entry_list	abs_host_path_for_rule_selection_list;
 	char	*result_virtual_path = NULL;
+	ruletree_object_offset_t	rule_offs;
 
 	if (!abs_host_path) return(NULL);
 
@@ -1319,15 +1325,17 @@ char *sbox_reverse_path_internal__c_engine(
 	}
 
 	/* identify the rule.. */
-	if (ruletree_get_mapping_requirements(
-		&ctx2, 0/*use_fwd_rules*/, &abs_host_path_for_rule_selection_list,
+	rule_offs = ruletree_get_mapping_requirements(
+		ctx, 0/*use_fwd_rules*/, &abs_host_path_for_rule_selection_list,
 		&min_path_len_to_check, &call_translate_for_all,
-		ctx2.pmc_fn_class)) {
-
+		ctx->pmc_fn_class);
+        if (rule_offs != 0) {
 		int force_fallback_to_lua = 0;
 		int result_flags = 0;
-		char *exec_policy_name = NULL;
+		const char *exec_policy_name = NULL;
+		path_mapping_context_t  ctx2 = *ctx;
 
+		ctx2.pmc_ruletree_offset = rule_offs;
 
                 SB_LOG(SB_LOGLEVEL_DEBUG, "%s: rule found..", __func__);
 

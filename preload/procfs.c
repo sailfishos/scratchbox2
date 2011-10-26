@@ -241,7 +241,7 @@ static char *select_exe_path_for_sb2(
 }
 
 static char *procfs_mapping_request_for_my_files(
-	char *full_path, char *base_path)
+	const char *full_path, const char *base_path)
 {
 	SB_LOG(SB_LOGLEVEL_DEBUG, "procfs_mapping_request_for_my_files(%s)",
 		full_path);
@@ -283,7 +283,7 @@ static char *procfs_mapping_request_for_my_files(
 }
 
 static char *procfs_mapping_request_for_other_files(
-        char *full_path, char *base_path, char *pid_path, pid_t pid)
+        const char *full_path, const char *base_path, const char *pid_path, pid_t pid)
 {
         SB_LOG(SB_LOGLEVEL_DEBUG, "procfs_mapping_request_for_other_files(%s)",
 	       full_path);
@@ -359,7 +359,7 @@ static const char proc_self_path[] = "/proc/self/";
  * returns mapped path if the path needs mapping,
  * or NULL if the original path can be used directly.
 */
-char *procfs_mapping_request(char *path)
+char *procfs_mapping_request(const char *path)
 {
 	char	my_process_path[PATH_MAX];
 	int	len, count;

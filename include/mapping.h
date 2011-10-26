@@ -50,9 +50,13 @@ typedef struct mapping_results_s {
 	/* filled if orig.virtual path was relative: */
 	char	*mres_virtual_cwd;
 
-	/* exec policy name
-	*/
-	char	*mres_exec_policy_name;
+	/* exec policy name */
+	const char	*mres_exec_policy_name;	
+	/* pointer to allocated exec policy name, freed at destructor
+	 * (note that the Lua mapping code allocates it, while the C
+	 * mapping code just uses a constant pointer to the shared
+	 * memory rule DB. So this is NULL in the latter case) */
+	char		*mres_allocated_exec_policy_name;
 
 	const char	*mres_error_text; /* NULL if OK */
 
@@ -67,7 +71,9 @@ typedef struct mapping_results_s {
 #endif
 } mapping_results_t;
 
-extern void clear_mapping_results_struct(mapping_results_t *res);
+/* extern void clear_mapping_results_struct(mapping_results_t *res); */
+#define clear_mapping_results_struct(res) do{memset((res),0,sizeof(mapping_results_t));}while(0)
+
 extern void free_mapping_results(mapping_results_t *res);
 
 extern void sbox_map_path(const char *func_name, const char *path,

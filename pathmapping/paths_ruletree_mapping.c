@@ -234,7 +234,7 @@ static int ruletree_test_path_match(const char *full_path, ruletree_fsrule_t *rp
 }
 
 static ruletree_object_offset_t ruletree_find_rule(
-        path_mapping_context_t *ctx,
+        const path_mapping_context_t *ctx,
 	ruletree_object_offset_t rule_list_offs,
 	const char *virtual_path,
 	int *min_path_lenp,
@@ -330,10 +330,10 @@ static ruletree_object_offset_t ruletree_find_rule(
 }
 
 /* Find the rule and mapping requirements.
- * returns true if rule was found.
+ * returns object offset if rule was found, zero if not found.
 */
-int ruletree_get_mapping_requirements(
-        path_mapping_context_t *ctx,
+ruletree_object_offset_t ruletree_get_mapping_requirements(
+        const path_mapping_context_t *ctx,
 	int use_fwd_rules, /* flag */
         const struct path_entry_list *abs_virtual_source_path_list,
         int *min_path_lenp,
@@ -344,6 +344,7 @@ int ruletree_get_mapping_requirements(
 	ruletree_object_offset_t rule_list_offs;
 	const char *modename = sbox_session_mode;
 	ruletree_fsrule_t	*rule = NULL;
+	ruletree_object_offset_t	rule_offs = 0;
 
 	if (!modename) modename = "Default";
         abs_virtual_source_path_string = path_list_to_string(abs_virtual_source_path_list);
@@ -354,14 +355,14 @@ int ruletree_get_mapping_requirements(
 		rule_list_offs = ruletree_catalog_get("rev_rules", modename);
 	}
 	if (rule_list_offs) {
-		ctx->pmc_ruletree_offset = ruletree_find_rule(ctx,
+		rule_offs = ruletree_find_rule(ctx,
 			rule_list_offs, abs_virtual_source_path_string,
 			min_path_lenp, fn_class, &rule);
 	} else {
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"%s: no rule list (mode=%s,path=%s)",
 			__func__, modename, abs_virtual_source_path_string);
-		ctx->pmc_ruletree_offset = 0;
+		rule_offs = 0;
 		if (min_path_lenp) *min_path_lenp = 0;
 	}
 
@@ -383,8 +384,7 @@ int ruletree_get_mapping_requirements(
 
 	free(abs_virtual_source_path_string);
 
-	/* return true if rule was found */
-	return (ctx->pmc_ruletree_offset > 0); 
+	return (rule_offs); 
 }
 
 static char *ruletree_execute_replace_rule(
@@ -428,7 +428,7 @@ static char *ruletree_execute_replace_rule(
 static int if_exists_then_map_to(ruletree_fsrule_t *action,
 	const char *abs_clean_virtual_path, char **resultp)
 {
-	char *map_to_target;
+	const char *map_to_target;
 	char *test_path = NULL;
 
 	*resultp = NULL;
@@ -505,6 +505,7 @@ static char *execute_std_action(
 	const char *abs_clean_virtual_path, int *flagsp)
 {
 	const char	*cp;
+	char	*procfs_result;
 	char	*new_path = NULL;
 
 	switch (action->rtree_fsr_action_type) {
@@ -551,10 +552,10 @@ static char *execute_std_action(
 	case SB2_RULETREE_FSRULE_ACTION_PROCFS:
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"execute_std_action: /proc: %s", abs_clean_virtual_path);
-		cp = procfs_mapping_request(abs_clean_virtual_path);
-		if (cp) {
+		procfs_result = procfs_mapping_request(abs_clean_virtual_path);
+		if (procfs_result) {
 		        /* mapped to somewhere else */
-			return(cp);
+			return(procfs_result);
 		}
                 /* no need to map this path */
 		return(strdup(abs_clean_virtual_path));
@@ -568,18 +569,23 @@ static char *execute_std_action(
 	return(NULL);
 }
 
-char *ruletree_execute_conditional_actions(
+static char *ruletree_execute_conditional_actions(
         const path_mapping_context_t *ctx,
         int result_log_level,
         const char *abs_clean_virtual_path,
         int *flagsp,
-        char **exec_policy_name_ptr,
+        const char **exec_policy_name_ptr,
 	int *force_fallback_to_lua,
 	ruletree_fsrule_t	*rule_selector)
 {
 	uint32_t	actions_list_size;
 	uint32_t	i;
 	ruletree_object_offset_t action_list_offs = rule_selector->rtree_fsr_rule_list_link;
+
+	/* FIXME: these are not yet used. */
+	(void)ctx;
+	(void)result_log_level;
+        (void)exec_policy_name_ptr;
 
 	SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_execute_conditional_actions for (%s)", abs_clean_virtual_path);
 	actions_list_size = ruletree_objectlist_get_list_size(action_list_offs);
@@ -728,10 +734,9 @@ char *ruletree_translate_path(
         int result_log_level,
         const char *abs_clean_virtual_path,
         int *flagsp,
-        char **exec_policy_name_ptr,
+        const char **exec_policy_name_ptr,
 	int *force_fallback_to_lua)
 {
-	const char	*cp;
 	char	*host_path = NULL;
 	ruletree_fsrule_t *rule;
 

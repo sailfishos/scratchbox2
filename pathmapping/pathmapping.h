@@ -97,7 +97,7 @@ typedef struct path_mapping_context_s {
 /* ----------- pathmapping_interf.c ----------- */
 
 extern char *reverse_map_path(
-	path_mapping_context_t *ctx,
+	const path_mapping_context_t *ctx,
 	const char *abs_host_path);
 
 /* ----------- paths_luaif.c ----------- */
@@ -128,10 +128,10 @@ extern char *ruletree_translate_path(
 	int result_log_level,
 	const char *abs_clean_virtual_path,
 	int *flagsp,
-	char **exec_policy_name_ptr,
+	const char **exec_policy_name_ptr,
 	int *force_fallback_to_lua);
-extern int ruletree_get_mapping_requirements(
-	path_mapping_context_t *ctx,
+extern ruletree_object_offset_t ruletree_get_mapping_requirements(
+	const path_mapping_context_t *ctx,
 	int use_fwd_rules /* a flag */,
 	const struct path_entry_list *abs_virtual_source_path_list,
 	int *min_path_lenp,
@@ -167,7 +167,7 @@ extern void sbox_map_path_internal__c_engine(
 	mapping_results_t *res);
 
 extern char *sbox_reverse_path_internal__c_engine(
-        path_mapping_context_t  *ctx,
+        const path_mapping_context_t  *ctx,
         const char *abs_host_path);
 
 #endif /* __PATHMAPPING_INTERNAL_H */

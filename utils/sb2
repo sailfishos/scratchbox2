@@ -1210,6 +1210,10 @@ function get_SBOX_SESSION_DIR_from_file()
 # used to select a mapping mode which is distributed with sb2.
 function add_map_mode()
 {
+	if [ ! -d "$SBOX_DIR/share/scratchbox2/modes/$1" ]; then
+		exit_error "Invalid mode '$1', aborting."
+	fi
+
 	if [ -z "$SBOX_MAPMODE" ]; then
 		# SBOX_MAPMODE was not set, this will be the default mode.
 		# Note that more than one mapping mode can be defined only

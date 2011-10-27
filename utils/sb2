@@ -233,9 +233,14 @@ function add_rules_to_rule_tree_db()
 			-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
 			execluafile \
 			$SBOX_SESSION_DIR/lua_scripts/add_rules_to_rule_tree.lua \
-			>$SBOX_SESSION_DIR/ruletree.logs/$amm_base.out
+			>$SBOX_SESSION_DIR/ruletree.logs/$amm_base.out \
+			2>$SBOX_SESSION_DIR/ruletree.logs/$amm_base.err
 		if [ $? != 0 ]; then
 			exit_error "Failed to add rules from $amm_base to rule tree"
+		fi
+		if [ -s $SBOX_SESSION_DIR/ruletree.logs/$amm_base.err ]; then
+			cat $SBOX_SESSION_DIR/ruletree.logs/$amm_base.err
+			exit_error "Faulty rule file ($amm_base)"
 		fi
 	done
 }

@@ -280,10 +280,16 @@ if [ "$SB2INIT_LOCALHOST" ] && [ -z "$SB2INIT_REMOTEHOST" ]; then
 	echo "Warning: Local host specified without remote host."
 fi
 
-if [ -z "$TARGET" ]; then
-	echo "Error: no target given"
-	exit 1
-fi
+case "$TARGET" in
+	*/*)
+		echo "Error: Illegal character (/) in target name"
+		exit 1
+		;;
+	"")
+		echo "Error: no target given"
+		exit 1
+		;;
+esac
 
 if [ -z "$MAPPING_MODE" ]; then
 	MAPPING_MODE="simple"
@@ -389,6 +395,41 @@ if ! expr "$ARCH" : "$HOST_ARCH" > /dev/null ; then
 				echo "sb2-init: *******  again and specify a working CPU transparency method"
 				echo "sb2-init: *******  with the '-c' option?"
 			fi
+		fi
+	fi
+	if [ -n "$SB2INIT_CPUTRANSP" ]; then
+		if [ -e "$SB2INIT_CPUTRANSP" ]; then
+			case `file $SB2INIT_CPUTRANSP` in
+				*dynamically*)
+					# This is OK.
+					;;
+				*statically*)
+					echo "sb2-init: ERROR:"
+					echo "sb2-init: *******  CPU transparency ($SB2INIT_CPUTRANSP) seems"
+					echo "sb2-init: *******  to be a statically linked binary, and can't be used."
+					echo "sb2-init: *******  (please specify a dynamically linked alternative"
+					echo "sb2-init: *******  with option -c)"
+					exit 1
+					;;
+				*script*)
+					echo "sb2-init: WARNING:"
+					echo "sb2-init: *******  CPU transparency ($SB2INIT_CPUTRANSP) is a script."
+					echo "sb2-init: *******  This may not work; the program should be a dynamically"
+					echo "sb2-init: *******  linked executable."
+					;;
+				*)
+					echo "sb2-init: WARNING:"
+					echo "sb2-init: *******  Failed to check if the CPU transparency ($SB2INIT_CPUTRANSP)"
+					echo "sb2-init: *******  method is a dynamically linked executable."
+					;;
+			esac
+		else
+			echo "sb2-init: ERROR:"
+			echo "sb2-init: *******  CPU transparency ($SB2INIT_CPUTRANSP) can not"
+			echo "sb2-init: *******  be executed."
+			echo "sb2-init: *******  (please specify a dynamically linked alternative"
+			echo "sb2-init: *******  with option -c)"
+			exit 1
 		fi
 	fi
 fi

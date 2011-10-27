@@ -510,60 +510,33 @@ static int lua_sb_readlink(lua_State *l)
 	}
 }
 
-/* Make preparations for an union directory:
- * (FIXME. This is not very efficient)
- * (FIXME. Does not remove removed entries)
- * (FIXME. add description)
- *
- * Parameters:
- * 1. Path to the directory, which is presented as
- *    union of more than one real directories
- * 2. Number of real directory paths
- * 3. Array of real directory paths
- * Returns:
- * 1. Status (boolean): false if error, true if ok
- * 2. Path to the created union directory.
-*/
-static int lua_sb_prep_union_dir(lua_State *l)
+/* returns an allocated string */
+/* FIXME: This should be somewhere else! it does not belong to this file. */
+char *prep_union_dir(const char *dst_path, char **src_paths, int num_real_dir_entries)
 {
 	DIR *d = NULL;
 	struct dirent *de;
-	char *dst_path = NULL;
-	int num_real_dir_entries;
-	char **src_paths = NULL;
 	int count = 0;
 	int i;
 	char *udir_name;
 	char *cp;
 	int slash_count = 0;
-
-	int n = lua_gettop(l);
-	
-	if (n != 3) goto error_out;
-
-	dst_path = strdup(lua_tostring(l, 1));
-	if (!dst_path) goto error_out;
-	num_real_dir_entries = lua_tointeger(l, 2);
+	char *mod_dst_path = NULL;
+	char *result_path;
 
 	if (num_real_dir_entries < 1) goto error_out;
-	lua_string_table_to_strvec(l, 3, &src_paths, num_real_dir_entries);
 
 	SB_LOG(SB_LOGLEVEL_DEBUG,
 		"prep_union_dir: dst=%s #%d source directories",
 		dst_path, num_real_dir_entries);
-
-	if (asprintf(&udir_name, "%s/uniondirs", sbox_session_dir) < 0)
-		goto asprint_failed_error_out;
-	SB_LOG(SB_LOGLEVEL_DEBUG, "prep_union_dir: mkdir(%s)", udir_name);
-	mkdir_nomap_nolog(udir_name, 0700);
-	free(udir_name);
 
 	/* add number of slashes to the path. this makes it possible
 	 * to have union directories that have other union directories
 	 * as subdirectories (because the names in the directories
 	 * always refer to ordinary, empty files).
 	*/
-	cp = dst_path;
+	mod_dst_path = strdup(dst_path);
+	cp = mod_dst_path;
 	while(*cp) {
 		if (*cp == '/') slash_count++;
 		cp++;
@@ -575,7 +548,7 @@ static int lua_sb_prep_union_dir(lua_State *l)
 	free(udir_name);
 	
 	/* this is same as mkdir -p, effectively */
-	cp = dst_path;
+	cp = mod_dst_path;
 	while(*cp == '/') *cp++ = '@'; /* replace leading slashes */
 	do {
 		if(cp && *cp) {
@@ -583,7 +556,7 @@ static int lua_sb_prep_union_dir(lua_State *l)
 			if (cp) *cp = '\0'; /* temporarily terminate the string here */
 		}
 		if (asprintf(&udir_name, "%s/uniondirs/%d/%s",
-			 sbox_session_dir, slash_count, dst_path) < 0)
+			 sbox_session_dir, slash_count, mod_dst_path) < 0)
 				goto asprint_failed_error_out;
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"prep_union_dir: mkdir(%s)", udir_name);
@@ -615,12 +588,14 @@ static int lua_sb_prep_union_dir(lua_State *l)
 			}
 			if (asprintf(&tmp_name, "%s/uniondirs/%d/%s/%s",
 				sbox_session_dir, slash_count,
-				dst_path, de->d_name) < 0)
+				mod_dst_path, de->d_name) < 0) {
+					closedir(d);
 					goto asprint_failed_error_out;
+				}
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"prep_union_dir: tmp=%s", tmp_name);
 
-			fd = creat(tmp_name, 0644);
+			fd = creat_nomap(tmp_name, 0644);
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"prep_union_dir: fd=%d", fd);
 			close(fd);
@@ -628,24 +603,60 @@ static int lua_sb_prep_union_dir(lua_State *l)
 			free(tmp_name);
 			count++;
 		}
+		closedir(d);
 	}
 	if (!count) goto error_out;
 
-	strvec_free(src_paths);
-	closedir(d);
-	lua_pushboolean(l, 1);
-	lua_pushfstring(l, "%s/uniondirs/%d/%s", sbox_session_dir, slash_count, dst_path);
-	free(dst_path);
-	return 2;
+	if (asprintf(&result_path, "%s/uniondirs/%d/%s",
+		sbox_session_dir, slash_count, mod_dst_path) < 0)
+			goto asprint_failed_error_out;
+	free(mod_dst_path);
+	return result_path;
 
     asprint_failed_error_out:
 	SB_LOG(SB_LOGLEVEL_ERROR, "asprintf failed to allocate memory");
     error_out:
-	if(src_paths) strvec_free(src_paths);
-	if(d) closedir(d);
-	if(dst_path) free(dst_path);
-	lua_pushboolean(l, 0);
-	lua_pushstring(l, NULL);
+	if(mod_dst_path) free(mod_dst_path);
+	return NULL;
+}
+
+/* Make preparations for an union directory:
+ * (FIXME. This is not very efficient)
+ * (FIXME. Does not remove removed entries)
+ * (FIXME. add description)
+ *
+ * Parameters:
+ * 1. Path to the directory, which is presented as
+ *    union of more than one real directories
+ * 2. Number of real directory paths
+ * 3. Array of real directory paths
+ * Returns:
+ * 1. Status (boolean): false if error, true if ok
+ * 2. Path to the created union directory.
+*/
+static int lua_sb_prep_union_dir(lua_State *l)
+{
+	char *dst_path = NULL;
+	int num_real_dir_entries;
+	char **src_paths = NULL;
+	char *result_path = NULL;
+
+	int n = lua_gettop(l);
+	
+	if (n == 3) {
+		dst_path = strdup(lua_tostring(l, 1));
+		num_real_dir_entries = lua_tointeger(l, 2);
+
+		if (dst_path && (num_real_dir_entries > 0)) {
+			lua_string_table_to_strvec(l, 3, &src_paths, num_real_dir_entries);
+			result_path = prep_union_dir(dst_path, src_paths, num_real_dir_entries);
+			strvec_free(src_paths);
+		}
+	}
+	lua_pushboolean(l, result_path ? 1 : 0);
+	lua_pushstring(l, result_path);
+	free(dst_path);
+	if (result_path) free(result_path);
 	return 2;
 }
 

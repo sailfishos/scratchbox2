@@ -108,6 +108,9 @@ extern char *scratchbox_reverse_path(
 
 extern const char *fdpathdb_find_path(int fd);
 
+extern char *prep_union_dir(const char *dst_path,
+		char **src_paths, int num_real_dir_entries);
+
 /* ---- internal constants: ---- */
 
 /* "flags", returned from mapping.lua to the C code:

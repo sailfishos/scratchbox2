@@ -184,6 +184,10 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 	case SB2_RULETREE_FSRULE_ACTION_PROCFS:
 		printf("sb2_procfs_mapper\n");
 		break;	
+	case SB2_RULETREE_FSRULE_ACTION_UNION_DIR:
+		printf("union_dir => rule->rtree_fsr_rule_list_link\n");
+		rule_list_link_label = "union_dir";
+		break;	
 	case SB2_RULETREE_FSRULE_ACTION_USE_ORIG_PATH:
 		printf("use_orig_path\n");
 		break;	
@@ -245,6 +249,7 @@ static void dump_objectlist(ruletree_object_offset_t list_offs, int indent)
 {
 	uint32_t	list_size = ruletree_objectlist_get_list_size(list_offs);
 	uint32_t	i;
+	const char	*cp;
 
 	print_indent(indent);
 	printf("{ list[%u], size=%u:\n", (unsigned)list_offs, list_size);
@@ -271,6 +276,13 @@ static void dump_objectlist(ruletree_object_offset_t list_offs, int indent)
 					print_indent(indent+1);
 					printf("FS rule:\n");
 					dump_rules(item_offs, indent+2);
+					break;
+				case SB2_RULETREE_OBJECT_TYPE_STRING:
+					print_indent(indent+1);
+					printf("STRING ");
+					cp = offset_to_ruletree_string_ptr(item_offs);
+					if (cp) printf("'%s'\n", cp);
+					else printf("NULL\n");
 					break;
 				default:
 					print_indent(indent+1);

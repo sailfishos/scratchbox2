@@ -181,7 +181,7 @@ static struct path_entry *remove_dotdot_entry_and_prev_entry(
 	return(remove_path_entry(listp, dotdot));
 }
 
-static void sb_path_resolution(
+static ruletree_object_offset_t sb_path_resolution(
 	const path_mapping_context_t *ctx,
 	mapping_results_t *resolved_virtual_path_res,
 	int nest_count,
@@ -416,7 +416,7 @@ void clean_dotdots_from_path(
 
 /* ========== ========== */
 
-static void sb_path_resolution_resolve_symlink(
+static ruletree_object_offset_t sb_path_resolution_resolve_symlink(
 	const path_mapping_context_t *ctx,
 	const char *link_dest,
 	const struct path_entry_list *virtual_source_path_list,
@@ -426,11 +426,14 @@ static void sb_path_resolution_resolve_symlink(
 
 /* sb_path_resolution():  This is the place where symlinks are followed.
  *
- * Note: when this function returns, lua stack contains the rule which was
+ * Note: For Lua mapping:
+ *       when this function returns, lua stack contains the rule which was
  *       used to do the path resolution. drop_rule_from_lua_stack() must
- *       be called after it is not needed anymore!
+ *       be called after it is not needed anymore! This returns 0 always.
+ *       For C mapping:
+ *       This returns offset to the rule.
 */
-static void sb_path_resolution(
+static ruletree_object_offset_t sb_path_resolution(
 	const path_mapping_context_t *ctx,
 	mapping_results_t *resolved_virtual_path_res,
 	int nest_count,
@@ -443,15 +446,15 @@ static void sb_path_resolution(
 	int	prefix_mapping_result_host_path_flags;
 	int	call_translate_for_all = 0;
 	int	abs_virtual_source_path_has_trailing_slash;
+	ruletree_object_offset_t	rule_offs = 0;
 #ifdef SB2_PATHRESOLUTION_C_ENGINE
-	ruletree_object_offset_t	rule_offs;
 	path_mapping_context_t		ctx2;
 #endif
 
 	if (!abs_virtual_clean_source_path_list) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"%s called with NULL path", __func__);
-		return;
+		return(0);
 	}
 
 	if (nest_count > 16) {
@@ -464,7 +467,7 @@ static void sb_path_resolution(
 
 		/* return ELOOP to the calling program */
 		resolved_virtual_path_res->mres_errno = ELOOP;
-		return;
+		return(0);
 	}
 
 	if (!(abs_virtual_clean_source_path_list->pl_flags & PATH_FLAGS_ABSOLUTE)) {
@@ -496,7 +499,7 @@ static void sb_path_resolution(
 		/* no rule */
 		resolved_virtual_path_res->mres_fallback_to_lua_mapping_engine =
 			"no mapping requirements, no rule";
-		return;
+		return(0);
 	}
 	/* switch to a new context structure. */
 	ctx2 = *ctx;
@@ -644,11 +647,11 @@ static void sb_path_resolution(
 			free(prefix_mapping_result_host_path);
 			prefix_mapping_result_host_path = NULL;
 
-			sb_path_resolution_resolve_symlink(ctx,
+			rule_offs = sb_path_resolution_resolve_symlink(ctx,
 				virtual_path_work_ptr->pe_link_dest,
 				abs_virtual_clean_source_path_list, virtual_path_work_ptr,
 				resolved_virtual_path_res, nest_count);
-			return;
+			return(rule_offs);
 		}
 
 		/* not a symlink */
@@ -748,9 +751,10 @@ static void sb_path_resolution(
 			resolved_virtual_path_res->mres_result_path =
 			resolved_virtual_path_buf;
 	}
+	return(rule_offs);
 }
 
-static void sb_path_resolution_resolve_symlink(
+static ruletree_object_offset_t sb_path_resolution_resolve_symlink(
 	const path_mapping_context_t *ctx,
 	const char *link_dest,
 	const struct path_entry_list *virtual_source_path_list,
@@ -758,6 +762,7 @@ static void sb_path_resolution_resolve_symlink(
 	mapping_results_t *resolved_virtual_path_res,
 	int nest_count)
 {
+	ruletree_object_offset_t	rule_offs;
 	struct path_entry *rest_of_virtual_path = NULL;
 	struct path_entry_list new_abs_virtual_link_dest_path_list;
 
@@ -899,11 +904,12 @@ static void sb_path_resolution_resolve_symlink(
 	/* Then the recursion.
 	 * NOTE: new_abs_virtual_link_dest_path is not necessarily
 	 * a clean path, because the symlink may have pointed to .. */
-	sb_path_resolution(ctx, resolved_virtual_path_res, nest_count + 1,
+	rule_offs = sb_path_resolution(ctx, resolved_virtual_path_res, nest_count + 1,
 		&new_abs_virtual_link_dest_path_list);
 
 	/* and finally, cleanup */
 	free_path_list(&new_abs_virtual_link_dest_path_list);
+	return(rule_offs);
 }
 
 /* ========== Mapping & path resolution, internal implementation: ========== */
@@ -1164,7 +1170,7 @@ void
 #ifdef SB2_PATHRESOLUTION_LUA_ENGINE
 		/* sb_path_resolution() leaves the rule to the stack... */
 #endif
-		sb_path_resolution(&ctx, &resolved_virtual_path_res, 0,
+		ctx.pmc_ruletree_offset = sb_path_resolution(&ctx, &resolved_virtual_path_res, 0,
 			&abs_virtual_path_for_rule_selection_list);
 
 #ifdef SB2_PATHRESOLUTION_C_ENGINE

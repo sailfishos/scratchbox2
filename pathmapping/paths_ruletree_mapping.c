@@ -90,6 +90,7 @@ ruletree_object_offset_t add_rule_to_ruletree(
 	switch (action_type) {
 	case SB2_RULETREE_FSRULE_ACTION_FALLBACK_TO_OLD_MAPPING_ENGINE:
 	case SB2_RULETREE_FSRULE_ACTION_PROCFS:
+	case SB2_RULETREE_FSRULE_ACTION_UNION_DIR:
 	case SB2_RULETREE_FSRULE_ACTION_USE_ORIG_PATH:
 	case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH:
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO:
@@ -506,6 +507,7 @@ static char *execute_std_action(
 {
 	const char	*cp;
 	char	*procfs_result;
+	char	*union_dir_result = NULL;
 	char	*new_path = NULL;
 
 	switch (action->rtree_fsr_action_type) {
@@ -560,6 +562,34 @@ static char *execute_std_action(
                 /* no need to map this path */
 		return(strdup(abs_clean_virtual_path));
 		break;
+
+	case SB2_RULETREE_FSRULE_ACTION_UNION_DIR:
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"execute_std_action: union_dir: %s", abs_clean_virtual_path);
+		{
+			ruletree_object_offset_t union_dir_list_offs = rule_selector->rtree_fsr_rule_list_link;
+			int	num_real_dir_entries;
+			char	**src_paths = NULL;
+			int	i;
+
+			num_real_dir_entries = ruletree_objectlist_get_list_size(union_dir_list_offs);
+			if (num_real_dir_entries > 0) {
+				src_paths = calloc(num_real_dir_entries, sizeof(char*));
+				for (i = 0; i < num_real_dir_entries; i++) {
+					ruletree_object_offset_t str_offs;
+					str_offs = ruletree_objectlist_get_item(union_dir_list_offs, i);
+					src_paths[i] = offset_to_ruletree_string_ptr(str_offs);
+					SB_LOG(SB_LOGLEVEL_DEBUG,
+						"execute_std_action: union_dir src_path[%d]: %s", 
+						i, src_paths[i]);
+				}
+				union_dir_result = prep_union_dir(abs_clean_virtual_path,
+						src_paths, num_real_dir_entries);
+			}
+			if (src_paths) free(src_paths);
+		}
+		SB_LOG(SB_LOGLEVEL_DEBUG, "union_dir result = '%s'", union_dir_result);
+		return(union_dir_result);
 
 	default:
 		SB_LOG(SB_LOGLEVEL_ERROR,
@@ -704,6 +734,7 @@ static char *ruletree_execute_conditional_actions(
 			case SB2_RULETREE_FSRULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR:
 			case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR:
 			case SB2_RULETREE_FSRULE_ACTION_PROCFS:
+			case SB2_RULETREE_FSRULE_ACTION_UNION_DIR:
 				return(execute_std_action(rule_selector, action_cand_p,
 					abs_clean_virtual_path, flagsp));
 
@@ -778,6 +809,7 @@ char *ruletree_translate_path(
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR:
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR:
 	case SB2_RULETREE_FSRULE_ACTION_PROCFS:
+	case SB2_RULETREE_FSRULE_ACTION_UNION_DIR:
 		host_path = execute_std_action(rule, rule, abs_clean_virtual_path, flagsp);
 		break;
 

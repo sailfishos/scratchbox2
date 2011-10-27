@@ -23,6 +23,7 @@ local RULE_ACTION_SUBTREE = 230
 local RULE_ACTION_IF_EXISTS_THEN_MAP_TO = 245
 local RULE_ACTION_IF_EXISTS_THEN_REPLACE_BY = 246
 local RULE_ACTION_PROCFS = 250
+local RULE_ACTION_UNION_DIR = 251
 
 local RULE_CONDITION_IF_ACTIVE_EXEC_POLICY_IS = 301
 local RULE_CONDITION_IF_REDIRECT_IGNORE_IS_ACTIVE = 302
@@ -52,6 +53,25 @@ function get_rule_tree_offset_for_rule_list(rules, node_type_is_ordinary_rule)
 print ("get..Return existing at ", rules[1]._rule_tree_offset)
 	end
 	return rules[1]._rule_tree_offset
+end
+
+function get_rule_tree_offset_for_union_dir_list(union_dir_list)
+	if #union_dir_list < 1 then
+		print ("-- NO DIRS FOR UNION_DIR!")
+		return 0
+	end
+
+	local union_dir_rule_list_index = ruletree.objectlist_create(#union_dir_list)
+
+	for n=1,table.maxn(union_dir_list) do
+		local component_path = union_dir_list[n]
+		local new_str_index = ruletree.new_string(component_path)
+
+		ruletree.objectlist_set(union_dir_rule_list_index, n-1, new_str_index)
+	end
+	print("-- Added union dir to rule db: ",table.maxn(union_dir_list),
+		"rules, idx=", union_dir_rule_list_index)
+	return union_dir_rule_list_index
 end
 
 -- Convert func_name, which is actually a Lua regexp, to 
@@ -106,8 +126,8 @@ function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule)
 		action_type = RULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR
 		action_str = rule.replace_by_value_of_env_var
 	elseif (rule.union_dir) then
-		-- FIXME: Add union_dir support.
-		action_type = RULE_ACTION_FALLBACK_TO_OLD_MAPPING_ENGINE
+		action_type = RULE_ACTION_UNION_DIR
+		rule_list_link = get_rule_tree_offset_for_union_dir_list(rule.union_dir)
 	else
 		-- conditional actions
 		if (rule.if_exists_then_map_to) then

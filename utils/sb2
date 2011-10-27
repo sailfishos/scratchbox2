@@ -1276,6 +1276,7 @@ function initialize_new_sb2_session()
 	mkdir $SBOX_SESSION_DIR/rev_rules
 	mkdir $SBOX_SESSION_DIR/exec_rules
 	mkdir $SBOX_SESSION_DIR/modes
+	mkdir $SBOX_SESSION_DIR/uniondirs
 
 	ln -s $SBOX_DIR/bin $SBOX_SESSION_DIR/bin
 	ln -s $SBOX_DIR/share $SBOX_SESSION_DIR/share

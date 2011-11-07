@@ -738,24 +738,25 @@ static char *ruletree_execute_conditional_actions(
 				return(execute_std_action(rule_selector, action_cand_p,
 					abs_clean_virtual_path, flagsp));
 
-			/* FIXME FIXME Implement other action types, too. */
-
 			default:
 				/* FIXME */
 				goto unimplemented_action_fallback_to_lua;
 			}
 		}
 	}
-	/* FIXME: end of list is more probably a fatal error than
-	 * something that should cause a fallback, fix that later */
-	SB_LOG(SB_LOGLEVEL_DEBUG,
-		"ruletree_translate_path: End of conditional action list.");
+	/* end of list is most probably a fatal error in the rule file. */
+	SB_LOG(SB_LOGLEVEL_ERROR,
+		"ruletree_translate_path: End of conditional action list, "
+		"probably caused by an error in the rule file.");
+	/* FIXME. This should probably return the original path (compare with
+	 * Lua code) */
 	*force_fallback_to_lua = 1;
 	return (NULL);
 			
     unimplemented_action_fallback_to_lua:
-	SB_LOG(SB_LOGLEVEL_DEBUG,
-		"ruletree_translate_path: Encountered a conditional action which has not been implemented yet.");
+	SB_LOG(SB_LOGLEVEL_ERROR,
+		"Internal error: ruletree_translate_path: Encountered "
+		"an unknown conditional action.");
 	*force_fallback_to_lua = 1;
 	return (NULL);
 }
@@ -797,8 +798,8 @@ char *ruletree_translate_path(
 
 	switch (rule->rtree_fsr_action_type) {
 	case SB2_RULETREE_FSRULE_ACTION_FALLBACK_TO_OLD_MAPPING_ENGINE:
-		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"ruletree_translate_path: Forced fallback.");
+		SB_LOG(SB_LOGLEVEL_WARNING,
+			"ruletree_translate_path: Forced fallback. This should never happen nowadays.");
 		host_path = NULL;
 		break;
 

@@ -11,7 +11,6 @@ local RULE_SELECTOR_PATH = 101
 local RULE_SELECTOR_PREFIX = 102
 local RULE_SELECTOR_DIR = 103
 
-local RULE_ACTION_FALLBACK_TO_OLD_MAPPING_ENGINE = 200
 local RULE_ACTION_USE_ORIG_PATH = 201
 local RULE_ACTION_FORCE_ORIG_PATH = 202
 local RULE_ACTION_MAP_TO = 210
@@ -208,10 +207,10 @@ function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule)
 			action_str = nil
 		else
 			-- user-provided custom mapping functions
-			-- are not supported by C mapping engine,
-			-- only way to support them is to fallback to Lua.
-			action_type = RULE_ACTION_FALLBACK_TO_OLD_MAPPING_ENGINE
-			action_str = nil
+			-- are not supported by C mapping engine.
+			io.stderr:write(string.format(
+				"Error: Rule loader: unsupported custom_map_funct in rule file\n"))
+			return
 		end
 	end
 
@@ -221,11 +220,10 @@ function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule)
 	if (rule.func_name) then
 		func_class = func_name_to_classmask(rule.func_name)
 		if func_class == -1 then
-			-- Unsupported func_name. Fallback to Lua mapping.
-			action_type = RULE_ACTION_FALLBACK_TO_OLD_MAPPING_ENGINE
-			action_str = nil
-			-- non-zero func_class causes fallback to Lua mapping. FIXME.
-			func_class = 0;
+			io.stderr:write(string.format(
+				"Error: Rule loader: unsupported func_name (%s) in rule file\n",
+				rule.func_name))
+			return
 		end
 	end
 
@@ -245,21 +243,23 @@ function add_list_of_rules(rules, node_type_is_ordinary_rule)
         local n
 
 	print("-- add_list_of_rules:")
-
-	local num_rules = table.maxn(rules)
 	local rule_list_index = 0
 
-	if num_rules > 0 then
-		rule_list_index = ruletree.objectlist_create(num_rules)
+	if rules ~= nil then
+		local num_rules = table.maxn(rules)
 
-		for n=1,table.maxn(rules) do
-			local rule = rules[n]
-			local new_rule_index
+		if num_rules > 0 then
+			rule_list_index = ruletree.objectlist_create(num_rules)
 
-			new_rule_index = add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule)
-			ruletree.objectlist_set(rule_list_index, n-1, new_rule_index)
+			for n=1,table.maxn(rules) do
+				local rule = rules[n]
+				local new_rule_index
+
+				new_rule_index = add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule)
+				ruletree.objectlist_set(rule_list_index, n-1, new_rule_index)
+			end
+			print("-- Added to rule db: ",table.maxn(rules),"rules, idx=", rule_list_index)
 		end
-		print("-- Added to rule db: ",table.maxn(rules),"rules, idx=", rule_list_index)
 	end
 	return rule_list_index
 end

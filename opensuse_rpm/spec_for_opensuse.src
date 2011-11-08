@@ -28,6 +28,7 @@ Scratchbox2 crosscompiling environment
 %setup -q
 
 %build
+./autogen.sh
 ./configure
 make
 

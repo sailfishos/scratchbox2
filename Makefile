@@ -118,7 +118,7 @@ multilib:
 gcc_bins = addr2line ar as cc c++ c++filt cpp g++ gcc gcov gdb gdbtui gprof ld nm objcopy objdump ranlib rdi-stub readelf run size strings strip
 host_prefixed_gcc_bins = $(foreach v,$(gcc_bins),host-$(v))
 
-sb2_modes = emulate tools simple accel nomap emulate+toolchain
+sb2_modes = emulate tools simple accel nomap emulate+toolchain emulate+toolchain+utils
 sb2_net_modes = localhost offline online online_privatenets
 
 tarball:

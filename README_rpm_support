@@ -16,6 +16,11 @@ This problem can be divided to two areas:
    and it will create the .spec file and the .tar.gz files
    to ./packages and execute rpmbuild. Results will be available
    in ./packages/RPMS.
+   NOTE: Currently everything goes to a single rpm package,
+   unlike the debian packaging, where the libsb2 library is in
+   a separate package. This should be fixed (both environments
+   should have libsb2 in a separate package, because it enables
+   more sensible tools_root configuration)
 
 2. building RPM packages with SB2. Just now there isn't any special
    tricks in the rule files, or any wrappers for rpm tools for the

@@ -97,7 +97,7 @@ perl_bin_test = {
 	{ if_active_exec_policy_is = "Tools-perl",
 	  map_to = tools, readonly = true },
 	{ if_exists_then_map_to = target_root, readonly = true },
-	{ if_exists_then_map_to = tools,
+	{ if_exists_then_map_to = tools_root,
 	  log_level = "warning", log_message = "Mapped to tools_root",
 	  readonly = true },
 	{ map_to = target_root, readonly = true }
@@ -114,7 +114,7 @@ python_bin_test = {
 	{ if_active_exec_policy_is = "Tools-python",
 	  map_to = tools, readonly = true },
 	{ if_exists_then_map_to = target_root, readonly = true },
-	{ if_exists_then_map_to = tools,
+	{ if_exists_then_map_to = tools_root,
 	  log_level = "warning", log_message = "Mapped to tools_root",
 	  readonly = true },
 	{ map_to = target_root, readonly = true }
@@ -497,7 +497,7 @@ fs_mapping_rules = {
 		 readonly = true},
 
 		-- tools_root should not be mapped twice.
-		{prefix = tools, use_orig_path = true, readonly = true},
+		{prefix = tools_root, use_orig_path = true, readonly = true},
 
 		-- -----------------------------------------------
 		-- 5. Maemo SDK+

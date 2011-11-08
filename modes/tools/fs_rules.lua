@@ -57,7 +57,7 @@ fs_mapping_rules = {
 		 readonly = true},
 
 		-- tools_root should not be mapped twice.
-		{prefix = tools, use_orig_path = true, readonly = true},
+		{prefix = tools_root, use_orig_path = true, readonly = true},
 
 		-- ldconfig is static binary, and needs to be wrapped
 		{prefix = "/sb2/wrappers",

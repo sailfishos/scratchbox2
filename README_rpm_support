@@ -1,0 +1,30 @@
+
+Notes about RPM support and RRPM packaging of Scratchbox2
+=========================================================
+Date: 2011-11-08
+Author: Lauri T. Aarnio
+
+Scratchbox 2 has traditionally been used on debian-based linux systems,
+and support for building .deb packages can be considered stable. There has
+been some interest in making it available for rpm-based systems, too.
+
+This problem can be divided to two areas:
+
+1. Building RPM package(s) of SB2 itself. There is now a script for
+   building installable RPM packages for OpenSUSE; run
+	./opensuse_rpm/build_rpms_for_opensuse.sh
+   and it will create the .spec file and the .tar.gz files
+   to ./packages and execute rpmbuild. Results will be available
+   in ./packages/RPMS.
+
+2. building RPM packages with SB2. Just now there isn't any special
+   tricks in the rule files, or any wrappers for rpm tools for the
+   more advanced modes (accel). Instead, I have done some preliminary
+   build tests by running rpmbuild in the "emulate" mode (which of course
+   uses qemu for everything), "emulate+toolchain" mode (new mode which
+   uses the configured toolchain - but everything else is still
+   executed with qemu) and finally, the new & experimental
+   "emulate+toolchain+utils" mode, which maps some selected utilities
+   to the host FS. The last one can be considered to be a safer approach
+   than the "simple" mode.
+

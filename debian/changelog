@@ -1,3 +1,17 @@
+scratchbox2 (2.3.6-1) unstable; urgency=low
+
+  * The new mapping engine, written in C, should be complete now.
+    (No more voluntary fallbacks to Lua mapping). Still,
+    Mapping method can be selected by setting SBOX_MAPPING_METHOD
+    to "C", "Lua" or "Both". Default is "Both".
+  * Initial RPM packaging; see README_rpm_support
+  * new experimental mapping modes emulate+toolchain and
+    emulate+toolchain+utils
+  * bugfixes.
+  * See README_2.3_development for details.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Tue, 08 Nov 2011 17:47:00 +0200
+
 scratchbox2 (2.3.5-3) unstable; urgency=low
 
   * A new mapping engine, written in C, has been added.

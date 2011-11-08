@@ -402,11 +402,10 @@ function sboxify_environment()
 	fi
 
 	# Check that tools exist (or at least the directory exists)
-	if [ -z "$SBOX_TOOLS_ROOT" ]; then
-		SBOX_TOOLS_ROOT="/"
-	fi
-	if [ ! -d "$SBOX_TOOLS_ROOT" ]; then
-		exit_error "Tools directory '$SBOX_TOOLS_ROOT' does not exist."
+	if [ -n "$SBOX_TOOLS_ROOT" ]; then
+		if [ ! -d "$SBOX_TOOLS_ROOT" ]; then
+			exit_error "Tools directory '$SBOX_TOOLS_ROOT' does not exist."
+		fi
 	fi
 
 	PS1_CLONE_MARK=""
@@ -517,7 +516,9 @@ function initialize_sb_logging()
 			echo "Running scratchbox with these settings:"
 			echo "SBOX_LIBSB2 = $SBOX_LIBSB2"
 			echo "SBOX_LUA_SCRIPTS = $SBOX_LUA_SCRIPTS"
-			echo "SBOX_TOOLS_ROOT = $SBOX_TOOLS_ROOT"
+			if [ -n "$SBOX_TOOLS_ROOT" ]; then
+				echo "SBOX_TOOLS_ROOT = $SBOX_TOOLS_ROOT"
+			fi
 			echo "SBOX_TARGET_ROOT = $SBOX_TARGET_ROOT"
 			echo "SBOX_MAPPING_LOGFILE = $SBOX_MAPPING_LOGFILE"
 			echo "SBOX_MAPPING_LOGLEVEL = $SBOX_MAPPING_LOGLEVEL"
@@ -1054,7 +1055,7 @@ END
 	library_interface=`LD_LIBRARY_PATH=$SBOX_DIR/lib/libsb2:$LD_LIBRARY_PATH sb2-show libraryinterface`
 
 	# 1. Exec settings for tools
-	if [ "$SBOX_TOOLS_ROOT" != "/" ]; then
+	if [ -n "$SBOX_TOOLS_ROOT" -a "$SBOX_TOOLS_ROOT" != "/" ]; then
 		tools_basename=`basename $SBOX_TOOLS_ROOT`
 		write_ld_library_path_replacement_to_exec_config \
 			$SBOX_TOOLS_ROOT conf_tools_ld_so_library_path \

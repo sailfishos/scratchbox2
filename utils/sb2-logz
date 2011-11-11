@@ -127,6 +127,8 @@ my %disabled_passed_paths; # for all pathnames that were not
 my %all_script_interpreters; # script interpreters, contains scripts and number of
 			# times those were executed
 
+my %all_exec_policies;	# indexed by exec policy name
+
 my $sbox_target_root = undef;
 my $sbox_tools_root = undef;
 my $sbox_mapmode = "UNKNOWN";
@@ -333,6 +335,12 @@ sub process_started {
 			# processes. Forget it.
 			return;
 		}
+		# If the name is *sh, and exec policy is empty,
+		# it is the "trampoline" shell started in the
+		# beginning => forget it.
+		if(($procname =~ m/sh$/) && $exec_policy_name eq "") {
+			return;
+		}
 	}
 
 	my $script_name = undef;
@@ -347,6 +355,22 @@ sub process_started {
 			$script_interpreter, $script_name);
 	}
 
+	if ($exec_policy_name eq "") {
+		$exec_policy_name = "Unknown_Exec_Policy";
+	}
+	my $r_ep = $all_exec_policies{$exec_policy_name};
+	if (!defined($r_ep)) {
+		$r_ep = {
+			'time_elapsed' => 0,
+			'time_user' => 0,
+			'time_sys' => 0,
+			'instances' => 1,
+		};
+		$all_exec_policies{$exec_policy_name} = $r_ep;
+	} else {
+		$r_ep->{'instances'} += 1;
+	}
+
 	my $program_id = "$exec_policy_name\t$exec_binary_name";
 	my $r_prog = undef;
 	if($program_id ne "\t") {
@@ -356,6 +380,7 @@ sub process_started {
 			$r_prog = {
 				'label' => "P$program_num",
 				'exec_policy' => $exec_policy_name,
+				'r_exec_policy' => $r_ep,
 				'exec_binary' => $exec_binary_name,
 				'script_name' => $script_name,
 				'script_interpreter' => $script_interpreter,
@@ -543,6 +568,13 @@ sub read_acct_file {
 			$r_prog->{'time_elapsed'} += $time_elapsed;
 			$r_prog->{'time_user'} += $time_user;
 			$r_prog->{'time_sys'} += $time_sys;
+
+			my $r_ep = $r_prog->{'r_exec_policy'};
+			if (defined($r_ep)) {
+				$r_ep->{'time_elapsed'} += $time_elapsed;
+				$r_ep->{'time_user'} += $time_user;
+				$r_ep->{'time_sys'} += $time_sys;
+			}
 
 			my $r_si = $r_prog->{'r_script_interpreter'};
 			if (defined($r_si)) {
@@ -766,18 +798,57 @@ sub write_process_diagram {
 sub write_exec_diagram {
 	open(EDIAG, ">$exec_diagram_file");
 	printf EDIAG "digraph programs {\n".
-		"\trankdir=LR;\n".
+		"\trankdir=LR;\n";
+
+	# Exec policy stats
+	my $ep_name;
+	foreach $ep_name (sort(keys(%all_exec_policies))) {
+		my $r_ep = $all_exec_policies{$ep_name};
+			'time_elapsed' => 0,
+			'time_user' => 0,
+			'time_sys' => 0,
+
+		printf EDIAG "__exec_policy__$ep_name ".$summary_table_begin.
+				"<tr>".
+				   "<td>Exec policy $ep_name: n=%d</td>\n</tr>\n",
+				$r_ep->{'instances'};
+		if(defined $acct_file) {
+			my $tu = $r_ep->{'time_user'};
+			my $ts = $r_ep->{'time_sys'};
+
+			printf EDIAG
+			"<tr>".
+			   "<td>real = %5.2f".
+			      "<br/>user %5.2f + sys %5.2f<br/>\n".
+			      " = %5.2f (%2.2f%%)</td>\n".
+			"</tr>\n",
+			   $r_ep->{'time_elapsed'},
+			   $tu,
+			   $ts,
+			   $tu + $ts,
+			   (($tu + $ts) * 100) / ($total_user + $total_sys);
+		}
+		printf EDIAG $summary_table_end;
+	}
+
+	# Totals:
+	my $n_procs = @all_processes_array;
+	printf EDIAG
 		"summary ".$summary_table_begin.
 			"<tr>".
-			   "<td>Totals:".
-				"<br/>real = %5.2f".
-				"<br/>user = %5.2f<br/>sys = %5.2f\n".
-				"<br/>user + sys = %5.2f</td>\n".
-			"</tr>\n",
+			   "<td>Totals:<br/>%d programs<br/>\n".
+			   "%d processes\n",
+			$program_num, $n_procs;
+	if(defined $acct_file) {
+		printf EDIAG
+			"<br/>real = %5.2f".
+			"<br/>user = %5.2f<br/>sys = %5.2f\n".
+			"<br/>user + sys = %5.2f",
 			$max_elapsed,
-			$total_user,
-			$total_sys,
+			$total_user, $total_sys,
 			$total_user + $total_sys;
+	}
+	printf EDIAG "</td>\n</tr>\n";
 	if(defined $acct_file) {
 		printf EDIAG
 			"<tr>\n".
@@ -1249,6 +1320,10 @@ if($print_disabled_passed_paths) {
 
 if(defined $acct_file) {
 	read_acct_file();
+	if ($total_user + $total_sys == 0) {
+		print "WARNING: Nothing found from acct file '$acct_file', accounting data turned off.\n";
+		$acct_file = undef;
+	}
 }
 
 if($debug) {

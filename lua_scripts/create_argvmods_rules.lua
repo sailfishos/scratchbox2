@@ -21,6 +21,7 @@ local allowed_rulenames = {
 	"name",
 	"path_prefixes",
 	"add_head",
+	"add_options",
 	"add_tail",
 	"remove",
 	"new_filename",

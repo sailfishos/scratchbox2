@@ -23,6 +23,8 @@ do_file(session_dir .. "/exec_config.lua")
 -- 	name = "binary-name",
 --	path_prefixes = {"/list/of", "/possible/path/prefixes"},
 -- 	add_head = {"list", "of", "args", "to", "prepend"},
+-- 	add_options = {"list", "of", "options", "to", "add",
+--		 "after", "argv[0]"},
 -- 	add_tail = {"these", "are", "appended"},
 -- 	remove = {"args", "to", "remove"},
 -- 	new_filename = "exec-this-binary-instead",
@@ -99,9 +101,9 @@ function load_and_check_exec_rules()
 	end
 end
 
-load_and_check_exec_rules()
-
 argvmods = {}
+
+load_and_check_exec_rules()
 
 -- only map gcc & friends if a cross compiler has been defined,
 -- and it has not been disabled by the mapping rules:
@@ -171,6 +173,7 @@ function sbox_execve_preprocess(filename, argv, envp)
 	if (am ~= nil) then
 		if (not am.remove) then am.remove = {} end
 		if (not am.add_head) then am.add_head = {} end
+		if (not am.add_options) then am.add_options = {} end
 		if (not am.add_tail) then am.add_tail = {} end
 
 		if (debug_messages_enabled) then
@@ -183,8 +186,16 @@ function sbox_execve_preprocess(filename, argv, envp)
 			table.insert(new_argv, am.add_head[i])
 		end
 	
+		-- argv[0] (n.b. here first element is [1]
+		table.insert(new_argv, argv[1])
+
+		-- additional options
+		for i = 1, table.maxn(am.add_options) do
+			table.insert(new_argv, am.add_options[i])
+		end
+
 		-- populate new_argv, skip those that are to be removed
-		for i = 1, table.maxn(argv) do
+		for i = 2, table.maxn(argv) do
 			local match = 0
 			for j = 1, table.maxn(am.remove) do
 				if (argv[i] == am.remove[j]) then

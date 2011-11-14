@@ -181,23 +181,37 @@ function locate_target_nsswitch_conf()
 function create_argvmods_rules()
 {
 	/bin/mkdir -p $SBOX_SESSION_DIR/argvmods
+	/bin/mkdir -p $SBOX_SESSION_DIR/argvmods.logs
+
 	__SB2_BINARYNAME="sb2:CreatingArgvmodsMiscRules" \
 	SBOX_ARGVMODS_SOURCE_FILE="argvenvp_misc.lua" sb2-monitor \
 	    -L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
 	    execluafile \
 	    $SBOX_SESSION_DIR/lua_scripts/create_argvmods_rules.lua \
-	    >$SBOX_SESSION_DIR/argvmods/argvmods_misc.lua
-	if [ $? != 0 ]; then
+	    >$SBOX_SESSION_DIR/argvmods/argvmods_misc.lua \
+	    2>$SBOX_SESSION_DIR/argvmods.logs/argvmods_misc.err
+	create_argvmods_rules_exit_status=$?
+	if [ $create_argvmods_rules_exit_status != 0 ]; then
 		exit_error "Failed to create 'argvmods_misc' rules"
 	fi
+
 	__SB2_BINARYNAME="sb2:CreatingArgvmodsGccRules" \
 	SBOX_ARGVMODS_SOURCE_FILE="argvenvp_gcc.lua" sb2-monitor \
 	    -L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
 	    execluafile \
 	    $SBOX_SESSION_DIR/lua_scripts/create_argvmods_rules.lua \
-	    >$SBOX_SESSION_DIR/argvmods/argvmods_gcc.lua
-	if [ $? != 0 ]; then
+	    >$SBOX_SESSION_DIR/argvmods/argvmods_gcc.lua \
+	    2>$SBOX_SESSION_DIR/argvmods.logs/argvmods_gcc.err
+	create_argvmods_rules_exit_status=$?
+	if [ $create_argvmods_rules_exit_status != 0 ]; then
 		exit_error "Failed to create 'argvmods_gcc' rules"
+	fi
+
+	if [ -s $SBOX_SESSION_DIR/argvmods.logs/argvmods_gcc.err -o \
+	     -s $SBOX_SESSION_DIR/argvmods.logs/argvmods_misc.err ]; then
+		cat $SBOX_SESSION_DIR/argvmods.logs/argvmods_gcc.err
+		cat $SBOX_SESSION_DIR/argvmods.logs/argvmods_misc.err
+		exit_error "Errors while creating 'argvmods' rules."
 	fi
 }
 

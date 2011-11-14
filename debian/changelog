@@ -1,3 +1,13 @@
+scratchbox2 (2.3.7-1) unstable; urgency=low
+
+  * Two new options:
+    "sb2 -b dir" and "sb2 -B dir" will write the log and exec-
+    and process graphs to "dir" (the latter also includes process
+    accounting data if possible)
+  * Mode-specific argvmods rules are now possible.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Mon, 14 Nov 2011 15:48:00 +0200
+
 scratchbox2 (2.3.6-1) unstable; urgency=low
 
   * The new mapping engine, written in C, should be complete now.

@@ -67,6 +67,12 @@ Options:
     -g           Create a new session with setsid(); useful when executing
                  commands in the background
     -G file      Append process group number to "file"
+    -b dir       Produce graphs and log summaries to directory dir
+                 (implies '-L info', graphs are created by sb2-logz and 
+                 'dot', if the graphviz package is available)
+    -B dir       As -z, but also include process accounting data.
+                 (This may require special permissions, because acct(2)
+                 system call is used) 
 
 Examples:
     sb2 ./configure
@@ -488,15 +494,21 @@ function initialize_sb_logging()
 	if [ "$SBOX_MAPPING_LOGLEVEL" != "" ]; then
 		tstamp=`SBOX_DISABLE_MAPPING=1 /bin/date +%Y%m%d-%H%M`
 
-		# put logs to ~/sb2_logs if debugging is enabled (-d or -L level),
-		# otherwise put the log to the session directory so that
-		# it will be deleted when the session is deleted.
+		# put logs to
+		#  a) if SBOX_LOG_AND_GRAPH_DIR is set, there
+		#  b) ~/sb2_logs if debugging is enabled (-d or -L level),
+		#  c) otherwise put the log to the session directory so that
+		#     it will be deleted when the session is deleted.
 		if [ "$SBOX_MAPPING_DEBUG" == "1" ]; then
-			if [ ! -d $HOME/sb2_logs ]; then
-				SBOX_DISABLE_MAPPING=1 mkdir $HOME/sb2_logs 
-				echo "Created directory $HOME/sb2_logs for log files"
+			if [ -n "$SBOX_LOG_AND_GRAPH_DIR" ]; then
+				MAPPING_LOGFILE=$SBOX_LOG_AND_GRAPH_DIR/sb2.log
+			else
+				if [ ! -d $HOME/sb2_logs ]; then
+					SBOX_DISABLE_MAPPING=1 mkdir $HOME/sb2_logs 
+					echo "Created directory $HOME/sb2_logs for log files"
+				fi
+				MAPPING_LOGFILE=$HOME/sb2_logs/$cmd_param.$tstamp.$$.log
 			fi
-			MAPPING_LOGFILE=$HOME/sb2_logs/$cmd_param.$tstamp.$$.log
 			ln -s $MAPPING_LOGFILE $SBOX_SESSION_DIR/Log
 		else
 			MAPPING_LOGFILE=$SBOX_SESSION_DIR/Log
@@ -1443,8 +1455,10 @@ OPT_SESSION_DIR=""
 SBOX_FORCED_TOOLS_ROOT=""
 OPT_DONT_UPGRADE_CONFIGURATION=""
 OPTS_FOR_SB2_MONITOR=""
+SBOX_LOG_AND_GRAPH_DIR=""
+SBOX_COLLECT_ACCT_DATA=""
 
-while getopts vdht:em:n:s:L:Q:M:ZrRS:J:D:W:O:cC:T:uf:gG: foo
+while getopts vdht:em:n:s:L:Q:M:ZrRS:J:D:W:O:cC:T:uf:gG:B:b: foo
 do
 	case $foo in
 	(v) version; exit 0;;
@@ -1476,6 +1490,8 @@ do
 	(f) SBOX_FAKEROOT_ARGS=$OPTARG ;;
 	(g) OPTS_FOR_SB2_MONITOR="$OPTS_FOR_SB2_MONITOR -g" ;;
 	(G) OPTS_FOR_SB2_MONITOR="$OPTS_FOR_SB2_MONITOR -G $OPTARG" ;;
+	(b) SBOX_LOG_AND_GRAPH_DIR="$OPTARG" ;;
+	(B) SBOX_LOG_AND_GRAPH_DIR="$OPTARG"; SBOX_COLLECT_ACCT_DATA="y" ;;
 	(*) usage ;;
 	esac
 done
@@ -1505,6 +1521,40 @@ case "$LD_PRELOAD" in
 		echo "Warning: LD_PRELOAD was not empty at startup"
 		;;
 esac
+
+if [ -n "$SBOX_LOG_AND_GRAPH_DIR" ]; then
+	if [ ! -d "$SBOX_LOG_AND_GRAPH_DIR" ]; then
+		mkdir -p "$SBOX_LOG_AND_GRAPH_DIR"
+		if [ $? != 0 ]; then
+			exit_error "Failed to create directory $SBOX_LOG_AND_GRAPH_DIR"
+		fi
+	else
+		exit_error "directory $SBOX_LOG_AND_GRAPH_DIR already exists"
+	fi
+	SBOX_LOG_AND_GRAPH_DIR=$(sb2-show realpath $SBOX_LOG_AND_GRAPH_DIR)
+	export SBOX_LOG_AND_GRAPH_DIR
+	export SBOX_COLLECT_ACCT_DATA
+
+	if [ "$SBOX_MAPPING_DEBUG" != "1" -a -n "$SBOX_LOG_AND_GRAPH_DIR" ]; then
+		# Log & graphs requested, but log isn't active.
+		export SBOX_MAPPING_DEBUG=1
+		export SBOX_MAPPING_LOGLEVEL=info
+	fi
+
+	if [ -n "$SBOX_COLLECT_ACCT_DATA" ]; then
+		# First try to activate it directly
+		touch $SBOX_LOG_AND_GRAPH_DIR/acct-data
+		sb2-show acct_on $SBOX_LOG_AND_GRAPH_DIR/acct-data
+		if [ $? != 0 ]; then
+			echo "WARNING: Can't activate process accounting. Retrying with 'sudo', password may be needed."
+			sudo sb2-show acct_on $SBOX_LOG_AND_GRAPH_DIR/acct-data
+			if [ $? != 0 ]; then
+				echo "WARNING: Failed to activate process accounting. Acct data won't be included in the graphs."
+				SBOX_COLLECT_ACCT_DATA=""
+			fi
+		fi
+	fi
+fi
 
 if [ "$SBOX_MAPPING_DEBUG" == "1" ]; then
 	# check that loglevel is valid

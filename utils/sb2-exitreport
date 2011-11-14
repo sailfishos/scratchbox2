@@ -23,26 +23,63 @@ else
 	ret=1
 fi
 
+# Turn off accounting, if it was enabled in the beginning.
+if [ -n "$SBOX_COLLECT_ACCT_DATA" ]; then
+	# First try to deactivate it directly
+	sb2-show acct_off
+	if [ $? != 0 ]; then
+		echo "WARNING: Can't deactivate process accounting. Retrying with 'sudo', password may be needed."
+		sudo sb2-show acct_off
+		if [ $? != 0 ]; then
+			echo "ERROR: Failed to deactivate process accounting. Please do it manually!"
+		fi
+	fi
+fi
+
 if [ -s "$SBOX_MAPPING_LOGFILE" ]; then
 	# Logfile exists and is not empty
 	# add reason and status to the logfile
 	echo "# $* ($ret)" >> $SBOX_MAPPING_LOGFILE
-	case "$SBOX_MAPPING_LOGLEVEL" in
-	(error|warning|net)
-		# Brief log, only error, warning and network-related messages.
-		echo "Messages from sb2:"
-		cat $SBOX_MAPPING_LOGFILE
-		;;
-	(*)
-		# Larger log (maybe a debug log)
-		echo "Log summary:"
-		echo
-		sb2-logz -v < $SBOX_MAPPING_LOGFILE
-		echo
-		echo "This log can be analyzed again by"
-		echo "sb2-logz < $SBOX_MAPPING_LOGFILE"
-		;;
-	esac
+
+	if [ -n "$SBOX_LOG_AND_GRAPH_DIR" ]; then
+		echo "Post-processing the log and generating graphs to"
+		echo "directory $SBOX_MAPPING_LOGFILE:"
+		sb2_logz_acct_opt=""
+		if [ -f $SBOX_LOG_AND_GRAPH_DIR/acct-data ]; then
+			sb2_logz_acct_opt="-A $SBOX_LOG_AND_GRAPH_DIR/acct-data"
+		fi
+		sb2-logz -v $sb2_logz_acct_opt \
+			-P $SBOX_LOG_AND_GRAPH_DIR/processses.dot \
+			-E $SBOX_LOG_AND_GRAPH_DIR/exec.dot \
+			< $SBOX_MAPPING_LOGFILE
+		path_to_dot=`which dot`
+		if [ -z "$path_to_dot" ]; then
+			echo "Warning: 'dot' was not found, can't create .pdf files"
+			echo "         ('graphviz' package is recommended to fix this)"
+		else
+			dot -Tpdf $SBOX_LOG_AND_GRAPH_DIR/processses.dot >$SBOX_LOG_AND_GRAPH_DIR/processses.pdf
+			dot -Tpdf $SBOX_LOG_AND_GRAPH_DIR/exec.dot >$SBOX_LOG_AND_GRAPH_DIR/exec.pdf
+		fi
+		echo "Results are now in $SBOX_LOG_AND_GRAPH_DIR":
+		ls -l $SBOX_LOG_AND_GRAPH_DIR
+	else
+		case "$SBOX_MAPPING_LOGLEVEL" in
+		(error|warning|net)
+			# Brief log, only error, warning and network-related messages.
+			echo "Messages from sb2:"
+			cat $SBOX_MAPPING_LOGFILE
+			;;
+		(*)
+			# Larger log (maybe a debug log)
+			echo "Log summary:"
+			echo
+			sb2-logz -v < $SBOX_MAPPING_LOGFILE
+			echo
+			echo "This log can be analyzed again by"
+			echo "sb2-logz < $SBOX_MAPPING_LOGFILE"
+			;;
+		esac
+	fi
 elif [ -f "$SBOX_MAPPING_LOGFILE" ]; then
 	# Log file exists, but is empty
 	rm $SBOX_MAPPING_LOGFILE

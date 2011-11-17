@@ -1,3 +1,14 @@
+scratchbox2 (2.3.8-1) unstable; urgency=low
+
+  * Added essential support for glibc 2.14: Wrappers for
+    new functions (execvpe(), mkostemp(), mkostemp64(),
+    mkostemps() and mkostemps64()) and patches in
+    external_patches
+  * Pathmapping now logs errors if results from C and Lua
+    mapping engines are not same.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 17 Nov 2011 17:55:00 +0200
+
 scratchbox2 (2.3.7-1) unstable; urgency=low
 
   * Two new options:

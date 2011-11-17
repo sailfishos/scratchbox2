@@ -142,6 +142,35 @@ void mkstemps64_postprocess_template(const char *realfnname,
 	postprocess_tempname_template(realfnname, res->mres_result_path, template, suffixlen);
 }
 
+extern void mkostemp_postprocess_template(const char *realfnname,
+	int ret, mapping_results_t *res, char *template, int flags)
+{
+	(void)ret;
+	postprocess_tempname_template(realfnname, res->mres_result_path, template, 0);
+}
+
+extern void mkostemp64_postprocess_template(const char *realfnname,
+	int ret, mapping_results_t *res, char *template, int flags)
+{
+	(void)ret;
+	postprocess_tempname_template(realfnname, res->mres_result_path, template, 0);
+}
+
+extern void mkostemps_postprocess_template(const char *realfnname,
+	int ret, mapping_results_t *res, char *template, int suffixlen, int flags)
+{
+	(void)ret;
+	(void)flags;
+	postprocess_tempname_template(realfnname, res->mres_result_path, template, suffixlen);
+}
+
+extern void mkostemps64_postprocess_template(const char *realfnname,
+	int ret, mapping_results_t *res, char *template, int suffixlen, int flags)
+{
+	(void)ret;
+	(void)flags;
+	postprocess_tempname_template(realfnname, res->mres_result_path, template, suffixlen);
+}
 
 /* the real tmpnam() can not be used at all, because the generated name must
  * be mapped before the name can be tested and that won't happen inside libc.

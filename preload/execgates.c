@@ -430,6 +430,17 @@ int execvp_gate(
 	return do_execvep(result_errno_ptr, realfnname, file, argv, environ);
 }
 
+int execvpe_gate(
+	int *result_errno_ptr,
+	int (*real_execvpe_ptr)(const char *file, char *const argv[], char *const envp[]),
+	const char *realfnname,
+	const char *file,
+	char *const argv[],
+	char *const envp[])
+{
+	(void)real_execvpe_ptr;	/* not used */
+	return do_execvep(result_errno_ptr, realfnname, file, argv, envp);
+}
 
 /* SETRLIMIT_ARG1_TYPE is defined in interface.master */
 

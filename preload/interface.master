@@ -620,6 +620,22 @@ WRAP: int mkstemps64(char *template, int suffixlen) : \
 	map(template) \
 	postprocess(template) \
 	fail_if_readonly(template,-1,EROFS)
+WRAP: int mkostemp(char *template, int flags) : \
+	map(template) \
+	postprocess(template) \
+	fail_if_readonly(template,-1,EROFS)
+WRAP: int mkostemp64(char *template, int flags) : \
+	map(template) \
+	postprocess(template) \
+	fail_if_readonly(template,-1,EROFS)
+WRAP: int mkostemps(char *template, int suffixlen, int flags) : \
+	map(template) \
+	postprocess(template) \
+	fail_if_readonly(template,-1,EROFS)
+WRAP: int mkostemps64(char *template, int suffixlen, int flags) : \
+	map(template) \
+	postprocess(template) \
+	fail_if_readonly(template,-1,EROFS)
 
 -- tmpnam(), tempnam() and mktemp() do not create files, they create file names 
 -- that did not exist when the function was called. These need to do path

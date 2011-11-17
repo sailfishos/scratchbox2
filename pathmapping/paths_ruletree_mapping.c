@@ -388,6 +388,7 @@ ruletree_object_offset_t ruletree_get_mapping_requirements(
 	return (rule_offs); 
 }
 
+/* returns an allocated buffer */
 static char *ruletree_execute_replace_rule(
 	const char *full_path,
 	const char *replacement,
@@ -519,7 +520,6 @@ static char *execute_std_action(
 		 * but forcing it there won't hurt anyone. */
 		*flagsp |= SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH;
 		return(strdup(abs_clean_virtual_path));
-		break;
 
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO:
 		cp = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs);
@@ -549,7 +549,7 @@ static char *execute_std_action(
 			rule_selector);
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"execute_std_action: replaced/2: '%s'", cp);
-		break;
+		return(new_path);
 
 	case SB2_RULETREE_FSRULE_ACTION_PROCFS:
 		SB_LOG(SB_LOGLEVEL_DEBUG,
@@ -561,7 +561,6 @@ static char *execute_std_action(
 		}
                 /* no need to map this path */
 		return(strdup(abs_clean_virtual_path));
-		break;
 
 	case SB2_RULETREE_FSRULE_ACTION_UNION_DIR:
 		SB_LOG(SB_LOGLEVEL_DEBUG,

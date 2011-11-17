@@ -101,22 +101,26 @@ static void compare_results_from_c_and_lua_engines(
 {
 	if (c_res && lua_res) {
 		if (!strcmp(c_res, lua_res)) {
-			SB_LOG(SB_LOGLEVEL_INFO,
+			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"%s: ResultCheck: same, OK",
 				fn_name);
 		} else {
-			SB_LOG(SB_LOGLEVEL_WARNING,
+			SB_LOG(SB_LOGLEVEL_ERROR,
 				"%s: ResultCheck: DIFFERENT: C='%s', Lua='%s'",
 				fn_name, c_res, lua_res);
 		}
+	} else if (!c_res && !lua_res) {
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"%s: ResultCheck: no result from C nor Lua",
+			fn_name);
 	} else {
 		if (!c_res) {
-			SB_LOG(SB_LOGLEVEL_INFO,
+			SB_LOG(SB_LOGLEVEL_ERROR,
 				"%s: ResultCheck: no result from C (Lua='%s')",
 				fn_name, lua_res);
 		}
 		if (!lua_res) {
-			SB_LOG(SB_LOGLEVEL_INFO,
+			SB_LOG(SB_LOGLEVEL_ERROR,
 				"%s: ResultCheck: no result from Lua (C='%s')",
 				fn_name, c_res);
 		}
@@ -168,7 +172,7 @@ static void fwd_map_path(
 			sbox_map_path_internal__c_engine(binary_name, func_name, virtual_path,
 				dont_resolve_final_symlink, 0, fn_class, &res2);
 			if (res2.mres_fallback_to_lua_mapping_engine) {
-				SB_LOG(SB_LOGLEVEL_NOTICE,
+				SB_LOG(SB_LOGLEVEL_ERROR,
 					"C path mapping engine forces fallback to Lua (%s), (%s)",
 					res2.mres_fallback_to_lua_mapping_engine, virtual_path);
 			}

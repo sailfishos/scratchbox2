@@ -33,3 +33,11 @@ This problem can be divided to two areas:
    to the host FS. The last one can be considered to be a safer approach
    than the "simple" mode.
 
+
+-----------------
+
+Support for integration to OBS (openSUSE build system)
+
+Version 2.3.9 added two special-purpose mapping modes:
+obs-rpm-install and obs-rpm-build, to be used by the OBS workers.
+

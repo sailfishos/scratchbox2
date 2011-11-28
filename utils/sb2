@@ -1563,12 +1563,16 @@ if [ -n "$SBOX_LOG_AND_GRAPH_DIR" ]; then
 	if [ -n "$SBOX_COLLECT_ACCT_DATA" ]; then
 		# First try to activate it directly
 		touch $SBOX_LOG_AND_GRAPH_DIR/acct-data
-		sb2-show acct_on $SBOX_LOG_AND_GRAPH_DIR/acct-data
+		sb2-show acct_on $SBOX_LOG_AND_GRAPH_DIR/acct-data 2>/dev/null
 		if [ $? != 0 ]; then
-			echo "WARNING: Can't activate process accounting. Retrying with 'sudo', password may be needed."
-			sudo sb2-show acct_on $SBOX_LOG_AND_GRAPH_DIR/acct-data
+			if [ -z "$SBOX_QUIET" ];  then
+				echo "WARNING: Can't activate process accounting. Retrying with 'sudo', password may be needed."
+			fi
+			sudo sb2-show acct_on $SBOX_LOG_AND_GRAPH_DIR/acct-data 2>/dev/null
 			if [ $? != 0 ]; then
-				echo "WARNING: Failed to activate process accounting. Acct data won't be included in the graphs."
+				if [ -z "$SBOX_QUIET" ];  then
+					echo "WARNING: Failed to activate process accounting. Acct data won't be included in the graphs."
+				fi
 				SBOX_COLLECT_ACCT_DATA=""
 			fi
 		fi

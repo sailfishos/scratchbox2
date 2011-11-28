@@ -28,12 +28,12 @@ fi
 # Turn off accounting, if it was enabled in the beginning.
 if [ -n "$SBOX_COLLECT_ACCT_DATA" ]; then
 	# First try to deactivate it directly
-	sb2-show acct_off
+	sb2-show acct_off 2>/dev/null
 	if [ $? != 0 ]; then
 		if [ -z "$SBOX_QUIET" ];  then
 			echo "WARNING: Can't deactivate process accounting. Retrying with 'sudo', password may be needed."
 		fi
-		sudo sb2-show acct_off
+		sudo sb2-show acct_off 2>/dev/null
 		if [ $? != 0 ]; then
 			if [ -z "$SBOX_QUIET" ];  then
 				echo "ERROR: Failed to deactivate process accounting. Please do it manually!"

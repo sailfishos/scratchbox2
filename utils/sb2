@@ -73,6 +73,7 @@ Options:
     -B dir       As -z, but also include process accounting data.
                  (This may require special permissions, because acct(2)
                  system call is used) 
+    -q           quiet; don't print debugging details to stdout etc.
 
 Examples:
     sb2 ./configure
@@ -539,16 +540,18 @@ function initialize_sb_logging()
 			echo "#SBOX_TOOLS_ROOT=$SBOX_TOOLS_ROOT" >>$MAPPING_LOGFILE
 			echo "#SBOX_MAPMODE=$SBOX_MAPMODE" >>$MAPPING_LOGFILE
 
-			echo "Running scratchbox with these settings:"
-			echo "SBOX_LIBSB2 = $SBOX_LIBSB2"
-			echo "SBOX_LUA_SCRIPTS = $SBOX_LUA_SCRIPTS"
-			if [ -n "$SBOX_TOOLS_ROOT" ]; then
-				echo "SBOX_TOOLS_ROOT = $SBOX_TOOLS_ROOT"
+			if [ -z "$SBOX_QUIET" ];  then
+				echo "Running scratchbox with these settings:"
+				echo "SBOX_LIBSB2 = $SBOX_LIBSB2"
+				echo "SBOX_LUA_SCRIPTS = $SBOX_LUA_SCRIPTS"
+				if [ -n "$SBOX_TOOLS_ROOT" ]; then
+					echo "SBOX_TOOLS_ROOT = $SBOX_TOOLS_ROOT"
+				fi
+				echo "SBOX_TARGET_ROOT = $SBOX_TARGET_ROOT"
+				echo "SBOX_MAPPING_LOGFILE = $SBOX_MAPPING_LOGFILE"
+				echo "SBOX_MAPPING_LOGLEVEL = $SBOX_MAPPING_LOGLEVEL"
+				echo
 			fi
-			echo "SBOX_TARGET_ROOT = $SBOX_TARGET_ROOT"
-			echo "SBOX_MAPPING_LOGFILE = $SBOX_MAPPING_LOGFILE"
-			echo "SBOX_MAPPING_LOGLEVEL = $SBOX_MAPPING_LOGLEVEL"
-			echo
 		fi
 	fi
 }
@@ -1471,8 +1474,9 @@ OPT_DONT_UPGRADE_CONFIGURATION=""
 OPTS_FOR_SB2_MONITOR=""
 SBOX_LOG_AND_GRAPH_DIR=""
 SBOX_COLLECT_ACCT_DATA=""
+SBOX_QUIET=""
 
-while getopts vdht:em:n:s:L:Q:M:ZrRS:J:D:W:O:cC:T:uf:gG:B:b: foo
+while getopts vdht:em:n:s:L:Q:M:ZrRS:J:D:W:O:cC:T:uf:gG:B:b:q foo
 do
 	case $foo in
 	(v) version; exit 0;;
@@ -1506,6 +1510,7 @@ do
 	(G) OPTS_FOR_SB2_MONITOR="$OPTS_FOR_SB2_MONITOR -G $OPTARG" ;;
 	(b) SBOX_LOG_AND_GRAPH_DIR="$OPTARG" ;;
 	(B) SBOX_LOG_AND_GRAPH_DIR="$OPTARG"; SBOX_COLLECT_ACCT_DATA="y" ;;
+	(q) export SBOX_QUIET="q";;
 	(*) usage ;;
 	esac
 done

@@ -240,6 +240,7 @@ emulate_mode_rules = {
 		-- our previous rule handled that and this rule won't be used)
 		{prefix = "/home/user", map_to = target_root,
 		 protection = readonly_fs_if_not_root},
+		{prefix = "/home/abuild", map_to = target_root},
 
 		-- Other home directories = not mapped, R/W access
 		{prefix = "/home", use_orig_path = true},

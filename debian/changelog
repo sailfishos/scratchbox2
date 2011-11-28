@@ -1,3 +1,11 @@
+scratchbox2 (2.3.9-1) unstable; urgency=low
+
+  * Added initial support for using SB2 as an alternative
+    build engine with the openSUSE build system (OBS)
+  * Added option -q (quiet) to the sb2 command.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Mon, 28 Nov 2011 19:25:00 +0200
+
 scratchbox2 (2.3.8-1) unstable; urgency=low
 
   * Added essential support for glibc 2.14: Wrappers for

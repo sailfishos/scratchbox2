@@ -187,9 +187,13 @@ static int lua_sb_ruletree_catalog_set(lua_State *l)
 		const char	*object_name = lua_tostring(l, 2);
 		ruletree_object_offset_t	value_offset = lua_tointeger(l, 3);
 		status = ruletree_catalog_set(catalog_name, object_name, value_offset);
+		SB_LOG(SB_LOGLEVEL_NOISE,
+			"lua_sb_ruletree_catalog_set(%s,%s,%d) => %d",
+			catalog_name, object_name, value_offset, status);
+	} else {
+		SB_LOG(SB_LOGLEVEL_NOISE,
+			"lua_sb_ruletree_catalog_set => %d", status);
 	}
-	SB_LOG(SB_LOGLEVEL_NOISE,
-		"lua_sb_ruletree_catalog_set => %d", status);
 	lua_pushnumber(l, status);
 	return 1;
 }
@@ -202,9 +206,12 @@ static int lua_sb_ruletree_new_string(lua_State *l)
 	if (n == 1) {
 		const char	*str = lua_tostring(l, 1);
 		str_offs = append_string_to_ruletree_file(str);
+		SB_LOG(SB_LOGLEVEL_NOISE,
+			"lua_sb_ruletree_new_string(%s) => %d", str, str_offs);
+	} else {
+		SB_LOG(SB_LOGLEVEL_NOISE,
+			"lua_sb_ruletree_new_string => %d", str_offs);
 	}
-	SB_LOG(SB_LOGLEVEL_NOISE,
-		"lua_sb_ruletree_catalog_set => %d", str_offs);
 	lua_pushnumber(l, str_offs);
 	return 1;
 }

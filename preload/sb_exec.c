@@ -110,6 +110,7 @@
 
 #include "libsb2.h"
 #include "exported.h"
+#include "rule_tree.h"
 
 #ifndef ARRAY_SIZE
 # define ARRAY_SIZE(array) (sizeof (array) / sizeof ((array)[0]))
@@ -347,8 +348,8 @@ static enum binary_type inspect_binary(const char *filename, int check_x_permiss
 	retval = BIN_NONE; /* assume it doesn't exist, until proven otherwise */
 	if (check_x_permission && access_nomap_nolog(filename, X_OK) < 0) {
 		int saved_errno = errno;
-		char *sb1_bug_emulation_mode =
-			sb2__read_string_variable_from_lua__(
+		const char *sb1_bug_emulation_mode =
+			ruletree_catalog_get_string("config",
 				"sbox_emulate_sb1_bugs");
 
 		if (access_nomap_nolog(filename, F_OK) < 0) {
@@ -461,11 +462,16 @@ static enum binary_type inspect_binary(const char *filename, int check_x_permiss
 	 * by scratchbox2.
 	 */
 	if (!target_cpu) {
-		target_cpu = sb2__read_string_variable_from_lua__(
-			"sbox_cpu");
-
-		if (!target_cpu)
+		SB_LOG(SB_LOGLEVEL_DEBUG, "Lookin up target_cpu..");
+		target_cpu = ruletree_catalog_get_string("config", "sbox_cpu");
+		if (!target_cpu) {
 			target_cpu = "arm";
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"no target_cpu in config, set to %s", target_cpu);
+		} else  {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"target_cpu found, %s", target_cpu);
+		}
 	}
 
 	ei_data = ELFDATANONE;

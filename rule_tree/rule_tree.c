@@ -225,11 +225,13 @@ ruletree_object_offset_t append_string_to_ruletree_file(const char *str)
 {
 	ruletree_string_hdr_t		shdr;
 	ruletree_object_offset_t	location = 0;
-	int	len = strlen(str);
+	int	len;
 
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (0);
 	if (ruletree_ctx.rtree_ruletree_fd < 0) return(0);
+	if (!str) return(0);
 
+	len = strlen(str);
 	shdr.rtree_str_size = len;
 	/* "append_struct_to_ruletree_file" will fill the magic & type */
 	location = append_struct_to_ruletree_file(&shdr, sizeof(shdr),
@@ -565,6 +567,24 @@ ruletree_object_offset_t ruletree_catalog_get(
 		"ruletree_catalog_get: Found value=@%d",
 			(int)object_cat_entry->rtree_cat_value_offs);
 	return(object_cat_entry->rtree_cat_value_offs);
+}
+
+const char *ruletree_catalog_get_string(
+	const char *catalog_name,
+	const char *object_name)
+{
+	ruletree_object_offset_t offs;
+
+	offs = ruletree_catalog_get(catalog_name, object_name);
+	if(offs) {
+		const char *str = offset_to_ruletree_string_ptr(offs);
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"ruletree_catalog_get_string: '%s'", str);
+		return(str);
+	}
+	SB_LOG(SB_LOGLEVEL_NOISE2,
+		"ruletree_catalog_get_string: NULL");
+	return(NULL);
 }
 
 /* set a value for "name" in a catalog.

@@ -462,8 +462,8 @@ int uname_gate(
 	if (sbox_session_dir) {
 		/* sb2 has been initialized. */
 		if (!uname_machine || !*uname_machine) {
-			uname_machine = sb2__read_string_variable_from_lua__(
-				"sbox_uname_machine");
+			uname_machine = ruletree_catalog_get_string(
+				"config", "sbox_uname_machine");
 		}
 		if (uname_machine && *uname_machine)
 			snprintf(buf->machine, sizeof(buf->machine),

@@ -191,6 +191,7 @@ install-noarch: regular
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/create_argvmods_rules.lua $(prefix)/share/scratchbox2/lua_scripts/create_argvmods_rules.lua
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/create_argvmods_usr_bin_rules.lua $(prefix)/share/scratchbox2/lua_scripts/create_argvmods_usr_bin_rules.lua
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/add_rules_to_rule_tree.lua $(prefix)/share/scratchbox2/lua_scripts/add_rules_to_rule_tree.lua
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/add_config_to_rule_tree.lua $(prefix)/share/scratchbox2/lua_scripts/add_config_to_rule_tree.lua
 
 	$(Q)install -c -m 644 $(SRCDIR)/tests/* $(prefix)/share/scratchbox2/tests
 	$(Q)chmod a+x $(prefix)/share/scratchbox2/tests/run.sh

@@ -161,6 +161,9 @@ extern ruletree_object_offset_t ruletree_catalog_get(
 extern int ruletree_catalog_set(const char *catalog_name,
 	const char *object_name, ruletree_object_offset_t value_offset);
 
+extern const char *ruletree_catalog_get_string(
+	const char *catalog_name, const char *object_name);
+
 /* ------------ rule_tree_luaif.c: ------------ */
 extern int lua_bind_ruletree_functions(lua_State *l);
 

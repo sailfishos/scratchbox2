@@ -356,11 +356,11 @@ WRAP: int utimensat(int dirfd, const char *pathname, \
 	     const struct timespec times[2], int flags) : \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname) \
-	fail_if_readonly(pathname,-1,EROFS)
+	fail_if_readonly(pathname,-1,EROFS) class(SET_TIMES)
 
 WRAP: int futimesat(int dirfd, const char *pathname, const struct timeval times[2]) : \
 	map_at(dirfd,pathname) \
-	fail_if_readonly(pathname,-1,EROFS)
+	fail_if_readonly(pathname,-1,EROFS) class(SET_TIMES)
 
 #ifdef HAVE_LINUX_XATTRS
 WRAP: ssize_t getxattr(const char *path, const char *name, void *value, size_t size) : map(path)
@@ -431,7 +431,7 @@ WRAP: int lstat64(const char *file_name, struct stat64 *buf) : \
 
 WRAP: int lutimes(const char *filename, const struct timeval tv[2]) : \
 	dont_resolve_final_symlink map(filename) \
-	fail_if_readonly(filename,-1,EROFS)
+	fail_if_readonly(filename,-1,EROFS) class(SET_TIMES)
 
 WRAP: int mkdir(const char *pathname, mode_t mode) : \
 	map(pathname) fail_if_readonly(pathname,-1,EROFS) \
@@ -569,9 +569,9 @@ WRAP: int unlinkat(int dirfd, const char *pathname, int flags) : \
 	fail_if_readonly(pathname,-1,EROFS)
 
 WRAP: int utime(const char *filename, const struct utimbuf *buf) : \
-	map(filename) fail_if_readonly(filename,-1,EROFS)
+	map(filename) fail_if_readonly(filename,-1,EROFS) class(SET_TIMES)
 WRAP: int utimes(const char *filename, const struct timeval tv[2]) : \
-	map(filename) fail_if_readonly(filename,-1,EROFS)
+	map(filename) fail_if_readonly(filename,-1,EROFS) class(SET_TIMES)
 --
 -- 7. Socket API
 --    ----------

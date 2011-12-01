@@ -144,20 +144,21 @@ extern char *prep_union_dir(const char *dst_path,
  * (SB2_INTERFACE_CLASS_). see interface.master for examples.
  * Note: multiple values can be ORed.
 */
-#define SB2_INTERFACE_CLASS_OPEN	01
-#define SB2_INTERFACE_CLASS_STAT	02
-#define SB2_INTERFACE_CLASS_EXEC	04
+#define SB2_INTERFACE_CLASS_OPEN	0x1
+#define SB2_INTERFACE_CLASS_STAT	0x2
+#define SB2_INTERFACE_CLASS_EXEC	0x4
 
-#define SB2_INTERFACE_CLASS_SOCKADDR	010	/* address in bind, connect */
-#define SB2_INTERFACE_CLASS_FTSOPEN	020	/* ftsopen */
-#define SB2_INTERFACE_CLASS_GLOB	040	/* glob */
+#define SB2_INTERFACE_CLASS_SOCKADDR	0x8	/* address in bind, connect */
+#define SB2_INTERFACE_CLASS_FTSOPEN	0x10	/* ftsopen */
+#define SB2_INTERFACE_CLASS_GLOB	0x20	/* glob */
 
-#define SB2_INTERFACE_CLASS_GETCWD	0100	/* getcwd() etc */
-#define SB2_INTERFACE_CLASS_REALPATH	0200	/* realpath */
+#define SB2_INTERFACE_CLASS_GETCWD	0x40	/* getcwd() etc */
+#define SB2_INTERFACE_CLASS_REALPATH	0x80	/* realpath */
+#define SB2_INTERFACE_CLASS_SET_TIMES	0x100	/* utimes() etc: set timestamps */
 
-#define SB2_INTERFACE_CLASS_L10N	01000	/* gettextdomain etc. */
+#define SB2_INTERFACE_CLASS_L10N	0x200	/* gettextdomain etc. */
 
-#define SB2_INTERFACE_CLASS_PROC_FS_OP	010000	/* /proc file system operation */
+#define SB2_INTERFACE_CLASS_PROC_FS_OP	0x1000	/* /proc file system operation */
 
 /* interface funtion ->  class(es) mapping table, 
  * created by gen-interface.c */

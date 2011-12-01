@@ -37,9 +37,10 @@ local RULE_FLAGS_FORCE_ORIG_PATH = 4
 local RULE_FLAGS_READONLY_FS_IF_NOT_ROOT = 8
 local RULE_FLAGS_READONLY_FS_ALWAYS = 16
 
-local SB2_INTERFACE_CLASS_OPEN = 1
-local SB2_INTERFACE_CLASS_STAT = 2
-local SB2_INTERFACE_CLASS_EXEC = 4
+local SB2_INTERFACE_CLASS_OPEN = 0x1
+local SB2_INTERFACE_CLASS_STAT = 0x2
+local SB2_INTERFACE_CLASS_EXEC = 0x4
+local SB2_INTERFACE_CLASS_SET_TIMES = 0x100
 
 function get_rule_tree_offset_for_rule_list(rules, node_type_is_ordinary_rule)
 	if #rules < 1 then
@@ -87,6 +88,8 @@ function func_name_to_classmask(func_name)
 		mask = SB2_INTERFACE_CLASS_STAT
 	elseif (func_name == ".*exec.*") then
 		mask = SB2_INTERFACE_CLASS_EXEC
+	elseif (func_name == ".*utime.*") then
+		mask = SB2_INTERFACE_CLASS_SET_TIMES
 	end
 	return mask
 end

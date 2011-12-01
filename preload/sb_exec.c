@@ -784,13 +784,17 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 			}
 		}
 	}
+
+	/* If session directory and/or mapping mode variables disappeared,
+	 * it is usually a consequency of complete reset of the environment.
+	 * Just restore those. */
 	if (!has_sbox_session_dir) {
-		SB_LOG(SB_LOGLEVEL_WARNING, 
+		SB_LOG(SB_LOGLEVEL_NOTICE, 
 			"Detected attempt to clear SBOX_SESSION_DIR, "
 				"restored to %s", sbox_session_dir);
 	}
 	if (sbox_mapping_method && !has_sbox_mapping_method) {
-		SB_LOG(SB_LOGLEVEL_WARNING, 
+		SB_LOG(SB_LOGLEVEL_NOTICE, 
 			"Detected attempt to clear SBOX_MAPPING_METHOD, "
 				"restored to %s", sbox_mapping_method);
 	}
@@ -910,7 +914,7 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 	/* add back SBOX_SIGTRAP if it was removed accidentally, so
 	 * exec following in GDB will work */
 	if (!has_sbox_sigtrap && getenv("SBOX_SIGTRAP")) {
-		SB_LOG(SB_LOGLEVEL_WARNING,
+		SB_LOG(SB_LOGLEVEL_NOTICE,
 		       "Detected attempt to clear SBOX_SIGTRAP, "
 		       "restored to %s", getenv("SBOX_SIGTRAP"));
 		if (asprintf(&(my_envp[i]), "SBOX_SIGTRAP=%s",

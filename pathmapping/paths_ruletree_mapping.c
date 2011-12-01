@@ -95,6 +95,7 @@ ruletree_object_offset_t add_rule_to_ruletree(
 	case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH:
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO:
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY:
+	case SB2_RULETREE_FSRULE_ACTION_SET_PATH:
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR:
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR:
 	case SB2_RULETREE_FSRULE_ACTION_CONDITIONAL_ACTIONS:
@@ -535,6 +536,13 @@ static char *execute_std_action(
 			"execute_std_action: replaced: '%s'", cp);
 		return(new_path);
 
+	case SB2_RULETREE_FSRULE_ACTION_SET_PATH:
+		cp = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs);
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"execute_std_action: set path to '%s'", cp);
+		new_path = strdup(cp);
+		return(new_path);
+
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR:
 		cp = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs);
 		cp = getenv(cp);
@@ -730,6 +738,7 @@ static char *ruletree_execute_conditional_actions(
 			case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH:
 			case SB2_RULETREE_FSRULE_ACTION_MAP_TO:
 			case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY:
+			case SB2_RULETREE_FSRULE_ACTION_SET_PATH:
 			case SB2_RULETREE_FSRULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR:
 			case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR:
 			case SB2_RULETREE_FSRULE_ACTION_PROCFS:
@@ -806,6 +815,7 @@ char *ruletree_translate_path(
 	case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH:
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO:
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY:
+	case SB2_RULETREE_FSRULE_ACTION_SET_PATH:
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR:
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR:
 	case SB2_RULETREE_FSRULE_ACTION_PROCFS:

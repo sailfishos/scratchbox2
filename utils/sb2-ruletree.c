@@ -198,6 +198,10 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 		printf("replace_by '%s'\n",
 			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs));
 		break;
+	case SB2_RULETREE_FSRULE_ACTION_SET_PATH:
+		printf("set_path '%s'\n",
+			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs));
+		break;
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO:
 		printf("map_to '%s'\n",
 			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs));

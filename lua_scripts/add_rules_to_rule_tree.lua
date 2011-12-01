@@ -17,6 +17,7 @@ local RULE_ACTION_MAP_TO = 210
 local RULE_ACTION_REPLACE_BY = 211
 local RULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR = 212
 local RULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR = 213
+local RULE_ACTION_SET_PATH = 214
 local RULE_ACTION_CONDITIONAL_ACTIONS = 220
 local RULE_ACTION_SUBTREE = 230
 local RULE_ACTION_IF_EXISTS_THEN_MAP_TO = 245
@@ -120,6 +121,9 @@ function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule)
 		action_str = rule.map_to
 	elseif (rule.replace_by) then
 		action_type = RULE_ACTION_REPLACE_BY
+		action_str = rule.replace_by
+	elseif (rule.set_path) then
+		action_type = RULE_ACTION_SET_PATH
 		action_str = rule.replace_by
 	elseif (rule.map_to_value_of_env_var) then
 		action_type = RULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR

@@ -1329,6 +1329,10 @@ function initialize_new_sb2_session()
 	mkdir $SBOX_SESSION_DIR/modes
 	mkdir $SBOX_SESSION_DIR/uniondirs
 
+	# Some operations to /dev/* are redirected to this:
+	# (setting time of the nodes, etc)
+	touch $SBOX_SESSION_DIR/dummy_file
+
 	ln -s $SBOX_DIR/bin $SBOX_SESSION_DIR/bin
 	ln -s $SBOX_DIR/share $SBOX_SESSION_DIR/share
 	# FIXME: This should link only selected modes, not all:

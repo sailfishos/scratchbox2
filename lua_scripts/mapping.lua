@@ -410,7 +410,8 @@ function sbox_execute_conditional_actions(binary_name,
 			if (action_candidate.use_orig_path
 			    or action_candidate.force_orig_path 
 			    or action_candidate.map_to
-			    or action_candidate.replace_by) then
+			    or action_candidate.replace_by
+			    or action_candidate.set_path) then
 
 				if (debug_messages_enabled) then
 					sb.log("debug", "using default (unconditional) rule")
@@ -492,6 +493,8 @@ function sbox_execute_rule(binary_name, func_name, rp, path,
 			ret_path = path
 		end
 		ret_flags = RULE_FLAGS_READONLY
+	elseif (rule_conditions_and_actions.set_path) then
+		ret_path = rule_conditions_and_actions.set_path
 	else
 		ret_path = path
 		if (rule_selector.name) then

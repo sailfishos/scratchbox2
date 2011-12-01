@@ -77,6 +77,10 @@ rootdir_rules = {
                     map_to = target_root, protection = readonly_fs_if_not_root },
 		{path = "/", func_name = ".*open.*",
                     map_to = target_root, protection = readonly_fs_if_not_root },
+		{path = "/", func_name = ".*utime.*",
+                    map_to = target_root, protection = readonly_fs_if_not_root },
+
+		-- Default: Map to real root.
 		{path = "/", use_orig_path = true},
 }
 

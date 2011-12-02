@@ -1,3 +1,13 @@
+scratchbox2 (2.3.10-1) unstable; urgency=low
+
+  * Some config variables are now available in the rule tree db
+  * new path mapping action type "set_path" was added.
+  * obs-rpm-* modes were updated
+  * C / Lua interface version number is 95 now
+  * Rule file interface version number is 101 now
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Fri, 02 Nov 2011 14:09:00 +0200
+
 scratchbox2 (2.3.9-1) unstable; urgency=low
 
   * Added initial support for using SB2 as an alternative

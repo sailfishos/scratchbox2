@@ -113,10 +113,13 @@ struct sb2context {
  *   - new, simpler and better ruletree api (added catalog_set(),
  *     catalog_get(), new_string() and removed stuff which
  *     was derived from the old prototype)
+ * * New in version "95":
+ *   - "set_path" mapping action has been added to
+ *     both Lua and C mapping engines.
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "94"
+#define SB2_LUA_C_INTERFACE_VERSION "95"
 
 /* get sb2context, without activating lua: */
 extern struct sb2context *get_sb2context(void);

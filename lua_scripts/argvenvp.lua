@@ -74,7 +74,10 @@ function load_and_check_exec_rules()
 	--
 	-- Version 100:
 	-- - fs rules and exec rules to separate files
-	local current_rule_interface_version = "100"
+	-- Version 101:
+	-- - fs rules were updated, this was bumped
+	--   to keep these in sync.
+	local current_rule_interface_version = "101"
 
 	do_file(exec_rule_file_path)
 

@@ -3,7 +3,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "100"
+rule_file_interface_version = "101"
 ----------------------------------
 
 -- If the permission token exists and contains "root", use fakeroot.

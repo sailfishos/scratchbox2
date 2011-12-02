@@ -108,6 +108,9 @@ function load_and_check_rules()
 	-- exec mapping code (argvenp.lua) and the
 	-- rule files:
 	--
+        -- Version 101:
+	-- - New action type "set_path" was added.
+	--
         -- Version 100:
         -- - Fs rules (path mapping rules) and exec rules 
         --   (exec policies) have been separated.
@@ -162,7 +165,7 @@ function load_and_check_rules()
 	--   (previously only one was expected)
 	-- - variables "esc_tools_root" and "esc_target_root"
 	--   were removed
-	local current_rule_interface_version = "100"
+	local current_rule_interface_version = "101"
 
 	do_file(rule_file_path)
 

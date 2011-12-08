@@ -1,3 +1,9 @@
+scratchbox2 (2.3.11-1) unstable; urgency=low
+
+  * Four small fixes
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 08 Nov 2011 15:22:00 +0200
+
 scratchbox2 (2.3.10-1) unstable; urgency=low
 
   * Some config variables are now available in the rule tree db

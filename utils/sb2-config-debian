@@ -162,8 +162,15 @@ if [ ! -f $SBOX_CONFIG_DIR/debian.conf ]; then
 	: >$SBOX_CONFIG_DIR/debian.conf
 fi
 
-# test if dpkg-architecture exists and can be executed
-DPKG_ARCHITECTURE_FULLPATH=$(sb2 -t $TARGET -m $mapping_mode_for_dpkg_utils which dpkg-architecture)
+# test if dpkg-architecture exists and can be executed.
+# (Send stderr to /dev/null so that if dpkg-architecture
+# does not exits, this won't print extra crap..
+# FIXME: This complete debian configuration thing should
+# be disabled if the target system is not a debian based OS,
+# but just now there is no reliable way to find that out
+# automatically; e.g. if the target FS is being set up, and 
+# some files (like dpkg-architecture) do not exist yet..)
+DPKG_ARCHITECTURE_FULLPATH=$(sb2 -t $TARGET -m $mapping_mode_for_dpkg_utils which dpkg-architecture 2>/dev/null)
 if [ $? != 0 ]; then
 	# Can't locate or run dpkg-architecture. Set the values here.
 	# FIXME: I'm still not sure if these settings are sane,

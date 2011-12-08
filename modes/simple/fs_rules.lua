@@ -64,7 +64,7 @@ fs_mapping_rules = {
 		{prefix = sbox_dir .. "/share/scratchbox2",
 		 use_orig_path = true},
 
-		{dir = "/usr", chain = simple_rules_usr},
+		{dir = "/usr", rules = simple_rules_usr},
 
 		-- -----------------------------------------------
 		-- 99. Other rules.

@@ -124,7 +124,7 @@ function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule)
 		action_str = rule.replace_by
 	elseif (rule.set_path) then
 		action_type = RULE_ACTION_SET_PATH
-		action_str = rule.replace_by
+		action_str = rule.set_path
 	elseif (rule.map_to_value_of_env_var) then
 		action_type = RULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR
 		action_str = rule.map_to_value_of_env_var

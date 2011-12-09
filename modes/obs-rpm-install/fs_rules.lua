@@ -291,6 +291,8 @@ emulate_mode_rules_dev = {
 		-- However, there are some devices we never want to simulate...
 		{path = "/dev/console", use_orig_path = true},
 		{path = "/dev/null", use_orig_path = true},
+		{prefix = "/dev/tty", use_orig_path = true},
+		{prefix = "/dev/fb", use_orig_path = true},
 		{dir = "/dev", actions = {
 				{ if_exists_then_map_to = session_dir },
 				{ use_orig_path = true }

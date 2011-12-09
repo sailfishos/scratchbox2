@@ -344,19 +344,6 @@ emulate_mode_rules = {
 		 actions = test_first_target_then_host_default_is_target},
 
 		-- -----------------------------------------------
-		{prefix = sbox_user_home_dir, use_orig_path = true},
-
-		-- "user" is a special username, and should be mapped
-		-- to target_root
-		-- (but note that if the real user name is "user",
-		-- our previous rule handled that and this rule won't be used)
-		{prefix = "/home/user", map_to = target_root,
-		 protection = readonly_fs_if_not_root},
-		{prefix = "/home/abuild", map_to = target_root},
-
-		-- Other home directories = not mapped, R/W access
-		{prefix = "/home", use_orig_path = true},
-		-- -----------------------------------------------
 
 		{dir = "/usr", rules = emulate_mode_rules_usr},
 		{dir = "/bin", rules = emulate_mode_rules_bin},

@@ -17,12 +17,12 @@ end
 
 exec_policy_host = {
 	name = "Host",
-	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
+	native_app_ld_preload_prefix = host_ld_preload_libsb2..fakeroot_ld_preload,
 }
 
 exec_policy_toolchain = {
 	name = "Toolchain",
-	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
+	native_app_ld_preload_prefix = host_ld_preload_libsb2..fakeroot_ld_preload,
 }
 
 -- For target binaries:

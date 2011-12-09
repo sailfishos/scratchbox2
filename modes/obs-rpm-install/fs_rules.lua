@@ -298,6 +298,24 @@ emulate_mode_rules_dev = {
 		},
 }
 
+proc_rules = {
+		-- We can't change times or attributes of host's /proc,
+		-- but must pretend to be able to do so. Redirect the path
+		-- to an existing, dummy location.
+		{path = "/proc", func_name = ".*utime.*",
+	         set_path = session_dir.."/dummy_file", protection = readonly_fs_if_not_root },
+
+		-- Default:
+		{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
+		 virtual_path = true},
+}		 
+
+sys_rules = {
+		{path = "/sys", func_name = ".*utime.*",
+	         set_path = session_dir.."/dummy_file", protection = readonly_fs_if_not_root },
+		{prefix = "/sys", use_orig_path = true},
+}
+
 
 emulate_mode_rules = {
 		-- First paths that should never be mapped:
@@ -326,9 +344,8 @@ emulate_mode_rules = {
 
 		{dir = "/dev", rules = emulate_mode_rules_dev},
 
-		{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
-		 virtual_path = true},
-		{prefix = "/sys", use_orig_path = true},
+		{dir = "/proc", rules = proc_rules},
+		{dir = "/sys", rules = sys_rules},
 
 		{prefix = sbox_dir .. "/share/scratchbox2",
 		 use_orig_path = true},

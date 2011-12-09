@@ -276,8 +276,26 @@ emulate_mode_rules_dev = {
 		{dir = "/dev", func_name = ".*utime.*",
 	         set_path = session_dir.."/dummy_file", protection = readonly_fs_if_not_root },
 
-		-- Default: Use real devices.
-		{dir = "/dev", use_orig_path = true},
+		-- mknod is simulated by fakeroot. Redirect to a directory where
+		-- mknod can create the node.
+		{dir = "/dev", func_name = ".*mknod.*",
+	         map_to = session_dir, protection = readonly_fs_if_not_root },
+		-- typically, rename() is used to rename nodes created by
+		-- mknod() (and it can't be used to rename real devices anyway)
+		{dir = "/dev", func_name = ".*rename.*",
+	         map_to = session_dir, protection = readonly_fs_if_not_root },
+
+		-- Default: If a node has been created by mknod, and that was
+		-- simulated by fakeroot, use the simulated target.
+		-- Otherwise use real devices.
+		-- However, there are some devices we never want to simulate...
+		{path = "/dev/console", use_orig_path = true},
+		{path = "/dev/null", use_orig_path = true},
+		{dir = "/dev", actions = {
+				{ if_exists_then_map_to = session_dir },
+				{ use_orig_path = true }
+			},
+		},
 }
 
 

@@ -739,6 +739,28 @@ int accept_gate(
 	return (res);
 }
 
+int accept4_gate(
+	int *result_errno_ptr,
+	int (*real_accept4_ptr)(int sockfd,
+		struct sockaddr *addr, socklen_t *addrlen, int flags),
+        const char *realfnname,
+	int sockfd,
+	struct sockaddr *addr,
+	socklen_t *addrlen,
+	int flags)
+{
+	ssize_t	res;
+	socklen_t orig_from_size = 0;
+
+	if (addrlen) orig_from_size = *addrlen;
+
+	errno = *result_errno_ptr; /* restore to orig.value */
+	res = (*real_accept4_ptr)(sockfd, addr, addrlen, flags);
+	*result_errno_ptr = errno;
+	if (addr) reverse_sockaddr_un(realfnname, addr, orig_from_size, addrlen);
+	return (res);
+}
+
 int getpeername_gate(
 	int *result_errno_ptr,
 	int (*real_getpeername_ptr)(int s,

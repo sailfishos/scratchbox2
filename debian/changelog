@@ -1,8 +1,16 @@
+scratchbox2 (2.3.12-1) unstable; urgency=low
+
+  * Bugfix to networking code (recvfrom works with NULL addr.pointers)
+  * Added wrapper for accept4()
+  * Several changes to "obs-rpm-install" mode
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Fri, 09 Dec 2011 20:14:00 +0200
+
 scratchbox2 (2.3.11-1) unstable; urgency=low
 
   * Four small fixes
 
- -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 08 Nov 2011 15:22:00 +0200
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 08 Dec 2011 15:22:00 +0200
 
 scratchbox2 (2.3.10-1) unstable; urgency=low
 
@@ -12,7 +20,7 @@ scratchbox2 (2.3.10-1) unstable; urgency=low
   * C / Lua interface version number is 95 now
   * Rule file interface version number is 101 now
 
- -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Fri, 02 Nov 2011 14:09:00 +0200
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Fri, 02 Dec 2011 14:09:00 +0200
 
 scratchbox2 (2.3.9-1) unstable; urgency=low
 

@@ -659,12 +659,13 @@ ssize_t recvfrom_gate(
 	socklen_t *fromlen)
 {
 	ssize_t	res;
-	socklen_t orig_from_size = *fromlen;
+	socklen_t orig_from_size = 0;
 
+	if (fromlen) orig_from_size = *fromlen;
 	errno = *result_errno_ptr; /* restore to orig.value */
 	res = (*real_recvfrom_ptr)(s, buf, len, flags, from, fromlen);
 	*result_errno_ptr = errno;
-	reverse_sockaddr_un(realfnname, from, orig_from_size, fromlen);
+	if (from) reverse_sockaddr_un(realfnname, from, orig_from_size, fromlen);
 	return (res);
 }
 
@@ -683,13 +684,15 @@ ssize_t __recvfrom_chk_gate(
 	socklen_t *__restrict fromlen)
 {
 	ssize_t	res;
-	socklen_t orig_from_size = *fromlen;
+	socklen_t orig_from_size = 0;
+
+	if (fromlen) orig_from_size = *fromlen;
 
 	errno = *result_errno_ptr; /* restore to orig.value */
 	res = (*real___recvfrom_chk_ptr)(s, buf, __n, __buflen, flags,
 		from, fromlen);
 	*result_errno_ptr = errno;
-	reverse_sockaddr_un(realfnname, from, orig_from_size, fromlen);
+	if (from) reverse_sockaddr_un(realfnname, from, orig_from_size, fromlen);
 	return (res);
 }
 
@@ -725,12 +728,14 @@ int accept_gate(
 	socklen_t *addrlen)
 {
 	ssize_t	res;
-	socklen_t orig_from_size = *addrlen;
+	socklen_t orig_from_size = 0;
+
+	if (addrlen) orig_from_size = *addrlen;
 
 	errno = *result_errno_ptr; /* restore to orig.value */
 	res = (*real_accept_ptr)(sockfd, addr, addrlen);
 	*result_errno_ptr = errno;
-	reverse_sockaddr_un(realfnname, addr, orig_from_size, addrlen);
+	if (addr) reverse_sockaddr_un(realfnname, addr, orig_from_size, addrlen);
 	return (res);
 }
 
@@ -744,12 +749,13 @@ int getpeername_gate(
 	socklen_t *namelen)
 {
 	ssize_t	res;
-	socklen_t orig_from_size = *namelen;
+	socklen_t orig_from_size = 0;
 
+	if (namelen) orig_from_size = *namelen;
 	errno = *result_errno_ptr; /* restore to orig.value */
 	res = (*real_getpeername_ptr)(s, name, namelen);
 	*result_errno_ptr = errno;
-	reverse_sockaddr_un(realfnname, name, orig_from_size, namelen);
+	if (name) reverse_sockaddr_un(realfnname, name, orig_from_size, namelen);
 	return (res);
 }
 
@@ -763,12 +769,13 @@ int getsockname_gate(
 	socklen_t *namelen)
 {
 	ssize_t	res;
-	socklen_t orig_from_size = *namelen;
+	socklen_t orig_from_size = 0;
 
+	if (namelen) orig_from_size = *namelen;
 	errno = *result_errno_ptr; /* restore to orig.value */
 	res = (*real_getsockname_ptr)(s, name, namelen);
 	*result_errno_ptr = errno;
-	reverse_sockaddr_un(realfnname, name, orig_from_size, namelen);
+	if (name) reverse_sockaddr_un(realfnname, name, orig_from_size, namelen);
 	return (res);
 }
 

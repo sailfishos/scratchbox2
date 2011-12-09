@@ -1332,6 +1332,8 @@ function initialize_new_sb2_session()
 	# Some operations to /dev/* are redirected to this:
 	# (setting time of the nodes, etc)
 	touch $SBOX_SESSION_DIR/dummy_file
+	# For mknod() simulation in some modes:
+	mkdir $SBOX_SESSION_DIR/dev
 
 	ln -s $SBOX_DIR/bin $SBOX_SESSION_DIR/bin
 	ln -s $SBOX_DIR/share $SBOX_SESSION_DIR/share

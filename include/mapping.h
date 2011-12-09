@@ -157,6 +157,8 @@ extern char *prep_union_dir(const char *dst_path,
 #define SB2_INTERFACE_CLASS_SET_TIMES	0x100	/* utimes() etc: set timestamps */
 
 #define SB2_INTERFACE_CLASS_L10N	0x200	/* gettextdomain etc. */
+#define SB2_INTERFACE_CLASS_MKNOD	0x400
+#define SB2_INTERFACE_CLASS_RENAME	0x800
 
 #define SB2_INTERFACE_CLASS_PROC_FS_OP	0x1000	/* /proc file system operation */
 

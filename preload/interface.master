@@ -231,9 +231,9 @@ WRAP: DIR *__opendir2(const char *name, int flags) : map(name) \
 	class(OPEN)
 
 WRAP: int __xmknod(int ver, const char *path, mode_t mode, dev_t *dev) : \
-	dont_resolve_final_symlink map(path) fail_if_readonly(path,-1,EROFS)
+	dont_resolve_final_symlink map(path) fail_if_readonly(path,-1,EROFS) class(MKNOD)
 WRAP: int __xmknodat(int ver, int dirfd, const char *pathname, mode_t mode, dev_t *dev) : \
-	dont_resolve_final_symlink map_at(dirfd,pathname) fail_if_readonly(pathname,-1,EROFS)
+	dont_resolve_final_symlink map_at(dirfd,pathname) fail_if_readonly(pathname,-1,EROFS) class(MKNOD)
 
 WRAP: int __xstat(int ver, const char *filename, struct stat *buf) : map(filename) class(STAT)
 #ifdef HAVE___XSTAT64
@@ -443,9 +443,9 @@ WRAP: int mkfifo(const char *pathname, mode_t mode) : \
 WRAP: int mkfifoat(int dirfd, const char *pathname, mode_t mode) : \
 	map_at(dirfd,pathname) fail_if_readonly(pathname,-1,EROFS)
 WRAP: int mknod(const char *pathname, mode_t mode, dev_t dev) : \
-	map(pathname) fail_if_readonly(pathname,-1,EROFS)
+	map(pathname) fail_if_readonly(pathname,-1,EROFS) class(MKNOD)
 WRAP: int mknodat(int dirfd, const char *pathname, mode_t mode, dev_t dev) : \
-	map_at(dirfd,pathname) fail_if_readonly(pathname,-1,EROFS)
+	map_at(dirfd,pathname) fail_if_readonly(pathname,-1,EROFS) class(MKNOD)
 WRAP: int nftw(const char *dir, int (*fn)(const char *file, const struct stat *sb, int flag, struct FTW *s), int nopenfd, int flags) : map(dir)
 #ifdef HAVE_NFTW64
 WRAP: int nftw64(const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag, struct FTW *s), int nopenfd, int flags) : map(dir)
@@ -483,13 +483,15 @@ WRAP: int rename(const char *oldpath, const char *newpath) : \
 	dont_resolve_final_symlink map(oldpath) \
 	dont_resolve_final_symlink map(newpath) \
 	fail_if_readonly(oldpath,-1,EROFS) \
-	fail_if_readonly(newpath,-1,EROFS)
+	fail_if_readonly(newpath,-1,EROFS) \
+	class(RENAME)
 WRAP: int renameat(int olddirfd, const char *oldpath, int newdirfd, \
 	const char *newpath) : \
 	dont_resolve_final_symlink map_at(olddirfd,oldpath) \
 	dont_resolve_final_symlink map_at(newdirfd,newpath) \
 	fail_if_readonly(oldpath,-1,EROFS) \
-	fail_if_readonly(newpath,-1,EROFS)
+	fail_if_readonly(newpath,-1,EROFS) \
+	class(RENAME)
 
 WRAP: int revoke(const char *file) : map(file)
 

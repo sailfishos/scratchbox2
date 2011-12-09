@@ -42,6 +42,8 @@ local SB2_INTERFACE_CLASS_OPEN = 0x1
 local SB2_INTERFACE_CLASS_STAT = 0x2
 local SB2_INTERFACE_CLASS_EXEC = 0x4
 local SB2_INTERFACE_CLASS_SET_TIMES = 0x100
+local SB2_INTERFACE_CLASS_MKNOD = 0x400
+local SB2_INTERFACE_CLASS_RENAME = 0x800
 
 function get_rule_tree_offset_for_rule_list(rules, node_type_is_ordinary_rule)
 	if #rules < 1 then
@@ -91,6 +93,10 @@ function func_name_to_classmask(func_name)
 		mask = SB2_INTERFACE_CLASS_EXEC
 	elseif (func_name == ".*utime.*") then
 		mask = SB2_INTERFACE_CLASS_SET_TIMES
+	elseif (func_name == ".*mknod.*") then
+		mask = SB2_INTERFACE_CLASS_MKNOD
+	elseif (func_name == ".*rename.*") then
+		mask = SB2_INTERFACE_CLASS_RENAME
 	end
 	return mask
 end

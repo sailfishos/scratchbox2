@@ -40,6 +40,7 @@ typedef struct cmdline_options_s {
 	int		opt_ignore_directories;
 	const char	*binary_name;
 	const char	*function_name; 
+	int		function_name_set; 
 	const char	*debug_port; 
 
 	char	**additional_env; /* there can be multiple -E options */
@@ -511,11 +512,8 @@ static int cmd_net(const command_table_t *cmdp, const cmdline_options_t *opts,
 }
 
 static void command_show_exec(
-	const char *binary_name,
-	const char *fn_name,
-	const char *progname, 
+	const cmdline_options_t *opts,
 	int argc, char **argv,
-	char **additional_env,
 	int verbose,
 	print_exec_fn_t print_exec_fn,
 	void *priv)
@@ -528,7 +526,21 @@ static void command_show_exec(
 	char	*mapped_path = NULL;
 	int	readonly_flag;
 	char	*ba[2];
-	
+	const char *binary_name = opts->binary_name;
+	const char *fn_name = opts->function_name;
+	const char *progname = opts->progname;
+	char **additional_env = opts->additional_env;
+
+	if (!opts->function_name_set) {
+		/* function name was not specified by an option.
+		 * default to execvp(); some modes have rules which
+		 * depend on function name, and output may not be
+		 * correct if mapping is called with default 
+		 * "anyfunction" tag.
+		*/
+		fn_name = "execvp";
+	}
+
 	if (argc < 1) {
 		usage_exit(progname, "Too few parameters for this command", 1, NULL);
 	}
@@ -849,9 +861,9 @@ static int cmd_exec(const command_table_t *cmdp, const cmdline_options_t *opts,
 			int cmd_argc, char *cmd_argv[])
 {
 	(void)cmdp;
-	command_show_exec(opts->binary_name, opts->function_name,
-			opts->progname, cmd_argc - 1, cmd_argv + 1,
-			opts->additional_env, opts->opt_verbose,
+	command_show_exec(opts,
+			cmd_argc - 1, cmd_argv + 1,
+			opts->opt_verbose,
 			print_exec, NULL);
 	return(0);
 }
@@ -860,9 +872,9 @@ static int cmd_exec_cmdline(const command_table_t *cmdp, const cmdline_options_t
 			int cmd_argc, char *cmd_argv[])
 {
 	(void)cmdp;
-	command_show_exec(opts->binary_name, opts->function_name,
-			opts->progname, cmd_argc - 1, cmd_argv + 1,
-			opts->additional_env, 0/*verbose*/,
+	command_show_exec(opts,
+			cmd_argc - 1, cmd_argv + 1,
+			0/*verbose*/,
 			print_exec_cmdline, NULL);
 	return(0);
 }
@@ -872,9 +884,9 @@ static int cmd_qemu_debug_exec(const command_table_t *cmdp,
 			int cmd_argc, char *cmd_argv[])
 {
 	(void)cmdp;
-	command_show_exec(opts->binary_name, opts->function_name,
-			opts->progname, cmd_argc - 1, cmd_argv + 1,
-			opts->additional_env, opts->opt_verbose,
+	command_show_exec(opts,
+			cmd_argc - 1, cmd_argv + 1,
+			opts->opt_verbose,
 			print_qemu_debug_exec, (void*)opts->debug_port);
 	return(0);
 }
@@ -994,6 +1006,7 @@ int main(int argc, char *argv[])
 	memset(&opts, 0, sizeof(opts));
 	opts.progname = argv[0];
 	opts.function_name = "ANYFUNCTION";
+	opts.function_name_set = 0;
 	opts.binary_name = "ANYBINARY";
 	opts.debug_port = "1234";
 
@@ -1005,7 +1018,8 @@ int main(int argc, char *argv[])
 				 "%s: Warning: option -m is obsolete\n",
 				argv[0]);
 			break;
-		case 'f': opts.function_name = optarg; break;
+		case 'f': opts.function_name = optarg;
+			  opts.function_name_set = 1; break;
 		case 'b': opts.binary_name = optarg; break;
 		case 'p': active_exec_policy_name = optarg; break;
 		case 'D': opts.opt_ignore_directories = 1; break;

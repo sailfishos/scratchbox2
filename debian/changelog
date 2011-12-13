@@ -1,3 +1,9 @@
+scratchbox2 (2.3.13-1) unstable; urgency=low
+
+  * changes to mapping modes
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Tue, 13 Dec 2011 16:42:00 +0200
+
 scratchbox2 (2.3.12-1) unstable; urgency=low
 
   * Bugfix to networking code (recvfrom works with NULL addr.pointers)

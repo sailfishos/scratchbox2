@@ -171,42 +171,44 @@ function add_cross_compiler(gccrule, version)
 	end
 end
 
--- deal with host-gcc functionality, disables mapping
-for prefix in string.gmatch(sbox_host_gcc_prefix_list, "[^:]+") do
-	for i = 1, table.maxn(gcc_compilers) do
-		local tmp = {}
-		tmp.name = prefix .. gcc_compilers[i]
-		tmp.new_filename = sbox_host_gcc_dir .. "/" .. sbox_host_gcc_subst_prefix .. gcc_compilers[i]
-		tmp.add_tail = {}
-		tmp.remove = {}
-		tmp.disable_mapping = 1
-		if (sbox_extra_host_compiler_args and sbox_extra_host_compiler_args ~= "") then
-			for gcc_extra in string.gmatch(sbox_extra_host_compiler_args, "[^ ]+") do
-				table.insert(tmp.add_tail, gcc_extra)
+if (sbox_host_gcc_prefix_list and sbox_host_gcc_prefix_list ~= "") then
+	-- deal with host-gcc functionality, disables mapping
+	for prefix in string.gmatch(sbox_host_gcc_prefix_list, "[^:]+") do
+		for i = 1, table.maxn(gcc_compilers) do
+			local tmp = {}
+			tmp.name = prefix .. gcc_compilers[i]
+			tmp.new_filename = sbox_host_gcc_dir .. "/" .. sbox_host_gcc_subst_prefix .. gcc_compilers[i]
+			tmp.add_tail = {}
+			tmp.remove = {}
+			tmp.disable_mapping = 1
+			if (sbox_extra_host_compiler_args and sbox_extra_host_compiler_args ~= "") then
+				for gcc_extra in string.gmatch(sbox_extra_host_compiler_args, "[^ ]+") do
+					table.insert(tmp.add_tail, gcc_extra)
+				end
 			end
-		end
-		if (sbox_block_host_compiler_args and sbox_block_host_compiler_args ~= "") then
-			for gcc_block in string.gmatch(sbox_block_host_compiler_args, "[^ ]+") do
-				table.insert(tmp.remove, gcc_block)
+			if (sbox_block_host_compiler_args and sbox_block_host_compiler_args ~= "") then
+				for gcc_block in string.gmatch(sbox_block_host_compiler_args, "[^ ]+") do
+					table.insert(tmp.remove, gcc_block)
+				end
 			end
+			register_gcc_component_path(tmp, nil)
 		end
-		register_gcc_component_path(tmp, nil)
-	end
 
-	-- just map the filename for linkers and tools
-	for i = 1, table.maxn(gcc_linkers) do
-		local tmp = {}
-		tmp.name = prefix .. gcc_linkers[i]
-		tmp.new_filename = sbox_host_gcc_dir .. "/" .. sbox_host_gcc_subst_prefix .. gcc_linkers[i]
-		tmp.disable_mapping = 1
-		register_gcc_component_path(tmp, nil)
-	end
-	for i = 1, table.maxn(gcc_tools) do
-		local tmp = {}
-		tmp.name = prefix .. gcc_tools[i]
-		tmp.new_filename = sbox_host_gcc_dir .. "/" .. sbox_host_gcc_subst_prefix .. gcc_tools[i]
-		tmp.disable_mapping = 1
-		register_gcc_component_path(tmp, nil)
+		-- just map the filename for linkers and tools
+		for i = 1, table.maxn(gcc_linkers) do
+			local tmp = {}
+			tmp.name = prefix .. gcc_linkers[i]
+			tmp.new_filename = sbox_host_gcc_dir .. "/" .. sbox_host_gcc_subst_prefix .. gcc_linkers[i]
+			tmp.disable_mapping = 1
+			register_gcc_component_path(tmp, nil)
+		end
+		for i = 1, table.maxn(gcc_tools) do
+			local tmp = {}
+			tmp.name = prefix .. gcc_tools[i]
+			tmp.new_filename = sbox_host_gcc_dir .. "/" .. sbox_host_gcc_subst_prefix .. gcc_tools[i]
+			tmp.disable_mapping = 1
+			register_gcc_component_path(tmp, nil)
+		end
 	end
 end
 

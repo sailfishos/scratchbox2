@@ -122,8 +122,8 @@ SBOX_CPU=$ARCH
 SBOX_CPUTRANSPARENCY_METHOD="$SB2INIT_CPUTRANSP"
 SBOX_UNAME_MACHINE=$MACHINE_ARCH
 
-SBOX_HOST_GCC_NAME=host-gcc
-SBOX_HOST_GCC_PREFIX_LIST=host-
+SBOX_HOST_GCC_NAME="$SB2INIT_SBOX_HOST_GCC_NAME"
+SBOX_HOST_GCC_PREFIX_LIST="$SB2INIT_SBOX_HOST_GCC_PREFIX_LIST"
 SBOX_HOST_GCC_SUBST_PREFIX=
 SBOX_HOST_GCC_SPECS_FILE=
 SBOX_HOST_GCC_DIR=/usr/bin
@@ -461,7 +461,17 @@ if [ -n "$SB2INIT_TOOLS_ROOT" ]; then
 	# else assume standard FHS system
 fi
 
-HOST_GCC_INC=$(echo "#include <stdio.h>" | gcc -M -E - | SBOX_DIR=$SBOX_DIR perl -e 'while(<STDIN>) { $foo{$1} = 1 if m/\/usr([^[:space:]]*\/include)/;}; foreach my $k (keys %foo) {print " -isystem $ENV{SBOX_DIR}/share/scratchbox2/host_usr$k"};')
+_host_gcc=$(which gcc)
+if [ -n "$_host_gcc" -a -e "$_host_gcc" ]; then
+	HOST_GCC_INC=$(echo "#include <stdio.h>" | gcc -M -E - | SBOX_DIR=$SBOX_DIR perl -e 'while(<STDIN>) { $foo{$1} = 1 if m/\/usr([^[:space:]]*\/include)/;}; foreach my $k (keys %foo) {print " -isystem $ENV{SBOX_DIR}/share/scratchbox2/host_usr$k"};')
+	SB2INIT_SBOX_HOST_GCC_NAME=host-gcc
+	SB2INIT_SBOX_HOST_GCC_PREFIX_LIST=host-
+else
+	echo "sb2-init: no host-gcc."
+	HOST_GCC_INC=""
+	SB2INIT_SBOX_HOST_GCC_NAME=""
+	SB2INIT_SBOX_HOST_GCC_PREFIX_LIST=""
+fi
 
 mkdir -p $HOME/.scratchbox2/$TARGET/bin
 write_target_config

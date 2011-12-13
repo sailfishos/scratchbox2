@@ -314,6 +314,9 @@ emulate_mode_rules = {
 		{path = sbox_cputransparency_cmd, use_orig_path = true,
 		 protection = readonly_fs_always},
 
+		{dir = sbox_target_toolchain_dir, use_orig_path = true,
+		 protection = readonly_fs_always},
+
 		{prefix = target_root, use_orig_path = true,
 		 protection = readonly_fs_if_not_root},
 

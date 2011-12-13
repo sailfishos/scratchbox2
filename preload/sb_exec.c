@@ -734,7 +734,8 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 	for (p=(char **)envp, envc=0; *p; p++, envc++) {
 		SB_LOG(SB_LOGLEVEL_NOISE2,
 			"%s: #%d env.var %s", __func__, envc, *p);
-		if (**p == 'L') {
+		switch (**p) {
+		case 'L':
 			if (strncmp("LD_PRELOAD=", *p, strlen("LD_PRELOAD=")) == 0) {
 				if (asprintf(&user_ld_preload,
 					"__SB2_%s", *p) < 0) {
@@ -751,7 +752,8 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 				}
 				continue;
 			}
-		} else if (**p == 'S') {
+			break;
+		case 'S':
 			if (strncmp("SBOX_SESSION_DIR=", *p,
 			     sbox_session_dir_varname_len+1) == 0) {
 				has_sbox_session_dir = 1;
@@ -782,6 +784,22 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 				has_sbox_sigtrap = 1;
 				continue;
 			}
+			break;
+		case 'F':
+			if (sbox_fakeroot_fakerootkey &&
+			    (strncmp("FAKEROOTKEY=", *p,
+				strlen("FAKEROOTKEY=")) == 0)) {
+				SB_LOG(SB_LOGLEVEL_DEBUG, 
+					"Found '%s'", *p);
+			}
+
+			if (sbox_fakeroot_faked_mode &&
+			    (strncmp("FAKED_MODE=", *p,
+				strlen("FAKED_MODE=")) == 0)) {
+				SB_LOG(SB_LOGLEVEL_DEBUG, 
+					"Found '%s'", *p);
+			}
+			break;
 		}
 	}
 
@@ -821,12 +839,18 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 				strlen("LD_LIBRARY_PATH=")) == 0)) continue;
 			break;
 		case 'F':
-			/* drop FAKEROOTKEY and FAKED_MODE, if present.
+			/* drop FAKEROOTKEY and FAKED_MODE, if present
+			 * and if these were already set.
 			 * we'll restore original values below. */
-			if ((strncmp("FAKEROOTKEY=", *p,
-				strlen("FAKEROOTKEY=")) == 0) ||
+			if (sbox_fakeroot_fakerootkey &&
+			    (strncmp("FAKEROOTKEY=", *p,
+				strlen("FAKEROOTKEY=")) == 0))
+				continue;
+
+			if (sbox_fakeroot_faked_mode &&
 			    (strncmp("FAKED_MODE=", *p,
-				strlen("FAKED_MODE=")) == 0)) continue;
+				strlen("FAKED_MODE=")) == 0))
+				 continue;
 			break;
 		}
 

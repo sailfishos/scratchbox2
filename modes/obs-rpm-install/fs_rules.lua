@@ -259,8 +259,8 @@ emulate_mode_rules_var = {
 		protection = readonly_fs_always},
 
 		--
-		{prefix = "/var/run", map_to = session_dir},
-		{prefix = "/var/tmp", replace_by = var_tmp_dir_dest},
+		{dir = "/var/run", map_to = session_dir},
+		{dir = "/var/tmp", replace_by = var_tmp_dir_dest},
 
 		{dir = "/var", map_to = target_root,
 		protection = readonly_fs_if_not_root}
@@ -326,7 +326,7 @@ proc_rules = {
 sys_rules = {
 		{path = "/sys", func_name = ".*utime.*",
 	         set_path = session_dir.."/dummy_file", protection = readonly_fs_if_not_root },
-		{prefix = "/sys", use_orig_path = true},
+		{dir = "/sys", use_orig_path = true},
 }
 
 
@@ -337,9 +337,9 @@ emulate_mode_rules = {
 		{path = sbox_cputransparency_cmd, use_orig_path = true,
 		 protection = readonly_fs_always},
 
-		--{prefix = target_root, use_orig_path = true,
+		--{dir = target_root, use_orig_path = true,
 		-- protection = readonly_fs_if_not_root},
-		{prefix = target_root, use_orig_path = true,
+		{dir = target_root, use_orig_path = true,
 		 -- protection = readonly_fs_if_not_root
 		},
 
@@ -348,19 +348,19 @@ emulate_mode_rules = {
 		-- ldconfig is static binary, and needs to be wrapped
 		-- Gdb needs some special parameters before it
 		-- can be run so we wrap it.
-		{prefix = "/sb2/wrappers",
+		{dir = "/sb2/wrappers",
 		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
 		 protection = readonly_fs_always},
 
 		-- 
-		{prefix = "/tmp", replace_by = tmp_dir_dest},
+		{dir = "/tmp", replace_by = tmp_dir_dest},
 
 		{dir = "/dev", rules = emulate_mode_rules_dev},
 
 		{dir = "/proc", rules = proc_rules},
 		{dir = "/sys", rules = sys_rules},
 
-		{prefix = sbox_dir .. "/share/scratchbox2",
+		{dir = sbox_dir .. "/share/scratchbox2",
 		 use_orig_path = true},
 
 		-- The real sbox_dir.."/lib/libsb2" must be available:

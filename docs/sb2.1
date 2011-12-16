@@ -8,7 +8,13 @@ sb2 \- crosscompiling environment
 .B sb2
 runs command in a scratchbox2 session. If no command is given, an interactive shell is started.
 .PP
-Scratchbox2 creates an environement with essential differences to the host OS environment:
+Scratchbox2 is typically used to create a
+.I trasparent cross-compiling environment
+for developing programs and compiling software packages for e.g. embedded devices.
+.PP
+The environment created by
+.B sb2
+has essential differences to the host OS environment:
 .PP
 First, a virtual file system view is presented to the applications.
 In practise that means that the file names (paths) which an application
@@ -49,6 +55,24 @@ command is used (unless one of the persistent session control options is present
 see options -S,-J and -D below).
 .SH OPTIONS
 .TP
+\-b DIR
+Produce graphs and log summaries to directory DIR.
+Implies '-L info'. Log summaries are created by 
+.I sb2-logz,
+and if the
+.I graphviz
+package is available, execution and process grahps 
+are created by 'dot', too.
+.TP
+\-B DIR
+As -b, but also include process accounting data.
+(This may require special permissions, because 
+.I acct(2)
+system call is used twice. Tries to use 
+.I sudo
+if process accounting can not be activated directly, and
+that may require a password)
+.TP
 \-c
 When creating a session, also create a private copy of the target root filesystem (rootstrap).
 Modifications done to the copy will be thrown away when the session is destroyed.
@@ -57,14 +81,14 @@ but if the copy goes to a ramdisk, overall performance may much be better (see a
 .TP
 \-C DIR
 When creating a session, create copy of DIR and use it as the
-target root filesystem (rootstrap). Note that this can be really slow. See alse option -c.
+target root filesystem (rootstrap). Note that this can be really slow. See also option -c.
 .TP
 \-d
 Use debug mode: same as
 .B -L debug
 .TP
 \-D FILE
-Delete a persistent session assosiated with FILE. 
+Delete a persistent session associated with FILE. 
 Warning: this does not check if the session is still in use!
 (see also -S and -J)
 .TP
@@ -91,7 +115,7 @@ Append process group number to a file.
 Print help.
 .TP
 \-J FILE
-Join a persistent session assossiated with FILE (see also -D and -S) 
+Join a persistent session associated with FILE (see also -D and -S) 
 .TP
 \-L LEVEL
 Enable logging. Following values for LEVEL are available (in order
@@ -158,6 +182,9 @@ Use DIR as the session directory when creating the session (The default is to
 create the session in /tmp). DIR must be an absolute path and must not exist.
 Note that long pathnames may cause trouble with socket operations, so try to
 keep DIR as short as possible.
+.TP
+\-q
+quiet; don't print debugging details to stdout etc.
 
 .SH EXAMPLES
 .TP
@@ -217,7 +244,7 @@ installing programs to the target filesystem and testing them.
 "tools" mode is very much like "emulate", except that there most
 things are mapped to tools root.
 .PP
-"nomap" mode is a special maping mode, which is mostly useful only
+"nomap" mode is a special mapping mode, which is mostly useful only
 for debugging purposes: It does not apply any file system related mappings,
 but otherwise scratchbox2 functions are fully operational.
 

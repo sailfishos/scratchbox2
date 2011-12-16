@@ -266,6 +266,17 @@ emulate_mode_rules_var = {
 		protection = readonly_fs_if_not_root}
 }
 
+emulate_mode_rules_home = {
+		-- We can't change times or attributes of the real /home
+		-- but must pretend to be able to do so. Redirect the path
+		-- to an existing, dummy location.
+		{path = "/home", func_name = ".*utime.*",
+	         set_path = session_dir.."/dummy_file", protection = readonly_fs_if_not_root },
+
+		-- Default: Not mapped, R/W access.
+		{dir = "/home", use_orig_path = true},
+}
+
 emulate_mode_rules_dev = {
 		-- FIXME: This rule should have "protection = eaccess_if_not_owner_or_root",
 		-- but that kind of protection is not yet supported.
@@ -363,8 +374,8 @@ emulate_mode_rules = {
 		 actions = test_first_target_then_host_default_is_target},
 
 		-- -----------------------------------------------
-		-- home directories: not mapped, R/W access
-		{dir = "/home", use_orig_path = true},
+		-- home directories:
+		{dir = "/home", rules = emulate_mode_rules_home},
 		-- -----------------------------------------------
 
 		{dir = "/usr", rules = emulate_mode_rules_usr},

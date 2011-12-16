@@ -286,6 +286,16 @@ emulate_mode_rules_dev = {
 		{dir = "/dev", use_orig_path = true},
 }
 
+proc_rules = {
+		-- Default:
+		{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
+		 virtual_path = true},
+}		 
+
+sys_rules = {
+		{dir = "/sys", use_orig_path = true},
+}
+
 
 emulate_mode_rules = {
 		-- First paths that should never be mapped:
@@ -295,7 +305,7 @@ emulate_mode_rules = {
 		 protection = readonly_fs_always},
 
 		{dir = sbox_target_toolchain_dir, use_orig_path = true,
-		 protection = readonly_fs_always},
+		  protection = readonly_fs_always},
 
 		--{dir = target_root, use_orig_path = true,
 		-- protection = readonly_fs_if_not_root},
@@ -317,9 +327,8 @@ emulate_mode_rules = {
 
 		{dir = "/dev", rules = emulate_mode_rules_dev},
 
-		{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
-		 virtual_path = true},
-		{dir = "/sys", use_orig_path = true},
+		{dir = "/proc", rules = proc_rules},
+		{dir = "/sys", rules = sys_rules},
 
 		{dir = sbox_dir .. "/share/scratchbox2",
 		 use_orig_path = true},

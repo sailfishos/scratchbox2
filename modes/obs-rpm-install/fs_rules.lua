@@ -277,6 +277,11 @@ emulate_mode_rules_home = {
 		{dir = "/home", use_orig_path = true},
 }
 
+emulate_mode_rules_opt = {
+		{dir = "/opt", map_to = target_root,
+		 protection = readonly_fs_if_not_root}
+}
+
 emulate_mode_rules_dev = {
 		-- FIXME: This rule should have "protection = eaccess_if_not_owner_or_root",
 		-- but that kind of protection is not yet supported.
@@ -382,6 +387,7 @@ emulate_mode_rules = {
 		{dir = "/bin", rules = emulate_mode_rules_bin},
 		{dir = "/etc", rules = emulate_mode_rules_etc},
 		{dir = "/var", rules = emulate_mode_rules_var},
+		{dir = "/opt", rules = emulate_mode_rules_opt},
 
 		{path = "/", rules = rootdir_rules},
 		{prefix = "/", map_to = target_root,

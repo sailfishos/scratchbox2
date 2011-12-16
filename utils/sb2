@@ -70,7 +70,7 @@ Options:
     -b dir       Produce graphs and log summaries to directory dir
                  (implies '-L info', graphs are created by sb2-logz and 
                  'dot', if the graphviz package is available)
-    -B dir       As -z, but also include process accounting data.
+    -B dir       As -b, but also include process accounting data.
                  (This may require special permissions, because acct(2)
                  system call is used) 
     -q           quiet; don't print debugging details to stdout etc.

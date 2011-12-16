@@ -1,3 +1,10 @@
+scratchbox2 (2.3.15-1) unstable; urgency=low
+
+  * Manual page sb2.1 was updated
+  * Changes to obs-rpm-* modes; various fixes and cleanups
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Fri, 16 Dec 2011 12:54:00 +0200
+
 scratchbox2 (2.3.14-1) unstable; urgency=low
 
   * changes/fixes to mapping modes

@@ -363,6 +363,9 @@ emulate_mode_rules = {
 		 actions = test_first_target_then_host_default_is_target},
 
 		-- -----------------------------------------------
+		-- home directories: not mapped, R/W access
+		{dir = "/home", use_orig_path = true},
+		-- -----------------------------------------------
 
 		{dir = "/usr", rules = emulate_mode_rules_usr},
 		{dir = "/bin", rules = emulate_mode_rules_bin},

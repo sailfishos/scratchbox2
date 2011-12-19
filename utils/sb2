@@ -17,12 +17,14 @@ fi
 
 SBOX_LIBSB2="libsb2.so.1"
 	
-function version()
+# Show version.
+# (called to process a command-line option)
+function show_version()
 {
 	cat $SBOX_DIR/share/scratchbox2/version
 }
 
-function usage()
+function show_usage_and_exit()
 {
 	cat <<EOF
 sb2 - crosscompiling environment
@@ -90,20 +92,15 @@ function exit_error()
 	exit 1
 }
 
-function sanity_check()
-{
-	if [ `id -u` = 0 ]; then
-		exit_error "Do not use sbox2 as root!"
-	fi
-	# check that most important host and target files exist
-}
-
 # Collect & write mapping- and policy rules to $SBOX_SESSION_DIR/rules/*
 #
 # Parameters:
 #  - output file name
 #  - mapping mode name
 #  - list of rule files (if specified by the -M option)
+#
+# Used during initialization stage 1 (while setting
+# up the environment, which can't be used yet)
 function write_rules_to_session_dir()
 {
 	output_file_name=$1
@@ -130,6 +127,8 @@ END
 # Create reverse rules. Since that will be done using sb2-show, the environment
 # must to be ready => this function can be called only just before the shell
 # is executed at end of this script.
+#
+# Used during stage 3 (generation of automatic rules)
 function create_reverse_rules()
 {
 	for ammf in $SBOX_SESSION_DIR/rules/*.lua; do
@@ -153,6 +152,8 @@ function create_reverse_rules()
 #   effective only if the C library (glibc) has been patched (the patches 
 #   are available in "external_patches" subdirectory in Scratchbox 2
 #   source tree)
+#
+# Used during stage 5: Preparing environment variables.
 function locate_target_nsswitch_conf()
 {
 	__SB2_BINARYNAME="sb2:LocatingNsswitchConf" \
@@ -179,6 +180,7 @@ function locate_target_nsswitch_conf()
 # Generates argvmods for cross-compilers and misc binaries.
 # Generated files are placed under $SBOX_SESSION_DIR/argvmods/.
 #
+# Used during stage 3 (generation of automatic rules)
 function create_argvmods_rules()
 {
 	/bin/mkdir -p $SBOX_SESSION_DIR/argvmods
@@ -217,6 +219,8 @@ function create_argvmods_rules()
 }
 
 # Create some additional rules for the default mapping mode:
+#
+# Used during stage 3 (generation of automatic rules)
 function create_argvmods_usr_bin_rules()
 {
 	default_rule=$1
@@ -243,6 +247,7 @@ function create_argvmods_usr_bin_rules()
 	done
 }
 
+# Used during stage 3 (generation of automatic rules)
 function add_rules_to_rule_tree_db()
 {
 	mkdir $SBOX_SESSION_DIR/ruletree.logs
@@ -282,6 +287,9 @@ function add_rules_to_rule_tree_db()
 	done
 }
 
+#
+# Used during initialization stage 1 (while setting
+# up the environment, which can't be used yet)
 function set_and_check_SBOX_TARGET()
 {
 	if [ -z "$SBOX_TARGET" ]; then
@@ -300,6 +308,10 @@ function set_and_check_SBOX_TARGET()
 	fi
 }
 
+# Load target configuration (which was created by sb2-init)
+#
+# Used during initialization stage 1 (while setting
+# up the environment, which can't be used yet)
 function load_configuration()
 {
 	#-----------
@@ -399,6 +411,9 @@ function load_configuration()
 	. $HOME/.scratchbox2/$SBOX_TARGET/sb2.config.d/debian.conf
 }
 
+#
+# Used during initialization stage 1 (while setting
+# up the environment, which can't be used yet)
 function clone_target_root_dir_from()
 {
 	source_directory=$1
@@ -428,6 +443,9 @@ function clone_target_root_dir_from()
 	mkdir -p $SB2_TEMP_DPKG_ADMIN_DIR
 }
 
+#
+# Used during initialization stage 1 (while setting
+# up the environment, which can't be used yet)
 function sboxify_environment()
 {
 	load_configuration
@@ -576,6 +594,9 @@ function initialize_sb_logging()
 # NOTE: this file will be read by lua interpreter and the shell,
 # so only simple string assignments are allowed! 
 # (even comments are different in Lua and shell scripts..)
+#
+# Used during initialization stage 1 (while setting
+# up the environment, which can't be used yet)
 function create_common_sb2_conf_file_for_session()
 {
 	sbox_user_home_dir=$HOME
@@ -621,6 +642,9 @@ END
 }
 
 # create $SBOX_SESSION_DIR/gcc-conf.lua
+#
+# Used during initialization stage 1 (while setting
+# up the environment, which can't be used yet)
 function create_gcc_conf_file_for_session()
 {
 	gcc_config_files=`ls ~/.scratchbox2/$SBOX_TARGET/sb2.config.d/gcc.config*.lua 2>/dev/null`
@@ -641,11 +665,8 @@ function create_gcc_conf_file_for_session()
 # type == target CPU, then this is called again to create settings for
 # target_root as well.
 #
-# This also locates a libsb2.so.1 library which must be used; Several
-# possible locations are checked. Tools/target need to get the libsb2.so
-# library from a "neutral" place so that it would be possible to
-# upgrade/downgrade any component (tools,target_roots or sb2 itself)
-# without having to re-configure other components in the system.
+# Used during initialization stage 1 (while setting
+# up the environment, which can't be used yet)
 function write_ld_library_path_replacement_to_exec_config()
 {
 	rootdir=$1
@@ -734,6 +755,9 @@ function write_ld_library_path_replacement_to_exec_config()
 # "-libattr-hack", and find out how it should be executed (i.e.
 # if qemu lives inside tools_root, then a non-standard startup
 # might be needed)
+#
+# Used during initialization stage 2: Requires that binaries
+# can be executed in the sb2'ed environment.
 function check_qemu_features()
 {
 	qemu_path=$1
@@ -824,6 +848,9 @@ function check_qemu_features()
 
 # Test if the "--argv0", "--nodefaultdirs" and "--rpath-prefix" flags are
 # supported by the ld.so
+#
+# Used during initialization stage 1 (while setting
+# up the environment, which can't be used yet)
 function check_ld_so_features()
 {
 	rootdir=$1
@@ -853,6 +880,8 @@ function check_ld_so_features()
 }
 
 # Locate shell and set the initial binary name for the mapping engine
+#
+# Used during stage 5: Preparing environment variables.
 function locate_shell()
 {
 	__SB2_BINARYNAME="sb2:TestingBash" sb2-monitor \
@@ -883,6 +912,9 @@ function locate_shell()
 #   Debian seems to have scratchbox2 packages for ia64 and powerpc,
 #   however since I don't have access to these arches I'm leaving "linker chooser" unfixed 
 #   there (ia64 has /lib/ld-linux-ia64.so, powerpc has /lib/ld.so.1).
+#
+# Used during initialization stage 1 (while setting
+# up the environment, which can't be used yet)
 function guess_ld_so()
 {
 	local prefix="$1"
@@ -895,6 +927,21 @@ function guess_ld_so()
 	fi
 }
 
+# Locate libsb2.so.1 library which must be used; Several
+# possible locations are checked. Tools/target need to get the libsb2.so
+# library from a "neutral" place so that it would be possible to
+# upgrade/downgrade any component (tools,target_roots or sb2 itself)
+# without having to re-configure other components in the system.
+#
+# Also, find out how ld.so is started and write that to the
+# exec config file.
+#
+# This is called first for the tools (tools_root), and if host CPU
+# type == target CPU, then this is called again to create settings for
+# target_root as well.
+#
+# Used during initialization stage 1 (while setting
+# up the environment, which can't be used yet)
 function write_libsb2_and_ld_so_state_to_exec_config()
 {
 	rootdir=$1
@@ -1027,6 +1074,8 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 # Probes localization files and directories and writes
 # it to exec_config.lua.
 #
+# Used during initialization stage 1 (while setting
+# up the environment, which can't be used yet)
 function write_locale_and_gconv_paths_to_exec_config()
 {
 	rootdir=$1
@@ -1090,6 +1139,9 @@ function write_locale_and_gconv_paths_to_exec_config()
 }
 
 # Write configuration file $SBOX_SESSION_DIR/exec_config.lua
+#
+# Used during initialization stage 1 (while setting
+# up the environment, which can't be used yet)
 function create_exec_config_file()
 {
 	cat >$SBOX_SESSION_DIR/exec_config.lua <<END
@@ -1206,6 +1258,10 @@ host_ld_library_path="$HOST_LD_LIBRARY_PATH_LIBFAKEROOT$HOST_LD_LIBRARY_PATH_PRE
 END
 }
 
+# Configure CPU transparency (usually Qemu)
+#
+# Used during initialization stage 2: Requires that binaries
+# can be executed in the sb2'ed environment.
 function add_cputransparency_settings_to_exec_config_file()
 {
 	conf_cputransparency_has_argv0_flag="false"
@@ -1259,6 +1315,8 @@ function get_SBOX_SESSION_DIR_from_file()
 }
 
 # used to select a mapping mode which is distributed with sb2.
+#
+# (called to process a command-line option)
 function add_map_mode()
 {
 	if [ ! -d "$SBOX_DIR/share/scratchbox2/modes/$1" ]; then
@@ -1280,18 +1338,25 @@ function add_map_mode()
 	NUM_MAPMODES=`expr $NUM_MAPMODES + 1`
 }
 
-function add_external_map_mode()
-{
-	if [ -z "$SBOX_MAPMODE" ]; then
-		# SBOX_MAPMODE was not set. Use basename of the rule file
-		# as default mode name:
-		SBOX_MAPMODE=`basename $1 .lua`
-	fi
+# Add a non-standard mapping mode.
+# FIXME: Currently not possible, due to the change to
+# mapping mode directories. To be fixed.
+# (called to process a command-line option)
+##function add_external_map_mode()
+##{
+##	if [ -z "$SBOX_MAPMODE" ]; then
+##		# SBOX_MAPMODE was not set. Use basename of the rule file
+##		# as default mode name:
+##		SBOX_MAPMODE=`basename $1 .lua`
+##	fi
+##
+##	SB2_EXTERNAL_RULEFILES="$SB2_EXTERNAL_RULEFILES $1"
+##	NUM_MAPMODES=`expr $NUM_MAPMODES + 1`
+##}
 
-	SB2_EXTERNAL_RULEFILES="$SB2_EXTERNAL_RULEFILES $1"
-	NUM_MAPMODES=`expr $NUM_MAPMODES + 1`
-}
-
+#
+# Used during initialization stage 1 (while setting
+# up the environment, which can't be used yet)
 function initialize_new_sb2_session()
 {
 	# Create a new session
@@ -1350,6 +1415,9 @@ END
 	fi
 }
 
+#
+# Used during initialization stage 1 (while setting
+# up the environment, which can't be used yet)
 function join_existing_session()
 {
 	# Join an existing session, don't create it..
@@ -1375,6 +1443,9 @@ function join_existing_session()
 }
 
 # create destination for /sb2/wrappers for this session
+#
+# Used during initialization stage 1 (while setting
+# up the environment, which can't be used yet)
 function link_wrappers_for_mapmode()
 {
 	w_mode=$1
@@ -1408,6 +1479,9 @@ function link_wrappers_for_mapmode()
 	fi
 }
 
+#
+# Used during initialization stage 1 (while setting
+# up the environment, which can't be used yet)
 function write_configfiles_and_rules_for_new_session()
 {
 	# creating a new session..
@@ -1478,6 +1552,8 @@ function delete_old_sb2_session()
 	rm "$SBOX_DELETE_SESSION_FILE"
 }
 
+# ===================== MAIN PROGRAM =====================
+
 SBOX_MAPMODE=""
 NUM_MAPMODES=0
 SB2_INTERNAL_MAPMODES=""
@@ -1500,13 +1576,13 @@ SBOX_QUIET=""
 while getopts vdht:em:n:s:L:Q:M:ZrRS:J:D:W:O:cC:T:uf:gG:B:b:q foo
 do
 	case $foo in
-	(v) version; exit 0;;
+	(v) show_version; exit 0;;
 	(d) export SBOX_MAPPING_DEBUG=1
 	    export SBOX_MAPPING_LOGLEVEL=debug ;;
 	(L) export SBOX_MAPPING_DEBUG=1
 	    export SBOX_MAPPING_LOGLEVEL=$OPTARG ;;
 	(Q) SBOX_EMULATE_SB1_BUGS=$OPTARG ;;
-	(h) usage ;;
+	(h) show_usage_and_exit ;;
 	(t) SBOX_TARGET=$OPTARG ;;
 	(e) add_map_mode emulate ;;
 	(m) add_map_mode $OPTARG ;;
@@ -1532,7 +1608,7 @@ do
 	(b) SBOX_LOG_AND_GRAPH_DIR="$OPTARG" ;;
 	(B) SBOX_LOG_AND_GRAPH_DIR="$OPTARG"; SBOX_COLLECT_ACCT_DATA="y" ;;
 	(q) export SBOX_QUIET="q";;
-	(*) usage ;;
+	(*) show_usage_and_exit ;;
 	esac
 done
 shift $(($OPTIND - 1))
@@ -1604,7 +1680,7 @@ if [ "$SBOX_MAPPING_DEBUG" == "1" ]; then
 	# check that loglevel is valid
 	case $SBOX_MAPPING_LOGLEVEL in
 	(error|warning|net|notice|info|debug|noise|noise2|noise3)	;; # OK
-	(*) usage ;;
+	(*) show_usage_and_exit ;;
 	esac
 else
 	# default logging level
@@ -1683,10 +1759,23 @@ fi
 
 #----------- End of parameter checks
 
+# ALTERNATIVE ACTIONS:
+
 if [ -n "$SBOX_DELETE_SESSION_FILE" ]; then
 	delete_old_sb2_session
 	exit 0
 fi
+
+# Now we know; A session is needed. Either create
+# a new one or join to an existing one.
+
+# INITIALIZATION STAGE 1 begins:
+# Set up the environment to be able to execute
+# programs in the session.
+#
+# During this "stage 1" it is not possible to
+# execute programs in that environment (see also
+# "stage 2" below")
 
 if [ -n "$SBOX_JOIN_SESSION_FILE" ]; then
 	join_existing_session
@@ -1722,7 +1811,12 @@ fi
 
 export LD_LIBRARY_PATH
 
+# END OF INITIALIZATION STAGE 1.
 # ------------
+# INITIALIZATION STAGE 2 begins: Now binaries
+# can be executed in the sb2'ed environment,
+# by using sb2-monitor for starting them.
+#
 # Almost ready..only the CPU transparency settings are missing
 # from the exec config file, unless we are joining to an
 # existing session.
@@ -1731,7 +1825,11 @@ if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 	add_cputransparency_settings_to_exec_config_file
 fi
 
+# END OF INITIALIZATION STAGE 2.
+
 # ------------
+# STAGE 3, GENERATION OF AUTOMATIC RULES, begins:
+#
 # Now everything is ready, programs can be executed in SB2'ed environment.
 # Make automatically generated rules, if needed:
 if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
@@ -1772,12 +1870,17 @@ else
 	fi
 fi
 
-#  Initialize logs..
+# Stage 4: Initialize logs.
+# (If logging was activated earlier,
+# several bogus errors would be logged because of
+# missing auto-generated rules)
 if [ $# -gt 0 -o "$STDIN" = true ] ; then
 	initialize_sb_logging $(echo $1 | sed -e 's/\//_/g' -e 's/^\.//') "$args"
 else
 	initialize_sb_logging sb2
 fi
+
+# Stage 5: Prepare environment variables & go!
 
 locate_target_nsswitch_conf
 locate_shell

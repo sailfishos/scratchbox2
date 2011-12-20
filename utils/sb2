@@ -557,7 +557,11 @@ function initialize_sb_logging()
 				fi
 				MAPPING_LOGFILE=$HOME/sb2_logs/$cmd_param.$tstamp.$$.log
 			fi
-			ln -s $MAPPING_LOGFILE $SBOX_SESSION_DIR/Log
+
+			# The link may exists if joining to an existing session
+			if [ ! -h $SBOX_SESSION_DIR/Log ]; then
+				ln -s $MAPPING_LOGFILE $SBOX_SESSION_DIR/Log
+			fi
 		else
 			MAPPING_LOGFILE=$SBOX_SESSION_DIR/Log
 		fi

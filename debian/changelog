@@ -1,3 +1,10 @@
+scratchbox2 (2.3.16-1) unstable; urgency=low
+
+  * Added support for 3rd party glob() and glob64() replacements
+    (to be compatible with rpmbuild/librpmbuild)
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 21 Dec 2011 19:27:00 +0200
+
 scratchbox2 (2.3.15-1) unstable; urgency=low
 
   * Manual page sb2.1 was updated

@@ -14,6 +14,8 @@ then
 	exit 1
 fi
 
+ARG1=$1
+
 rm -rf rpm.tmp
 mkdir -p rpm.builddir rpm.tmp packages
 
@@ -44,10 +46,17 @@ BD=`pwd`/rpm.builddir
 TOPDIR=`pwd`/packages
 sed -e "s/@@VRS@@/$VRS/g" -e "s;@@BUILDDIR@@;$BD;" -e "s;@@TOPDIR@@;$TOPDIR;" <opensuse_rpm/spec_for_opensuse.src >packages/SPECS/scratchbox2.spec
 
-echo building
-set -x
-(cd packages; rpmbuild -v -bb --clean SPECS/scratchbox2.spec)
-set +x
+if [ "$ARG1" = '--nobuild' ]; then
+	echo "Not building, but sources and .spec have been created:"
+	echo $src_tarball
+	echo packages/SPECS/scratchbox2.spec
+else
+	echo building
+	set -x
+	(cd packages; rpmbuild -v -bb --clean SPECS/scratchbox2.spec)
+	set +x
 
-echo "Done. Results:"
-ls `pwd`/packages/RPMS/*
+	echo "Done. Results:"
+	ls `pwd`/packages/RPMS/*
+fi
+

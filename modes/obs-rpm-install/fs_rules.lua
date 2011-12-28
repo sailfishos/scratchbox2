@@ -345,6 +345,7 @@ emulate_mode_rules = {
 		--{dir = target_root, use_orig_path = true,
 		-- protection = readonly_fs_if_not_root},
 		{dir = target_root, use_orig_path = true,
+		 virtual_path = true, -- don't try to reverse this
 		 -- protection = readonly_fs_if_not_root
 		},
 

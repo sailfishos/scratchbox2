@@ -305,11 +305,13 @@ emulate_mode_rules = {
 		 protection = readonly_fs_always},
 
 		{dir = sbox_target_toolchain_dir, use_orig_path = true,
+		 virtual_path = true, -- don't try to reverse this
 		  protection = readonly_fs_always},
 
 		--{dir = target_root, use_orig_path = true,
 		-- protection = readonly_fs_if_not_root},
 		{dir = target_root, use_orig_path = true,
+		 virtual_path = true, -- don't try to reverse this
 		 -- protection = readonly_fs_if_not_root
 		},
 

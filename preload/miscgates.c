@@ -246,14 +246,14 @@ char *realpath_gate(
 	int *result_errno_ptr,
 	char *(*real_realpath_ptr)(const char *name, char *resolved),
         const char *realfnname,
-	const char *name,	/* name, already mapped */
+	const mapping_results_t *mapped_name,
 	char *resolved)
 {
 	char *sbox_path = NULL;
 	char *rp;
 	
 	errno = *result_errno_ptr; /* restore to orig.value */
-	if ((rp = (*real_realpath_ptr)(name,resolved)) == NULL) {
+	if ((rp = (*real_realpath_ptr)(mapped_name->mres_result_path,resolved)) == NULL) {
 		*result_errno_ptr = errno;
 		return NULL;
 	}
@@ -288,7 +288,7 @@ char *__realpath_chk_gate(
 	char *(*real__realpath_chk_ptr)(__const char *__restrict __name,
 		char *__restrict __resolved, size_t __resolvedlen),
         const char *realfnname,
-	__const char *__restrict name,	/* name, already mapped */
+	const mapping_results_t *mapped_name,
 	char *__restrict __resolved,
 	size_t __resolvedlen)
 {
@@ -296,7 +296,9 @@ char *__realpath_chk_gate(
 	char *rp;
 	
 	errno = *result_errno_ptr; /* restore to orig.value */
-	if ((rp = (*real__realpath_chk_ptr)(name,__resolved,__resolvedlen)) == NULL) {
+	if ((rp = (*real__realpath_chk_ptr)(mapped_name->mres_result_path,
+		__resolved,__resolvedlen)) == NULL) {
+
 		*result_errno_ptr = errno;
 		return NULL;
 	}

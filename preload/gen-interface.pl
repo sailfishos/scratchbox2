@@ -811,10 +811,10 @@ sub create_call_to_real_fn {
 sub create_call_to_gate_fn {
 	my $fn = shift;
 	my $mods = shift;
-	my @param_list_in_next_call = @_;
+	my @param_list_in_gate_call = @_;
 
-	my @gate_params_with_types = @{$fn->{'all_params_with_types'}};
-	my $num_gate_params = @gate_params_with_types;
+	my @gate_params_with_orig_types = @{$fn->{'all_params_with_types'}};
+	my $num_gate_params = @gate_params_with_orig_types;
 	my $orig_param_list;
 	my $modified_param_list;
 	my $gate_params = "&result_errno,".$mods->{'real_fn_pointer_name'}.", __func__";
@@ -825,6 +825,19 @@ sub create_call_to_gate_fn {
 	my $fn_name = $fn->{'fn_name'};
 
 	if($num_gate_params > 0) {
+		my $j;
+		my @gate_params_with_types;
+		for ($j = 0; $j < $num_gate_params; $j++) {
+			my $param_j_name = $fn->{'parameter_names'}->[$j];
+			my $mpo = $mods->{'mapped_params_by_orig_name'}->{$param_j_name};
+
+			if (defined $mpo) {
+				push @gate_params_with_types, "const mapping_results_t *$param_j_name";
+			} else {
+				push @gate_params_with_types, $fn->{'all_params_with_types'}->[$j];
+			}
+		}
+
 		# has parameters
 		my $varargs_index = $fn->{'varargs_index'};
 
@@ -835,7 +848,7 @@ sub create_call_to_gate_fn {
 		$orig_param_list = $gate_params.", ".
 			join(", ", @{$mods->{'parameter_names'}});
 		$modified_param_list = $gate_params.", ".
-			join(", ", @param_list_in_next_call);
+			join(", ", @param_list_in_gate_call);
 		$fn_ptr_prototype_params = join(", ",
 			@{$fn->{'all_params_with_types'}});
 		$prototype_params =
@@ -1065,14 +1078,18 @@ sub command_wrap_or_gate {
 
 	# build the parameter list for the next call..
 	my @param_list_in_next_call;
+	my @param_list_in_gate_call;
 	my $i;
 	for($i=0; $i < $fn->{'num_parameters'}; $i++) {
 		my $param_name = $mods->{'parameter_names'}->[$i];
 		my $mapped_param = $mods->{'mapped_params_by_orig_name'}->{$param_name};
 		if(defined $mapped_param) {
 			push @param_list_in_next_call, $mapped_param;
+			my $mapping_result_struct_name = $mods->{'mapping_results_by_orig_name'}->{$param_name};
+			push @param_list_in_gate_call, "&$mapping_result_struct_name";
 		} else {
 			push @param_list_in_next_call, $param_name;
+			push @param_list_in_gate_call, $param_name;
 		}
 	}
 
@@ -1141,7 +1158,7 @@ sub command_wrap_or_gate {
 	} else { # GATE
 		($mapped_call, $unmapped_call, $unmapped_nolog_call,
 		 $prototypes, $postprocesors) = create_call_to_gate_fn(
-			$fn, $mods, @param_list_in_next_call);
+			$fn, $mods, @param_list_in_gate_call);
 	}
 	$export_h_buffer .= $prototypes;
 

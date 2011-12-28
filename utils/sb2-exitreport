@@ -6,6 +6,11 @@
 # Author: Lauri T. Aarnio
 # Licensed under LGPL version 2.1, see top level LICENSE file for details.
 
+# exit_reason is one of
+#   - "exit" = Normal exit, detected by sb2-monitor
+#   - "signal" = signal caused it (detected by sb2-monitor)
+#   - "UNKNOWN" = sb2-monitor couldn't find out why.. (should
+#		  not happen)
 exit_reason=$1
 exit_status=$2
 

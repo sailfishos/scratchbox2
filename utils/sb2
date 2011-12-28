@@ -540,7 +540,7 @@ function initialize_sb_logging()
 	cmd_param=$1
 	args_param=$2
 	if [ "$SBOX_MAPPING_LOGLEVEL" != "" ]; then
-		tstamp=`SBOX_DISABLE_MAPPING=1 /bin/date +%Y%m%d-%H%M`
+		tstamp=`SBOX_DISABLE_MAPPING=1 /bin/date +%Y%m%d-%H%M.%N`
 
 		# put logs to
 		#  a) if SBOX_LOG_AND_GRAPH_DIR is set, there
@@ -549,21 +549,17 @@ function initialize_sb_logging()
 		#     it will be deleted when the session is deleted.
 		if [ "$SBOX_MAPPING_DEBUG" == "1" ]; then
 			if [ -n "$SBOX_LOG_AND_GRAPH_DIR" ]; then
-				MAPPING_LOGFILE=$SBOX_LOG_AND_GRAPH_DIR/sb2.log
+				MAPPING_LOGFILE=$SBOX_LOG_AND_GRAPH_DIR/sb2_$tstamp.log
 			else
 				if [ ! -d $HOME/sb2_logs ]; then
 					SBOX_DISABLE_MAPPING=1 mkdir $HOME/sb2_logs 
 					echo "Created directory $HOME/sb2_logs for log files"
 				fi
-				MAPPING_LOGFILE=$HOME/sb2_logs/$cmd_param.$tstamp.$$.log
+				MAPPING_LOGFILE=$HOME/sb2_logs/$cmd_param.$tstamp.log
 			fi
-
-			# The link may exists if joining to an existing session
-			if [ ! -h $SBOX_SESSION_DIR/Log ]; then
-				ln -s $MAPPING_LOGFILE $SBOX_SESSION_DIR/Log
-			fi
+			ln -s $MAPPING_LOGFILE $SBOX_SESSION_DIR/logs/sb2_$tstamp.log
 		else
-			MAPPING_LOGFILE=$SBOX_SESSION_DIR/Log
+			MAPPING_LOGFILE=$SBOX_SESSION_DIR/logs/sb2_$tstamp.log
 		fi
 		export SBOX_MAPPING_LOGFILE=$MAPPING_LOGFILE
 
@@ -1397,6 +1393,7 @@ function initialize_new_sb2_session()
 	mkdir $SBOX_SESSION_DIR/exec_rules
 	mkdir $SBOX_SESSION_DIR/modes
 	mkdir $SBOX_SESSION_DIR/uniondirs
+	mkdir $SBOX_SESSION_DIR/logs
 
 	# Some operations to /dev/* are redirected to this:
 	# (setting time of the nodes, etc)

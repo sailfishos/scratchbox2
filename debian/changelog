@@ -1,3 +1,10 @@
+scratchbox2 (2.3.17-1) unstable; urgency=low
+
+  * sb2-show: new command "reverse"
+  * fixes & changes to reverse rule generator
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 28 Dec 2011 13:06:00 +0200
+
 scratchbox2 (2.3.16-1) unstable; urgency=low
 
   * Added support for 3rd party glob() and glob64() replacements

@@ -154,6 +154,17 @@ char *sb2show__map_path2__(const char *binary_name, const char *mapping_mode,
 	return(mapped__pathname);
 }
 
+char *sb2show__reverse_path__(const char *func_name, const char *abs_path, uint32_t classmask)
+{
+	char *reversed__path = NULL;
+
+	reversed__path = scratchbox_reverse_path(
+		func_name, abs_path, classmask);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s '%s' => '%s'", __func__,
+		abs_path, reversed__path ? reversed__path : "<none>");
+	return(reversed__path);
+}
+
 char *sb2show__get_real_cwd__(const char *binary_name, const char *fn_name)
 {
 	char path[PATH_MAX];

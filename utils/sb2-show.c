@@ -102,6 +102,13 @@ LIBSB2_CALLER(char *, sb2show__map_path2__,
 	(binary_name, mapping_mode, fn_name, pathname, readonly),
 	NULL)
 
+/* create call_sb2show__reverse_path__() */
+LIBSB2_CALLER(char *, sb2show__reverse_path__,
+	(const char *func_name, \
+        const char *abs_path, uint32_t classmask),
+	(func_name, abs_path, classmask),
+	NULL)
+
 /* create call_sb2show__execve_mods__() */
 LIBSB2_CALLER(int, sb2show__execve_mods__,
 	(char *file, char *const *orig_argv, char *const *orig_envp,
@@ -600,6 +607,29 @@ static void command_show_path(const char *binary_name, const char *fn_name,
 	}
 }
 
+static int cmd_reverse(const command_table_t *cmdp, const cmdline_options_t *opts,
+			int cmd_argc, char *cmd_argv[])
+{
+	(void)cmdp;
+	(void)cmd_argc;
+	cmd_argv++;
+	while (*cmd_argv) {
+		char *reversed_path;
+		/* sb2show__binary_type__() operates on
+		 * real paths; map the path first.. */
+		reversed_path = call_sb2show__reverse_path__(
+			opts->function_name, *cmd_argv, 0/*FIXME-should be classmask, but not used currently*/);
+		if (!reversed_path) {
+			printf("%s: Reversing failed\n", *cmd_argv);
+		} else {
+			printf("%s => %s\n", *cmd_argv, reversed_path);
+			free(reversed_path);
+		}
+		cmd_argv++;
+	}
+	return(0);
+}
+
 static int cmd_binarytype(const command_table_t *cmdp, const cmdline_options_t *opts,
 			int cmd_argc, char *cmd_argv[])
 {
@@ -977,6 +1007,8 @@ const command_table_t commands[] = {
 	  "\trealcwd                show real current working directory"},
 	{ "realpath", 	0,		2,	2,	cmd_realpath,
 	  "\trealpath path          call realpath(path) and print the result"},
+	{ "reverse", 	1,		2,	9999,	cmd_reverse,
+	  "\treverse path [path2]   reverse-map path(s) and print the results"},
 	{ "var",	1,		2,	2,	cmd_var,
 	  "\tvar variablename       show value of a string variable"},
 	{ "verify-pathlist-mappings",1,	2,	9999,	cmd_verify_pathlist_mappings,

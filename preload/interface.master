@@ -28,6 +28,8 @@ EXPORT: char *sb2show__binary_type__(const char *filename)
 EXPORT: char *sb2show__map_path2__(const char *binary_name, \
 	const char *mapping_mode, const char *fn_name, const char *pathname, \
 	int *readonly)
+EXPORT: char *sb2show__reverse_path__(const char *func_name, \
+	const char *abs_path, uint32_t classmask)
 EXPORT: char * sb2show__get_real_cwd__(const char *binary_name, \
 	const char *fn_name)
 EXPORT: int sb2show__execve_mods__( \

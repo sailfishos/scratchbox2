@@ -9,10 +9,6 @@
 -- will shut down if problems are detected (then path reversing won't be
 -- available and SB2 works just as it did before this feature was implemented)
 --
--- FIXME:
--- 1. Reverse rules won't be created if the forward rules use "func_name"
--- conditions. It might be possible to fix that, but "func_names" certainly
--- complicate sorting of the generated reversing rules.
 
 if not exec_engine_loaded then
 	do_file(session_dir .. "/lua_scripts/argvenvp.lua")
@@ -111,15 +107,9 @@ function reverse_one_rule_xxxx(output_rules, rule, n, forward_path)
 		end
 
 		if (rule.func_name ~= nil) then
-			if (rule.path == "/") then
-				-- allow reversion of func_name rules
-				-- for the root directory:
-			else
-				allow_reversing = false
-				reversing_disabled_message = string.format(
-					"Rule '%s' has 'func_name' attribute",
-					new_rule.name)
-			end
+			table.insert(new_rule.comments, string.format(
+				"--NOTE: orig.rule '%s' had func_name requirement '%s'",
+				new_rule.name, rule.func_name))
 		end
 
 		local d_path = nil
@@ -166,7 +156,16 @@ function reverse_one_rule_xxxx(output_rules, rule, n, forward_path)
 				new_rule.orig_path = rule.dir
 				idx = test_rev_rule_position(output_rules, d_path)
 			elseif (rule.path) then
-				new_rule.path = d_path
+				if (rule.path == "/") then
+					-- Root directory rule.
+					if rule.map_to then
+						new_rule.path = rule.map_to
+					else
+						new_rule.path = d_path
+					end
+				else
+					new_rule.path = d_path
+				end
 				new_rule.orig_path = rule.path
 				idx = test_rev_rule_position(output_rules, d_path)
 			end
@@ -306,6 +305,12 @@ local rev_rules = reverse_rules(output_rules, fs_mapping_rules)
 if (allow_reversing) then
 	print("reverse_fs_mapping_rules={")
 	print_rules(rev_rules)
+	-- Add a final rule for the root directory itself.
+	print("\t{")
+	print("\t\tname = \"Final root dir rule\",")
+	print("\t\tpath = \""..target_root.."\",")
+	print("\t\treplace_by = \"/\"")
+	print("\t},")
 	print("}")
 else
 	print("-- Failed to create reverse rules (" ..

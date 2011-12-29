@@ -1,3 +1,13 @@
+scratchbox2 (2.3.18-1) unstable; urgency=low
+
+  * Improvements to logging, new option -P for sb2
+  * fixes and improvements to obs-rpm-install and -build modes
+  * New experimental obs-rpm-build+pp mode: This should 
+    accelerate perl and python scripts from tools_root
+    (new rules are based on rules from the accel mode)
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 29 Dec 2011 20:22:00 +0200
+
 scratchbox2 (2.3.17-1) unstable; urgency=low
 
   * sb2-show: new command "reverse"

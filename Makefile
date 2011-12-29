@@ -28,7 +28,7 @@ endif
 CC = gcc
 CXX = g++
 LD = ld
-PACKAGE_VERSION = 2.3.17
+PACKAGE_VERSION = 2.3.18
 
 ifeq ($(shell if [ -d $(SRCDIR)/.git ]; then echo y; fi),y)
 GIT_PV_COMMIT := $(shell git --git-dir=$(SRCDIR)/.git log -1 --pretty="format:%h" $(PACKAGE_VERSION) -- 2>/dev/null)
@@ -118,7 +118,7 @@ gcc_bins = addr2line ar as cc c++ c++filt cpp g++ gcc gcov gdb gdbtui gprof ld n
 host_prefixed_gcc_bins = $(foreach v,$(gcc_bins),host-$(v))
 
 sb2_modes = emulate tools simple accel nomap emulate+toolchain emulate+toolchain+utils \
-	    	obs-rpm-install obs-rpm-build
+	    	obs-rpm-install obs-rpm-build obs-rpm-build+pp
 sb2_net_modes = localhost offline online online_privatenets
 
 tarball:

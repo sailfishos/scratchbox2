@@ -770,7 +770,7 @@ function write_ld_library_path_replacement_to_exec_config()
 # can be executed in the sb2'ed environment.
 function check_qemu_features()
 {
-	qemu_path=$1
+	qemu_path=$(sb2-show realpath $1)
 	shift
 	qemu_options=$*
 

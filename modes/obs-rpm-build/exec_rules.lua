@@ -94,10 +94,10 @@ if ((tools_root ~= nil) and conf_tools_sb2_installed) then
 		emulate_mode_tools_ld_so = conf_tools_ld_so
 	end
 	emulate_mode_tools_ld_library_path_prefix = conf_tools_ld_so_library_path
-	if (conf_tools_locale_path ~= nil) then
-		-- use locales from tools
-		devel_mode_locale_path = conf_tools_locale_path
-	end
+	-- if (conf_tools_locale_path ~= nil) then
+	--	-- use locales from tools
+	--	devel_mode_locale_path = conf_tools_locale_path
+	-- end
 else
 	emulate_mode_tools_ld_library_path_prefix =
 		host_ld_library_path_libfakeroot ..

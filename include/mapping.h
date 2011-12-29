@@ -76,6 +76,8 @@ typedef struct mapping_results_s {
 
 extern void free_mapping_results(mapping_results_t *res);
 
+extern void force_path_to_mapping_result(mapping_results_t *res, const char *path);
+
 extern void sbox_map_path(const char *func_name, const char *path,
 	int dont_resolve_final_symlink, mapping_results_t *res, uint32_t classmask);
 

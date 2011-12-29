@@ -483,6 +483,7 @@ sub process_wrap_or_gate_modifiers {
 	my $mods = {
 		'path_mapping_vars' => "",
 		'path_mapping_code' => "",
+		'path_nomap_code' => "",
 		'path_ro_check_code' => "",
 		'free_path_mapping_vars_code' => "",
 		'local_vars_for_varargs_handler' => "",
@@ -560,6 +561,11 @@ sub process_wrap_or_gate_modifiers {
 				"\t\tfree_mapping_results(&res_$new_name);\n".
 				"\t\t$return_statement\n".
 				"\t}\n";
+			if ($command eq 'GATE') {
+				$mods->{'path_nomap_code'} .=
+					"\tclear_mapping_results_struct(&res_$new_name);\n".
+					"\tforce_path_to_mapping_result(&res_$new_name, $param_to_be_mapped);\n";
+			}
 			$mods->{'free_path_mapping_vars_code'} .=
 				"\tfree_mapping_results(&res_$new_name);\n";
 
@@ -605,6 +611,11 @@ sub process_wrap_or_gate_modifiers {
 				"\t\tfree_mapping_results(&res_$new_name);\n".
 				"\t\t$return_statement\n".
 				"\t}\n";
+			if ($command eq 'GATE') {
+				$mods->{'path_nomap_code'} .=
+					"\tclear_mapping_results_struct(&res_$new_name);\n".
+					"\tforce_path_to_mapping_result(&res_$new_name, $param_to_be_mapped);\n";
+			}
 			$mods->{'free_path_mapping_vars_code'} .=
 				"\tfree_mapping_results(&res_$new_name);\n";
 
@@ -876,7 +887,7 @@ sub create_call_to_gate_fn {
 	($postprocessor_calls, $postprocessor_prototypes) = 
 		create_postprocessors($fn, $mods);
 
-	my $unmapped_call = "${fn_name}_gate($orig_param_list);\n";
+	my $unmapped_call = "${fn_name}_gate($modified_param_list);\n";
 
 	# nomap_nolog for a gate is a direct call to the real function
 	my $unmapped_nolog_call = "${fn_name}_next__(".
@@ -998,6 +1009,10 @@ sub command_wrap_or_gate {
 		$nomap_funct_def."\n".
 		"{\n".
 		$mods->{'local_vars_for_varargs_handler'};
+	if($command eq 'GATE') {
+		# nomap versions of GATEs need the mapping result struct, too
+		$nomap_fn_c_code .= $mods->{'path_mapping_vars'};
+	}
 
 	# begin the function with "_nomap_nolog" suffix added to name:
 	my $nomap_nolog_funct_def = $funct_def;
@@ -1037,7 +1052,8 @@ sub command_wrap_or_gate {
 	$wrapper_fn_c_code .=		$mods->{'path_mapping_code'}.
 					$mods->{'path_ro_check_code'};
 	$wrapper_fn_c_code .=		$mods->{'va_list_handler_code'};
-	$nomap_fn_c_code .=		$mods->{'va_list_handler_code'};
+	$nomap_fn_c_code .=		$mods->{'path_nomap_code'}.
+					$mods->{'va_list_handler_code'};
 	$nomap_nolog_fn_c_code .=	$mods->{'va_list_handler_code'};
 
 	my $loglevel_no_real_fn;
@@ -1182,6 +1198,9 @@ sub command_wrap_or_gate {
 	$wrapper_fn_c_code .=		$mods->{'va_list_end_code'};
 	$wrapper_fn_c_code .=		$mods->{'free_path_mapping_vars_code'};
 	$nomap_fn_c_code .=		$mods->{'va_list_end_code'};
+	if($command eq 'GATE') {
+		$nomap_fn_c_code .=	$mods->{'free_path_mapping_vars_code'};
+	}
 	$nomap_nolog_fn_c_code .=	$mods->{'va_list_end_code'};
 
 	$wrapper_fn_c_code .=		$log_return_val.

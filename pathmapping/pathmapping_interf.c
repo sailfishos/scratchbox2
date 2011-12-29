@@ -389,3 +389,12 @@ void	free_mapping_results(mapping_results_t *res)
 	clear_mapping_results_struct(res);
 }
 
+/* manually force the result; used by _nomap versions of GATEs */
+void	force_path_to_mapping_result(mapping_results_t *res, const char *path)
+{
+	res->mres_result_path = res->mres_result_buf = strdup(path);
+	res->mres_result_path_was_allocated = 0;
+	res->mres_virtual_cwd = NULL;
+	res->mres_errno = 0;
+}
+

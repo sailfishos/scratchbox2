@@ -147,6 +147,8 @@ emulate_mode_rules_usr_bin = {
 
 		{path = "/usr/bin/expr",
 		 actions = accelerated_program_actions},
+		{path = "/usr/bin/file",
+		 actions = accelerated_program_actions},
 		{path = "/usr/bin/find",
 		 actions = accelerated_program_actions},
 

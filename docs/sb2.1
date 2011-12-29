@@ -52,7 +52,7 @@ created.
 A new session is created every time when the
 .B sb2
 command is used (unless one of the persistent session control options is present -
-see options -S,-J and -D below).
+see options -S,-J,-P and -D below).
 .SH OPTIONS
 .TP
 \-b DIR
@@ -115,7 +115,7 @@ Append process group number to a file.
 Print help.
 .TP
 \-J FILE
-Join a persistent session associated with FILE (see also -D and -S) 
+Join a persistent session associated with FILE (see also -D,-P and -S) 
 .TP
 \-L LEVEL
 Enable logging. Following values for LEVEL are available (in order
@@ -142,6 +142,12 @@ Read mapping rules from FILE.
 \-O OPTIONS
 Set options for the selected mapping mode. OPTIONS is a mode-specific string.
 .TP
+\-P FILE
+Instead of joining or creating a session,
+print all logs related to a persistent session. Output can be piped to
+.I sb2-logz.
+This option can be used even before the session is terminated. (see also options -D, -S and -J)
+.TP
 \-Q BUGLIST
 Emulate bugs of scratchbox 1 (BUGLIST consists of letters: 'x' enables exec permission checking bug emulation).
 .TP
@@ -160,7 +166,7 @@ Use redirection rules from the DIRECTORY given in argument.
 .TP
 \-S FILE
 Create a persistent session: Write session information to FILE
-(see also -D and -J)
+(see also -D, -P and -J)
 .TP
 \-t TARGET
 Define TARGET to use. Use

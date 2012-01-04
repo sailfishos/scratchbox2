@@ -1,3 +1,11 @@
+scratchbox2 (2.3.19-1) unstable; urgency=low
+
+  * sb2-init: New option "-L opt" (extra options for ld) [from Carsten Munk]
+  * configuration version is now 20, this forces reconfiguration
+    of the toolchain (because of a bugfix to sb2-config-gcc-toolchain)
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 04 Jan 2012 18:14:00 +0200
+
 scratchbox2 (2.3.18-1) unstable; urgency=low
 
   * Improvements to logging, new option -P for sb2

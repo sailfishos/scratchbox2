@@ -78,7 +78,12 @@ skip checks for target root's /usr/include etc.
 set directory containing the build tools distribution
 .TP
 \-C "options"
-add extra options for the compiler, for example: -C "-fgnu89-inline"
+add extra options for the compiler, for example:
+.I -C "-fgnu89-inline"
+.TP
+\-L "options"
+add extra options for the linker, for example:
+.I -L "--sysroot=/"
 .TP
 \-A arch
 manually override target architecture

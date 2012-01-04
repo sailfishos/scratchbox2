@@ -96,6 +96,7 @@ function update_toolchain_configs()
 			-t "$SB2INIT_TARGET" \
 			-m "$SB2INIT_MAPPING_MODE" \
 			-C "$SB2INIT_SBOX_EXTRA_CROSS_COMPILER_ARGS" \
+			-L "$SB2INIT_SBOX_EXTRA_CROSS_LD_ARGS" \
 			-- \
 			$compiler_path
 		if [ $? != 0 ]; then

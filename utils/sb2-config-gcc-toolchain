@@ -34,6 +34,8 @@ Options:
     -t target         set target name
     -C "options"      add extra options for the compiler, for example:
                       "-fgnu89-inline"
+    -L "options"      add extra options for the linker, for example:
+                      "--sysroot=/"
     -A arch           manually override target architecture
     -h                print this help
     -m mapping_mode   target uses mapping_mode as default mode
@@ -60,7 +62,7 @@ function write_gcc_config()
 
 	# Note: "sb2" script will replace "@SBOX_TARGET_ROOT@" by the real 
 	# value when the session is created.
-	SBOX_EXTRA_CROSS_LD_ARGS="-rpath-link @SBOX_TARGET_ROOT@/usr/lib:@SBOX_TARGET_ROOT@/lib"
+	SBOX_EXTRA_CROSS_LD_ARGS="$SBOX_EXTRA_CROSS_LD_ARGS -rpath-link @SBOX_TARGET_ROOT@/usr/lib:@SBOX_TARGET_ROOT@/lib"
 	SBOX_CROSS_GCC_SUBST_PREFIX=$GCC_PREFIX
 
 	cat - > $HOME/.scratchbox2/$TARGET/sb2.config.d/gcc$gcc_version_id.config.sh <<EOF
@@ -83,7 +85,7 @@ SBOX_CROSS_GCC_LD_ARGS=
 
 SBOX_EXTRA_CROSS_COMPILER_ARGS="$SBOX_EXTRA_CROSS_COMPILER_ARGS"
 SBOX_EXTRA_CROSS_COMPILER_STDINC="$SBOX_EXTRA_CROSS_COMPILER_STDINC"
-SBOX_EXTRA_CROSS_LD_ARGS="$SBOX_CROSS_GCC_PREFIX_LIST"
+SBOX_EXTRA_CROSS_LD_ARGS="$SBOX_EXTRA_CROSS_LD_ARGS"
 EOF
 
 	cat - > $HOME/.scratchbox2/$TARGET/sb2.config.d/gcc.config$gcc_version_id.lua <<EOF
@@ -136,7 +138,7 @@ fi
 
 verbose=""
 
-while getopts t:m:C:A:M:hS:R:Vv option
+while getopts t:m:C:L:A:M:hS:R:Vv option
 do
 	case $option in
 	(A) ARCH=$OPTARG ;;
@@ -145,6 +147,7 @@ do
 	(t) TARGET=$OPTARG ;;
 	(m) MAPPING_MODE=$OPTARG ;;
 	(C) SBOX_EXTRA_CROSS_COMPILER_ARGS="$SBOX_EXTRA_CROSS_COMPILER_ARGS $OPTARG " ;;
+	(L) SBOX_EXTRA_CROSS_LD_ARGS="$SBOX_EXTRA_CROSS_LD_ARGS $OPTARG " ;;
 	(S) SBOX_DIR=$OPTARG ;;
 	(R) SBOX_TARGET_ROOT=$OPTARG ;;
 	(V) SECONDARY_COMPILER=yes ;;

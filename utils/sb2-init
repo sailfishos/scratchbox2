@@ -81,6 +81,8 @@ Options:
     -t [tools_dir]    set directory containing the build tools distribution
     -C "options"      add extra options for the compiler, for example:
                       "-fgnu89-inline"
+    -L "options"      add extra options for the linker, for example:
+                      "--sysroot=/"
     -A arch           manually override target architecture
     -M arch           manually override machine name (see uname(2)). This
                       defaults to the target architecture (see option -A)
@@ -215,6 +217,7 @@ function configure_toolchains()
 			-t "$TARGET" \
 			-m "$MAPPING_MODE" \
 			-C "$SB2INIT_SBOX_EXTRA_CROSS_COMPILER_ARGS" \
+			-L "$SB2INIT_SBOX_EXTRA_CROSS_LD_ARGS" \
 			-- \
 			$compiler_path
 		if [ $? != 0 ]; then

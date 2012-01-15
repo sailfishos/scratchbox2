@@ -845,16 +845,22 @@ sub create_call_to_gate_fn {
 			if (defined $mpo) {
 				push @gate_params_with_types, "const mapping_results_t *$param_j_name";
 			} else {
+				if($debug) {
+					print "Gate: ".$fn_name.": $j: MODS: ".
+						$mods->{'parameter_types'}->[$j]." ".
+						$mods->{'parameter_names'}->[$j]." ### ".
+						$fn->{'all_params_with_types'}->[$j]."\n";
+				}
 				push @gate_params_with_types, $fn->{'all_params_with_types'}->[$j];
 			}
 		}
 
-		# has parameters
 		my $varargs_index = $fn->{'varargs_index'};
 
 		if($varargs_index >= 0) {
 			$gate_params_with_types[$varargs_index] =
-				"va_list ap";
+				$mods->{'parameter_types'}->[$varargs_index]." ".
+				$mods->{'parameter_names'}->[$varargs_index];
 		}
 		$orig_param_list = $gate_params.", ".
 			join(", ", @{$mods->{'parameter_names'}});

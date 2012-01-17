@@ -1022,6 +1022,7 @@ void
    sbox_map_path_internal__lua_engine
 #endif
      (
+	struct sb2context *sb2ctx,
 	const char *binary_name,
 	const char *func_name,
 	const char *virtual_orig_path,
@@ -1042,6 +1043,7 @@ void
 	ctx.pmc_fn_class = fn_class;
 	ctx.pmc_virtual_orig_path = virtual_orig_path;
 	ctx.pmc_dont_resolve_final_symlink = dont_resolve_final_symlink;
+	ctx.pmc_sb2ctx = sb2ctx;
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: %s(%s)", __func__, func_name, virtual_orig_path);
 
@@ -1080,11 +1082,6 @@ void
 		res->mres_fallback_to_lua_mapping_engine = "No ruletree";
                 return;
         }
-
-	ctx.pmc_sb2ctx = get_sb2context();
-#endif
-#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
-	ctx.pmc_sb2ctx = get_sb2context_lua();
 #endif
 
 	if (!ctx.pmc_sb2ctx) {
@@ -1282,11 +1279,9 @@ void
 
 	SB_LOG(SB_LOGLEVEL_NOISE, "%s: mapping_result='%s'",
 		__func__, mapping_result ? mapping_result : "<No result>");
-	release_sb2context(ctx.pmc_sb2ctx);
 	return;
 
     use_orig_path_as_result_and_exit:
-	if(ctx.pmc_sb2ctx) release_sb2context(ctx.pmc_sb2ctx);
 	res->mres_result_buf = res->mres_result_path = strdup(virtual_orig_path);
 	return;
 }

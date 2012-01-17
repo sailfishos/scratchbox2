@@ -149,6 +149,7 @@ extern void clean_dotdots_from_path(
 	struct path_entry_list *abs_path);
 
 extern void sbox_map_path_internal__lua_engine(
+	struct sb2context *sb2ctx,
 	const char *binary_name,
 	const char *func_name,
 	const char *virtual_orig_path,
@@ -158,6 +159,7 @@ extern void sbox_map_path_internal__lua_engine(
 	mapping_results_t *res);
 
 extern void sbox_map_path_internal__c_engine(
+	struct sb2context *sb2ctx,
 	const char *binary_name,
 	const char *func_name,
 	const char *virtual_orig_path,

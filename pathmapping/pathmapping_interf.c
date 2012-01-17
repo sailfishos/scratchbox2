@@ -95,6 +95,7 @@ static void check_mapping_method(void)
 }
 
 static void compare_results_from_c_and_lua_engines(
+	const char *name,
 	const char *fn_name,
 	const char *c_res,
 	const char *lua_res)
@@ -102,27 +103,27 @@ static void compare_results_from_c_and_lua_engines(
 	if (c_res && lua_res) {
 		if (!strcmp(c_res, lua_res)) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"%s: ResultCheck: same, OK",
-				fn_name);
+				"%s: ResultCheck: %s same, OK",
+				fn_name, name);
 		} else {
 			SB_LOG(SB_LOGLEVEL_ERROR,
-				"%s: ResultCheck: DIFFERENT: C='%s', Lua='%s'",
-				fn_name, c_res, lua_res);
+				"%s: ResultCheck: DIFFERENT %s: C='%s', Lua='%s'",
+				fn_name, name, c_res, lua_res);
 		}
 	} else if (!c_res && !lua_res) {
 		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"%s: ResultCheck: no result from C nor Lua",
-			fn_name);
+			"%s: ResultCheck: no %s result from C nor Lua",
+			fn_name, name);
 	} else {
 		if (!c_res) {
 			SB_LOG(SB_LOGLEVEL_ERROR,
-				"%s: ResultCheck: no result from C (Lua='%s')",
-				fn_name, lua_res);
+				"%s: ResultCheck: no %s result from C (Lua='%s')",
+				fn_name, name, lua_res);
 		}
 		if (!lua_res) {
 			SB_LOG(SB_LOGLEVEL_ERROR,
-				"%s: ResultCheck: no result from Lua (C='%s')",
-				fn_name, c_res);
+				"%s: ResultCheck: no %s result from Lua (C='%s')",
+				fn_name, name, c_res);
 		}
 	}
 }
@@ -177,8 +178,13 @@ static void fwd_map_path(
 					res2.mres_fallback_to_lua_mapping_engine, virtual_path);
 			}
 			compare_results_from_c_and_lua_engines(
+				"result path",
 				__func__, res2.mres_result_path,
 				res->mres_result_path);
+			compare_results_from_c_and_lua_engines(
+				"virtual cwd",
+				__func__, res2.mres_virtual_cwd,
+				res->mres_virtual_cwd);
 			free_mapping_results(&res2);
 			return;
 		default:
@@ -230,6 +236,7 @@ char *reverse_map_path(
 		virtual_path = call_lua_function_sbox_reverse_path(ctx, abs_host_path);
 		vp2 = sbox_reverse_path_internal__c_engine(ctx, abs_host_path);
 		compare_results_from_c_and_lua_engines(
+			"reversed virtual path",
 			__func__, vp2, virtual_path);
 		if (vp2) free(vp2);
 		break;

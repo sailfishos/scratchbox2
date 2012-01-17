@@ -1112,15 +1112,10 @@ void
 			&abs_virtual_path_for_rule_selection_list) < 0)
 			goto use_orig_path_as_result_and_exit;
 
-#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
 		/* return the virtual cwd to the caller. It is needed
 		 * at least if the mapped path must be registered to
 		 * the fdpathdb. */
 		res->mres_virtual_cwd = strdup(ctx.pmc_sb2ctx->virtual_reversed_cwd);
-#else
-		/* FIXME FIXME FIXME */
-		res->mres_virtual_cwd = NULL;
-#endif
 	}
 
 	switch (is_clean_path(&abs_virtual_path_for_rule_selection_list)) {
@@ -1135,11 +1130,7 @@ void
 		break;
 	}
 
-#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
 	disable_mapping(ctx.pmc_sb2ctx);
-#else
-	/* FIXME FIXME FIXME */
-#endif
 	{
 		/* Mapping disabled inside this block - do not use "return"!! */
 		mapping_results_t	resolved_virtual_path_res;
@@ -1247,9 +1238,7 @@ void
 	forget_mapping:
 		free_mapping_results(&resolved_virtual_path_res);
 	}
-#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
 	enable_mapping(ctx.pmc_sb2ctx);
-#endif
 
 	free_path_list(&abs_virtual_path_for_rule_selection_list);
 

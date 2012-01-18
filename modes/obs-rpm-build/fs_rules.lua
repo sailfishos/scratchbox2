@@ -17,15 +17,6 @@ else
 	var_tmp_dir_dest = session_dir .. "/var/tmp"
 end
 
--- If the permission token exists and contains "root", target_root
--- will be available in R/W mode. Otherwise it will be "mounted" R/O.
---local target_root_is_readonly
---if sb.get_session_perm() == "root" then
---	target_root_is_readonly = false
---else
---	target_root_is_readonly = true
---end
-
 -- Enable the gcc toolchain tricks.
 enable_cross_gcc_toolchain = true
 

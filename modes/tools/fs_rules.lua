@@ -23,15 +23,6 @@ else
 	unmapped_workdir = sbox_workdir
 end
 
--- If the permission token exists and contains "root", tools_root directories
--- will be available in R/W mode. Otherwise it will be "mounted" R/O.
-local tools_root_is_readonly
-if sb.get_session_perm() == "root" then
-	tools_root_is_readonly = false
-else
-	tools_root_is_readonly = true
-end
-
 -- disable the gcc toolchain tricks. gcc & friends will be available, if
 -- those have been installed to tools_root
 enable_cross_gcc_toolchain = false
@@ -41,10 +32,10 @@ enable_cross_gcc_toolchain = false
 var_lib_dpkg_status_actions = {
 	{ if_env_var_is_not_empty = "SBOX_TOOLS_MODE_VAR_LIB_DPKG_STATUS_LOCATION",
 	  replace_by_value_of_env_var = "SBOX_TOOLS_MODE_VAR_LIB_DPKG_STATUS_LOCATION", 
-	  readonly = tools_root_is_readonly},
+	  protection = readonly_fs_if_not_root},
 
 	-- Else use the default location
-	{ map_to = tools_root, readonly = tools_root_is_readonly}
+	{ map_to = tools_root, protection = readonly_fs_if_not_root}
 }
 
 fs_mapping_rules = {
@@ -122,6 +113,6 @@ fs_mapping_rules = {
 
 		{path = "/", use_orig_path = true},
 		{prefix = "/", map_to = tools_root,
-		 readonly = tools_root_is_readonly}
+		 protection = readonly_fs_if_not_root}
 }
 

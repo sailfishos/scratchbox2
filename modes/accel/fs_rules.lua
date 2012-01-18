@@ -21,16 +21,6 @@ end
 
 sb2_share_dir = sbox_user_home_dir.."/.scratchbox2/"..sbox_target.."/share"
 
--- =========== Exec policies:  ===========
-
--- If the permission token exists and contains "root",
--- use fakeroot
-if sb.get_session_perm() == "root" then
-	target_root_is_readonly = false
-else
-	target_root_is_readonly = true
-end
-
 -- =========== Actions for conditional rules ===========
 
 test_first_target_then_tools_default_is_target = {
@@ -565,7 +555,7 @@ fs_mapping_rules = {
 		-- directory when installing stuff to the rootstrap
 		-- This gives R/W access to the target_root (with -R)
 		{prefix = "/target_root", replace_by = target_root,
-		 readonly = target_root_is_readonly},
+		 protection = readonly_fs_if_not_root},
 
 		-- -----------------------------------------------
 		-- 98. Scratchbox 1 emulation rules

@@ -133,7 +133,7 @@ static void write_to_logfile(const char *msg, int msglen)
 
 /* ===================== public functions ===================== */
 
-void sblog_init(void)
+void sblog_init_level_logfile_format(const char *opt_level, const char *opt_logfile, const char *opt_format)
 {
 	if (sb_loglevel__ == SB_LOGLEVEL_uninitialized) {
 		const char	*level_str;
@@ -175,8 +175,8 @@ void sblog_init(void)
 				sb_log_state.sbl_binary_name = sbox_binary_name;
 		}
 
-		sb_log_state.sbl_logfile = getenv("SBOX_MAPPING_LOGFILE");
-		level_str = getenv("SBOX_MAPPING_LOGLEVEL");
+		sb_log_state.sbl_logfile = opt_logfile ? opt_logfile : getenv("SBOX_MAPPING_LOGFILE");
+		level_str = opt_level ? opt_level : getenv("SBOX_MAPPING_LOGLEVEL");
 		if (sb_log_state.sbl_logfile) {
 			if (level_str) {
 				/* Both logfile and loglevel have been set. */
@@ -214,7 +214,7 @@ void sblog_init(void)
 			sb_loglevel__ = SB_LOGLEVEL_NONE;
 		}
 
-		format_str = getenv("SBOX_MAPPING_LOGFORMAT");
+		format_str = opt_format ? opt_format : getenv("SBOX_MAPPING_LOGFORMAT");
 		if (format_str) {
 			if (!strcmp(format_str,"simple")) {
 				sb_log_state.sbl_simple_format = 1;
@@ -240,6 +240,11 @@ void sblog_init(void)
 
 		sb_log_initial_pid__ = getpid();
 	}
+}
+
+void sblog_init(void)
+{
+	sblog_init_level_logfile_format(NULL,NULL,NULL);
 }
 
 /* a vprintf-like routine for logging. This will

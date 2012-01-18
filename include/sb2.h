@@ -160,6 +160,9 @@ extern int sb_path_exists(const char *path);
 #define SB_LOGLEVEL_NOISE3	11
 
 extern void sblog_init(void);
+extern void sblog_init_level_logfile_format(const char *opt_level,
+	const char *opt_logfile, const char *opt_format);
+
 extern void sblog_vprintf_line_to_logfile(const char *file, int line,
 	int level, const char *format, va_list ap);
 extern void sblog_printf_line_to_logfile(const char *file, int line,

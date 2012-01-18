@@ -503,11 +503,7 @@ function sboxify_environment()
 		exit 1
 	fi
 
-	if [ -n "$SBOX_DIR" ]; then
-		if [ -z "$SBOX_LUA_SCRIPTS" ]; then
-			SBOX_LUA_SCRIPTS="$SBOX_DIR/share/scratchbox2/lua_scripts"
-		fi
-	else
+	if [ ! -n "$SBOX_DIR" ]; then
 		exit_error "Incorrect target config in ~/.scratchbox2/$SBOX_TARGET/sb2.config"
 	fi
 
@@ -1424,6 +1420,11 @@ SBOX_TARGET=$SBOX_TARGET
 END
 		touch $SBOX_SESSION_DIR/.joinable-session
 	fi
+
+	if [ -z "$SBOX_LUA_SCRIPTS" ]; then
+		SBOX_LUA_SCRIPTS="$SBOX_DIR/share/scratchbox2/lua_scripts"
+	fi
+	ln -s $SBOX_LUA_SCRIPTS $SBOX_SESSION_DIR/lua_scripts
 }
 
 #
@@ -1496,7 +1497,6 @@ function link_wrappers_for_mapmode()
 function write_configfiles_and_rules_for_new_session()
 {
 	# creating a new session..
-	ln -s $SBOX_LUA_SCRIPTS $SBOX_SESSION_DIR/lua_scripts
 
 	# Create rulefiles and set up wrappers
 	if [ -n "$SB2_INTERNAL_MAPMODES" ]; then

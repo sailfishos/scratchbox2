@@ -300,6 +300,15 @@ static void read_env_vars_from_dir(const char *envdir)
 	}
 }
 
+static int file_is_empty(const char *filename)
+{
+	struct stat64 buf;
+
+	if (stat64(filename, &buf) != 0) return(0);
+	if (S_ISREG(buf.st_mode) && (buf.st_size == 0)) return(1);
+	return(0);
+}
+
 int main(int argc, char *argv[])
 {
 	int	status;
@@ -307,6 +316,7 @@ int main(int argc, char *argv[])
 	int	master_to_child2_pipe_fds[2];
 	char	ch;
 	char	*command_to_exec_at_end = NULL;
+	char	*command_to_exec_at_end_conditionally = NULL;
 	int	opt;
 	char	*exit_reason;
 	char	exit_status[100];
@@ -319,12 +329,13 @@ int main(int argc, char *argv[])
 
 	progname = argv[0];
 	
-	while ((opt = getopt(argc, argv, "L:x:dhe:gG:")) != -1) {
+	while ((opt = getopt(argc, argv, "L:x:X:dhe:gG:")) != -1) {
 		switch (opt) {
 		case 'L': sbox_libsb2 = optarg; break;
 		case 'h': usage_exit(NULL, 0); break;
 		case 'd': debug = 1; break;
 		case 'x': command_to_exec_at_end = optarg; break;
+		case 'X': command_to_exec_at_end_conditionally = optarg; break;
 		case 'e': envdir = optarg; break;
 		case 'g': new_session = 1; break;
 		case 'G': pgrpfile = optarg; break;
@@ -334,6 +345,12 @@ int main(int argc, char *argv[])
 
 	if (optind >= argc) 
 		usage_exit("Wrong number of parameters", 1);
+
+	if (command_to_exec_at_end && command_to_exec_at_end_conditionally) {
+		fprintf(stderr,
+			"%s: Only one of '-x cmd' or '-X cmd' can be used, not both\n", progname);
+		exit(1);
+	}
 
 	if (new_session) {
 		if (setsid() < 0) {
@@ -561,6 +578,31 @@ int main(int argc, char *argv[])
 		resultcode = 1;
 	}
 	DEBUG_MSG("%s %s\n", exit_reason, exit_status);
+
+	if (command_to_exec_at_end_conditionally) {
+		/* the command, which is usually sb2-exitreport,
+		 * won't be executed if all of these are true:
+		 *  - session is persistent
+		 *  - log file is empty (or does not exist)
+		 *  - process accounting was not activated.
+		*/
+		const char *session_dir = getenv("SBOX_SESSION_DIR");
+		const char *logfile = getenv("SBOX_MAPPING_LOGFILE");
+		const char *acct_data = getenv("SBOX_COLLECT_ACCT_DATA");
+
+		if (session_dir && (chdir(session_dir) == 0) &&
+		    (access(".joinable-session", F_OK) == 0) &&
+		    (logfile != NULL) &&
+		    ((access(logfile, F_OK) < 0) || file_is_empty(logfile)) &&
+		    ((acct_data == NULL) || (*acct_data == '\0'))) {
+			DEBUG_MSG("skip execution of %s\n",
+				command_to_exec_at_end_conditionally);
+		} else {
+			DEBUG_MSG("must exec %s\n",
+				command_to_exec_at_end_conditionally);
+			command_to_exec_at_end = command_to_exec_at_end_conditionally;
+		}
+	}
 
 	if (command_to_exec_at_end) {
 		/* time to exec the external script */

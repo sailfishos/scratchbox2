@@ -1949,14 +1949,14 @@ if [ $# -gt 0 -o "$STDIN" = true ]; then
 	args="$@"
 	exec $SBOX_FAKEROOT_PREFIX sb2-monitor $OPTS_FOR_SB2_MONITOR \
 		-L $SBOX_LIBSB2 \
-		-x $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
+		-X $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
 		-e $SBOX_CONFIG_DIR/env_vars \
 		-- \
 		$SHELL -c "exec $SHELL -c '$binary $args'"
 else
 	exec $SBOX_FAKEROOT_PREFIX sb2-monitor $OPTS_FOR_SB2_MONITOR \
 		-L $SBOX_LIBSB2 \
-		-x $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
+		-X $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
 		-e $SBOX_CONFIG_DIR/env_vars \
 		-- \
 		$SHELL -c \

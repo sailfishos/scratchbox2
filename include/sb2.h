@@ -200,10 +200,21 @@ extern char *sbox_mapping_method;
 extern char *sbox_fakeroot_fakerootkey;
 extern char *sbox_fakeroot_faked_mode;
 
+extern void check_pthread_library(void);
+
 extern int pthread_library_is_available; /* flag */
 extern pthread_t (*pthread_self_fnptr)(void);
 extern int (*pthread_mutex_lock_fnptr)(pthread_mutex_t *mutex);
 extern int (*pthread_mutex_unlock_fnptr)(pthread_mutex_t *mutex);
+
+extern int pthread_detection_done;
+
+extern int (*pthread_key_create_fnptr)(pthread_key_t *key,
+	 void (*destructor)(void*));
+extern void *(*pthread_getspecific_fnptr)(pthread_key_t key);
+extern int (*pthread_setspecific_fnptr)(pthread_key_t key,
+	const void *value);
+extern int (*pthread_once_fnptr)(pthread_once_t *, void (*)(void));
 
 extern void lua_string_table_to_strvec(lua_State *l,
 	int lua_stack_offs, char ***args, int new_argc);

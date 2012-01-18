@@ -55,7 +55,7 @@ PROTOTYPEWARNINGS=-Wmissing-prototypes -Wstrict-prototypes
 
 # targets variable will be filled by llbuild
 targets = 
-subdirs = luaif pathmapping rule_tree preload utils
+subdirs = luaif sblib pathmapping rule_tree preload utils
 
 -include config.mak
 

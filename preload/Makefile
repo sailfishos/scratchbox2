@@ -5,6 +5,7 @@ objs := wrappers.o privatewrappers.o \
 	miscgates.o \
 	tmpnamegates.o \
 	fdpathdb.o procfs.o mempcpy.o \
+	union_dirs.o \
 	system.o
 
 ifeq ($(shell uname -s),Linux)

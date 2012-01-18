@@ -1,3 +1,11 @@
+scratchbox2 (2.3.20-1) unstable; urgency=low
+
+  * Fixes and perf.improvements to C pathmapping engine
+  * Improvements to obs-rpm-build mode [from Carsten Munk]
+  * Minor fixes and improvements to mapping modes and various other places.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 18 Jan 2012 16:58:00 +0200
+
 scratchbox2 (2.3.19-1) unstable; urgency=low
 
   * sb2-init: New option "-L opt" (extra options for ld) [from Carsten Munk]

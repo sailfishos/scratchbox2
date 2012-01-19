@@ -345,6 +345,7 @@ emulate_mode_rules_usr_bin = {
 		 actions=accelerated_program_actions},
 		{path="/usr/bin/yes",
 		 actions=accelerated_program_actions},
+
 		{path = "/usr/bin/sb2-show", use_orig_path = true,
 		 protection = readonly_fs_always},
 		{path = "/usr/bin/sb2-qemu-gdbserver-prepare",

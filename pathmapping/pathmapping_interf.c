@@ -84,7 +84,8 @@ static struct sb2context *check_mapping_method(int need_sb2ctx)
 				if (sbox_binary_name) {
 					if (!strcmp(sbox_binary_name, "sh") ||
 					    !strcmp(sbox_binary_name, "bash") ||
-					    !strcmp(sbox_binary_name, "make")) {
+					    !strcmp(sbox_binary_name, "make") ||
+					    !strcmp(sbox_binary_name, "find")) {
 						SB_LOG(SB_LOGLEVEL_DEBUG,
 							"opt.perf: binary name '%s' => init lua",
 							sbox_binary_name);

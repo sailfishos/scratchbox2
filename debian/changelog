@@ -1,3 +1,10 @@
+scratchbox2 (2.3.21-1) unstable; urgency=low
+
+  * Improvements to obs-rpm-build and obs-rpm-build+pp modes [from Carsten Munk]
+  * More simple perf.improvements to C pathmapping engine
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Mon, 23 Jan 2012 15:56:00 +0200
+
 scratchbox2 (2.3.20-1) unstable; urgency=low
 
   * Fixes and perf.improvements to C pathmapping engine

@@ -123,6 +123,9 @@ local binary_name = sb.get_binary_name()
 if (binary_name == "make") or
    (binary_name == "sh") or
    (binary_name == "bash") or
+   (binary_name == "gmake") or
+   (binary_name == "xargs") or
+   (binary_name == "gcc") or
    (binary_name == "find") then
 	-- This is a performance optimization;
 	-- this process will probably do multiple fork()+exec*() calls,

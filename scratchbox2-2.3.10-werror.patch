@@ -1,0 +1,40 @@
+diff -ru scratchbox2-2.3.10/utils/Makefile scratchbox2-2.3.10-werror/utils/Makefile
+--- scratchbox2-2.3.10/utils/Makefile	2011-11-09 07:39:46.000000000 +0100
++++ scratchbox2-2.3.10-werror/utils/Makefile	2011-12-05 08:41:23.109627187 +0100
+@@ -1,7 +1,7 @@
+ # beware of namespace collisions, all subdir makefiles are included
+ # into the top-level Makefile
+ 
+-$(D)/sb2-show: CFLAGS := $(CFLAGS) -Wall -W -Werror \
++$(D)/sb2-show: CFLAGS := $(CFLAGS) -Wall -W \
+ 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
+ 		-I$(SRCDIR)/include
+ 
+@@ -11,7 +11,7 @@
+ 	$(P)LD
+ 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ldl
+ 
+-$(D)/sb2-ruletree: CFLAGS := $(CFLAGS) -Wall -W -Werror \
++$(D)/sb2-ruletree: CFLAGS := $(CFLAGS) -Wall -W \
+ 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
+ 		-I$(SRCDIR)/include -ldl
+ 
+@@ -21,7 +21,7 @@
+ 	$(P)LD
+ 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
+ 
+-$(D)/sb2-monitor: CFLAGS := $(CFLAGS) -Wall -W -Werror \
++$(D)/sb2-monitor: CFLAGS := $(CFLAGS) -Wall -W  \
+ 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
+ 		-I$(SRCDIR)/include
+ 
+@@ -30,7 +30,7 @@
+ 	$(P)LD
+ 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
+ 
+-$(D)/sb2-interp-wrapper: CFLAGS := $(CFLAGS) -Wall -W -Werror \
++$(D)/sb2-interp-wrapper: CFLAGS := $(CFLAGS) -Wall -W  \
+ 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
+ 		-I$(SRCDIR)/include
+ 
+Only in scratchbox2-2.3.10-werror/utils: Makefile~

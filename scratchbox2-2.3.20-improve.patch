@@ -1,0 +1,110 @@
+diff --git a/lua_scripts/main.lua b/lua_scripts/main.lua
+index 3c9b8f2..3f4db25 100644
+--- a/lua_scripts/main.lua
++++ b/lua_scripts/main.lua
+@@ -122,7 +122,8 @@ local binary_name = sb.get_binary_name()
+ 
+ if (binary_name == "make") or
+    (binary_name == "sh") or
+-   (binary_name == "bash") then
++   (binary_name == "bash") or
++   (binary_name == "find") then
+ 	-- This is a performance optimization;
+ 	-- this process will probably do multiple fork()+exec*() calls,
+ 	-- so it is better to load the exec code right now.
+diff --git a/modes/obs-rpm-build/fs_rules.lua b/modes/obs-rpm-build/fs_rules.lua
+index f6089a6..0219032 100644
+--- a/modes/obs-rpm-build/fs_rules.lua
++++ b/modes/obs-rpm-build/fs_rules.lua
+@@ -82,6 +82,8 @@ emulate_mode_rules_bin = {
+ 		 actions=accelerated_program_actions},
+ 		{path="/bin/cp",
+ 		 actions=accelerated_program_actions},
++		{path="/bin/cpio",
++		 actions=accelerated_program_actions},
+ 		{path="/bin/cut",
+ 		 actions=accelerated_program_actions},
+ 		{path="/bin/date",
+@@ -94,6 +96,8 @@ emulate_mode_rules_bin = {
+ 		 actions=accelerated_program_actions},
+ 		{path="/bin/false",
+ 		 actions=accelerated_program_actions},
++		{path="/bin/fgrep",
++		 actions=accelerated_program_actions},
+ 		{path="/bin/find",
+ 		 actions=accelerated_program_actions},
+ 		{path="/bin/gawk",
+@@ -173,6 +177,8 @@ emulate_mode_rules_usr_bin = {
+ 		 actions=accelerated_program_actions},
+ 		{path="/usr/bin/diff",
+ 		 actions=accelerated_program_actions},
++		{path="/usr/bin/diff3",
++		 actions=accelerated_program_actions},
+ 		{path="/usr/bin/dir",
+ 		 actions=accelerated_program_actions},
+ 		{path="/usr/bin/dircolors",
+@@ -183,6 +189,8 @@ emulate_mode_rules_usr_bin = {
+ 		 actions=accelerated_program_actions},
+ 		{path="/usr/bin/egrep",
+ 		 actions=accelerated_program_actions},
++		{path="/usr/bin/env",
++		 actions=accelerated_program_actions},
+ 		{path="/usr/bin/eu-addr2line",
+ 		 actions=accelerated_program_actions},
+ 		{path="/usr/bin/eu-ar",
+@@ -217,6 +225,10 @@ emulate_mode_rules_usr_bin = {
+ 		 actions=accelerated_program_actions},
+ 		{path="/usr/bin/factor",
+ 		 actions=accelerated_program_actions},
++		{path="/usr/bin/fdupes",
++		 actions=accelerated_program_actions},
++		{path="/usr/bin/fgrep",
++		 actions=accelerated_program_actions},
+ 		{path="/usr/bin/file",
+ 		 actions=accelerated_program_actions},
+ 		{path="/usr/bin/find",
+@@ -231,6 +243,12 @@ emulate_mode_rules_usr_bin = {
+ 		 actions=accelerated_program_actions},
+ 		{path="/usr/bin/grep",
+ 		 actions=accelerated_program_actions},
++		{path="/usr/bin/groff",
++		 actions=accelerated_program_actions},
++		{path="/usr/bin/grotty",
++		 actions=accelerated_program_actions},
++		{path="/usr/bin/gtbl",
++		 actions=accelerated_program_actions},
+ 		{path="/usr/bin/gzip",
+ 		 actions=accelerated_program_actions},
+ 		{path="/usr/bin/head",
+@@ -311,6 +329,8 @@ emulate_mode_rules_usr_bin = {
+ 		 actions=accelerated_program_actions},
+ 		{path="/usr/bin/tr",
+ 		 actions=accelerated_program_actions},
++		{path="/usr/bin/troff",
++		 actions=accelerated_program_actions},
+ 		{path="/usr/bin/tsort",
+ 		 actions=accelerated_program_actions},
+ 		{path="/usr/bin/tty",
+@@ -329,6 +349,8 @@ emulate_mode_rules_usr_bin = {
+ 		 actions=accelerated_program_actions},
+ 		{path="/usr/bin/whoami",
+ 		 actions=accelerated_program_actions},
++		{path="/usr/bin/xargs",
++		 actions=accelerated_program_actions},
+ 		{path="/usr/bin/yes",
+ 		 actions=accelerated_program_actions},
+ 		{path = "/usr/bin/sb2-show", use_orig_path = true,
+diff --git a/pathmapping/pathmapping_interf.c b/pathmapping/pathmapping_interf.c
+index 6f11e3c..6a85567 100644
+--- a/pathmapping/pathmapping_interf.c
++++ b/pathmapping/pathmapping_interf.c
+@@ -84,7 +84,8 @@ static struct sb2context *check_mapping_method(int need_sb2ctx)
+ 				if (sbox_binary_name) {
+ 					if (!strcmp(sbox_binary_name, "sh") ||
+ 					    !strcmp(sbox_binary_name, "bash") ||
+-					    !strcmp(sbox_binary_name, "make")) {
++					    !strcmp(sbox_binary_name, "make") ||
++					    !strcmp(sbox_binary_name, "find")) {
+ 						SB_LOG(SB_LOGLEVEL_DEBUG,
+ 							"opt.perf: binary name '%s' => init lua",
+ 							sbox_binary_name);

@@ -339,6 +339,13 @@ static void print_ruletree_object_type(ruletree_object_offset_t obj_offs)
 			else
 				printf("UINT32 <none; got NULL pointer>");
 			break;
+		case SB2_RULETREE_OBJECT_TYPE_BOOLEAN:
+			uip = ruletree_get_pointer_to_boolean(obj_offs);
+			if (uip)
+				printf("BOOLEAN %s", *uip ? "true" : "false");
+			else
+				printf("BOOLEAN <none; got NULL pointer>");
+			break;
 		default:
 			printf("<unknown type %d>",
 				hdr->rtree_obj_type);

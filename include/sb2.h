@@ -116,10 +116,12 @@ struct sb2context {
  * * New in version "95":
  *   - "set_path" mapping action has been added to
  *     both Lua and C mapping engines.
+ * * New in version "96":
+ *   - uint32 and boolean types in ruletree + related interf.functions
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "95"
+#define SB2_LUA_C_INTERFACE_VERSION "96"
 
 /* get sb2context, without activating lua: */
 extern struct sb2context *get_sb2context(void);

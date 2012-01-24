@@ -307,7 +307,7 @@ static const luaL_reg reg[] =
 	{"catalog_get",			lua_sb_ruletree_catalog_get},
 	{"catalog_set",			lua_sb_ruletree_catalog_set},
 	{"catalog_get_uint32",		lua_sb_ruletree_catalog_get_uint32},
-	{"catalog_get_boolean",		lua_sb_ruletree_catalog_get_uint32},
+	{"catalog_get_boolean",		lua_sb_ruletree_catalog_get_boolean},
 
 	/* 'ruletree.catalog_set("catalogname","itemname",
 	 *   ruletree.new_string("str")' can be used from Lua to

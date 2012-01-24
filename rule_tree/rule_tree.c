@@ -517,7 +517,7 @@ static ruletree_object_offset_t ruletree_find_catalog_entry(
 	ruletree_object_offset_t entry_location = 0;
 	const char	*entry_name;
 
-	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (0);
+	if (!ruletree_ctx.rtree_ruletree_hdr_p) ruletree_to_memory();
 
 	if (!catalog_offs) {
 		/* use the root catalog. */
@@ -573,6 +573,8 @@ ruletree_object_offset_t ruletree_catalog_get(
 	SB_LOG(SB_LOGLEVEL_NOISE2,
 		"ruletree_catalog_get(catalog=%s,object_name=%s)",
 		catalog_name, object_name);
+
+	if (!ruletree_ctx.rtree_ruletree_hdr_p) ruletree_to_memory();
 
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) {
 		SB_LOG(SB_LOGLEVEL_NOISE2,
@@ -639,6 +641,8 @@ const char *ruletree_catalog_get_string(
 	const char *object_name)
 {
 	ruletree_object_offset_t offs;
+
+	if (!ruletree_ctx.rtree_ruletree_path) ruletree_to_memory();
 
 	offs = ruletree_catalog_get(catalog_name, object_name);
 	if(offs) {

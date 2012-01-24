@@ -13,14 +13,13 @@ do_file(session_dir .. "/exec_config.lua")
 -- 	argvenvp_gcc.lua  - rules for gcc
 --
 -- With these rules, script create_argvmods_rules.lua generates
--- the actual rules that are loaded into sb2.  Generated files
--- are placed under SBOX_SESSION_DIR/argvmods and they are named
--- like argvmods_xxx.lua.
+-- the actual rules that are loaded into sb2, and writes those
+-- to SBOX_SESSION_DIR/argvmods_misc.lua and
+-- SBOX_SESSION_DIR/argvmods_gcc.lua. One of these is loaded here.
 --
 -- Syntax is of the form:
 --
 -- rule = {
--- 	name = "binary-name",
 --	path_prefixes = {"/list/of", "/possible/path/prefixes"},
 -- 	add_head = {"list", "of", "args", "to", "prepend"},
 -- 	add_options = {"list", "of", "options", "to", "add",
@@ -30,7 +29,7 @@ do_file(session_dir .. "/exec_config.lua")
 -- 	new_filename = "exec-this-binary-instead",
 -- 	disable_mapping = 1 -- set this to disable mappings
 -- }
--- argvmods[rule.name] = rule
+-- argvmods[name] = rule
 --
 -- Environment modifications are not supported yet, except for disabling
 -- mappings.
@@ -108,33 +107,24 @@ argvmods = {}
 
 load_and_check_exec_rules()
 
--- only map gcc & friends if a cross compiler has been defined,
--- and it has not been disabled by the mapping rules:
+local argvmods_file_path
+
 if (enable_cross_gcc_toolchain == true) then
-	local gcc_argvmods_file_path =
-	    session_dir .. "/argvmods/argvmods_gcc.lua"
-	
-	if sb.path_exists(gcc_argvmods_file_path) then
-		-- load in autimatically generated argvmods for gcc
-		do_file(gcc_argvmods_file_path)
-		if debug_messages_enabled then
-			sb.log("debug", string.format(
-			    "loaded argvmods for gcc from '%s'",
-			    gcc_argvmods_file_path))
-		end
-	end
+	-- only map gcc & friends if a cross compiler has been defined,
+	-- and it has not been disabled by the mapping rules:
+	-- (it include the "misc" rules, too)
+	argvmods_file_path = session_dir .. "/argvmods_gcc.lua"
+else
+	argvmods_file_path = session_dir .. "/argvmods_misc.lua"
 end
 
---
--- Always load argvmods for misc binaries.
---
-local misc_argvmods_file_path = session_dir .. "/argvmods/argvmods_misc.lua"
-if sb.path_exists(misc_argvmods_file_path) then
-	do_file(misc_argvmods_file_path)
+-- load in autimatically generated argvmods file
+if sb.path_exists(argvmods_file_path) then
+	do_file(argvmods_file_path)
 	if debug_messages_enabled then
 		sb.log("debug", string.format(
-		    "loaded argvmods for misc binaries from '%s'",
-		    misc_argvmods_file_path))
+		    "loaded argvmods from '%s'",
+		    argvmods_file_path))
 	end
 end
 

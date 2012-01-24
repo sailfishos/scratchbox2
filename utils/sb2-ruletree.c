@@ -58,6 +58,9 @@ char *sbox_session_dir = NULL; /* Fake var, referenced by the library=>must have
 static void dump_catalog(ruletree_object_offset_t catalog_offs, const char *catalog_name, int indent);
 static void dump_objectlist(ruletree_object_offset_t list_offs, int indent);
 
+static void print_ruletree_object_type(ruletree_object_offset_t obj_offs);
+static void print_ruletree_object_recurse(int indent, const char *name, ruletree_object_offset_t obj_offs);
+
 static char *rule_dumped = NULL;
 
 static void print_indent(int i)
@@ -300,6 +303,77 @@ static void dump_objectlist(ruletree_object_offset_t list_offs, int indent)
 	printf("}\n");
 }
 
+static void print_ruletree_object_type(ruletree_object_offset_t obj_offs)
+{
+	ruletree_object_hdr_t *hdr;
+
+	hdr = offset_to_ruletree_object_ptr(obj_offs, 0/*any type is ok*/);
+
+	if (hdr) {
+		const char *cp;
+		uint32_t *uip;
+
+		switch (hdr->rtree_obj_type) {
+		case SB2_RULETREE_OBJECT_TYPE_FILEHDR:
+			printf("FILEHDR");
+			break;
+		case SB2_RULETREE_OBJECT_TYPE_CATALOG:
+			printf("CATALOG @%u", obj_offs);
+			break;
+		case SB2_RULETREE_OBJECT_TYPE_FSRULE:
+			printf("FSRULE @%u", obj_offs);
+			break;
+		case SB2_RULETREE_OBJECT_TYPE_STRING:
+			printf("STRING\t");
+			cp = offset_to_ruletree_string_ptr(obj_offs);
+			if (cp) printf("'%s'", cp);
+			else printf("NULL");
+			break;
+		case SB2_RULETREE_OBJECT_TYPE_OBJECTLIST:
+			printf("LIST @%u", obj_offs);
+			break;
+		case SB2_RULETREE_OBJECT_TYPE_UINT32:
+			uip = ruletree_get_pointer_to_uint32(obj_offs);
+			if (uip)
+				printf("UINT32 %u (0x%X)", *uip, *uip);
+			else
+				printf("UINT32 <none; got NULL pointer>");
+			break;
+		default:
+			printf("<unknown type %d>",
+				hdr->rtree_obj_type);
+			break;
+		}
+	} else {
+		printf("<invalid value offset>");
+	}
+}
+
+static void print_ruletree_object_recurse(int indent, const char *name, ruletree_object_offset_t obj_offs)
+{
+	ruletree_object_hdr_t *hdr;
+
+	hdr = offset_to_ruletree_object_ptr(obj_offs, 0/*any type is ok*/);
+
+	if (hdr) {
+		switch (hdr->rtree_obj_type) {
+		case SB2_RULETREE_OBJECT_TYPE_CATALOG:
+			dump_catalog(obj_offs, name, indent);
+			break;
+		case SB2_RULETREE_OBJECT_TYPE_OBJECTLIST:
+			if (name) {
+				print_indent(indent);
+				printf("'%s'\n", name);
+			}
+			dump_objectlist(obj_offs, indent+1);
+			break;
+		default:
+			/* ignore it. */
+			break;
+		}
+	} /* else ignore it. */
+}
+
 static void dump_catalog(ruletree_object_offset_t catalog_offs, const char *catalog_name, int indent)
 {
 	ruletree_catalog_entry_t	*catalog;
@@ -351,44 +425,9 @@ static void dump_catalog(ruletree_object_offset_t catalog_offs, const char *cata
 		}
 
 		if (catp->rtree_cat_value_offs) {
-			ruletree_object_hdr_t *hdr = offset_to_ruletree_object_ptr(
-				catp->rtree_cat_value_offs, 0/*any type is ok*/);
-
-			if (hdr) {
-				const char *cp;
-
-				switch (hdr->rtree_obj_type) {
-				case SB2_RULETREE_OBJECT_TYPE_FILEHDR:
-					printf("FILEHDR\t");
-					break;
-				case SB2_RULETREE_OBJECT_TYPE_CATALOG:
-					printf("CATALOG: -> %u",
-						catp->rtree_cat_value_offs);
-					break;
-				case SB2_RULETREE_OBJECT_TYPE_FSRULE:
-					printf("RULE: -> %u",
-						catp->rtree_cat_value_offs);
-					break;
-				case SB2_RULETREE_OBJECT_TYPE_STRING:
-					printf("STRING\t");
-					cp = offset_to_ruletree_string_ptr(
-						catp->rtree_cat_value_offs);
-					if (cp) printf("'%s'", cp);
-					else printf("NULL");
-					break;
-				case SB2_RULETREE_OBJECT_TYPE_OBJECTLIST:
-					printf("LIST: -> %u",
-						catp->rtree_cat_value_offs);
-					break;
-				default:
-					printf("<unknown type>\t");
-					break;
-				}
-			} else {
-				printf("<invalid value offset>\t");
-			}
+			print_ruletree_object_type(catp->rtree_cat_value_offs);
 		} else {
-			printf("<no value>\t");
+			printf("<no value>");
 		}
 		printf("\n");
 	}
@@ -406,35 +445,11 @@ static void dump_catalog(ruletree_object_offset_t catalog_offs, const char *cata
 		}
 
 		if (catp->rtree_cat_value_offs) {
-			ruletree_object_hdr_t *hdr = offset_to_ruletree_object_ptr(
-				catp->rtree_cat_value_offs, 0/*any type is ok*/);
+			print_ruletree_object_recurse(indent+1,
+				name, catp->rtree_cat_value_offs);
 
-			if (hdr) {
-				switch (hdr->rtree_obj_type) {
-				case SB2_RULETREE_OBJECT_TYPE_CATALOG:
-					print_indent(indent+1);
-					printf("Catalog @ %d\n", catp->rtree_cat_value_offs);
-					dump_catalog(catp->rtree_cat_value_offs, name, indent+2);
-					printf("\n");
-					break;
-				case SB2_RULETREE_OBJECT_TYPE_OBJECTLIST:
-					printf("\n");
-					if (catp->rtree_cat_name_offs) {
-						print_indent(indent+1);
-						name = offset_to_ruletree_string_ptr(catp->rtree_cat_name_offs);
-						if (name) printf("'%s'\t", name);
-						printf("\n");
-					}
-					dump_objectlist(catp->rtree_cat_value_offs, indent+2);
-					break;
-				default:
-					/* ignore it. */
-					break;
-				}
-			}
 		}
 	}
-
 	print_indent(indent);
 	printf("End of Catalog @ %u '%s'.\n", catalog_offs, catalog_name);
 }

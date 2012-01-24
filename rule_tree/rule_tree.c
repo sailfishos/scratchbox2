@@ -73,9 +73,20 @@ void *offset_to_ruletree_object_ptr(ruletree_object_offset_t offs, uint32_t requ
 {
 	ruletree_object_hdr_t	*hdrp = offset_to_raw_ruletree_ptr(offs);
 
-	if (!hdrp) return(NULL);
-	if (hdrp->rtree_obj_magic != SB2_RULETREE_MAGIC) return(NULL);
-	if (required_type && (required_type != hdrp->rtree_obj_type)) return(NULL);
+	if (!hdrp) {
+		SB_LOG(SB_LOGLEVEL_NOISE3, "%s: no hdrp @%u", __func__, offs);
+		return(NULL);
+	}
+	if (hdrp->rtree_obj_magic != SB2_RULETREE_MAGIC) {
+		SB_LOG(SB_LOGLEVEL_NOISE3, "%s: wrong magic 0x%X", __func__,
+			hdrp->rtree_obj_magic);
+		return(NULL);
+	}
+	if (required_type && (required_type != hdrp->rtree_obj_type)) {
+		SB_LOG(SB_LOGLEVEL_NOISE3, "%s: wrong type (req=0x%X, was 0x%X)",
+			__func__, required_type, hdrp->rtree_obj_type);
+		return(NULL);
+	}
 
 	return(hdrp);
 }
@@ -199,6 +210,34 @@ int attach_ruletree(const char *ruletree_path,
 	}
 	SB_LOG(SB_LOGLEVEL_DEBUG, "attach_ruletree() => %d", result);
 	return(result);
+}
+
+/* =================== ints =================== */
+
+uint32_t *ruletree_get_pointer_to_uint32(ruletree_object_offset_t offs)
+{
+	ruletree_uint32_t	*hdrp;
+
+	hdrp = offset_to_ruletree_object_ptr(offs, SB2_RULETREE_OBJECT_TYPE_UINT32);
+	if (hdrp) {
+		return(&hdrp->rtree_uint32);
+	}
+	return(NULL);
+}
+
+ruletree_object_offset_t append_uint32_to_ruletree_file(uint32_t initial_value)
+{
+	ruletree_uint32_t		uihdr;
+	ruletree_object_offset_t	location = 0;
+
+	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (0);
+	if (ruletree_ctx.rtree_ruletree_fd < 0) return(0);
+
+	uihdr.rtree_uint32 = initial_value;
+	/* "append_struct_to_ruletree_file" will fill the magic & type */
+	location = append_struct_to_ruletree_file(&uihdr, sizeof(uihdr),
+		SB2_RULETREE_OBJECT_TYPE_UINT32);
+	return(location);
 }
 
 /* =================== strings =================== */
@@ -584,6 +623,27 @@ const char *ruletree_catalog_get_string(
 	}
 	SB_LOG(SB_LOGLEVEL_NOISE2,
 		"ruletree_catalog_get_string: NULL");
+	return(NULL);
+}
+
+extern uint32_t *ruletree_catalog_get_uint32_ptr(
+        const char *catalog_name, const char *object_name)
+{
+	ruletree_object_offset_t offs;
+
+	if (!ruletree_ctx.rtree_ruletree_path) ruletree_to_memory();
+
+	offs = ruletree_catalog_get(catalog_name, object_name);
+	if(offs) {
+		uint32_t *uip = ruletree_get_pointer_to_uint32(offs);
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"ruletree_catalog_get_uint32_ptr(%s,%s): 0x%x",
+			catalog_name, object_name, (int)uip);
+		return(uip);
+	}
+	SB_LOG(SB_LOGLEVEL_NOISE2,
+		"ruletree_catalog_get_uint32_ptr(%s,%s): NULL",
+			catalog_name, object_name);
 	return(NULL);
 }
 

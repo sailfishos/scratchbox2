@@ -15,6 +15,9 @@
  * (relative to the beginning of the file) are used.
 */
 
+#ifndef SB2_RULETREE_H__
+#define SB2_RULETREE_H__
+
 /* object offset must be an unsigned type: */
 typedef uint32_t ruletree_object_offset_t;
 
@@ -33,6 +36,7 @@ typedef struct ruletree_object_hdr_s {
 #define SB2_RULETREE_OBJECT_TYPE_FSRULE		3	/* ruletree_fsrule_t */
 #define SB2_RULETREE_OBJECT_TYPE_STRING		4	/* ruletree_string_hdr_t */
 #define SB2_RULETREE_OBJECT_TYPE_OBJECTLIST	5	/* ruletree_objectlist_t */
+#define SB2_RULETREE_OBJECT_TYPE_UINT32		8	/* ruletree_uint32_t */
 
 typedef struct ruletree_hdr_s {
 	ruletree_object_hdr_t	rtree_hdr_objhdr;
@@ -96,6 +100,13 @@ typedef struct ruletree_objectlist_s {
 	uint32_t	rtree_olist_size;
 } ruletree_objectlist_t;
 
+/* An unsigned integer, 32 bits. */
+typedef struct ruletree_uint32_s {
+	ruletree_object_hdr_t	rtree_str_objhdr;
+
+	uint32_t	rtree_uint32;
+} ruletree_uint32_t;
+
 /* the three "usual selectors", used in normal rules */
 #define SB2_RULETREE_FSRULE_SELECTOR_PATH		101
 #define SB2_RULETREE_FSRULE_SELECTOR_PREFIX		102
@@ -147,6 +158,10 @@ extern ruletree_fsrule_t *offset_to_ruletree_fsrule_ptr(int loc);
 /* strings */
 extern ruletree_object_offset_t append_string_to_ruletree_file(const char *str);
 
+/* ints */
+extern uint32_t *ruletree_get_pointer_to_uint32(ruletree_object_offset_t offs);
+extern ruletree_object_offset_t append_uint32_to_ruletree_file(uint32_t initial_value);
+
 /* lists */
 extern ruletree_object_offset_t ruletree_objectlist_create_list(uint32_t size);
 extern int ruletree_objectlist_set_item(ruletree_object_offset_t list_offs,
@@ -164,6 +179,8 @@ extern int ruletree_catalog_set(const char *catalog_name,
 
 extern const char *ruletree_catalog_get_string(
 	const char *catalog_name, const char *object_name);
+extern uint32_t *ruletree_catalog_get_uint32_ptr(
+	const char *catalog_name, const char *object_name);
 
 /* ------------ rule_tree_luaif.c: ------------ */
 extern int lua_bind_ruletree_functions(lua_State *l);
@@ -176,3 +193,4 @@ extern ruletree_object_offset_t add_rule_to_ruletree(
 	int flags, const char *binary_name,
         int func_class, const char *exec_policy_name);
 
+#endif /* SB2_RULETREE_H__ */

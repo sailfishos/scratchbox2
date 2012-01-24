@@ -7,6 +7,8 @@
 -- Load session-specific exec-related settings
 do_file(session_dir .. "/exec_config.lua")
 
+isprefix = sb.isprefix
+
 --
 -- argv&envp mangling rules are separated into two files
 -- 	argvenvp_misc.lua - rules for misc binaries
@@ -76,7 +78,12 @@ function load_and_check_exec_rules()
 	-- Version 101:
 	-- - fs rules were updated, this was bumped
 	--   to keep these in sync.
-	local current_rule_interface_version = "101"
+	-- Version 102:
+	-- - read "enable_cross_gcc_toolchain" from
+	--   ruletree, it is defined originally
+	--   in mode's "config.lua" file (which is
+	--   never loaded directly)
+	local current_rule_interface_version = "102"
 
 	do_file(exec_rule_file_path)
 
@@ -98,7 +105,7 @@ function load_and_check_exec_rules()
 	end
 
         if (type(exec_policy_rules) ~= "table") then
-		sb.log("error", "'fs_mapping_rule' is not an array.");
+		sb.log("error", "'exec_policy_rules' is not an array.");
 		os.exit(97)
 	end
 end
@@ -108,6 +115,9 @@ argvmods = {}
 load_and_check_exec_rules()
 
 local argvmods_file_path
+
+enable_cross_gcc_toolchain = ruletree.catalog_get_boolean(
+	"Conf."..sbox_mapmode, "enable_cross_gcc_toolchain")
 
 if (enable_cross_gcc_toolchain == true) then
 	-- only map gcc & friends if a cross compiler has been defined,

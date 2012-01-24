@@ -36,6 +36,25 @@ session_dir = sb.get_session_dir()
 -- Load session-specific settings
 do_file(session_dir .. "/sb2-session.conf")
 
+-- Set global variables: Config file paths, etc.
+
+local forced_modename = sb.get_forced_mapmode()
+
+-- rule_file_path and rev_rule_file_path are global varibales
+if forced_modename == nil or forced_modename == "Default" then
+	rule_file_path = session_dir .. "/rules/Default.lua"
+	rev_rule_file_path = session_dir .. "/rev_rules/Default.lua"
+	exec_rule_file_path = session_dir .. "/exec_rules/Default.lua"
+	-- set active_mapmode to the real name of the mapping mode,
+	-- even if forced_modename happens to be "Default"
+	active_mapmode = sbox_mapmode
+else
+	rule_file_path = session_dir .. "/rules/" .. forced_modename .. ".lua"
+	rev_rule_file_path = session_dir .. "/rev_rules/" .. forced_modename .. ".lua"
+	exec_rule_file_path = session_dir .. "/exec_rules/" .. forced_modename .. ".lua"
+	active_mapmode = forced_modename
+end
+
 -- Load path mapping functions
 --
 -- NOTE: "mapping.lua" loads the mapping mode config, which may be needed

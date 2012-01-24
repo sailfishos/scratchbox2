@@ -3,7 +3,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "101"
+rule_file_interface_version = "102"
 ----------------------------------
 
 sb1_compat_dir = sbox_target_root .. "/scratchbox1-compat"
@@ -35,9 +35,6 @@ else
 	tmp_dir_dest = session_dir .. "/tmp"
 	var_tmp_dir_dest = session_dir .. "/var/tmp"
 end
-
--- Enable the gcc toolchain tricks.
-enable_cross_gcc_toolchain = true
 
 test_first_target_then_host_default_is_target = {
 	{ if_exists_then_map_to = target_root, protection = readonly_fs_always },

@@ -2,8 +2,6 @@
 -- Copyright (C) 2006, 2007 Lauri Leukkunen
 -- Licensed under MIT license.
 
-local forced_modename = sb.get_forced_mapmode()
-
 -- These must match the flag definitions in mapping.h:
 local RULE_FLAGS_READONLY = 1
 local RULE_FLAGS_CALL_TRANSLATE_FOR_ALL = 2
@@ -16,21 +14,6 @@ local RULE_FLAGS_READONLY_FS_ALWAYS = 16
 -- "protection" attribute:
 readonly_fs_if_not_root = 1
 readonly_fs_always = 2
-
--- rule_file_path and rev_rule_file_path are global varibales
-if forced_modename == nil or forced_modename == "Default" then
-	rule_file_path = session_dir .. "/rules/Default.lua"
-	rev_rule_file_path = session_dir .. "/rev_rules/Default.lua"
-	exec_rule_file_path = session_dir .. "/exec_rules/Default.lua"
-	-- set active_mapmode to the real name of the mapping mode,
-	-- even if forced_modename happens to be "Default"
-	active_mapmode = sbox_mapmode
-else
-	rule_file_path = session_dir .. "/rules/" .. forced_modename .. ".lua"
-	rev_rule_file_path = session_dir .. "/rev_rules/" .. forced_modename .. ".lua"
-	exec_rule_file_path = session_dir .. "/exec_rules/" .. forced_modename .. ".lua"
-	active_mapmode = forced_modename
-end
 
 function basename(path)
 	if (path == "/") then
@@ -90,7 +73,7 @@ end
 --  2. fs_mapping_rules (array) contains mapping rules; this array
 --     is searched sequentially with the original (unmapped) path as the key
 -- Additionally, following variables may be modified:
--- "enable_cross_gcc_toolchain" (default=true): All special processing
+-- "enable_cross_gcc_toolchain": All special processing
 --     for the gcc-related tools (gcc,as,ld,..) will be disabled if set
 --     to false.
 --
@@ -107,6 +90,12 @@ function load_and_check_rules()
 	-- INTERFACE VERSION between this file, the
 	-- exec mapping code (argvenp.lua) and the
 	-- rule files:
+	--
+	-- Version 102:
+	-- - read "enable_cross_gcc_toolchain" from
+	--   ruletree, it is defined originally
+	--   in mode's "config.lua" file (which is
+	--   never loaded directly)
 	--
         -- Version 101:
 	-- - New action type "set_path" was added.
@@ -165,7 +154,7 @@ function load_and_check_rules()
 	--   (previously only one was expected)
 	-- - variables "esc_tools_root" and "esc_target_root"
 	--   were removed
-	local current_rule_interface_version = "101"
+	local current_rule_interface_version = "102"
 
 	do_file(rule_file_path)
 
@@ -202,7 +191,8 @@ if (tools_root == "") then
 	tools_root = nil
 end
 
-enable_cross_gcc_toolchain = true
+enable_cross_gcc_toolchain = ruletree.catalog_get_boolean(
+        "Conf."..sbox_mapmode, "enable_cross_gcc_toolchain")
 
 fs_mapping_rules = nil
 

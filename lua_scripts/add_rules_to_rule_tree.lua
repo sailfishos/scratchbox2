@@ -300,3 +300,16 @@ ri = add_list_of_rules(reverse_fs_mapping_rules, true) -- add reverse  rules
 print("-- Added ruleset rev.rules")
 ruletree.catalog_set("rev_rules", modename_in_ruletree, ri)
 
+-- Mode-specific fixed config settings to ruledb:
+--
+-- "enable_cross_gcc_toolchain" (default=true): All special processing
+--     for the gcc-related tools (gcc,as,ld,..) will be disabled if set
+--     to false.
+--
+enable_cross_gcc_toolchain = true
+
+do_file(session_dir .. "/share/scratchbox2/modes/"..sbox_mapmode.."/config.lua")
+
+ruletree.catalog_set("Conf."..sbox_mapmode, "enable_cross_gcc_toolchain",
+        ruletree.new_boolean(enable_cross_gcc_toolchain))
+

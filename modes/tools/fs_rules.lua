@@ -6,7 +6,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "101"
+rule_file_interface_version = "102"
 ----------------------------------
 
 tools = tools_root
@@ -22,10 +22,6 @@ if sbox_workdir == "/" then
 else
 	unmapped_workdir = sbox_workdir
 end
-
--- disable the gcc toolchain tricks. gcc & friends will be available, if
--- those have been installed to tools_root
-enable_cross_gcc_toolchain = false
 
 -- This mode can also be used to redirect /var/lib/dpkg/status to another
 -- location (our dpkg-checkbuilddeps wrapper needs that)

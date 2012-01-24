@@ -21,11 +21,8 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "101"
+rule_file_interface_version = "102"
 ----------------------------------
-
--- disable the gcc toolchain tricks.
-enable_cross_gcc_toolchain = false
 
 fs_mapping_rules = {
 		-- Don't map.

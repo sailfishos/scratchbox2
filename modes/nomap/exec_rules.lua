@@ -21,7 +21,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "101"
+rule_file_interface_version = "102"
 ----------------------------------
 
 -- Exec policy rules.

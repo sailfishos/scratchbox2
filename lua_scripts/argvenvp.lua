@@ -281,10 +281,14 @@ function set_ld_library_path(envp, new_path)
 	if (ld_library_path_index > 0) then
 		envp[ld_library_path_index] =
 			"LD_LIBRARY_PATH=" .. new_path
-		sb.log("debug", "Replaced LD_LIBRARY_PATH")
+		if debug_messages_enabled then
+			sb.log("debug", "Replaced LD_LIBRARY_PATH")
+		end
 	else
 		table.insert(envp, "LD_LIBRARY_PATH=" .. new_path)
-		sb.log("debug", "Added LD_LIBRARY_PATH")
+		if debug_messages_enabled then
+			sb.log("debug", "Added LD_LIBRARY_PATH")
+		end
 	end
 end
 
@@ -310,7 +314,9 @@ function setenv_native_app_ld_library_path(exec_policy, envp)
 
 	-- Set the value:
 	if (new_path == nil) then
-		sb.log("debug", "No value for LD_LIBRARY_PATH, using host's path")
+		if debug_messages_enabled then
+			sb.log("debug", "No value for LD_LIBRARY_PATH, using host's path")
+		end
 		-- Use host's original value
 		new_path = host_ld_library_path
 	end
@@ -324,10 +330,14 @@ function set_ld_preload(envp, new_preload)
 	local ld_preload_index = locate_ld_preload(envp)
 	if (ld_preload_index > 0) then
 		envp[ld_preload_index] = "LD_PRELOAD=" .. new_preload
-		sb.log("debug", "Replaced LD_PRELOAD="..new_preload)
+		if debug_messages_enabled then
+			sb.log("debug", "Replaced LD_PRELOAD="..new_preload)
+		end
 	else
 		table.insert(envp, "LD_PRELOAD=" .. new_preload)
-		sb.log("debug", "Added LD_PRELOAD="..new_preload)
+		if debug_messages_enabled then
+			sb.log("debug", "Added LD_PRELOAD="..new_preload)
+		end
 	end
 end
 
@@ -383,13 +393,17 @@ end
 -- returns 0, nil.
 --
 function sb_find_exec_policy(mapped_file)
-	sb.log("debug", "sb_find_exec_policy for "..mapped_file)
+	if debug_messages_enabled then
+		sb.log("debug", "sb_find_exec_policy for "..mapped_file)
+	end
 	for i = 1, table.maxn(exec_policy_rules) do
 		local rule = exec_policy_rules[i]
 		min_path_len = sb.test_path_match(mapped_file,
 			rule.dir, rule.prefix, rule.path)
 		if min_path_len >= 0 then
-			sb.log("debug", "exec policy found: "..rule.exec_policy_name)
+			if debug_messages_enabled then
+				sb.log("debug", "exec policy found: "..rule.exec_policy_name)
+			end
 			return 1, rule.exec_policy_name
 		end
 	end
@@ -406,7 +420,9 @@ function check_exec_policy(exec_policy_name, filename, mapped_file)
 	if (exec_policy_name == nil) then
 		local res
 
-		sb.log("debug", "trying exec_policy_rules..")
+		if debug_messages_enabled then
+			sb.log("debug", "trying exec_policy_rules..")
+		end
 		res, exec_policy_name = sb_find_exec_policy(mapped_file)
 		if (res == 0) or (exec_policy_name == nil) then
 			-- there is no default policy for this mode
@@ -459,12 +475,14 @@ function sb_execve_map_script_interpreter(exec_policy_name, interpreter,
 		return exec_policy_name, -1, interpreter, #argv, argv, #envp, envp
 	end
 
-	if (exec_policy.name == nil) then
-		sb.log("debug", "Applying nameless exec_policy to script")
-	else
-		sb.log("debug", string.format(
-			"Applying exec_policy '%s' to script",
-			exec_policy.name))
+	if debug_messages_enabled then
+		if (exec_policy.name == nil) then
+			sb.log("debug", "Applying nameless exec_policy to script")
+		else
+			sb.log("debug", string.format(
+				"Applying exec_policy '%s' to script",
+				exec_policy.name))
+		end
 	end
 
 	if (exec_policy.script_interpreter_rules ~= nil) then
@@ -517,9 +535,9 @@ function sb_execve_postprocess_native_executable(exec_policy,
 	exec_type, mapped_file, filename, argv, envp)
 
 	-- Native binary. See what we need to do with it...
-	sb.log("debug", string.format("sb_execve_postprocess: Native binary"))
-	
-	sb.log("debug", "Rule: apply exec_policy")
+	if debug_messages_enabled then
+		sb.log("debug", "sb_execve_postprocess_native_executable")
+	end
 
 	local new_argv = {}
 	local new_envp = envp
@@ -596,8 +614,10 @@ function sb_execve_postprocess_native_executable(exec_policy,
 	-- it is set.
 	--
 	if exec_policy.native_app_locale_path ~= nil then
-		sb.log("debug", string.format("setting LOCPATH=%s",
-		    exec_policy.native_app_locale_path))
+		if debug_messages_enabled then
+			sb.log("debug", string.format("setting LOCPATH=%s",
+			    exec_policy.native_app_locale_path))
+		end
 		table.insert(new_envp, "LOCPATH=" ..
 		    exec_policy.native_app_locale_path)
 		table.insert(new_envp, "NLSPATH=" ..
@@ -606,8 +626,10 @@ function sb_execve_postprocess_native_executable(exec_policy,
 	end
 
 	if exec_policy.native_app_gconv_path ~= nil then
-		sb.log("debug", string.format("setting GCONV_PATH=%s",
-		    exec_policy.native_app_gconv_path))
+		if debug_messages_enabled then
+			sb.log("debug", string.format("setting GCONV_PATH=%s",
+			    exec_policy.native_app_gconv_path))
+		end
 		table.insert(new_envp, "GCONV_PATH=" ..
 		    exec_policy.native_app_gconv_path)
 		updated_args = 1
@@ -745,10 +767,14 @@ function sb_execve_postprocess_sbrsh(exec_policy,
 	local ld_preload_tbl = pick_and_remove_elems_from_string_table(
 		new_envp, "^LD_PRELOAD=")
 	if ld_preload_tbl == nil then
-		sb.log("debug", "LD_PRELOAD not found")
+		if debug_messages_enabled then
+			sb.log("debug", "LD_PRELOAD not found")
+		end
 	else
-		sb.log("debug", string.format("LD_PRELOAD was %s",
-			ld_preload_tbl[1]))
+		if debug_messages_enabled then
+			sb.log("debug", string.format("LD_PRELOAD was %s",
+				ld_preload_tbl[1]))
+		end
 		local ld_preload_path = string.gsub(ld_preload_tbl[1],
 			"^LD_PRELOAD=", "", 1)
 		local ld_preload_components = split_to_tokens(ld_preload_path,
@@ -760,9 +786,13 @@ function sb_execve_postprocess_sbrsh(exec_policy,
 			local new_ld_preload = table.concat(
 				ld_preload_components, ":")
 			table.insert(new_envp, "LD_PRELOAD="..new_ld_preload)
-			sb.log("debug", "set LD_PRELOAD to "..new_ld_preload)
+			if debug_messages_enabled then
+				sb.log("debug", "set LD_PRELOAD to "..new_ld_preload)
+			end
 		else
-			sb.log("debug", "nothing left, run without LD_PRELOAD")
+			if debug_messages_enabled then
+				sb.log("debug", "nothing left, run without LD_PRELOAD")
+			end
 		end
 	end
 
@@ -774,7 +804,9 @@ end
 function sb_execve_postprocess_cpu_transparency_executable(exec_policy,
     exec_type, mapped_file, filename, argv, envp)
 
-	sb.log("debug", "postprocessing cpu_transparency for " .. filename)
+	if debug_messages_enabled then
+		sb.log("debug", "postprocessing cpu_transparency for " .. filename)
+	end
 
 	if cputransparency_method_is_qemu then
 		local new_envp = {}
@@ -965,15 +997,16 @@ function sb_execve_postprocess(exec_policy_name, exec_type,
 		return -1, mapped_file, filename, #argv, argv, #envp, envp
 	end
 
-	if (exec_policy.name == nil) then
-		sb.log("debug", "Applying nameless exec_policy")
-	else
-		sb.log("debug", string.format("Applying exec_policy '%s'",
-			exec_policy.name))
+	if debug_messages_enabled then
+		if (exec_policy.name == nil) then
+			sb.log("debug", "Applying nameless exec_policy")
+		else
+			sb.log("debug", string.format("Applying exec_policy '%s'",
+				exec_policy.name))
+		end
+		sb.log("debug", string.format("sb_execve_postprocess:type=%s",
+			exec_type))
 	end
-
-	sb.log("debug", string.format("sb_execve_postprocess:type=%s",
-		exec_type))
 
 	if (exec_policy.name) then
 		table.insert(envp, "__SB2_EXEC_POLICY_NAME="..exec_policy.name)

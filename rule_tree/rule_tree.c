@@ -212,20 +212,34 @@ int attach_ruletree(const char *ruletree_path,
 	return(result);
 }
 
-/* =================== ints =================== */
+/* =================== ints and booleans =================== */
 
-uint32_t *ruletree_get_pointer_to_uint32(ruletree_object_offset_t offs)
+static uint32_t *ruletree_get_pointer_to_uint32_or_boolean(
+	ruletree_object_offset_t offs, int type)
 {
 	ruletree_uint32_t	*hdrp;
 
-	hdrp = offset_to_ruletree_object_ptr(offs, SB2_RULETREE_OBJECT_TYPE_UINT32);
+	hdrp = offset_to_ruletree_object_ptr(offs, type);
 	if (hdrp) {
 		return(&hdrp->rtree_uint32);
 	}
 	return(NULL);
 }
 
-ruletree_object_offset_t append_uint32_to_ruletree_file(uint32_t initial_value)
+uint32_t *ruletree_get_pointer_to_uint32(ruletree_object_offset_t offs)
+{
+	return(ruletree_get_pointer_to_uint32_or_boolean(offs,
+		SB2_RULETREE_OBJECT_TYPE_UINT32));
+}
+
+uint32_t *ruletree_get_pointer_to_boolean(ruletree_object_offset_t offs)
+{
+	return(ruletree_get_pointer_to_uint32_or_boolean(offs,
+		SB2_RULETREE_OBJECT_TYPE_BOOLEAN));
+}
+
+static ruletree_object_offset_t append_uint32_or_boolean_to_ruletree_file(
+	uint32_t initial_value,  int type)
 {
 	ruletree_uint32_t		uihdr;
 	ruletree_object_offset_t	location = 0;
@@ -236,8 +250,20 @@ ruletree_object_offset_t append_uint32_to_ruletree_file(uint32_t initial_value)
 	uihdr.rtree_uint32 = initial_value;
 	/* "append_struct_to_ruletree_file" will fill the magic & type */
 	location = append_struct_to_ruletree_file(&uihdr, sizeof(uihdr),
-		SB2_RULETREE_OBJECT_TYPE_UINT32);
+		type);
 	return(location);
+}
+
+ruletree_object_offset_t append_uint32_to_ruletree_file(uint32_t initial_value)
+{
+	return(append_uint32_or_boolean_to_ruletree_file(initial_value,
+		SB2_RULETREE_OBJECT_TYPE_UINT32));
+}
+
+ruletree_object_offset_t append_boolean_to_ruletree_file(uint32_t initial_value)
+{
+	return(append_uint32_or_boolean_to_ruletree_file(initial_value,
+		SB2_RULETREE_OBJECT_TYPE_BOOLEAN));
 }
 
 /* =================== strings =================== */
@@ -626,7 +652,7 @@ const char *ruletree_catalog_get_string(
 	return(NULL);
 }
 
-extern uint32_t *ruletree_catalog_get_uint32_ptr(
+uint32_t *ruletree_catalog_get_uint32_ptr(
         const char *catalog_name, const char *object_name)
 {
 	ruletree_object_offset_t offs;
@@ -643,6 +669,27 @@ extern uint32_t *ruletree_catalog_get_uint32_ptr(
 	}
 	SB_LOG(SB_LOGLEVEL_NOISE2,
 		"ruletree_catalog_get_uint32_ptr(%s,%s): NULL",
+			catalog_name, object_name);
+	return(NULL);
+}
+
+uint32_t *ruletree_catalog_get_boolean_ptr(
+        const char *catalog_name, const char *object_name)
+{
+	ruletree_object_offset_t offs;
+
+	if (!ruletree_ctx.rtree_ruletree_path) ruletree_to_memory();
+
+	offs = ruletree_catalog_get(catalog_name, object_name);
+	if(offs) {
+		uint32_t *uip = ruletree_get_pointer_to_boolean(offs);
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"ruletree_catalog_get_boolean_ptr(%s,%s): 0x%x",
+			catalog_name, object_name, (int)uip);
+		return(uip);
+	}
+	SB_LOG(SB_LOGLEVEL_NOISE2,
+		"ruletree_catalog_get_boolean_ptr(%s,%s): NULL",
 			catalog_name, object_name);
 	return(NULL);
 }

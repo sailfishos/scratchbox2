@@ -198,6 +198,27 @@ static int lua_sb_ruletree_catalog_get_uint32(lua_State *l)
 	return 1;
 }
 
+static int lua_sb_ruletree_catalog_get_boolean(lua_State *l)
+{
+	int		n = lua_gettop(l);
+	uint32_t	res = 0;
+	ruletree_object_offset_t	offs = 0;
+
+	if (n == 2) {
+		const char	*catalog_name = lua_tostring(l, 1);
+		const char	*object_name = lua_tostring(l, 2);
+		uint32_t			*uip = 0;
+
+		offs = ruletree_catalog_get(catalog_name, object_name);
+		uip = ruletree_get_pointer_to_boolean(offs);
+		if (uip) res = *uip;
+	}
+	SB_LOG(SB_LOGLEVEL_NOISE,
+		"lua_sb_ruletree_catalog_get_boolean @%u => %u", offs, res);
+	lua_pushboolean(l, res);
+	return 1;
+}
+
 
 static int lua_sb_ruletree_catalog_set(lua_State *l)
 {
@@ -256,6 +277,24 @@ static int lua_sb_ruletree_new_uint32(lua_State *l)
 	return 1;
 }
 
+static int lua_sb_ruletree_new_boolean(lua_State *l)
+{
+	int	n = lua_gettop(l);
+	ruletree_object_offset_t	ui32_offs = 0;
+
+	if (n == 1) {
+		uint32_t	ui = lua_toboolean(l, 1);
+		ui32_offs = append_boolean_to_ruletree_file(ui);
+		SB_LOG(SB_LOGLEVEL_NOISE,
+			"%s(%u) => %d", __func__, ui, ui32_offs);
+	} else {
+		SB_LOG(SB_LOGLEVEL_NOISE,
+			"%s => %d", __func__, ui32_offs);
+	}
+	lua_pushnumber(l, ui32_offs);
+	return 1;
+}
+
 
 /* mappings from c to lua */
 static const luaL_reg reg[] =
@@ -268,6 +307,7 @@ static const luaL_reg reg[] =
 	{"catalog_get",			lua_sb_ruletree_catalog_get},
 	{"catalog_set",			lua_sb_ruletree_catalog_set},
 	{"catalog_get_uint32",		lua_sb_ruletree_catalog_get_uint32},
+	{"catalog_get_boolean",		lua_sb_ruletree_catalog_get_uint32},
 
 	/* 'ruletree.catalog_set("catalogname","itemname",
 	 *   ruletree.new_string("str")' can be used from Lua to
@@ -275,6 +315,7 @@ static const luaL_reg reg[] =
 	*/
 	{"new_string",			lua_sb_ruletree_new_string},
 	{"new_uint32",			lua_sb_ruletree_new_uint32},
+	{"new_boolean",			lua_sb_ruletree_new_boolean},
 
 	{"attach_ruletree",		lua_sb_attach_ruletree},
 

@@ -37,6 +37,7 @@ typedef struct ruletree_object_hdr_s {
 #define SB2_RULETREE_OBJECT_TYPE_STRING		4	/* ruletree_string_hdr_t */
 #define SB2_RULETREE_OBJECT_TYPE_OBJECTLIST	5	/* ruletree_objectlist_t */
 #define SB2_RULETREE_OBJECT_TYPE_UINT32		8	/* ruletree_uint32_t */
+#define SB2_RULETREE_OBJECT_TYPE_BOOLEAN	9	/* also ruletree_uint32_t */
 
 typedef struct ruletree_hdr_s {
 	ruletree_object_hdr_t	rtree_hdr_objhdr;
@@ -101,6 +102,7 @@ typedef struct ruletree_objectlist_s {
 } ruletree_objectlist_t;
 
 /* An unsigned integer, 32 bits. */
+/* Also used to store booleans. */
 typedef struct ruletree_uint32_s {
 	ruletree_object_hdr_t	rtree_str_objhdr;
 
@@ -162,6 +164,10 @@ extern ruletree_object_offset_t append_string_to_ruletree_file(const char *str);
 extern uint32_t *ruletree_get_pointer_to_uint32(ruletree_object_offset_t offs);
 extern ruletree_object_offset_t append_uint32_to_ruletree_file(uint32_t initial_value);
 
+/* booleans */
+extern uint32_t *ruletree_get_pointer_to_boolean(ruletree_object_offset_t offs);
+extern ruletree_object_offset_t append_boolean_to_ruletree_file(uint32_t initial_value);
+
 /* lists */
 extern ruletree_object_offset_t ruletree_objectlist_create_list(uint32_t size);
 extern int ruletree_objectlist_set_item(ruletree_object_offset_t list_offs,
@@ -181,6 +187,9 @@ extern const char *ruletree_catalog_get_string(
 	const char *catalog_name, const char *object_name);
 extern uint32_t *ruletree_catalog_get_uint32_ptr(
 	const char *catalog_name, const char *object_name);
+extern uint32_t *ruletree_catalog_get_boolean_ptr(
+	const char *catalog_name, const char *object_name);
+
 
 /* ------------ rule_tree_luaif.c: ------------ */
 extern int lua_bind_ruletree_functions(lua_State *l);

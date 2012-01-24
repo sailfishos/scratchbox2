@@ -373,16 +373,25 @@ end
 --
 -- Tries to find exec_policy for given binary using exec_policy_rules.
 --
+-- The exec policy selection table can contain three types of rules:
+--      { prefix = "/path/prefix", exec_policy_name = "policyname" }
+--      { path = "/exact/path/to/program", exec_policy_name = "policyname" }
+--      { dir = "/directory/path", exec_policy_name = "policyname" }
+-- Other types of rules are not anymore supported.
+--
 -- Returns: 1, exec_policy when exec_policy was found, otherwise
 -- returns 0, nil.
 --
-function sb_find_exec_policy(binaryname, mapped_file)
-	local rule
-
-	rule = find_rule(exec_policy_rules, nil, mapped_file, binary_name)
-	if rule ~= nil then
-		sb.log("debug", "rule found..")
-		return 1, rule.exec_policy_name
+function sb_find_exec_policy(mapped_file)
+	sb.log("debug", "sb_find_exec_policy for "..mapped_file)
+	for i = 1, table.maxn(exec_policy_rules) do
+		local rule = exec_policy_rules[i]
+		min_path_len = sb.test_path_match(mapped_file,
+			rule.dir, rule.prefix, rule.path)
+		if min_path_len >= 0 then
+			sb.log("debug", "exec policy found: "..rule.exec_policy_name)
+			return 1, rule.exec_policy_name
+		end
 	end
 	return 0, nil
 end
@@ -398,7 +407,7 @@ function check_exec_policy(exec_policy_name, filename, mapped_file)
 		local res
 
 		sb.log("debug", "trying exec_policy_rules..")
-		res, exec_policy_name = sb_find_exec_policy(binaryname, mapped_file)
+		res, exec_policy_name = sb_find_exec_policy(mapped_file)
 		if (res == 0) or (exec_policy_name == nil) then
 			-- there is no default policy for this mode
 			sb.log("notice",

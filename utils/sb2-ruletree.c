@@ -86,7 +86,7 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 	if (rule->rtree_fsr_name_offs) {
 		print_indent(indent+1);
 		printf("name = '%s'\n",
-			offset_to_ruletree_string_ptr(rule->rtree_fsr_name_offs));
+			offset_to_ruletree_string_ptr(rule->rtree_fsr_name_offs, NULL));
 	}
 
 	if (rule->rtree_fsr_selector_type) {
@@ -95,15 +95,15 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 		switch (rule->rtree_fsr_selector_type) {
 		case SB2_RULETREE_FSRULE_SELECTOR_PREFIX:
 			printf("prefix '%s'\n",
-				offset_to_ruletree_string_ptr(rule->rtree_fsr_selector_offs));
+				offset_to_ruletree_string_ptr(rule->rtree_fsr_selector_offs, NULL));
 			break;
 		case SB2_RULETREE_FSRULE_SELECTOR_DIR:
 			printf("dir '%s'\n",
-				offset_to_ruletree_string_ptr(rule->rtree_fsr_selector_offs));
+				offset_to_ruletree_string_ptr(rule->rtree_fsr_selector_offs, NULL));
 			break;
 		case SB2_RULETREE_FSRULE_SELECTOR_PATH:
 			printf("path '%s'\n",
-				offset_to_ruletree_string_ptr(rule->rtree_fsr_selector_offs));
+				offset_to_ruletree_string_ptr(rule->rtree_fsr_selector_offs, NULL));
 			break;
 		default:
 			printf("ERROR: Unknown selector type %d\n",
@@ -113,7 +113,7 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 	}
 
 	if (rule->rtree_fsr_condition_type) {
-		const char *condstr = offset_to_ruletree_string_ptr(rule->rtree_fsr_condition_offs);
+		const char *condstr = offset_to_ruletree_string_ptr(rule->rtree_fsr_condition_offs, NULL);
 
 		print_indent(indent+1);
 		printf("CONDITIONAL: ");
@@ -167,13 +167,13 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 	}
 	
 	if (rule->rtree_fsr_binary_name) {
-		const char *bin_name = offset_to_ruletree_string_ptr(rule->rtree_fsr_binary_name);
+		const char *bin_name = offset_to_ruletree_string_ptr(rule->rtree_fsr_binary_name, NULL);
 		print_indent(indent+1);
 		printf("BINARY_NAME: '%s'\n", bin_name);
 	}
 
 	if (rule->rtree_fsr_exec_policy_name) {
-		const char *ep_name = offset_to_ruletree_string_ptr(rule->rtree_fsr_exec_policy_name);
+		const char *ep_name = offset_to_ruletree_string_ptr(rule->rtree_fsr_exec_policy_name, NULL);
 		print_indent(indent+1);
 		printf("EXEC_POLICY_NAME: '%s'\n", ep_name);
 	}
@@ -199,23 +199,23 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 		break;	
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY:
 		printf("replace_by '%s'\n",
-			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs));
+			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs, NULL));
 		break;
 	case SB2_RULETREE_FSRULE_ACTION_SET_PATH:
 		printf("set_path '%s'\n",
-			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs));
+			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs, NULL));
 		break;
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO:
 		printf("map_to '%s'\n",
-			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs));
+			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs, NULL));
 		break;
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR:
 		printf("replace_by_value_of_env_var '%s'\n",
-			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs));
+			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs, NULL));
 		break;
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR:
 		printf("map_to_value_of_env_var '%s'\n",
-			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs));
+			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs, NULL));
 		break;
 	case SB2_RULETREE_FSRULE_ACTION_CONDITIONAL_ACTIONS:
 		printf("actions => %d\n",
@@ -229,11 +229,11 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 		break;
 	case SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_THEN_MAP_TO:
 		printf("if_exists_then_map_to '%s'\n",
-			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs));
+			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs, NULL));
 		break;
 	case SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_THEN_REPLACE_BY:
 		printf("if_exists_then_replace_by '%s'\n",
-			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs));
+			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs, NULL));
 		break;
 	default:
 		printf("ERROR: Unknown action type %d\n",
@@ -287,7 +287,7 @@ static void dump_objectlist(ruletree_object_offset_t list_offs, int indent)
 				case SB2_RULETREE_OBJECT_TYPE_STRING:
 					print_indent(indent+1);
 					printf("STRING ");
-					cp = offset_to_ruletree_string_ptr(item_offs);
+					cp = offset_to_ruletree_string_ptr(item_offs, NULL);
 					if (cp) printf("'%s'\n", cp);
 					else printf("NULL\n");
 					break;
@@ -325,7 +325,7 @@ static void print_ruletree_object_type(ruletree_object_offset_t obj_offs)
 			break;
 		case SB2_RULETREE_OBJECT_TYPE_STRING:
 			printf("STRING\t");
-			cp = offset_to_ruletree_string_ptr(obj_offs);
+			cp = offset_to_ruletree_string_ptr(obj_offs, NULL);
 			if (cp) printf("'%s'", cp);
 			else printf("NULL");
 			break;
@@ -421,7 +421,7 @@ static void dump_catalog(ruletree_object_offset_t catalog_offs, const char *cata
 
 		print_indent(indent+1);
 		if (catp->rtree_cat_name_offs) {
-			name = offset_to_ruletree_string_ptr(catp->rtree_cat_name_offs);
+			name = offset_to_ruletree_string_ptr(catp->rtree_cat_name_offs, NULL);
 			if (name) {
 				printf("'%s'\t", name);
 			} else {
@@ -448,7 +448,7 @@ static void dump_catalog(ruletree_object_offset_t catalog_offs, const char *cata
 		const char *name = "??";
 
 		if (catp->rtree_cat_name_offs) {
-			name = offset_to_ruletree_string_ptr(catp->rtree_cat_name_offs);
+			name = offset_to_ruletree_string_ptr(catp->rtree_cat_name_offs, NULL);
 		}
 
 		if (catp->rtree_cat_value_offs) {

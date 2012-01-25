@@ -46,11 +46,12 @@
 
 
 /* Returns min.path length if a match is found, otherwise returns -1 */
-static int ruletree_test_path_match(const char *full_path, ruletree_fsrule_t *rp)
+static int ruletree_test_path_match(const char *full_path, size_t full_path_len, ruletree_fsrule_t *rp)
 {
 	const char	*selector = NULL;
 	const char	*match_type = "no match";
 	int		result = -1;
+	uint32_t	selector_len;
 
 	if (!rp || !full_path) {
 		SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_test_path_match fails"); 
@@ -59,39 +60,40 @@ static int ruletree_test_path_match(const char *full_path, ruletree_fsrule_t *rp
 	SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_test_path_match (%s), type=%d", 
 		full_path, rp->rtree_fsr_selector_type);
 
-	selector = offset_to_ruletree_string_ptr(rp->rtree_fsr_selector_offs);
+	selector = offset_to_ruletree_string_ptr(rp->rtree_fsr_selector_offs,
+		&selector_len);
 
 	switch (rp->rtree_fsr_selector_type) {
 	case SB2_RULETREE_FSRULE_SELECTOR_PATH:
 		if (selector) {
-			if (!strcmp(full_path, selector)) {
-				result = strlen(selector);
+			if ((selector_len == full_path_len) &&
+			    !strcmp(full_path, selector)) {
+				result = selector_len;
 				match_type = "path";
 			}
 		}
 		break;
 	case SB2_RULETREE_FSRULE_SELECTOR_PREFIX:
 		if (selector && (*selector != '\0')) {
-			int	prefixlen = strlen(selector);
-
-			if (!strncmp(full_path, selector, prefixlen)) {
-				result = prefixlen;
+			if ((full_path_len >= selector_len) &&
+			    (full_path[selector_len-1] == selector[selector_len-1]) &&
+			    !strncmp(full_path, selector, selector_len)) {
+				result = selector_len;
 				match_type = "prefix";
 			}
 		}
 		break;
 	case SB2_RULETREE_FSRULE_SELECTOR_DIR:
 		if (selector && (*selector != '\0')) {
-			int	prefixlen = strlen(selector);
-
 			/* test a directory prefix: the next char after the
 			 * prefix must be '\0' or '/', unless we are accessing
 			 * the root directory */
-			if (!strncmp(full_path, selector, prefixlen)) {
-				if ( ((prefixlen == 1) && (*full_path=='/')) ||
-				     (full_path[prefixlen] == '/') ||
-				     (full_path[prefixlen] == '\0') ) {
-					result = prefixlen;
+			if ((full_path_len >= selector_len) &&
+			    ((full_path[selector_len] == '/') ||
+			     (full_path[selector_len] == '\0') ||
+			     ((selector_len == 1) && (*full_path=='/'))) ) {
+				if (!strncmp(full_path, selector, selector_len)) {
+					result = selector_len;
 					match_type = "dir";
 				}
 			}
@@ -101,13 +103,13 @@ static int ruletree_test_path_match(const char *full_path, ruletree_fsrule_t *rp
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"ruletree_test_path_match: "
 			"Unsupported selector type (rule='%s')",
-			offset_to_ruletree_string_ptr(rp->rtree_fsr_name_offs));
+			offset_to_ruletree_string_ptr(rp->rtree_fsr_name_offs, NULL));
 		return(-1);
 	}
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
-		"ruletree_test_path_match '%s','%s' => %d (%s)",
-		full_path, selector, result, match_type);
+		"ruletree_test_path_match '%s' (%u), '%s' (%u) => %d (%s)",
+		full_path, full_path_len, selector, selector_len, result, match_type);
 	return(result);
 }
 
@@ -115,6 +117,7 @@ static ruletree_object_offset_t ruletree_find_rule(
         const path_mapping_context_t *ctx,
 	ruletree_object_offset_t rule_list_offs,
 	const char *virtual_path,
+	size_t virtual_path_len,
 	int *min_path_lenp,
 	uint32_t fn_class,
 	ruletree_fsrule_t	**rule_p)
@@ -153,7 +156,7 @@ static ruletree_object_offset_t ruletree_find_rule(
 				continue;
 			}
 
-			min_path_len = ruletree_test_path_match(virtual_path, rp);
+			min_path_len = ruletree_test_path_match(virtual_path, virtual_path_len, rp);
 
 			if (min_path_len >= 0) {
 				SB_LOG(SB_LOGLEVEL_NOISE,
@@ -169,7 +172,7 @@ static ruletree_object_offset_t ruletree_find_rule(
 
 				if (rp->rtree_fsr_binary_name) {
 					const char	*bin_name_in_rule =
-						offset_to_ruletree_string_ptr(rp->rtree_fsr_binary_name);
+						offset_to_ruletree_string_ptr(rp->rtree_fsr_binary_name, NULL);
 					if (strcmp(ctx->pmc_binary_name, bin_name_in_rule)) {
 						/* binary name does not match, not this rule... */
 						continue;
@@ -189,7 +192,8 @@ static ruletree_object_offset_t ruletree_find_rule(
 							rp->rtree_fsr_rule_list_link);
 						subtree_offs = ruletree_find_rule(ctx,
 							rp->rtree_fsr_rule_list_link,
-							virtual_path, min_path_lenp,
+							virtual_path, virtual_path_len,
+							min_path_lenp,
 							fn_class, rule_p);
 						if (subtree_offs) return(subtree_offs);
 					} else {
@@ -235,6 +239,7 @@ ruletree_object_offset_t ruletree_get_mapping_requirements(
 	if (rule_list_offs) {
 		rule_offs = ruletree_find_rule(ctx,
 			rule_list_offs, abs_virtual_source_path_string,
+			strlen(abs_virtual_source_path_string),
 			min_path_lenp, fn_class, &rule);
 	} else {
 		SB_LOG(SB_LOGLEVEL_DEBUG,
@@ -271,8 +276,9 @@ static char *ruletree_execute_replace_rule(
 	const char *replacement,
 	ruletree_fsrule_t *rule)
 {
-	char	*new_path = NULL;
-	const char	*selector = offset_to_ruletree_string_ptr(rule->rtree_fsr_selector_offs);
+	char		*new_path = NULL;
+	uint32_t	selector_len;
+	const char	*selector = offset_to_ruletree_string_ptr(rule->rtree_fsr_selector_offs, &selector_len);
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_execute_replace_rule: orig='%s',replacement='%s',selector='%s'",
 		full_path, replacement,selector);
@@ -281,7 +287,7 @@ static char *ruletree_execute_replace_rule(
 	case SB2_RULETREE_FSRULE_SELECTOR_PREFIX:
 	case SB2_RULETREE_FSRULE_SELECTOR_DIR:
 		if (asprintf(&new_path, "%s%s",
-		     replacement, full_path + strlen(selector)) < 0) {
+		     replacement, full_path + selector_len) < 0) {
 			SB_LOG(SB_LOGLEVEL_ERROR, "asprintf failed");
 			return(NULL);
 		}
@@ -311,7 +317,7 @@ static int if_exists_then_map_to(ruletree_fsrule_t *action,
 	char *test_path = NULL;
 
 	*resultp = NULL;
-	map_to_target = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs);
+	map_to_target = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs, NULL);
 
 	if (!strcmp(map_to_target, "/")) {
 		test_path = strdup(abs_clean_virtual_path);
@@ -341,7 +347,7 @@ static int if_exists_then_replace_by(
 	const char *replacement = NULL;
 
 	*resultp = NULL;
-	replacement = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs);
+	replacement = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs, NULL);
 
 	test_path = ruletree_execute_replace_rule(abs_clean_virtual_path,
 			replacement, rule_selector);
@@ -399,11 +405,11 @@ static char *execute_std_action(
 		return(strdup(abs_clean_virtual_path));
 
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO:
-		cp = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs);
+		cp = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs, NULL);
 		return(execute_map_to(abs_clean_virtual_path, "map_to", cp));
 		
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY:
-		cp = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs);
+		cp = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs, NULL);
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"execute_std_action: replace by '%s'", cp);
 		new_path = ruletree_execute_replace_rule(abs_clean_virtual_path, cp/*replacement*/,
@@ -413,19 +419,19 @@ static char *execute_std_action(
 		return(new_path);
 
 	case SB2_RULETREE_FSRULE_ACTION_SET_PATH:
-		cp = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs);
+		cp = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs, NULL);
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"execute_std_action: set path to '%s'", cp);
 		new_path = strdup(cp);
 		return(new_path);
 
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR:
-		cp = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs);
+		cp = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs, NULL);
 		cp = getenv(cp);
 		return(execute_map_to(abs_clean_virtual_path, "map_to_value_of_env_var", cp));
 
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY_VALUE_OF_ENV_VAR:
-		cp = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs);
+		cp = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs, NULL);
 		cp = getenv(cp);
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"execute_std_action: replace by env.var.value '%s'", cp);
@@ -461,7 +467,7 @@ static char *execute_std_action(
 				for (i = 0; i < num_real_dir_entries; i++) {
 					ruletree_object_offset_t str_offs;
 					str_offs = ruletree_objectlist_get_item(union_dir_list_offs, i);
-					src_paths[i] = offset_to_ruletree_string_ptr(str_offs);
+					src_paths[i] = offset_to_ruletree_string_ptr(str_offs, NULL);
 					SB_LOG(SB_LOGLEVEL_DEBUG,
 						"execute_std_action: union_dir src_path[%d]: %s", 
 						i, src_paths[i]);
@@ -531,7 +537,7 @@ static char *ruletree_execute_conditional_actions(
 				const char *cond_str;
 				const char *evp;
 
-				cond_str = offset_to_ruletree_string_ptr(action_cand_p->rtree_fsr_condition_offs);
+				cond_str = offset_to_ruletree_string_ptr(action_cand_p->rtree_fsr_condition_offs, NULL);
 				SB_LOG(SB_LOGLEVEL_NOISE, "Condition test '%s'", cond_str);
 				
 				switch (action_cand_p->rtree_fsr_condition_type) {
@@ -674,7 +680,7 @@ char *ruletree_translate_path(
 	if (flagsp) *flagsp = rule->rtree_fsr_flags;
 	if (exec_policy_name_ptr) {
 		if (rule->rtree_fsr_exec_policy_name) {
-			*exec_policy_name_ptr = offset_to_ruletree_string_ptr(rule->rtree_fsr_exec_policy_name);
+			*exec_policy_name_ptr = offset_to_ruletree_string_ptr(rule->rtree_fsr_exec_policy_name, NULL);
 		} else {
 			*exec_policy_name_ptr = NULL;
 		}

@@ -153,8 +153,10 @@ extern char *ruletree_reverse_path(
 extern int attach_ruletree(const char *ruletree_path,
 	int create_if_it_doesnt_exist, int keep_open);
 
-extern void *offset_to_ruletree_object_ptr(ruletree_object_offset_t offs, uint32_t required_type);
-extern const char *offset_to_ruletree_string_ptr(ruletree_object_offset_t offs);
+extern void *offset_to_ruletree_object_ptr(ruletree_object_offset_t offs,
+	uint32_t required_type);
+extern const char *offset_to_ruletree_string_ptr(
+	ruletree_object_offset_t offs, uint32_t *lenp);
 extern ruletree_fsrule_t *offset_to_ruletree_fsrule_ptr(int loc);
 
 /* strings */

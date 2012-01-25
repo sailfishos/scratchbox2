@@ -268,7 +268,8 @@ ruletree_object_offset_t append_boolean_to_ruletree_file(uint32_t initial_value)
 
 /* =================== strings =================== */
 
-const char *offset_to_ruletree_string_ptr(ruletree_object_offset_t offs)
+const char *offset_to_ruletree_string_ptr(ruletree_object_offset_t offs,
+	uint32_t *lenp)
 {
 	ruletree_string_hdr_t	*strhdr;
 
@@ -278,7 +279,11 @@ const char *offset_to_ruletree_string_ptr(ruletree_object_offset_t offs)
 	if (strhdr) {
 		char *str = (char*)strhdr + sizeof(ruletree_string_hdr_t);
 		SB_LOG(SB_LOGLEVEL_NOISE2,
-			"offset_to_ruletree_string_ptr returns '%s'", str);
+			"offset_to_ruletree_string_ptr returns '%s' (%u)",
+			str, strhdr->rtree_str_size);
+		if (lenp) {
+			*lenp = strhdr->rtree_str_size;
+		}
 		return (str);
 	}
 	SB_LOG(SB_LOGLEVEL_NOISE2,
@@ -516,6 +521,9 @@ static ruletree_object_offset_t ruletree_find_catalog_entry(
 	ruletree_catalog_entry_t	*ep;
 	ruletree_object_offset_t entry_location = 0;
 	const char	*entry_name;
+	int		name_len;
+
+	if (!name) return(0);
 
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) ruletree_to_memory();
 
@@ -530,14 +538,20 @@ static ruletree_object_offset_t ruletree_find_catalog_entry(
 	SB_LOG(SB_LOGLEVEL_NOISE3,
 		"ruletree_find_catalog_entry from catalog @ %u)", catalog_offs);
 	entry_location = catalog_offs;
+	name_len = strlen(name);
 
 	do {
+		uint32_t	entry_name_len;
+
 		ep = offset_to_ruletree_object_ptr(entry_location,
 					SB2_RULETREE_OBJECT_TYPE_CATALOG);
 		if (!ep) return(0);
 
-		entry_name = offset_to_ruletree_string_ptr(ep->rtree_cat_name_offs);
-		if (entry_name && !strcmp(name, entry_name)) {
+		entry_name = offset_to_ruletree_string_ptr(ep->rtree_cat_name_offs,
+			&entry_name_len);
+		if (entry_name && 
+		    (name_len == entry_name_len) &&
+		    !strcmp(name, entry_name)) {
 			/* found! */
 			SB_LOG(SB_LOGLEVEL_NOISE3,
 				"Found entry '%s' @ %u)", name, entry_location);
@@ -646,7 +660,7 @@ const char *ruletree_catalog_get_string(
 
 	offs = ruletree_catalog_get(catalog_name, object_name);
 	if(offs) {
-		const char *str = offset_to_ruletree_string_ptr(offs);
+		const char *str = offset_to_ruletree_string_ptr(offs, NULL);
 		SB_LOG(SB_LOGLEVEL_NOISE2,
 			"ruletree_catalog_get_string: '%s'", str);
 		return(str);

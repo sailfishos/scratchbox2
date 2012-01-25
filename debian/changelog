@@ -1,3 +1,15 @@
+scratchbox2 (2.3.22-1) unstable; urgency=low
+
+  * Performance improvements to Lua code, including a relatively
+    big change to exec logic initialization: Mapping code is not
+    always loaded (especailly when SBOX_MAPPING_METHOD=C is used)
+  * All modes must now a have a "config.lua" file
+  * Rule file interface version = 102
+  * C/Lua interface version = 96
+  * A bugfix to logger
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 25 Jan 2012 20:02:00 +0200
+
 scratchbox2 (2.3.21-1) unstable; urgency=low
 
   * Improvements to obs-rpm-build and obs-rpm-build+pp modes [from Carsten Munk]

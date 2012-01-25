@@ -161,6 +161,7 @@ void sblog_init_level_logfile_format(const char *opt_level, const char *opt_logf
 	if (sb_loglevel__ == SB_LOGLEVEL_uninitialized) {
 		const char	*level_str;
 		const char	*format_str;
+		const char	*filename;
 
 		if (!sb2_global_vars_initialized__) {
 			sb2_initialize_global_variables();
@@ -193,11 +194,15 @@ void sblog_init_level_logfile_format(const char *opt_level, const char *opt_logf
 				"%s", sbox_binary_name ? sbox_binary_name : "");
 		}
 
-		snprintf(sb_log_state.sbl_logfile, sizeof(sb_log_state.sbl_logfile),
-			"%s", (opt_logfile ? opt_logfile : getenv("SBOX_MAPPING_LOGFILE")));
+		filename = (opt_logfile ? opt_logfile : getenv("SBOX_MAPPING_LOGFILE"));
+		if (filename)
+			snprintf(sb_log_state.sbl_logfile, sizeof(sb_log_state.sbl_logfile),
+				"%s", (opt_logfile ? opt_logfile : getenv("SBOX_MAPPING_LOGFILE")));
+		else
+			sb_log_state.sbl_logfile[0] = '\0';
 
 		level_str = opt_level ? opt_level : getenv("SBOX_MAPPING_LOGLEVEL");
-		if (sb_log_state.sbl_logfile) {
+		if (sb_log_state.sbl_logfile[0]) {
 			if (level_str) {
 				/* Both logfile and loglevel have been set. */
 				if (!strcmp(level_str,"error")) {

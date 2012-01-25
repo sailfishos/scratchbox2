@@ -181,16 +181,6 @@ function load_and_check_rules()
 	end
 end
 
-target_root = sbox_target_root
-if (not target_root or target_root == "") then
-	target_root = "/"
-end
-
-tools_root = sbox_tools_root
-if (tools_root == "") then
-	tools_root = nil
-end
-
 enable_cross_gcc_toolchain = ruletree.catalog_get_boolean(
         "Conf."..sbox_mapmode, "enable_cross_gcc_toolchain")
 
@@ -720,3 +710,4 @@ function sbox_reverse_path(binary_name, func_name, full_path)
 	return orig_path, flags2
 end
 
+mapping_engine_loaded = true

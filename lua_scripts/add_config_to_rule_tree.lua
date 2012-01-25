@@ -6,6 +6,10 @@
 -- This script is executed when SB2 session is created,
 -- to insert configuration variable values to the rule tree database.
 
+if not mapping_engine_loaded then
+	do_file(session_dir .. "/lua_scripts/mapping.lua")
+end
+
 -- Load session-specific settings
 session_dir = sb.get_session_dir()
 do_file(session_dir .. "/sb2-session.conf")

@@ -116,8 +116,15 @@ load_and_check_exec_rules()
 
 local argvmods_file_path
 
+local forced_modename = sb.get_forced_mapmode()
+if forced_modename then
+	modename_in_ruletree = forced_modename
+else
+	modename_in_ruletree = sbox_mapmode
+end
+
 enable_cross_gcc_toolchain = ruletree.catalog_get_boolean(
-	"Conf."..sbox_mapmode, "enable_cross_gcc_toolchain")
+	"Conf."..modename_in_ruletree, "enable_cross_gcc_toolchain")
 
 if (enable_cross_gcc_toolchain == true) then
 	-- only map gcc & friends if a cross compiler has been defined,
@@ -500,6 +507,13 @@ function sb_execve_map_script_interpreter(exec_policy_name, interpreter,
 		local rule = nil
 		local exec_pol_2, mapped_interpreter, ro_flag
 
+		-- FIXME: script_interpreter_rules are not yet
+		-- stored into the ruletree, have to use the Lua
+		-- mapping engine now.
+		if (mapping_engine_loaded == false) then
+			do_file(session_dir .. "/lua_scripts/mapping.lua")
+		end
+
 		-- FIXME: 4th parameter of find_rule() should be binary_name
 		rule, min_path_len = find_rule(exec_policy.script_interpreter_rules,
 			"map_script_interpreter", interpreter, nil)
@@ -717,33 +731,33 @@ function sb_execve_postprocess_sbrsh(exec_policy,
 	sb.log("info", string.format("Exec:sbrsh (%s,%s,%s)",
 		new_argv[1], sbox_target_root, mapped_file));
 
-	local target_root = sbox_target_root
-	if not string.match(target_root, "/$") then
+	local s_target_root = sbox_target_root
+	if not string.match(s_target_root, "/$") then
 		-- Add a trailing /
-		target_root = target_root.."/"
+		s_target_root = s_target_root.."/"
 	end
 
 	local file_in_device = mapped_file;
 
 	-- Check the file to execute; fail if the file can
 	-- not be located on the device
-	if isprefix(target_root, mapped_file) then
-		local trlen = string.len(target_root)
+	if isprefix(s_target_root, mapped_file) then
+		local trlen = string.len(s_target_root)
 		file_in_device = string.sub(file_in_device, trlen)
 	elseif isprefix(sbox_user_home_dir, mapped_file) then
 		-- no change
 	else
 		sb.log("error", string.format(
 			"Binary must be under target (%s) or"..
-			" home when using sbrsh", target_root))
+			" home when using sbrsh", s_target_root))
 		return -1, mapped_file, filename, #argv, argv, #envp, envp
 	end
 
 	-- Check directory
 	local dir_in_device = sb.getcwd()
 
-	if isprefix(target_root, dir_in_device) then
-		local trlen = string.len(target_root)
+	if isprefix(s_target_root, dir_in_device) then
+		local trlen = string.len(s_target_root)
 		dir_in_device = string.sub(dir_in_device, trlen)
 	elseif isprefix(sbox_user_home_dir, dir_in_device) then
 		-- no change
@@ -752,7 +766,7 @@ function sb_execve_postprocess_sbrsh(exec_policy,
 			"Executing binary with bogus working"..
 			" directory (/tmp) because sbrsh can only"..
 			" see %s and %s\n",
-			target_root, sbox_user_home_dir))
+			s_target_root, sbox_user_home_dir))
 		dir_in_device = "/tmp"
 	end
 

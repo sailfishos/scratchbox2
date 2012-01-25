@@ -13,6 +13,9 @@
 if not exec_engine_loaded then
 	do_file(session_dir .. "/lua_scripts/argvenvp.lua")
 end
+if not mapping_engine_loaded then
+	do_file(session_dir .. "/lua_scripts/mapping.lua")
+end
 
 allow_reversing = true	-- default = create reverse rules.
 reversing_disabled_message = ""

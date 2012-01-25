@@ -8,6 +8,7 @@
 debug = os.getenv("SBOX_MAPPING_DEBUG")
 debug_messages_enabled = sb.debug_messages_enabled()
 exec_engine_loaded = false
+mapping_engine_loaded = false
 
 -- This version string is used to check that the lua scripts offer 
 -- what the C files expect, and v.v.
@@ -55,14 +56,20 @@ else
 	active_mapmode = forced_modename
 end
 
--- Load path mapping functions
---
--- NOTE: "mapping.lua" loads the mapping mode config, which may be needed
--- by "argvenvp.lua", so order is important!
-do_file(session_dir .. "/lua_scripts/mapping.lua")
+target_root = sbox_target_root
+if (not target_root or target_root == "") then
+	target_root = "/"
+end
+
+tools_root = sbox_tools_root
+if (tools_root == "") then
+	tools_root = nil
+end
 
 -- other processes than "make" or the shells load
 -- argvenvp.lua only if exec* functions are needed!
+--
+-- Also, "mapping.lua" is loaded only when needed.
 
 function sbox_execve_preprocess_loader(binaryname, argv, envp)
 	local prev_fn = sbox_execve_preprocess
@@ -115,6 +122,40 @@ function sbox_get_host_policy_ld_params_loader()
 	-- This loader has been replaced. The following call is not
 	-- a recursive call to this function, even if it may look like one:
 	return sbox_get_host_policy_ld_params()
+end
+
+function sbox_get_mapping_requirements(binary_name, func_name, full_path)
+	local prev_fn = sbox_get_mapping_requirements
+
+	sb.log("info", "sbox_get_mapping_requirements called: loading mapping.lua")
+	do_file(session_dir .. "/lua_scripts/mapping.lua")
+
+	if prev_fn == sbox_get_mapping_requirements then
+		sb.log("error",
+			"Fatal: Failed to load real sbox_get_mapping_requirements")
+		os.exit(88)
+	end
+
+	-- This loader has been replaced. The following call is not
+	-- a recursive call to this function, even if it may look like one:
+	return sbox_get_mapping_requirements(binary_name, func_name, full_path)
+end
+
+function sbox_reverse_path(binary_name, func_name, full_path)
+	local prev_fn = sbox_reverse_path
+
+	sb.log("info", "sbox_reverse_path called: loading mapping.lua")
+	do_file(session_dir .. "/lua_scripts/mapping.lua")
+
+	if prev_fn == sbox_reverse_path then
+		sb.log("error",
+			"Fatal: Failed to load real sbox_reverse_path")
+		os.exit(88)
+	end
+
+	-- This loader has been replaced. The following call is not
+	-- a recursive call to this function, even if it may look like one:
+	return sbox_reverse_path(binary_name, func_name, full_path)
 end
 
 function sbox_map_network_addr(realfnname, protocol, addr_type,

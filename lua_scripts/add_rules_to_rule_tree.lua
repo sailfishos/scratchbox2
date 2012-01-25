@@ -6,6 +6,10 @@
 -- This script is executed when SB2 session is created,
 -- to load FS mapping rules to the "rule tree" database.
 
+if not mapping_engine_loaded then
+	do_file(session_dir .. "/lua_scripts/mapping.lua")
+end
+
 -- Rule tree constants. These must match the #defines in <rule_tree.h>
 local RULE_SELECTOR_PATH = 101
 local RULE_SELECTOR_PREFIX = 102
@@ -299,17 +303,4 @@ ruletree.catalog_set("fs_rules", modename_in_ruletree, ri)
 ri = add_list_of_rules(reverse_fs_mapping_rules, true) -- add reverse  rules
 print("-- Added ruleset rev.rules")
 ruletree.catalog_set("rev_rules", modename_in_ruletree, ri)
-
--- Mode-specific fixed config settings to ruledb:
---
--- "enable_cross_gcc_toolchain" (default=true): All special processing
---     for the gcc-related tools (gcc,as,ld,..) will be disabled if set
---     to false.
---
-enable_cross_gcc_toolchain = true
-
-do_file(session_dir .. "/share/scratchbox2/modes/"..sbox_mapmode.."/config.lua")
-
-ruletree.catalog_set("Conf."..sbox_mapmode, "enable_cross_gcc_toolchain",
-        ruletree.new_boolean(enable_cross_gcc_toolchain))
 

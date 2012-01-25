@@ -11,10 +11,6 @@
 -- possible to stat() the destination)
 --
 
-if not exec_engine_loaded then
-	do_file(session_dir .. "/lua_scripts/argvenvp.lua")
-end
-
 gcc_rule_file_path = session_dir .. "/gcc-conf.lua"
 
 default_rule = os.getenv("SBOX_ARGVMODS_USR_BIN_DEFAULT_RULE")
@@ -55,9 +51,42 @@ function argvmods_to_mapping_rules(prefix)
 end
 
 print("-- Argvmods-to-mapping-rules converter:")
-print("-- Automatically generated mapping rules. Do not modify:")
+print("-- Automatically generated mapping rules. Do not edit:")
 
+-- Mode-specific fixed config settings to ruledb:
+--
+-- "enable_cross_gcc_toolchain" (default=true): All special processing
+--     for the gcc-related tools (gcc,as,ld,..) will be disabled if set
+--     to false.
+--
+ruletree.attach_ruletree()
+
+local forced_modename = sb.get_forced_mapmode()
+if forced_modename == nil then
+	print("--forced_modename = nil, use "..sbox_mapmode)
+	modename_in_ruletree = sbox_mapmode
+else
+	print("--forced_modename = "..forced_modename)
+	modename_in_ruletree = forced_modename
+end
+enable_cross_gcc_toolchain = true
+
+if forced_modename == "Default" then
+	do_file(session_dir .. "/share/scratchbox2/modes/"..sbox_mapmode.."/config.lua")
+else
+	do_file(session_dir .. "/share/scratchbox2/modes/"..modename_in_ruletree.."/config.lua")
+end
+
+ruletree.catalog_set("Conf."..modename_in_ruletree, "enable_cross_gcc_toolchain",
+        ruletree.new_boolean(enable_cross_gcc_toolchain))
+
+if exec_engine_loaded then
+	print("-- Warning: exec engine was already loaded, will load again")
+end
+-- load argvenvp.lua, to get the right argvmods_* file
 do_file(session_dir .. "/lua_scripts/argvenvp.lua")
+
+-- Next, the argvmods stuff.
 
 print("argvmods_rules_for_usr_bin_"..sbox_cpu.." = {")
 argvmods_to_mapping_rules(sbox_cpu)

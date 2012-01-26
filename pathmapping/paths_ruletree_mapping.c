@@ -43,6 +43,7 @@
 #include <sys/mman.h>
 
 #include "pathmapping.h"
+#include "processclock.h"
 
 
 /* Returns min.path length if a match is found, otherwise returns -1 */
@@ -124,7 +125,9 @@ static ruletree_object_offset_t ruletree_find_rule(
 {
 	uint32_t	rule_list_size;
 	uint32_t	i;
+	PROCESSCLOCK(clk1)
 
+	START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "ruletree_find_rule");
 	SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_find_rule for (%s)", virtual_path);
 	rule_list_size = ruletree_objectlist_get_list_size(rule_list_offs);
 
@@ -195,7 +198,12 @@ static ruletree_object_offset_t ruletree_find_rule(
 							virtual_path, virtual_path_len,
 							min_path_lenp,
 							fn_class, rule_p);
-						if (subtree_offs) return(subtree_offs);
+						if (subtree_offs) {
+							STOP_AND_REPORT_PROCESSCLOCK(
+								SB_LOGLEVEL_INFO, &clk1,
+								"found/subtree");
+							return(subtree_offs);
+						}
 					} else {
 						SB_LOG(SB_LOGLEVEL_NOISE,
 							"ruletree_find_rule: no link");
@@ -204,10 +212,14 @@ static ruletree_object_offset_t ruletree_find_rule(
 				}
 				/* found it! */
 				if (rule_p) *rule_p = rp;
+				STOP_AND_REPORT_PROCESSCLOCK(
+					SB_LOGLEVEL_INFO, &clk1,
+					"found");
 				return(rule_offs);
 			}
 		}
 	}
+	STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "not found");
 	return (0); /* failed to find it */
 }
 
@@ -227,7 +239,9 @@ ruletree_object_offset_t ruletree_get_mapping_requirements(
 	const char *modename = sbox_session_mode;
 	ruletree_fsrule_t	*rule = NULL;
 	ruletree_object_offset_t	rule_offs = 0;
+	PROCESSCLOCK(clk1)
 
+	START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "ruletree_get_mapping_requirements");
 	if (!modename) modename = "Default";
         abs_virtual_source_path_string = path_list_to_string(abs_virtual_source_path_list);
 
@@ -267,6 +281,7 @@ ruletree_object_offset_t ruletree_get_mapping_requirements(
 
 	free(abs_virtual_source_path_string);
 
+	STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "");
 	return (rule_offs); 
 }
 
@@ -661,7 +676,9 @@ char *ruletree_translate_path(
 {
 	char	*host_path = NULL;
 	ruletree_fsrule_t *rule;
+	PROCESSCLOCK(clk1)
 
+	START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "ruletree_translate_path");
 	*force_fallback_to_lua = 0;
 
 	if (!ctx->pmc_ruletree_offset) {
@@ -737,6 +754,7 @@ char *ruletree_translate_path(
 			abs_clean_virtual_path);
 		*force_fallback_to_lua = 1;
 	}
+	STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, host_path);
 	return(host_path);
 }
 

@@ -218,6 +218,25 @@ static int lua_sb_ruletree_catalog_get_boolean(lua_State *l)
 	return 1;
 }
 
+static int lua_sb_ruletree_catalog_get_string(lua_State *l)
+{
+	int		n = lua_gettop(l);
+	uint32_t	res = 0;
+	ruletree_object_offset_t	offs = 0;
+	const char	*str = NULL;
+
+	if (n == 2) {
+		const char	*catalog_name = lua_tostring(l, 1);
+		const char	*object_name = lua_tostring(l, 2);
+
+		str = ruletree_catalog_get_string(catalog_name, object_name);
+	}
+	SB_LOG(SB_LOGLEVEL_NOISE,
+		"lua_sb_ruletree_catalog_get_string @%u => %s", offs, str);
+	lua_pushboolean(l, str);
+	return 1;
+}
+
 
 static int lua_sb_ruletree_catalog_set(lua_State *l)
 {
@@ -307,6 +326,7 @@ static const luaL_reg reg[] =
 	{"catalog_set",			lua_sb_ruletree_catalog_set},
 	{"catalog_get_uint32",		lua_sb_ruletree_catalog_get_uint32},
 	{"catalog_get_boolean",		lua_sb_ruletree_catalog_get_boolean},
+	{"catalog_get_string",		lua_sb_ruletree_catalog_get_string},
 
 	/* 'ruletree.catalog_set("catalogname","itemname",
 	 *   ruletree.new_string("str")' can be used from Lua to

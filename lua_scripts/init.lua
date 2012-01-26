@@ -19,6 +19,4 @@ if (all_modes_str) then
 	end
 end
 
-print("Default mode = "..all_modes[1])
-
 ruletree.catalog_set("MODES", "#default", ruletree.new_string(all_modes[1]))

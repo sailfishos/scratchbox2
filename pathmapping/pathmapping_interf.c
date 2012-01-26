@@ -46,6 +46,7 @@
 #include <sb2.h>
 #include "libsb2.h"
 #include "exported.h"
+#include "processclock.h"
 
 #ifdef EXTREME_DEBUGGING
 #include <execinfo.h>
@@ -188,9 +189,11 @@ static void fwd_map_path(
 		res->mres_readonly = 1;
 	} else {
 		mapping_results_t res2;
+		PROCESSCLOCK(clk1)
 
 		sb2ctx = check_mapping_method(1);
 
+		START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "fwd_map_path");
 		switch (mapping_method) {
 		case MAPPING_METHOD_C_ENGINE:
 			sbox_map_path_internal__c_engine(sb2ctx, binary_name,
@@ -238,6 +241,7 @@ static void fwd_map_path(
 				__func__);
 		}
 		release_sb2context(sb2ctx);
+		STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, virtual_path);
 	}
 }
 

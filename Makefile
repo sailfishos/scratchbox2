@@ -67,6 +67,10 @@ CFLAGS += $(MACH_CFLAG)
 LDFLAGS += $(MACH_CFLAG)
 CXXFLAGS = 
 
+# Uncomment following two lines to activate the "processclock" reports:
+#CFLAGS += -DUSE_PROCESSCLOCK
+#LDFLAGS += -lrt
+
 include $(LLBUILD)/Makefile.include
 
 ifdef prefix

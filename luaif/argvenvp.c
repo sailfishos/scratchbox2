@@ -15,6 +15,8 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+#include "processclock.h"
+
 /* This stack dump routine is based on an example from the
  * book "Programming in Lua"
  *
@@ -120,6 +122,9 @@ int sb_execve_preprocess(char **file, char ***argv, char ***envp)
 {
 	struct sb2context *sb2ctx = NULL;
 	int res, new_argc, new_envc;
+	PROCESSCLOCK(clk1)
+
+	START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "sb_execve_preprocess");
 
 	if (!argv || !envp) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
@@ -166,6 +171,7 @@ int sb_execve_preprocess(char **file, char ***argv, char ***envp)
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"sb_execve_preprocess: at exit, gettop=%d", lua_gettop(sb2ctx->lua));
 	release_sb2context(sb2ctx);
+	STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, *file);
 	return res;
 }
 
@@ -182,7 +188,9 @@ int sb_execve_postprocess(const char *exec_type,
 	struct sb2context *sb2ctx;
 	int res, new_argc;
 	int replace_environment = 0;
+	PROCESSCLOCK(clk1)
 
+	START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "sb_execve_postprocess");
 	sb2ctx = get_sb2context_lua();
 	if (!sb2ctx) return(0);
 
@@ -264,6 +272,8 @@ int sb_execve_postprocess(const char *exec_type,
 	/* remove sb_execve_postprocess return values from the stack.  */
 	lua_pop(sb2ctx->lua, 7);
 
+	STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, mapped_file);
+
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"sb_execve_postprocess: at exit, gettop=%d", lua_gettop(sb2ctx->lua));
 	release_sb2context(sb2ctx);
@@ -287,6 +297,9 @@ char *sb_execve_map_script_interpreter(
 	int new_argc, new_envc;
 	int res;
 	char *nep;
+	PROCESSCLOCK(clk1)
+
+	START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "sb_execve_map_script_interpreter");
 
 	sb2ctx = get_sb2context_lua();
 	if (!sb2ctx) return(0);
@@ -436,6 +449,7 @@ char *sb_execve_map_script_interpreter(
 		(new_exec_policy_name && *new_exec_policy_name) ?
 			*new_exec_policy_name : "NULL");
 	release_sb2context(sb2ctx);
+	STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, mapped_interpreter);
 	return mapped_interpreter;
 }
 
@@ -447,7 +461,9 @@ char *sb_execve_map_script_interpreter(
 void sb_get_host_policy_ld_params(char **p_ld_preload, char **p_ld_lib_path)
 {
 	struct sb2context *sb2ctx;
+	PROCESSCLOCK(clk1)
 
+	START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "sb_get_host_policy_ld_params");
 	if (getenv("SBOX_DISABLE_ARGVENVP")) {
 		SB_LOG(SB_LOGLEVEL_DEBUG, "sb_argvenvp disabled(E):");
 		return;
@@ -473,5 +489,6 @@ void sb_get_host_policy_ld_params(char **p_ld_preload, char **p_ld_lib_path)
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"sb_get_host_policy_ld_params: at exit, gettop=%d", lua_gettop(sb2ctx->lua));
 	release_sb2context(sb2ctx);
+	STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "");
 }
 

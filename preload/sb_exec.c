@@ -111,6 +111,7 @@
 #include "libsb2.h"
 #include "exported.h"
 #include "rule_tree.h"
+#include "processclock.h"
 
 #ifndef ARRAY_SIZE
 # define ARRAY_SIZE(array) (sizeof (array) / sizeof ((array)[0]))
@@ -1143,7 +1144,10 @@ static int prepare_exec(const char *exec_fn_name,
 	enum binary_type type;
 	int postprocess_result = 0;
 	int ret = 0; /* 0: ok to exec, ret<0: exec fails */
+	PROCESSCLOCK(clk1)
+	PROCESSCLOCK(clk4)
 
+	START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "prepare_exec");
 	(void)exec_fn_name; /* not yet used */
 	(void)orig_envp; /* not used */
 
@@ -1160,9 +1164,13 @@ static int prepare_exec(const char *exec_fn_name,
 	my_argv = duplicate_argv(orig_argv);
 
 	if (!file_has_been_mapped) {
+		PROCESSCLOCK(clk2)
+
+		START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk2, "execve_preprocess");
 		if ((err = sb_execve_preprocess(&my_file, &my_argv, &my_envp)) != 0) {
 			SB_LOG(SB_LOGLEVEL_ERROR, "argvenvp processing error %i", err);
 		}
+		STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk2, my_file);
 	}
 
 	/* test if mapping is enabled during the exec()..
@@ -1185,13 +1193,16 @@ static int prepare_exec(const char *exec_fn_name,
 		 * what is the path we're supposed to deal with
 		 */
 		mapping_results_t	mapping_result;
+		PROCESSCLOCK(clk3)
 
 		clear_mapping_results_struct(&mapping_result);
+		START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk3, "map_path_for_exec");
 		sbox_map_path_for_exec("do_exec", my_file, &mapping_result);
 		mapped_file = (mapping_result.mres_result_buf ?
 			strdup(mapping_result.mres_result_buf) : NULL);
 		exec_policy_name = (mapping_result.mres_exec_policy_name ?
 			strdup(mapping_result.mres_exec_policy_name) : NULL);
+		STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk3, mapped_file);
 			
 		free_mapping_results(&mapping_result);
 
@@ -1211,6 +1222,7 @@ static int prepare_exec(const char *exec_fn_name,
 	type = inspect_binary(mapped_file, 1/*check_x_permission*/);
 	if (typep) *typep = type;
 
+	START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk4, "exec/typeswitch");
 	switch (type) {
 		case BIN_HASHBANG:
 			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/hashbang %s", mapped_file);
@@ -1314,10 +1326,12 @@ static int prepare_exec(const char *exec_fn_name,
 				mapped_file);
 			break;
 	}
+	STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk4, my_file);
 
 	*new_file = mapped_file;
 	*new_argv = my_argv;
 	*new_envp = my_envp;
+	STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, orig_file);
 	return(ret);
 }
 
@@ -1329,7 +1343,9 @@ int do_exec(int *result_errno_ptr,
 	char **new_argv = NULL;
 	char **new_envp = NULL;
 	int  result;
+	PROCESSCLOCK(clk1)
 
+	START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "do_exec");
 	if (getenv("SBOX_DISABLE_MAPPING")) {
 		/* just run it, don't worry, be happy! */
 	} else {
@@ -1371,6 +1387,7 @@ int do_exec(int *result_errno_ptr,
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"EXEC denied by prepare_exec(), %s", orig_file);
 			*result_errno_ptr = errno;
+			STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "Exec denied");
 			return(r); /* exec denied */
 		}
 
@@ -1382,11 +1399,13 @@ int do_exec(int *result_errno_ptr,
 				"LD_LIBRARY_PATH and/or LD_PRELOAD were not set "
 				"by exec mapping logic", orig_file);
 			*result_errno_ptr = EINVAL;
+			STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "Config error");
 			return(-1);
 		}
 	}
 
 	errno = *result_errno_ptr; /* restore to orig.value */
+	STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, orig_file);
 	result = sb_next_execve(
 		(new_file ? new_file : orig_file),
 		(new_argv ? new_argv : orig_argv),

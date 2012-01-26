@@ -1831,10 +1831,27 @@ if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 	write_configfiles_and_rules_for_new_session
 fi
 
-
 # Final addition to LD_LIBRARY_PATH, if needed
 if [ -f $SBOX_SESSION_DIR/ld_library_path_extras ]; then
 	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`cat $SBOX_SESSION_DIR/ld_library_path_extras`
+fi
+
+if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
+	# new session, start the server.
+	# Logging is not yet initialized => must use a separate
+	# log file for this.
+	# sb2d will execute "init.lua" before returning.
+	SB2_ALL_MODES="$SB2_INTERNAL_MAPMODES" \
+		sb2d -s $SBOX_SESSION_DIR -p $SBOX_SESSION_DIR/sb2d.pid \
+		-d "debug" -l $SBOX_SESSION_DIR/sb2d.log \
+		2>$SBOX_SESSION_DIR/sb2d.err
+	if [ $? != 0 ]; then
+		if [ -s $SBOX_SESSION_DIR/sb2d.err ]; then
+			echo "sb2d:"
+			cat $SBOX_SESSION_DIR/sb2d.err
+		fi
+		exit_error "startup of sb2d failed."
+	fi
 fi
 
 # ------------

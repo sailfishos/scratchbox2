@@ -45,9 +45,14 @@ typedef struct ruletree_hdr_s {
 	uint32_t		rtree_version;
 
 	ruletree_object_offset_t	rtree_hdr_root_catalog;
+
+	uint32_t		rtree_file_size;
+	uint32_t		rtree_max_size;			/* used when mmap'ing */
+	uint32_t		rtree_min_mmap_addr;		/* for clients */
+	uint32_t		rtree_min_client_socket_fd;	/* for clients */
 } ruletree_hdr_t;
 
-#define RULE_TREE_VERSION	3
+#define RULE_TREE_VERSION	5
 
 /* catalogs are lists of name+value pairs
  * (the value can be a rule, string, or another catalog).
@@ -141,6 +146,8 @@ extern int ruletree_to_memory(void); /* 0 if ok, negative if rule tree is not av
 
 extern size_t ruletree_get_file_size(void);
 
+extern int ruletree_get_min_client_socket_fd(void);
+
 extern ruletree_object_offset_t append_struct_to_ruletree_file(void *ptr, size_t size, uint32_t type);
 
 extern int link_ruletree_fsrules(ruletree_object_offset_t rule1_location, ruletree_object_offset_t rule2_location);
@@ -150,8 +157,9 @@ extern char *ruletree_reverse_path(
 	const char *modename, const char *binary_name,
         const char *func_name, const char *full_path);
 
-extern int attach_ruletree(const char *ruletree_path,
-	int create_if_it_doesnt_exist, int keep_open);
+extern int create_ruletree_file(const char *ruletree_path,
+	uint32_t max_size, uint32_t min_mmap_addr, int min_client_socket_fd);
+extern int attach_ruletree(const char *ruletree_path, int keep_open);
 
 extern void *offset_to_ruletree_object_ptr(ruletree_object_offset_t offs,
 	uint32_t required_type);

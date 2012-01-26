@@ -492,7 +492,7 @@ int main(int argc, char *argv[])
 
 
 	printf("Attach tree (%s)\n", rule_tree_path);
-	if (attach_ruletree(rule_tree_path, 0, 0) < 0) {
+	if (attach_ruletree(rule_tree_path, 0) < 0) {
 		printf("Attach failed!\n");
 	} else {
 		size_t siz;

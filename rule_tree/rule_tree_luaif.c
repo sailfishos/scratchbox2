@@ -50,8 +50,7 @@ static int lua_sb_attach_ruletree(lua_State *l)
 
 		/* map the rule tree to memory: */
 		asprintf(&rule_tree_path, "%s/RuleTree.bin", sbox_session_dir);
-		attach_result = attach_ruletree(rule_tree_path,
-			1/*create if needed*/, 1/*keep open*/);
+		attach_result = attach_ruletree(rule_tree_path, 1/*keep open*/);
 		SB_LOG(SB_LOGLEVEL_DEBUG, "attach(%s) = %d", rule_tree_path, attach_result);
 		free(rule_tree_path);
 	}

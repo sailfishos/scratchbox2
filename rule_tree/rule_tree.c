@@ -45,23 +45,24 @@
 static struct ruletree_cxt_s {
 	char		*rtree_ruletree_path;
 	int		rtree_ruletree_fd;
-	size_t		rtree_ruletree_file_size;
 	void		*rtree_ruletree_ptr;
 	ruletree_hdr_t	*rtree_ruletree_hdr_p;
-} ruletree_ctx = { NULL, -1, 0, NULL, NULL };
+} ruletree_ctx = { NULL, -1, 0, NULL };
 
 /* =================== Rule tree primitives. =================== */
 
 size_t ruletree_get_file_size(void)
 {
-	return (ruletree_ctx.rtree_ruletree_file_size);
+	if (ruletree_ctx.rtree_ruletree_hdr_p) return (ruletree_ctx.rtree_ruletree_hdr_p->rtree_file_size);
+	return(0);
 }
 
 /* return a pointer to the rule tree, without checking the contents */
 static void *offset_to_raw_ruletree_ptr(ruletree_object_offset_t offs)
 {
 	if (!ruletree_ctx.rtree_ruletree_ptr) return(NULL);
-	if (offs >= ruletree_ctx.rtree_ruletree_file_size) return(NULL);
+	if (!ruletree_ctx.rtree_ruletree_hdr_p) return(NULL);
+	if (offs >= ruletree_ctx.rtree_ruletree_hdr_p->rtree_file_size) return(NULL);
 
 	return(((char*)ruletree_ctx.rtree_ruletree_ptr) + offs);
 }
@@ -105,7 +106,9 @@ ruletree_object_offset_t append_struct_to_ruletree_file(void *ptr, size_t size, 
 			SB_LOG(SB_LOGLEVEL_ERROR,
 				"Failed to append a struct (%d bytes) to the rule tree", size);
 		}
-		ruletree_ctx.rtree_ruletree_file_size = lseek(ruletree_ctx.rtree_ruletree_fd, 0, SEEK_END); 
+		if (ruletree_ctx.rtree_ruletree_hdr_p) 
+			ruletree_ctx.rtree_ruletree_hdr_p->rtree_file_size =
+				lseek(ruletree_ctx.rtree_ruletree_fd, 0, SEEK_END); 
 	}
 	return(location);
 }
@@ -118,29 +121,15 @@ static int open_ruletree_file(int create_if_it_doesnt_exist)
 	ruletree_ctx.rtree_ruletree_fd = open_nomap_nolog(ruletree_ctx.rtree_ruletree_path,
 		O_CLOEXEC | O_RDWR | (create_if_it_doesnt_exist ? O_CREAT : 0),
 		S_IRUSR | S_IWUSR);
-	if (ruletree_ctx.rtree_ruletree_fd >= 0) {
-		ruletree_ctx.rtree_ruletree_file_size = lseek(ruletree_ctx.rtree_ruletree_fd, 0, SEEK_END); 
-	}
+
 	SB_LOG(SB_LOGLEVEL_DEBUG, "open_ruletree_file => %d", ruletree_ctx.rtree_ruletree_fd);
 	return (ruletree_ctx.rtree_ruletree_fd);
 }
 
-/* Attach the rule tree = map it to our memoryspace.
- * returns -1 if error, 0 if attached, 1 if created & attached */
-int attach_ruletree(const char *ruletree_path,
-	int create_if_it_doesnt_exist, int keep_open)
+static int mmap_ruletree(ruletree_hdr_t *hdr)
 {
-	int result = -1;
-
-	SB_LOG(SB_LOGLEVEL_DEBUG, "attach_ruletree(%s)", ruletree_path);
-
-	if (ruletree_path) {
-		ruletree_ctx.rtree_ruletree_path = strdup(ruletree_path);
-	}
-
-	if (open_ruletree_file(create_if_it_doesnt_exist) < 0) return(-1);
-
-	ruletree_ctx.rtree_ruletree_ptr = mmap(NULL, 16*1024*1024/*length=16MB*/,
+	ruletree_ctx.rtree_ruletree_ptr = mmap(
+		(void*)hdr->rtree_min_mmap_addr, hdr->rtree_max_size,
 		PROT_READ | PROT_WRITE, MAP_SHARED,
 		ruletree_ctx.rtree_ruletree_fd, 0);
 
@@ -150,66 +139,106 @@ int attach_ruletree(const char *ruletree_path,
 		return(-1);
 	}
 
-	if (ruletree_ctx.rtree_ruletree_file_size < sizeof(ruletree_hdr_t)) {
-		if (create_if_it_doesnt_exist) {
-			/* empty tree - must initialize */
-			ruletree_hdr_t	hdr;
+	/* use the force, otherwise offset_to_ruletree_object_ptr()
+	 * fails */
+	ruletree_ctx.rtree_ruletree_hdr_p =
+		(ruletree_hdr_t*)ruletree_ctx.rtree_ruletree_ptr;
+	/* now do the same without force. */
+	ruletree_ctx.rtree_ruletree_hdr_p =
+		(ruletree_hdr_t*)offset_to_ruletree_object_ptr(0,
+			SB2_RULETREE_OBJECT_TYPE_FILEHDR);
 
-			SB_LOG(SB_LOGLEVEL_DEBUG, "empty - initializing");
-
-			lseek(ruletree_ctx.rtree_ruletree_fd, 0, SEEK_SET); 
-			result = 1;
-
-			memset(&hdr, 0, sizeof(hdr));
-			hdr.rtree_version = RULE_TREE_VERSION;
-			append_struct_to_ruletree_file(&hdr, sizeof(hdr),
-				SB2_RULETREE_OBJECT_TYPE_FILEHDR);
-			ruletree_ctx.rtree_ruletree_hdr_p =
-				(ruletree_hdr_t*)offset_to_ruletree_object_ptr(0,
-					SB2_RULETREE_OBJECT_TYPE_FILEHDR);
-		} else {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "empty - not initializing");
-			ruletree_ctx.rtree_ruletree_hdr_p = NULL;
-			result = -1;
-		}
-	} else {
-		/* file was not empty, check header */
-		ruletree_ctx.rtree_ruletree_hdr_p =
-			(ruletree_hdr_t*)offset_to_ruletree_object_ptr(0,
-				SB2_RULETREE_OBJECT_TYPE_FILEHDR);
-
-		if (ruletree_ctx.rtree_ruletree_hdr_p) {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "header & magic ok");
-			if (ruletree_ctx.rtree_ruletree_hdr_p->rtree_version ==
-			    RULE_TREE_VERSION) {
-				result = 0; /* mapped to memory */
-			} else {
-				SB_LOG(SB_LOGLEVEL_ERROR,
-					"Fatal: ruletree version mismatch: Got %d, expected %d",
-					ruletree_ctx.rtree_ruletree_hdr_p->rtree_version,
-					RULE_TREE_VERSION);
-				exit(44);
-			}
-		} else {
-			SB_LOG(SB_LOGLEVEL_ERROR, "Faulty ruletree header");
-			result = -1;
-		}
+	if (ruletree_ctx.rtree_ruletree_hdr_p) {
+		SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree mmap'ed ok");
+		return(0);
 	}
-			
-	if (keep_open) {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "keep_open");
-	} else {
+	SB_LOG(SB_LOGLEVEL_ERROR, "Faulty ruletree header");
+	return(-1);
+}
+
+/* For the server:
+ * create and attach a rule tree file, leaves it open for writing */
+int create_ruletree_file(const char *ruletree_path,
+	uint32_t max_size, uint32_t min_mmap_addr, int min_client_socket_fd)
+{
+	ruletree_hdr_t	hdr;
+
+	if (!ruletree_path) return(-1);
+
+	ruletree_ctx.rtree_ruletree_path = strdup(ruletree_path);
+
+	if (open_ruletree_file(1/*create_if_it_doesnt_exist*/) < 0) {
+		SB_LOG(SB_LOGLEVEL_DEBUG, "create_ruletree_file: open() failed");
+		return(-1);
+	}
+
+	if (lseek(ruletree_ctx.rtree_ruletree_fd, 0, SEEK_END) != 0) { 
+		SB_LOG(SB_LOGLEVEL_DEBUG, "create_ruletree_file: file is not empty");
+		return(-1);
+	}
+
+	SB_LOG(SB_LOGLEVEL_DEBUG, "create_ruletree_file - initializing rule tree db");
+
+	memset(&hdr, 0, sizeof(hdr));
+	hdr.rtree_version = RULE_TREE_VERSION;
+	hdr.rtree_file_size = sizeof(hdr);
+	hdr.rtree_max_size = max_size;
+	hdr.rtree_min_mmap_addr = min_mmap_addr;
+	hdr.rtree_min_client_socket_fd = min_client_socket_fd;
+	append_struct_to_ruletree_file(&hdr, sizeof(hdr),
+		SB2_RULETREE_OBJECT_TYPE_FILEHDR);
+
+	if (mmap_ruletree(&hdr) < 0) return(-1);
+	
+	return(0);
+}
+
+int ruletree_get_min_client_socket_fd(void)
+{
+	if (ruletree_ctx.rtree_ruletree_hdr_p)
+		return(ruletree_ctx.rtree_ruletree_hdr_p->rtree_min_client_socket_fd);
+	return(0);
+}
+
+/* For clients:
+ * Attach the rule tree = map it to our memoryspace.
+ * returns -1 if error, 0 if attached
+*/
+int attach_ruletree(const char *ruletree_path, int keep_open)
+{
+	ruletree_hdr_t	hdr;
+
+	SB_LOG(SB_LOGLEVEL_DEBUG, "attach_ruletree(%s)", ruletree_path);
+
+	if (!ruletree_ctx.rtree_ruletree_path && ruletree_path) {
+		ruletree_ctx.rtree_ruletree_path = strdup(ruletree_path);
+	} else if (!ruletree_path) return(-1);
+
+	if (open_ruletree_file(0/*create_if_it_doesnt_exist*/) < 0) return(-1);
+
+	if (read(ruletree_ctx.rtree_ruletree_fd, &hdr, sizeof(hdr)) != sizeof(hdr)) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"Illegal ruletree file size or format");
+		return(-1);
+	}
+	if (hdr.rtree_version != RULE_TREE_VERSION) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"Fatal: ruletree version mismatch: Got %d, expected %d",
+			ruletree_ctx.rtree_ruletree_hdr_p->rtree_version,
+			RULE_TREE_VERSION);
+		exit(44);
+	}
+
+	if (mmap_ruletree(&hdr) < 0) return(-1);
+
+	if (!keep_open) {
 		close(ruletree_ctx.rtree_ruletree_fd);
 		ruletree_ctx.rtree_ruletree_fd = -1;
 		SB_LOG(SB_LOGLEVEL_DEBUG, "rule tree file has been closed.");
 	}
 
-	if (result < 0) {
-		ruletree_ctx.rtree_ruletree_ptr = NULL;
-		ruletree_ctx.rtree_ruletree_hdr_p = NULL;
-	}
-	SB_LOG(SB_LOGLEVEL_DEBUG, "attach_ruletree() => %d", result);
-	return(result);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "attach_ruletree() => OK");
+	return(0);
 }
 
 /* =================== ints and booleans =================== */
@@ -310,8 +339,9 @@ ruletree_object_offset_t append_string_to_ruletree_file(const char *str)
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"Failed to append a string (%d bytes) to the rule tree", len);
 	}
-	ruletree_ctx.rtree_ruletree_file_size =
-		lseek(ruletree_ctx.rtree_ruletree_fd, 0, SEEK_END); 
+	if (ruletree_ctx.rtree_ruletree_hdr_p)
+		ruletree_ctx.rtree_ruletree_hdr_p->rtree_file_size =
+			lseek(ruletree_ctx.rtree_ruletree_fd, 0, SEEK_END); 
 	return(location);
 }
 
@@ -342,8 +372,9 @@ ruletree_object_offset_t ruletree_objectlist_create_list(uint32_t size)
 			size, list_size_in_bytes);
 		location = 0; /* return error */
 	}
-	ruletree_ctx.rtree_ruletree_file_size =
-		lseek(ruletree_ctx.rtree_ruletree_fd, 0, SEEK_END); 
+	if (ruletree_ctx.rtree_ruletree_hdr_p)
+		ruletree_ctx.rtree_ruletree_hdr_p->rtree_file_size =
+			lseek(ruletree_ctx.rtree_ruletree_fd, 0, SEEK_END); 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_objectlist_create_list: location=%d", location);
 	return(location);
 }
@@ -836,6 +867,7 @@ ruletree_fsrule_t *offset_to_ruletree_fsrule_ptr(int loc)
 /* =================== map "standard" ruletree to memory, if not yet mapped =================== */
 
 /* ensure that the rule tree has been mapped. */
+/* FIXME: CHECK: maybe this could be a private routine. */
 int ruletree_to_memory(void)
 {
         int attach_result = -1;
@@ -854,7 +886,7 @@ int ruletree_to_memory(void)
 				"asprintf failed to create file name for rule tree");
 		} else {
 			attach_result = attach_ruletree(rule_tree_path,
-				0/*create if needed*/, 0/*keep open*/);
+				0/*keep open*/);
 			SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_to_memory: attach(%s) = %d",
 				rule_tree_path, attach_result);
 			free(rule_tree_path);

@@ -55,7 +55,7 @@ PROTOTYPEWARNINGS=-Wmissing-prototypes -Wstrict-prototypes
 
 # targets variable will be filled by llbuild
 targets = 
-subdirs = luaif sblib pathmapping rule_tree preload utils
+subdirs = luaif sblib pathmapping rule_tree preload utils sb2d
 
 -include config.mak
 
@@ -184,6 +184,7 @@ install-noarch: regular
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-exitreport $(prefix)/share/scratchbox2/scripts/sb2-exitreport
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-generate-locales $(prefix)/share/scratchbox2/scripts/sb2-generate-locales
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-logz $(prefix)/bin/sb2-logz
+	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/init.lua $(prefix)/share/scratchbox2/lua_scripts/init.lua
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/main.lua $(prefix)/share/scratchbox2/lua_scripts/main.lua
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/mapping.lua $(prefix)/share/scratchbox2/lua_scripts/mapping.lua
 	$(Q)install -c -m 644 $(SRCDIR)/lua_scripts/network.lua $(prefix)/share/scratchbox2/lua_scripts/network.lua
@@ -234,6 +235,7 @@ do-install: install-noarch
 	$(Q)install -c -m 755 $(OBJDIR)/preload/libsb2.$(SHLIBEXT) $(prefix)/lib/libsb2/libsb2.so.$(PACKAGE_VERSION)
 	$(Q)install -c -m 755 $(OBJDIR)/utils/sb2-show $(prefix)/bin/sb2-show
 	$(Q)install -c -m 755 $(OBJDIR)/utils/sb2-monitor $(prefix)/bin/sb2-monitor
+	$(Q)install -c -m 755 $(OBJDIR)/sb2d/sb2d $(prefix)/bin/sb2d
 ifeq ($(OS),Linux)
 	$(Q)/sbin/ldconfig -n $(prefix)/lib/libsb2
 endif

@@ -43,18 +43,16 @@ local forced_modename = sb.get_forced_mapmode()
 
 -- rule_file_path and rev_rule_file_path are global varibales
 if forced_modename == nil or forced_modename == "Default" then
-	rule_file_path = session_dir .. "/rules/Default.lua"
-	rev_rule_file_path = session_dir .. "/rev_rules/Default.lua"
-	exec_rule_file_path = session_dir .. "/exec_rules/Default.lua"
 	-- set active_mapmode to the real name of the mapping mode,
 	-- even if forced_modename happens to be "Default"
 	active_mapmode = sbox_mapmode
 else
-	rule_file_path = session_dir .. "/rules/" .. forced_modename .. ".lua"
-	rev_rule_file_path = session_dir .. "/rev_rules/" .. forced_modename .. ".lua"
-	exec_rule_file_path = session_dir .. "/exec_rules/" .. forced_modename .. ".lua"
 	active_mapmode = forced_modename
 end
+
+rule_file_path = session_dir .. "/rules/" .. active_mapmode .. ".lua"
+rev_rule_file_path = session_dir .. "/rev_rules/" .. active_mapmode .. ".lua"
+exec_rule_file_path = session_dir .. "/exec_rules/" .. active_mapmode .. ".lua"
 
 target_root = sbox_target_root
 if (not target_root or target_root == "") then

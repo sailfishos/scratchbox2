@@ -116,15 +116,8 @@ load_and_check_exec_rules()
 
 local argvmods_file_path
 
-local forced_modename = sb.get_forced_mapmode()
-if forced_modename == nil or forced_modename == "Default" then
-	modename_in_ruletree = sbox_mapmode
-else
-	modename_in_ruletree = forced_modename
-end
-
 enable_cross_gcc_toolchain = ruletree.catalog_get_boolean(
-	"Conf."..modename_in_ruletree, "enable_cross_gcc_toolchain")
+	"Conf."..active_mapmode, "enable_cross_gcc_toolchain")
 
 if (enable_cross_gcc_toolchain == true) then
 	-- only map gcc & friends if a cross compiler has been defined,

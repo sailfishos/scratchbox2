@@ -227,8 +227,8 @@ function create_argvmods_usr_bin_rules()
 {
 	default_rule=$1
 
-	for ammf in $SBOX_SESSION_DIR/rules/Default.lua \
-		    $SBOX_SESSION_DIR/rules/$SBOX_MAPMODE.lua; do
+	# FIXME: this should process all modes, not just the default mode.
+	for ammf in $SBOX_SESSION_DIR/rules/$SBOX_MAPMODE.lua; do
 		amm_base=`basename $ammf .lua`
 
 		SBOX_ARGVMODS_USR_BIN_DEFAULT_RULE="$default_rule" \
@@ -1531,14 +1531,6 @@ function write_configfiles_and_rules_for_new_session()
 	##	done
 	##fi
 
-	# use a hard link for the rule file name, it is better (faster) than
-	# a symlink. "Default.lua" will be loaded, if SBOX_SESSION_MODE is
-	# unset (as it is usually)
-	ln $SBOX_SESSION_DIR/rules/$SBOX_MAPMODE.lua \
-		$SBOX_SESSION_DIR/rules/Default.lua
-	ln $SBOX_SESSION_DIR/exec_rules/$SBOX_MAPMODE.lua \
-		$SBOX_SESSION_DIR/exec_rules/Default.lua
-
 	create_exec_config_file
 	create_common_sb2_conf_file_for_session
 	create_gcc_conf_file_for_session
@@ -1640,7 +1632,7 @@ done
 shift $(($OPTIND - 1))
 
 
-if [ -n "$SBOX_SESSION_DIR" -a -f "$SBOX_SESSION_DIR/rules/Default.lua" ]; then
+if [ -n "$SBOX_SESSION_DIR" -a -d "$SBOX_SESSION_DIR/rules" ]; then
 	# already inside an sb2 session; ignore all options and just exec the command.
 	echo "WARNING: recursive calls to sb2 are not supported (session already exists)"
 	echo "WARNING: going to execute '$*' in this session"

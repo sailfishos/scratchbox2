@@ -285,11 +285,10 @@ ruletree.attach_ruletree()
 
 local forced_modename = sb.get_forced_mapmode()
 if forced_modename then
-	print("forced_modename = "..forced_modename)
 	modename_in_ruletree = forced_modename
 else
-	print("forced_modename = nil")
-	modename_in_ruletree = sbox_mapmode
+	print("ERROR: forced_modename = nil")
+	os.exit(12)
 end
 print("sbox_mapmode = "..sbox_mapmode)
 print("active_mapmode = "..active_mapmode)

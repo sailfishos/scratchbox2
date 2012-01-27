@@ -61,21 +61,15 @@ print("-- Automatically generated mapping rules. Do not edit:")
 --
 ruletree.attach_ruletree()
 
-local forced_modename = sb.get_forced_mapmode()
-if forced_modename == nil then
-	print("--forced_modename = nil, use "..sbox_mapmode)
-	modename_in_ruletree = sbox_mapmode
-else
-	print("--forced_modename = "..forced_modename)
-	modename_in_ruletree = forced_modename
+local modename_in_ruletree = sb.get_forced_mapmode()
+if modename_in_ruletree == nil then
+	print("-- ERROR: modename_in_ruletree = nil")
+	os.exit(14)
 end
+
 enable_cross_gcc_toolchain = true
 
-if forced_modename == "Default" then
-	do_file(session_dir .. "/share/scratchbox2/modes/"..sbox_mapmode.."/config.lua")
-else
-	do_file(session_dir .. "/share/scratchbox2/modes/"..modename_in_ruletree.."/config.lua")
-end
+do_file(session_dir .. "/share/scratchbox2/modes/"..modename_in_ruletree.."/config.lua")
 
 ruletree.catalog_set("Conf."..modename_in_ruletree, "enable_cross_gcc_toolchain",
         ruletree.new_boolean(enable_cross_gcc_toolchain))

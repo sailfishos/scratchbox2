@@ -234,22 +234,30 @@ ruletree_object_offset_t ruletree_get_mapping_requirements(
         int *call_translate_for_all_p,
 	uint32_t fn_class)
 {
-	char    *abs_virtual_source_path_string;
-	ruletree_object_offset_t rule_list_offs;
-	const char *modename = sbox_session_mode;
-	ruletree_fsrule_t	*rule = NULL;
+	static ruletree_object_offset_t fwd_rule_list_offs = 0;
+	static ruletree_object_offset_t rev_rule_list_offs = 0;
+
+	ruletree_object_offset_t	rule_list_offs = 0;
+	char    			*abs_virtual_source_path_string;
+	ruletree_fsrule_t		*rule = NULL;
 	ruletree_object_offset_t	rule_offs = 0;
 	PROCESSCLOCK(clk1)
 
 	START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "ruletree_get_mapping_requirements");
-	if (!modename) modename = "Default";
-        abs_virtual_source_path_string = path_list_to_string(abs_virtual_source_path_list);
-
-	if (use_fwd_rules) {
-		rule_list_offs = ruletree_catalog_get("fs_rules", modename);
-	} else {
-		rule_list_offs = ruletree_catalog_get("rev_rules", modename);
+	if (!fwd_rule_list_offs || !rev_rule_list_offs) {
+		const char *modename = sbox_session_mode;
+		
+		if (!modename)
+			modename = ruletree_catalog_get_string("MODES", "#default");
+		fwd_rule_list_offs = ruletree_catalog_get("fs_rules", modename);
+		rev_rule_list_offs = ruletree_catalog_get("rev_rules", modename);
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"%s: rule list locations: fwd @%d, rev @%d",
+			__func__, fwd_rule_list_offs, rev_rule_list_offs);
 	}
+	abs_virtual_source_path_string = path_list_to_string(abs_virtual_source_path_list);
+
+	rule_list_offs = use_fwd_rules ? fwd_rule_list_offs : rev_rule_list_offs;
 	if (rule_list_offs) {
 		rule_offs = ruletree_find_rule(ctx,
 			rule_list_offs, abs_virtual_source_path_string,
@@ -257,8 +265,8 @@ ruletree_object_offset_t ruletree_get_mapping_requirements(
 			min_path_lenp, fn_class, &rule);
 	} else {
 		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"%s: no rule list (mode=%s,path=%s)",
-			__func__, modename, abs_virtual_source_path_string);
+			"%s: no rule list (,path=%s)",
+			__func__, abs_virtual_source_path_string);
 		rule_offs = 0;
 		if (min_path_lenp) *min_path_lenp = 0;
 	}

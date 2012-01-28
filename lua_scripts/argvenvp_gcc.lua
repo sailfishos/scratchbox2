@@ -214,8 +214,8 @@ end
 
 gcc_rule_file_path = session_dir .. "/gcc-conf.lua"
 
-if (sb.path_exists(gcc_rule_file_path)) then
-	sb.log("debug", "Loading GCC rules")
+if (sblib.path_exists(gcc_rule_file_path)) then
+	sblib.log("debug", "Loading GCC rules")
 	do_file(gcc_rule_file_path)
 end
 

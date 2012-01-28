@@ -1,5 +1,5 @@
 objs := wrappers.o privatewrappers.o \
-	libsb2.o sb_exec.o sb_l10n.o glob.o glob64.o \
+	libsb2.o sb_l10n.o glob.o glob64.o \
 	network.o \
 	execgates.o \
 	miscgates.o \
@@ -35,7 +35,7 @@ $(D)/libsb2.$(SHLIBEXT): LIBS := -ldl -lm $(LIBSB2_LIBS)
 
 targets := $(targets) $(D)/libsb2.$(SHLIBEXT)
 
-$(D)/libsb2.o $(D)/sb_l10n.o $(D)/sb_exec.o: preload/exported.h
+$(D)/libsb2.o $(D)/sb_l10n.o: preload/exported.h
 $(D)/exported.h $(D)/ldexportlist: preload/wrappers.c
 $(D)/wrappers.c: preload/interface.master preload/gen-interface.pl
 	$(MKOUTPUTDIR)

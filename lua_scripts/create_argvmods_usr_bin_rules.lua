@@ -79,6 +79,7 @@ if exec_engine_loaded then
 end
 -- load argvenvp.lua, to get the right argvmods_* file
 do_file(session_dir .. "/lua_scripts/argvenvp.lua")
+load_argvmods_file()
 
 -- Next, the argvmods stuff.
 

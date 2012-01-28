@@ -1,3 +1,15 @@
+scratchbox2 (2.3.23-1) unstable; urgency=low
+
+  * Added a daemon, "sb2d" (it doesn't do much yet, just initializes
+    the rule tree..but more will follow)
+  * C pathmapping: Avoid fallbacks to Lua mapping
+  * Slightly more efficient rule tree lookups
+  * Added routines to measure and log time spent in selected 
+    routines ("processclock" feature, disabled by default, can be
+    enabled from main Makefile)
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Sat, 28 Jan 2012 17:01:00 +0200
+
 scratchbox2 (2.3.22-1) unstable; urgency=low
 
   * Performance improvements to Lua code, including a relatively

@@ -120,6 +120,7 @@ static void initialize_lua(void)
 	lua_bind_sb_functions(sb2d_lua); /* register our sb_ functions */
 #endif
 	lua_bind_ruletree_functions(sb2d_lua); /* register our ruletree_ functions */
+	lua_bind_sblib_functions(sb2d_lua); /* register our sblib.* functions */
 
 	load_and_execute_lua_file(main_lua_script);
 

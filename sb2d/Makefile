@@ -7,14 +7,15 @@ $(D)/sb2d: CFLAGS := $(CFLAGS) -Wall -W -Werror \
 		-I$(SRCDIR)/preload -Ipreload/
 $(D)/sb2d: LDFLAGS := $(LDFLAGS) -lm -ldl
 
-# FIXME:  to be added:
-#		luaif/luaif.o
 $(D)/sb2d: $(D)/sb2d.o \
 		$(D)/libsupport.o \
 		sblib/sb_log.o \
+		sblib/sb2_utils.o \
 		rule_tree/rule_tree.o \
 		rule_tree/rule_tree_luaif.o \
 		pathmapping/paths_ruletree_maint.o \
+		execs/exec_ruletree_maint.o \
+		luaif/sblib_luaif.o \
 		luaif/liblua.a
 	$(MKOUTPUTDIR)
 	$(P)LD

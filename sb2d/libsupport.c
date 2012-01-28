@@ -76,3 +76,8 @@ FILE *fopen_nomap(const char *path, const char *mode)
 	return(fopen(path, mode));
 }
 
+int faccessat_nomap_nolog(int dirfd, const char *pathname, int mode, int flags)
+{
+	return(faccessat(dirfd, pathname, mode, flags));
+}
+

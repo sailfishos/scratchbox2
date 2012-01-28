@@ -2,8 +2,10 @@ LUASRC = luaif/lua-5.1.4/src
 
 objs := $(D)/luaif.o \
 	$(D)/argvenvp.o \
+	$(D)/sblib_luaif.o \
 	$(D)/network_luaif.o
 
+$(D)/sblib_luaif.o: preload/exported.h
 $(D)/network_luaif.o: preload/exported.h
 
 luaif/libluaif.a: $(objs)

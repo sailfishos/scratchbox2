@@ -225,6 +225,12 @@ extern void lua_string_table_to_strvec(lua_State *l,
 	int lua_stack_offs, char ***args, int new_argc);
 void strvec_free(char **args);
 
+extern int lua_bind_sblib_functions(lua_State *l);
+extern int lua_sb_log(lua_State *l);
+extern int lua_sb_path_exists(lua_State *l);
+extern int lua_sb_debug_messages_enabled(lua_State *l);
+
+
 extern int test_if_str_in_colon_separated_list_from_env(
 	const char *str, const char *env_var_name);
 

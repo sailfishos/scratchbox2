@@ -1,6 +1,7 @@
 
 objs := $(D)/sb_log.o \
 	$(D)/processclock.o \
+	$(D)/sb2_utils.o \
 	$(D)/sb2_pthread_if.o
 
 $(D)/sb_log.o: preload/exported.h

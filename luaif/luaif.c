@@ -183,6 +183,7 @@ void sb2context_initialize_lua(struct sb2context *sb2ctx)
 	luaL_openlibs(sb2ctx->lua);
 	lua_bind_sb_functions(sb2ctx->lua); /* register our sb_ functions */
 	lua_bind_ruletree_functions(sb2ctx->lua); /* register our ruletree_ functions */
+	lua_bind_sblib_functions(sb2ctx->lua); /* register sblib.* functions */
 
 	load_and_execute_lua_file(sb2ctx, main_lua_script);
 
@@ -502,56 +503,6 @@ static int lua_sb_getdirlisting(lua_State *l)
 }
 #endif
 
-/* "sb.log": interface from lua to the logging system.
- * Parameters:
- *  1. log level (string)
- *  2. log message (string)
-*/
-static int lua_sb_log(lua_State *luastate)
-{
-	char	*logmsg;
-	char	*loglevel;
-	int	n = lua_gettop(luastate);
-
-	if (n != 2) {
-		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"sb_log_from_lua: wrong number of params (%d)", n);
-		lua_pushstring(luastate, NULL);
-		return 1;
-	}
-
-	/* FIXME: is it necessary to use strdup here? */
-	loglevel = strdup(lua_tostring(luastate, 1));
-	logmsg = strdup(lua_tostring(luastate, 2));
-
-	if(!strcmp(loglevel, "debug"))
-		SB_LOG(SB_LOGLEVEL_DEBUG, ">> %s", logmsg);
-	else if(!strcmp(loglevel, "info"))
-		SB_LOG(SB_LOGLEVEL_INFO, "INFO: %s", logmsg);
-	else if(!strcmp(loglevel, "warning"))
-		SB_LOG(SB_LOGLEVEL_WARNING, "WARNING: %s", logmsg);
-	else if(!strcmp(loglevel, "network"))
-		SB_LOG(SB_LOGLEVEL_NETWORK, "NETWORK: %s", logmsg);
-	else if(!strcmp(loglevel, "notice"))
-		SB_LOG(SB_LOGLEVEL_NOTICE, "NOTICE: %s", logmsg);
-	else if(!strcmp(loglevel, "error"))
-		SB_LOG(SB_LOGLEVEL_ERROR, "ERROR: %s", logmsg);
-	else if(!strcmp(loglevel, "noise"))
-		SB_LOG(SB_LOGLEVEL_NOISE, ">>>>: %s", logmsg);
-	else if(!strcmp(loglevel, "noise2"))
-		SB_LOG(SB_LOGLEVEL_NOISE2, ">>>>>>: %s", logmsg);
-	else if(!strcmp(loglevel, "noise3"))
-		SB_LOG(SB_LOGLEVEL_NOISE3, ">>>>>>>>: %s", logmsg);
-	else /* default to level "error"  */
-		SB_LOG(SB_LOGLEVEL_ERROR, "%s", logmsg);
-
-	free(loglevel);
-	free(logmsg);
-
-	lua_pushnumber(luastate, 1);
-	return 1;
-}
-
 static int lua_sb_setenv(lua_State *luastate)
 {
 	int	n = lua_gettop(luastate);
@@ -563,83 +514,6 @@ static int lua_sb_setenv(lua_State *luastate)
 		return 1;
 	}
 	setenv(strdup(lua_tostring(luastate, 1)), strdup(lua_tostring(luastate, 2)), 1);
-	return 1;
-}
-
-int sb_path_exists(const char *path)
-{
-	SB_LOG(SB_LOGLEVEL_DEBUG, "sb_path_exists testing '%s'",
-		path);
-#ifdef AT_FDCWD
-	/* this is easy, can use faccessat() */
-	if (faccessat_nomap_nolog(AT_FDCWD, path, F_OK, AT_SYMLINK_NOFOLLOW) == 0) {
-		/* target exists */
-		return(1);
-	}
-#else
-	/* Not so easy. The OS does not have faccessat() [it has
-	 * been added to Linux 2.6.16 - older systems don't have it]
-	 * so the operation must make the check by two separate calls:
-	 * First check if the target is symlink (by readlink()),
-	 * next check if it is an ordinary file or directoy.
-	 * N.B. the result is that this returns 'true' if a symlink
-	 * exists, even if the target of the symlink does not
-	 * exist. Plain access() returns 'false' if it is a symlink
-	 * which points to a non-existent destination)
-	 * N.B.2. we'll use readlink because lstat() can't be used, 
-	 * full explanation for this can be found in paths.c.
-	*/
-	{
-		char	link_dest[PATH_MAX+1];
-		int link_len;
-
-		link_len = readlink_nomap(path, link_dest, PATH_MAX);
-		if (link_len > 0) {
-			/* was a symlink */
-			return(1);
-		} else {
-			if (access_nomap_nolog(path, F_OK) == 0)
-				return(1);
-		}
-	}
-#endif
-	return(0);
-}
-
-/* "sb.path_exists", to be called from lua code
- * returns true if file, directory or symlink exists at the specified real path,
- * false if not.
-*/
-static int lua_sb_path_exists(lua_State *l)
-{
-	int n;
-
-	n = lua_gettop(l);
-	if (n != 1) {
-		lua_pushboolean(l, 0);
-	} else {
-		char	*path = strdup(lua_tostring(l, 1));
-		int	result = sb_path_exists(path);
-
-		lua_pushboolean(l, result);
-		SB_LOG(SB_LOGLEVEL_DEBUG, "lua_sb_path_exists got %d",
-			result);
-		free(path);
-	}
-	return 1;
-}
-
-/* "sb.debug_messages_enabled", to be called from lua code
- * returns true if SB_LOG messages have been enabled for the debug levels
- * (debug,noise,noise2...)
-*/
-static int lua_sb_debug_messages_enabled(lua_State *l)
-{
-	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
-		lua_pushboolean(l, 1);
-	} else {
-		lua_pushboolean(l, 0);
-	}
 	return 1;
 }
 

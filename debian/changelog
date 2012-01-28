@@ -1,3 +1,14 @@
+scratchbox2 (2.3.24-1) unstable; urgency=low
+
+  * sb2d adds exec preprocssing rules ("argvmods" rules) to
+    the rule tree when a session is created; loading of exec
+    preprocessing rules (Lua) is skipped if it isn't needed
+  * some code reorganizations; exec logic is now in a new
+    subdirectory.
+  * C/Lua interface version = 97
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Sat, 28 Jan 2012 21:51:00 +0200
+
 scratchbox2 (2.3.23-1) unstable; urgency=low
 
   * Added a daemon, "sb2d" (it doesn't do much yet, just initializes

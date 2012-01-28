@@ -102,7 +102,7 @@ function sb_execve_map_script_interpreter_loader(exec_policy_name, interpreter,
 
 	-- This loader has been replaced. The following call is not
 	-- a recursive call to this function, even if it may look like one:
-	return sb_execve_map_script_interpreter_loaded(exec_policy_name, interpreter,
+	return sb_execve_map_script_interpreter(exec_policy_name, interpreter,
 		interp_arg, mapped_script_filename, orig_script_filename, argv, envp)
 end
 

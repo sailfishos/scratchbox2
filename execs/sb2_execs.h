@@ -12,5 +12,7 @@
 
 #include "rule_tree.h"
 
+extern int apply_exec_preprocessing_rules(char **file, char ***argv, char ***envp);
+
 #endif /* __EXEC_INTERNAL_H */
 

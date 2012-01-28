@@ -1,5 +1,6 @@
 
 objs := $(D)/exec_ruletree_maint.o \
+	$(D)/exec_preprocess.o \
 	$(D)/sb_exec.o
 
 $(D)/sb_exec.o: preload/exported.h

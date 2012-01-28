@@ -113,6 +113,8 @@
 #include "rule_tree.h"
 #include "processclock.h"
 
+#include "sb2_execs.h"
+
 #ifndef ARRAY_SIZE
 # define ARRAY_SIZE(array) (sizeof (array) / sizeof ((array)[0]))
 #endif
@@ -1167,7 +1169,7 @@ static int prepare_exec(const char *exec_fn_name,
 		PROCESSCLOCK(clk2)
 
 		START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk2, "execve_preprocess");
-		if ((err = sb_execve_preprocess(&my_file, &my_argv, &my_envp)) != 0) {
+		if ((err = apply_exec_preprocessing_rules(&my_file, &my_argv, &my_envp)) != 0) {
 			SB_LOG(SB_LOGLEVEL_ERROR, "argvenvp processing error %i", err);
 		}
 		STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk2, my_file);

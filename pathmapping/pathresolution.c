@@ -491,15 +491,19 @@ static ruletree_object_offset_t sb_path_resolution(
 		(abs_virtual_clean_source_path_list->pl_flags & PATH_FLAGS_HAS_TRAILING_SLASH);
 
 #ifdef SB2_PATHRESOLUTION_C_ENGINE
-	rule_offs = ruletree_get_mapping_requirements(
-		ctx, 1/*use_fwd_rules*/, abs_virtual_clean_source_path_list,
-		&min_path_len_to_check, &call_translate_for_all,
-		ctx->pmc_fn_class);
-	if (rule_offs == 0) {
-		/* no rule */
-		resolved_virtual_path_res->mres_fallback_to_lua_mapping_engine =
-			"no mapping requirements, no rule";
-		return(0);
+	{
+		char *fallback_to_lua = NULL;
+
+		rule_offs = ruletree_get_mapping_requirements(
+			ctx, 1/*use_fwd_rules*/, abs_virtual_clean_source_path_list,
+			&min_path_len_to_check, &call_translate_for_all,
+			ctx->pmc_fn_class, &fallback_to_lua);
+		if (rule_offs == 0) {
+			/* no rule */
+			resolved_virtual_path_res->mres_fallback_to_lua_mapping_engine =
+				fallback_to_lua;
+			return(0);
+		}
 	}
 	/* switch to a new context structure. */
 	ctx2 = *ctx;
@@ -540,7 +544,7 @@ static ruletree_object_offset_t sb_path_resolution(
 		char	*clean_virtual_path_prefix_tmp = NULL;
 		path_mapping_context_t	ctx_copy = *ctx;
 #ifdef SB2_PATHRESOLUTION_C_ENGINE
-		int force_fallback_to_lua = 0;
+		char *fallback_to_lua = NULL;
 #endif
 
 		ctx_copy.pmc_binary_name = "PATH_RESOLUTION";
@@ -557,10 +561,10 @@ static ruletree_object_offset_t sb_path_resolution(
 			&ctx_copy, SB_LOGLEVEL_NOISE,
 			clean_virtual_path_prefix_tmp, &prefix_mapping_result_host_path_flags,
 			&resolved_virtual_path_res->mres_exec_policy_name,
-			&force_fallback_to_lua);
-		if (force_fallback_to_lua) {
+			&fallback_to_lua);
+		if (fallback_to_lua) {
 			resolved_virtual_path_res->mres_fallback_to_lua_mapping_engine =
-				"forced by a rule, in PATH_RESOLUTION";
+				fallback_to_lua;
 		}
 #endif
 #ifdef SB2_PATHRESOLUTION_LUA_ENGINE
@@ -671,7 +675,7 @@ static ruletree_object_offset_t sb_path_resolution(
 				char *virtual_path_prefix_to_map;
 				path_mapping_context_t	ctx_copy = *ctx;
 #ifdef SB2_PATHRESOLUTION_C_ENGINE
-				int force_fallback_to_lua = 0;
+				char *fallback_to_lua = NULL;
 #endif
 
 				ctx_copy.pmc_binary_name = "PATH_RESOLUTION/2";
@@ -690,10 +694,10 @@ static ruletree_object_offset_t sb_path_resolution(
 						virtual_path_prefix_to_map,
 						&prefix_mapping_result_host_path_flags,
 						&resolved_virtual_path_res->mres_exec_policy_name,
-						&force_fallback_to_lua);
-				if (force_fallback_to_lua) {
+						&fallback_to_lua);
+				if (fallback_to_lua) {
 					resolved_virtual_path_res->mres_fallback_to_lua_mapping_engine =
-						"forced by a rule, in PATH_RESOLUTION/2";
+						fallback_to_lua;
 				}
 #endif
 #ifdef SB2_PATHRESOLUTION_LUA_ENGINE
@@ -1187,7 +1191,7 @@ void
 		} else {
 			int	flags;
 #ifdef SB2_PATHRESOLUTION_C_ENGINE
-			int	force_fallback_to_lua = 0;
+			char	*fallback_to_lua = NULL;
 #endif
 
 			SB_LOG(SB_LOGLEVEL_NOISE2,
@@ -1199,10 +1203,10 @@ void
 				&ctx, SB_LOGLEVEL_INFO,
 				resolved_virtual_path_res.mres_result_path, &flags,
 				&res->mres_exec_policy_name,
-				&force_fallback_to_lua);
-			if (force_fallback_to_lua) {
+				&fallback_to_lua);
+			if (fallback_to_lua) {
 				res->mres_fallback_to_lua_mapping_engine =
-					"forced by a rule";
+					fallback_to_lua;
 				goto forget_mapping;
 			}
 #endif
@@ -1296,6 +1300,7 @@ char *sbox_reverse_path_internal__c_engine(
 	struct path_entry_list	abs_host_path_for_rule_selection_list;
 	char	*result_virtual_path = NULL;
 	ruletree_object_offset_t	rule_offs;
+	char *fallback_to_lua = NULL;
 
 	if (!abs_host_path) return(NULL);
 
@@ -1318,9 +1323,8 @@ char *sbox_reverse_path_internal__c_engine(
 	rule_offs = ruletree_get_mapping_requirements(
 		ctx, 0/*use_fwd_rules*/, &abs_host_path_for_rule_selection_list,
 		&min_path_len_to_check, &call_translate_for_all,
-		ctx->pmc_fn_class);
+		ctx->pmc_fn_class, &fallback_to_lua);
         if (rule_offs != 0) {
-		int force_fallback_to_lua = 0;
 		int result_flags = 0;
 		const char *exec_policy_name = NULL;
 		path_mapping_context_t  ctx2 = *ctx;
@@ -1332,9 +1336,10 @@ char *sbox_reverse_path_internal__c_engine(
 		result_virtual_path = ruletree_translate_path(
 			&ctx2, SB_LOGLEVEL_NOISE,
 			abs_host_path, &result_flags, &exec_policy_name,
-			&force_fallback_to_lua);
-		if (force_fallback_to_lua) {
-                	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: mapping forced fallback to Lua engine", __func__);
+			&fallback_to_lua);
+		if (fallback_to_lua) {
+                	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: C mapping requests fallback to Lua engine (%s)",
+				 __func__, fallback_to_lua);
 			if (result_virtual_path) free(result_virtual_path);
 			result_virtual_path = NULL;
 		} else {
@@ -1342,7 +1347,7 @@ char *sbox_reverse_path_internal__c_engine(
 				result_virtual_path);
 		}
 	} else {
-                SB_LOG(SB_LOGLEVEL_DEBUG, "%s: rule not found, fallback to Lua engine", __func__);
+                SB_LOG(SB_LOGLEVEL_DEBUG, "%s: rule not found.", __func__);
 	}
 
 	free_path_list(&abs_host_path_for_rule_selection_list);

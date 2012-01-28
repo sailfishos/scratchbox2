@@ -129,14 +129,15 @@ extern char *ruletree_translate_path(
 	const char *abs_clean_virtual_path,
 	int *flagsp,
 	const char **exec_policy_name_ptr,
-	int *force_fallback_to_lua);
+	char **fallback_to_lua);
 extern ruletree_object_offset_t ruletree_get_mapping_requirements(
 	const path_mapping_context_t *ctx,
 	int use_fwd_rules /* a flag */,
 	const struct path_entry_list *abs_virtual_source_path_list,
 	int *min_path_lenp,
 	int *call_translate_for_all_p,
-	uint32_t fn_class);
+	uint32_t fn_class,
+	char **fallback_to_lua);
 
 /* ----------- pathresolution.c ----------- */
 

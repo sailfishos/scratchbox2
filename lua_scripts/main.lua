@@ -86,6 +86,26 @@ function sbox_execve_preprocess_loader(binaryname, argv, envp)
 	return sbox_execve_preprocess(binaryname, argv, envp)
 end
 
+function sb_execve_map_script_interpreter_loader(exec_policy_name, interpreter,
+        interp_arg, mapped_script_filename, orig_script_filename, argv, envp)
+
+	local prev_fn = sb_execve_map_script_interpreter
+
+	sb.log("info", "sb_execve_map_script_interpreter called: loading argvenvp.lua")
+	do_file(session_dir .. "/lua_scripts/argvenvp.lua")
+
+	if prev_fn == sb_execve_map_script_interpreter then
+		sb.log("error",
+			"Fatal: Failed to load real sb_execve_map_script_interpreter")
+		os.exit(88)
+	end
+
+	-- This loader has been replaced. The following call is not
+	-- a recursive call to this function, even if it may look like one:
+	return sb_execve_map_script_interpreter_loaded(exec_policy_name, interpreter,
+		interp_arg, mapped_script_filename, orig_script_filename, argv, envp)
+end
+
 function sb_execve_postprocess_loader(rule, exec_policy, exec_type,
 		mapped_file, filename, binaryname, argv, envp)
 	local prev_fn = sb_execve_postprocess
@@ -202,6 +222,7 @@ else
 	sbox_execve_preprocess = sbox_execve_preprocess_loader
 	sb_execve_postprocess = sb_execve_postprocess_loader
 	sbox_get_host_policy_ld_params = sbox_get_host_policy_ld_params_loader
+	sb_execve_map_script_interpreter = sb_execve_map_script_interpreter_loader
 end
 
 -- sb2 is ready for operation!

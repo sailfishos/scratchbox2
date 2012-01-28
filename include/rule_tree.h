@@ -38,6 +38,7 @@ typedef struct ruletree_object_hdr_s {
 #define SB2_RULETREE_OBJECT_TYPE_OBJECTLIST	5	/* ruletree_objectlist_t */
 #define SB2_RULETREE_OBJECT_TYPE_UINT32		8	/* ruletree_uint32_t */
 #define SB2_RULETREE_OBJECT_TYPE_BOOLEAN	9	/* also ruletree_uint32_t */
+#define SB2_RULETREE_OBJECT_TYPE_EXEC_PP_RULE	14	/* ruletree_exec_preprocessing_rule_t */
 
 typedef struct ruletree_hdr_s {
 	ruletree_object_hdr_t	rtree_hdr_objhdr;
@@ -90,6 +91,19 @@ typedef struct ruletree_fsrule_s {
         ruletree_object_offset_t	rtree_fsr_exec_policy_name;
 
 } ruletree_fsrule_t;
+
+typedef struct ruletree_exec_preprocessing_rule_s {
+	ruletree_object_hdr_t		rtree_fsr_objhdr;
+
+	ruletree_object_offset_t	rtree_xpr_binary_name_offs;
+        ruletree_object_offset_t	rtree_xpr_path_prefixes_table_offs;
+        ruletree_object_offset_t	rtree_xpr_add_head_table_offs;
+        ruletree_object_offset_t	rtree_xpr_add_options_table_offs;
+        ruletree_object_offset_t	rtree_xpr_add_tail_table_offs;
+        ruletree_object_offset_t	rtree_xpr_remove_table_offs;
+        ruletree_object_offset_t	rtree_xpr_new_filename_offs;
+        uint32_t			rtree_xpr_disable_mapping;
+} ruletree_exec_preprocessing_rule_t;
 
 /* the string header structure is followed by the string itself. */
 typedef struct ruletree_string_hdr_s {
@@ -167,6 +181,8 @@ extern const char *offset_to_ruletree_string_ptr(
 	ruletree_object_offset_t offs, uint32_t *lenp);
 extern ruletree_fsrule_t *offset_to_ruletree_fsrule_ptr(int loc);
 
+extern ruletree_exec_preprocessing_rule_t *offset_to_exec_preprocessing_rule_ptr(int loc);
+
 /* strings */
 extern ruletree_object_offset_t append_string_to_ruletree_file(const char *str);
 
@@ -204,6 +220,7 @@ extern uint32_t *ruletree_catalog_get_boolean_ptr(
 /* ------------ rule_tree_luaif.c: ------------ */
 extern int lua_bind_ruletree_functions(lua_State *l);
 
+/* ------------ fs mapping rule maintenance routines ------------ */
 extern ruletree_object_offset_t add_rule_to_ruletree(
 	const char *name, int selector_type, const char *selector,
 	int action_type, const char *action_str,
@@ -211,5 +228,16 @@ extern ruletree_object_offset_t add_rule_to_ruletree(
 	ruletree_object_offset_t rule_list_link,
 	int flags, const char *binary_name,
         int func_class, const char *exec_policy_name);
+
+/* ------------ exec rule maintenance routines ------------ */
+ruletree_object_offset_t add_exec_preprocessing_rule_to_ruletree(
+        const char      *binary_name,
+        ruletree_object_offset_t path_prefixes_table_offs,
+        ruletree_object_offset_t add_head_table_offs,
+        ruletree_object_offset_t add_options_table_offs,
+        ruletree_object_offset_t add_tail_table_offs,
+        ruletree_object_offset_t remove_table_offs,
+        const char *new_filename,
+        int disable_mapping);
 
 #endif /* SB2_RULETREE_H__ */

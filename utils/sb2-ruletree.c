@@ -252,6 +252,54 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 	printf("}\n");
 }
 
+static void dump_exec_pp_rules(ruletree_object_offset_t offs, int indent)
+{
+	ruletree_exec_preprocessing_rule_t	*rule = offset_to_exec_preprocessing_rule_ptr(offs);
+
+	if (rule_dumped[offs]) {
+		print_indent(indent + 1);
+		printf("[ => @ %u]\n", offs);
+		return;
+	}
+	rule_dumped[offs] = 1;
+
+	print_indent(indent);
+	printf("{ Exec preprocessing rule[%u]:\n", (unsigned)offs);
+
+	if (rule->rtree_xpr_binary_name_offs) {
+		print_indent(indent+1);
+		printf("binary_name = '%s'\n",
+			offset_to_ruletree_string_ptr(rule->rtree_xpr_binary_name_offs, NULL));
+	}
+
+#define EXECPP_PRINT_LIST(name, field) \
+	if (rule->field) { \
+		print_indent(indent+1); \
+		printf(name " = {\n"); \
+		dump_objectlist(rule->field, indent + 2); \
+		print_indent(indent+1); \
+		printf("}\n"); \
+	}
+
+	EXECPP_PRINT_LIST("path_prefixes", rtree_xpr_path_prefixes_table_offs)
+	EXECPP_PRINT_LIST("add_head", rtree_xpr_add_head_table_offs)
+	EXECPP_PRINT_LIST("add_options", rtree_xpr_add_options_table_offs)
+	EXECPP_PRINT_LIST("add_tail", rtree_xpr_add_tail_table_offs)
+	EXECPP_PRINT_LIST("remove", rtree_xpr_remove_table_offs)
+
+	if (rule->rtree_xpr_new_filename_offs) {
+		print_indent(indent+1);
+		printf("new_filename = '%s'\n",
+			offset_to_ruletree_string_ptr(rule->rtree_xpr_new_filename_offs, NULL));
+	}
+	if (rule->rtree_xpr_disable_mapping) {
+		print_indent(indent+1);
+		printf("disable_mapping = true)\n");
+	}
+	print_indent(indent);
+	printf("}\n");
+}
+
 static void dump_objectlist(ruletree_object_offset_t list_offs, int indent)
 {
 	uint32_t	list_size = ruletree_objectlist_get_list_size(list_offs);
@@ -283,6 +331,9 @@ static void dump_objectlist(ruletree_object_offset_t list_offs, int indent)
 					print_indent(indent+1);
 					printf("FS rule:\n");
 					dump_rules(item_offs, indent+2);
+					break;
+				case SB2_RULETREE_OBJECT_TYPE_EXEC_PP_RULE:
+					dump_exec_pp_rules(item_offs, indent+1);
 					break;
 				case SB2_RULETREE_OBJECT_TYPE_STRING:
 					print_indent(indent+1);

@@ -864,6 +864,21 @@ ruletree_fsrule_t *offset_to_ruletree_fsrule_ptr(int loc)
 	return(rp);
 }
 
+/* =================== Exec rules =================== */
+
+ruletree_exec_preprocessing_rule_t *offset_to_exec_preprocessing_rule_ptr(int loc)
+{
+	ruletree_exec_preprocessing_rule_t	*rp;
+
+	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (NULL);
+	rp = (ruletree_exec_preprocessing_rule_t*)offset_to_ruletree_object_ptr(loc,
+		SB2_RULETREE_OBJECT_TYPE_EXEC_PP_RULE);
+	if (rp) {
+		if (rp->rtree_fsr_objhdr.rtree_obj_magic != SB2_RULETREE_MAGIC) rp = NULL;
+	}
+	return(rp);
+}
+
 /* =================== map "standard" ruletree to memory, if not yet mapped =================== */
 
 /* ensure that the rule tree has been mapped. */

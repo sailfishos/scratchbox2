@@ -96,6 +96,37 @@ static int lua_sb_add_rule_to_ruletree(lua_State *l)
 	return 1;
 }
 
+/* ruletree.add_exec_preprocessing_rule_to_ruletree(...)
+*/
+static int lua_sb_add_exec_preprocessing_rule_to_ruletree(lua_State *l)
+{
+	int	n = lua_gettop(l);
+	uint32_t rule_location = 0;
+
+	if (n == 8) {
+		const char	*binary_name = lua_tostring(l, 1);
+		ruletree_object_offset_t  path_prefixes_table_offs = lua_tointeger(l, 2);
+		ruletree_object_offset_t  add_head_table_offs = lua_tointeger(l, 3);
+		ruletree_object_offset_t  add_options_table_offs = lua_tointeger(l, 4);
+		ruletree_object_offset_t  add_tail_table_offs = lua_tointeger(l, 5);
+		ruletree_object_offset_t  remove_table_offs = lua_tointeger(l, 6);
+		const char	*new_filename = lua_tostring(l, 7);
+		int		disable_mapping = lua_tointeger(l, 8);
+
+		rule_location = add_exec_preprocessing_rule_to_ruletree(
+			binary_name, path_prefixes_table_offs,
+			add_head_table_offs, add_options_table_offs,
+			add_tail_table_offs, remove_table_offs,
+			new_filename, disable_mapping);
+
+		SB_LOG(SB_LOGLEVEL_NOISE,
+			"lua_sb_add_exec_preprocessing_rule_to_ruletree '%s' => %d",
+			binary_name, rule_location);
+	}
+	lua_pushnumber(l, rule_location);
+	return 1;
+}
+
 static int lua_sb_ruletree_objectlist_create_list(lua_State *l)
 {
 	int				n = lua_gettop(l);
@@ -338,7 +369,11 @@ static const luaL_reg reg[] =
 
 	{"attach_ruletree",		lua_sb_attach_ruletree},
 
+	/* FS rules */
 	{"add_rule_to_ruletree",	lua_sb_add_rule_to_ruletree},
+
+	/* exec rules */
+	{"add_exec_preprocessing_rule_to_ruletree",	lua_sb_add_exec_preprocessing_rule_to_ruletree},
 
 	{NULL,				NULL}
 };

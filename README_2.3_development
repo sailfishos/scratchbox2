@@ -136,6 +136,7 @@ General: The path mapping subsystem consists of two main parts: Path resolution
 logic replaces OS's path resolution (SB2 can't rely on OS's path resolution
 due to mapping of symbolic links). It is quite strictly defined (see "man
 path_resolution"). And implemented in C.
+
 The other part, path mapping logic, was implemented in Lua in the early
 days of SB2 development. However, having the Lua interpreter running in
 every process is not really an optimal solution (there are several reasons
@@ -147,16 +148,25 @@ interpreter is needed, but it isn't necessarily initialized every time
 anymore [hopefully someday those could be re-implemented in C, too]
 
 Current status: The new path mapping logic is available for testing.
-Version 2.3.5 has two mapping engines: The old one (in Lua)
-and the new one (in C) are both active by default. Paths are mapped
-with both and differences are logged. Alternatively, mapping method
-can be selected by an environment variable (set SBOX_MAPPING_METHOD
-to "Lua" or "C").  A side-effect of the default mode is that since
-all paths are mapped twice, 2.3.5 is probably slower than any other
-version in the past. Unless the env.var. is set...
-N.B. The new path mapping logic is not 100% complete. All common rule
-types are implemented, but there are some not-so-frequently used rules
-that still cause a fallback to Lua-based mapping.
+Versions 2.3.5- have two mapping engines: The old one (in Lua)
+and the new one (in C). Both are active by default.
+
+Path mapping method can be selected by an environment variable:
+
+- setenv SBOX_MAPPING_METHOD="Lua"
+  All paths are mapped with the Lua engine only.
+
+- setenv SBOX_MAPPING_METHOD="C"
+  All paths are mapped with the C engine only.
+
+- setenv SBOX_MAPPING_METHOD="C2"
+  All paths are mapped with the C engine, but if path mapping
+  fails, Lua mapping is tried. Note that there are some cases
+  (especially in path reversing side) where pathmapping simply
+  produces no result.
+
+- setenv SBOX_MAPPING_METHOD="Both"
+  Use both engines and log differences. Same as the default.
 
 The algorithms: The old implementation (in Lua) is considered stable,
 and produces correct results (AFAIK). Therefore, the C engine replicates
@@ -181,7 +191,7 @@ been created (no locks, etc)
 Testing and debugging:
 1) To verify the results, use SB2 as usual. If there are
 different results from Lua and C mappings, those will be logged
-as warnings. 
+as errors. 
 2) activate debug messages (-d) and check if there are cases that
 the C engine can't map at all; grep for "ResultCheck" from the
 debug log.
@@ -192,14 +202,9 @@ the results are the same as without it.
 Still missing / not implemented:
 1. There are still many "FIXME" comments in the source. Check and fix..
 2. No code reviews have been done. there might be memory leaks, etc.
-3. "func_name" conditions are not supported, and won't be supported.
-   instead, a new condition will replace those (reason: "func_name"
+3. Free-format "func_name" conditions are not supported, and won't be
+   supported. Instead, a new condition has replaced those (reason: "func_name"
    is a Lua regexp. It's insane to try to support those in the future.
-   The replacement mechanism, "func_class", should be a simple bitmask)
-   (rules with "func_name" conditions will cause fallback to Lua mapping)
-4. Union directory rules are not supported currently (those will be
-   mapped by the Lua engine). Support for the current union directory
-   system would be easy to add, but I'm still thinking about the correct
-   rule syntax...see the chapter about union directories)
-5. Probably there are also other, undocumented restrictions :-)
+   The replacement mechanism, "func_class", is a simple bitmask)
+4. Probably there are also other, undocumented restrictions :-)
 

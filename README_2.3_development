@@ -10,7 +10,7 @@ Disclaimer:
 
 Overview:
 ---------
-2.3 has currently three focus areas, which can be considered either
+2.3 has currently following focus areas, which can be considered either
 new features or improvements of old ones:
 
 1) Union directory support: Two or more directories can be bound together,
@@ -22,6 +22,8 @@ new features or improvements of old ones:
 
 3) Path mapping logic has been re-implemented in C (originally, it was
    written in Lua).
+
+4) Exec logic (partially) in C
 
 In addition to these, there are smaller improvements here and there.
 For example, rule files have been reorganized, and there are some changes
@@ -207,4 +209,19 @@ Still missing / not implemented:
    is a Lua regexp. It's insane to try to support those in the future.
    The replacement mechanism, "func_class", is a simple bitmask)
 4. Probably there are also other, undocumented restrictions :-)
+
+4. Exec logic (partially) in C
+------------------------------
+All versions up to 2.3.23 used a combination of C and Lua code
+for converting parameters of the exec calls (execvp(), etc).
+The algorithm is described in sb_exec.c.
+
+Version 2.3.24 re-implemented parts of the exec preprocessing 
+logic partially in C; Version 2.3.25 does it completely in C.
+Exec preprocessing rules (the "argvmods" table) is now in "ruletree".
+There are no alternatives, preprocessing is now always done with
+the new implementation.
+
+Other parts of the exec logic (postprocessing parameters for
+native and foreign binaries etc) still use in Lua code.
 

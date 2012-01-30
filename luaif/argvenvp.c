@@ -115,66 +115,6 @@ void sb_push_string_to_lua_stack(char *str)
 	}
 }
 
-/* Exec preprocessor:
- * (previously known as "sb_execve_mod")
-*/
-int sb_execve_preprocess(char **file, char ***argv, char ***envp)
-{
-	struct sb2context *sb2ctx = NULL;
-	int res, new_argc, new_envc;
-	PROCESSCLOCK(clk1)
-
-	START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "sb_execve_preprocess");
-
-	if (!argv || !envp) {
-		SB_LOG(SB_LOGLEVEL_ERROR,
-			"ERROR: sb_argvenvp: (argv || envp) == NULL");
-		return -1;
-	}
-
-	if (getenv("SBOX_DISABLE_ARGVENVP")) {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "sb_argvenvp disabled(E):");
-		return 0;
-	}
-
-	sb2ctx = get_sb2context_lua();
-	if (!sb2ctx) return(0);
-
-	SB_LOG(SB_LOGLEVEL_NOISE,
-		"sb_execve_preprocess: gettop=%d", lua_gettop(sb2ctx->lua));
-
-	lua_getfield(sb2ctx->lua, LUA_GLOBALSINDEX, "sbox_execve_preprocess");
-	lua_pushstring(sb2ctx->lua, *file);
-	free(*file);
-
-	strvec_to_lua_table(sb2ctx, *argv);
-	strvec_free(*argv);
-
-	strvec_to_lua_table(sb2ctx, *envp);
-	strvec_free(*envp);
-
-	/* args:    binaryname, argv, envp
-	 * returns: err, file, argc, argv, envc, envp */
-	lua_call(sb2ctx->lua, 3, 6);
-	
-	res = lua_tointeger(sb2ctx->lua, -6);
-	*file = strdup(lua_tostring(sb2ctx->lua, -5));
-	new_argc = lua_tointeger(sb2ctx->lua, -4);
-	new_envc = lua_tointeger(sb2ctx->lua, -2);
-
-	lua_string_table_to_strvec(sb2ctx->lua, -3, argv, new_argc);
-	lua_string_table_to_strvec(sb2ctx->lua, -1, envp, new_envc);
-
-	/* remove sbox_execve_preprocess' return values from the stack.  */
-	lua_pop(sb2ctx->lua, 6);
-
-	SB_LOG(SB_LOGLEVEL_NOISE,
-		"sb_execve_preprocess: at exit, gettop=%d", lua_gettop(sb2ctx->lua));
-	release_sb2context(sb2ctx);
-	STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, *file);
-	return res;
-}
-
 /* Exec Postprocessing:
 */
 int sb_execve_postprocess(const char *exec_type, 

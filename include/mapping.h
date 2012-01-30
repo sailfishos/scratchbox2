@@ -91,7 +91,6 @@ extern void sbox_map_path_for_sb2show(const char *binary_name,
 extern void sbox_map_path_for_exec(const char *func_name, const char *path,
 	mapping_results_t *res);
 
-extern int sb_execve_preprocess(char **file, char ***argv, char ***envp);
 extern char *emumode_map(const char *path);
 extern void sb_push_string_to_lua_stack(char *str);
 extern char *sb_execve_map_script_interpreter(const char *interpreter,

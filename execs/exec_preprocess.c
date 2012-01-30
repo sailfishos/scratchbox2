@@ -5,7 +5,13 @@
  * Licensed under LGPL version 2.1, see top level LICENSE file for details.
  */
 
-/* Exec preprocessing. */
+/* Exec preprocessing.
+ * ------------------------------------
+ *
+ * function apply_exec_preprocessing_rules() is called to decide WHAT FILE
+ * should be started (see description of the algorithm in sb_exec.c)
+ * (this also typically adds, deletes, or modifies arguments whenever needed)
+*/
 
 #if 0
 #include <unistd.h>
@@ -219,9 +225,6 @@ int apply_exec_preprocessing_rules(char **file, char ***argv, char ***envp)
 	}
 	if (!argvmods_rules_offs) {
 		/* 'argvmods' not found from the tree, DON'T call Lua code */
-#if 0
-		return(sb_execve_preprocess(file, argv, envp));
-#endif
 		return(0);
 	}
 	execpp_rule = find_exec_preprocessing_rule(

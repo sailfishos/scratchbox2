@@ -120,10 +120,13 @@ struct sb2context {
  *   - uint32 and boolean types in ruletree + related interf.functions
  * * New in version "97":
  *   - "sblib.*" functions 
+ * * New in version "98":
+ *   - Lua fucntion sbox_execve_preprocess() was removed
+ *     exec preprocessing code is now implemented in C)
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "97"
+#define SB2_LUA_C_INTERFACE_VERSION "98"
 
 /* get sb2context, without activating lua: */
 extern struct sb2context *get_sb2context(void);

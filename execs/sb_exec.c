@@ -1368,7 +1368,7 @@ int do_exec(int *result_errno_ptr,
 			free(buf);
 		
 			/* create a copy of intended environment for logging,
-			 * before sb_execve_preprocess() gets control */ 
+			 * before preprocessing */
 			my_envp_copy = prepare_envp_for_do_exec(orig_file,
 				binaryname, orig_envp);
 		}
@@ -1380,7 +1380,7 @@ int do_exec(int *result_errno_ptr,
 			&type, &new_file, &new_argv, &new_envp);
 
 		if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
-			/* find out and log if sb_execve_preprocess() did something */
+			/* find out and log if preprocessing did something */
 			compare_and_log_strvec_changes("argv", orig_argv, new_argv);
 			compare_and_log_strvec_changes("envp", my_envp_copy, new_envp);
 		}

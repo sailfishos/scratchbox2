@@ -7,10 +7,39 @@
 -- gcc or misc) and writes out lua table containing generated
 -- argvmods rules.
 --
+-- argv&envp mangling rules are separated into two files
+-- 	argvenvp_misc.lua - rules for misc binaries
+-- 	argvenvp_gcc.lua  - rules for gcc
+--
+-- With these rules, this script generates exec preprocessing
+-- rules, and writes those to SBOX_SESSION_DIR/argvmods_misc.lua and
+-- SBOX_SESSION_DIR/argvmods_gcc.lua.
+--
+-- Syntax is of the form:
+--
+-- rule = {
+--	path_prefixes = {"/list/of", "/possible/path/prefixes"},
+-- 	add_head = {"list", "of", "args", "to", "prepend"},
+-- 	add_options = {"list", "of", "options", "to", "add",
+--		 "after", "argv[0]"},
+-- 	add_tail = {"these", "are", "appended"},
+-- 	remove = {"args", "to", "remove"},
+-- 	new_filename = "exec-this-binary-instead",
+-- 	disable_mapping = 1 -- set this to disable mappings
+-- }
+-- argvmods[name] = rule
+--
+-- Environment modifications are not supported yet, except for disabling
+-- mappings.
+
 argvmods = {}
 
 if not exec_engine_loaded then
 	do_file(session_dir .. "/lua_scripts/argvenvp.lua")
+end
+if not argvmods_loader_loaded then
+	do_file(session_dir .. "/lua_scripts/argvmods_loader.lua")
+	load_argvmods_file()
 end
 
 local allowed_rulenames = {

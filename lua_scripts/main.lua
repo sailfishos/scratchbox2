@@ -16,7 +16,7 @@ mapping_engine_loaded = false
 --
 -- NOTE: the corresponding identifier for C is in include/sb2.h,
 -- see that file for description about differences
-sb2_lua_c_interface_version = "97"
+sb2_lua_c_interface_version = "98"
 
 function do_file(filename)
 	if (debug_messages_enabled) then
@@ -68,23 +68,6 @@ end
 -- argvenvp.lua only if exec* functions are needed!
 --
 -- Also, "mapping.lua" is loaded only when needed.
-
-function sbox_execve_preprocess_loader(binaryname, argv, envp)
-	local prev_fn = sbox_execve_preprocess
-
-	sb.log("info", "sbox_execve_preprocess called: loading argvenvp.lua")
-	do_file(session_dir .. "/lua_scripts/argvenvp.lua")
-
-	if prev_fn == sbox_execve_preprocess then
-		sb.log("error",
-			"Fatal: Failed to load real sbox_execve_preprocess")
-		os.exit(88)
-	end
-
-	-- This loader has been replaced. The following call is not
-	-- a recursive call to this function, even if it may look like one:
-	return sbox_execve_preprocess(binaryname, argv, envp)
-end
 
 function sb_execve_map_script_interpreter_loader(exec_policy_name, interpreter,
         interp_arg, mapped_script_filename, orig_script_filename, argv, envp)
@@ -219,7 +202,6 @@ else
 	if debug_messages_enabled then
 		sb.log("debug", "exec code will be loaded on demand")
 	end
-	sbox_execve_preprocess = sbox_execve_preprocess_loader
 	sb_execve_postprocess = sb_execve_postprocess_loader
 	sbox_get_host_policy_ld_params = sbox_get_host_policy_ld_params_loader
 	sb_execve_map_script_interpreter = sb_execve_map_script_interpreter_loader

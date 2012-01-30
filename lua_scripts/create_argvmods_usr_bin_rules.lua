@@ -77,8 +77,8 @@ ruletree.catalog_set("Conf."..modename_in_ruletree, "enable_cross_gcc_toolchain"
 if exec_engine_loaded then
 	print("-- Warning: exec engine was already loaded, will load again")
 end
--- load argvenvp.lua, to get the right argvmods_* file
-do_file(session_dir .. "/lua_scripts/argvenvp.lua")
+-- load the right argvmods_* file
+do_file(session_dir .. "/lua_scripts/argvmods_loader.lua")
 load_argvmods_file()
 
 -- Next, the argvmods stuff.

@@ -294,7 +294,7 @@ static void dump_exec_pp_rules(ruletree_object_offset_t offs, int indent)
 	}
 	if (rule->rtree_xpr_disable_mapping) {
 		print_indent(indent+1);
-		printf("disable_mapping = true)\n");
+		printf("disable_mapping = true\n");
 	}
 	print_indent(indent);
 	printf("}\n");

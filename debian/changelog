@@ -1,3 +1,11 @@
+scratchbox2 (2.3.25-1) unstable; urgency=low
+
+  * Exec preprocessing is now completely implemented in C.
+    (postprocessing is still in Lua)
+  * C/Lua interface version = 98
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Tue, 31 Jan 2012 10:22:00 +0200
+
 scratchbox2 (2.3.24-1) unstable; urgency=low
 
   * sb2d adds exec preprocssing rules ("argvmods" rules) to

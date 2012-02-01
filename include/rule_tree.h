@@ -93,7 +93,7 @@ typedef struct ruletree_fsrule_s {
 } ruletree_fsrule_t;
 
 typedef struct ruletree_exec_preprocessing_rule_s {
-	ruletree_object_hdr_t		rtree_fsr_objhdr;
+	ruletree_object_hdr_t		rtree_xpr_objhdr;
 
 	ruletree_object_offset_t	rtree_xpr_binary_name_offs;
         ruletree_object_offset_t	rtree_xpr_path_prefixes_table_offs;

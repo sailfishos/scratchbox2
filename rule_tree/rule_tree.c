@@ -874,7 +874,7 @@ ruletree_exec_preprocessing_rule_t *offset_to_exec_preprocessing_rule_ptr(int lo
 	rp = (ruletree_exec_preprocessing_rule_t*)offset_to_ruletree_object_ptr(loc,
 		SB2_RULETREE_OBJECT_TYPE_EXEC_PP_RULE);
 	if (rp) {
-		if (rp->rtree_fsr_objhdr.rtree_obj_magic != SB2_RULETREE_MAGIC) rp = NULL;
+		if (rp->rtree_xpr_objhdr.rtree_obj_magic != SB2_RULETREE_MAGIC) rp = NULL;
 	}
 	return(rp);
 }

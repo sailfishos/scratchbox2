@@ -177,6 +177,12 @@ local exec_policy_tools_python = {
 	script_set_argv0_to_mapped_interpreter = true,
 }
 
+if (tools == "/") then
+	tools_prefix = ""
+else
+	tools_prefix = tools
+end
+
 
 -- Note that the real path (mapped path) is used when looking up rules!
 exec_policy_rules = {
@@ -184,9 +190,9 @@ exec_policy_rules = {
 		{prefix = target_root, exec_policy_name = "Target"},
 
 		-- Tools. at least qemu might be used from there.
-		{prefix = tools .. "/usr/bin/perl",
+		{prefix = tools_prefix .. "/usr/bin/perl",
 		 exec_policy_name = "Tools-perl"},
-		{prefix = tools .. "/usr/bin/python",
+		{prefix = tools_prefix .. "/usr/bin/python",
 		 exec_policy_name = "Tools-python"},
 		-- Rule isn't active if tools_root is not set.
 		{prefix = tools_root, exec_policy_name = "Tools"},

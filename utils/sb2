@@ -1836,6 +1836,7 @@ if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 	SB2_ALL_MODES="$SB2_INTERNAL_MAPMODES" \
 		sb2d -s $SBOX_SESSION_DIR -p $SBOX_SESSION_DIR/sb2d.pid \
 		-d "debug" -l $SBOX_SESSION_DIR/sb2d.log \
+		>$SBOX_SESSION_DIR/sb2d.out \
 		2>$SBOX_SESSION_DIR/sb2d.err
 	if [ $? != 0 ]; then
 		if [ -s $SBOX_SESSION_DIR/sb2d.err ]; then

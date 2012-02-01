@@ -32,6 +32,7 @@
 #include <signal.h>
 #include "libsb2.h"
 #include "exported.h"
+#include "rule_tree.h"
 
 #ifdef HAVE_FTS_H
 /* FIXME: why there was #if !defined(HAVE___OPENDIR2) around fts_open() ???? */
@@ -548,7 +549,7 @@ int uname_gate(
 			uname_machine = ruletree_catalog_get_string(
 				"config", "sbox_uname_machine");
 		}
-		if (uname_machine && *uname_machine)
+		if (uname_machine && *uname_machine && buf)
 			snprintf(buf->machine, sizeof(buf->machine),
 					"%s", uname_machine);
 	}

@@ -252,7 +252,7 @@ void sblog_init_level_logfile_format(const char *opt_level, const char *opt_logf
 		*/
 		SB_LOG(SB_LOGLEVEL_INFO,
 			 "---------- Starting (" SCRATCHBOX2_VERSION ")"
-			" [" __DATE__ " " __TIME__ "] "
+			" [] "
 			"ppid=%d <%s> (%s) ----------%s",
 			getppid(),
 			sbox_exec_name ? 

@@ -108,17 +108,16 @@ int sb_log_initial_pid__ = 0;
 static void make_log_timestamp(char *buf, size_t bufsize)
 {
 	struct timeval	now;
-	struct tm	tm;
 
 	if (gettimeofday(&now, (struct timezone *)NULL) < 0) {
 		*buf = '\0';
 		return;
 	}
-
-	localtime_r(&now.tv_sec, &tm);
-	snprintf(buf, bufsize, "%4d-%02d-%02d %02d:%02d:%02d.%03d",
-		tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
-		tm.tm_hour, tm.tm_min, tm.tm_sec, (int)(now.tv_usec/1000));
+	/* localtime_r() or gmtime_r() can cause deadlocks
+	 * inside glibc (if this logger is called via a signal
+	 * handler), so can't convert the time to a more
+	 * user-friedly format. Sad. */
+	snprintf(buf, bufsize, "%d.%03d", now.tv_sec, (int)(now.tv_usec/1000));
 }
 
 /* Write a message block to a logfile.
@@ -297,7 +296,12 @@ void sblog_vprintf_line_to_logfile(
 		*tstamp = '\0';
 	} else {
 		/* first, the timestamp: */
-		make_log_timestamp(tstamp, sizeof(tstamp));
+		if (level > SB_LOGLEVEL_WARNING) {
+			/* no timestamps to errors & warnings */
+			make_log_timestamp(tstamp, sizeof(tstamp));
+		} else {
+			*tstamp = '\0';
+		}
 	}
 
 	/* next, print the log message to a buffer: */

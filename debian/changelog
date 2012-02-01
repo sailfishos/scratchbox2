@@ -1,3 +1,13 @@
+scratchbox2 (2.3.26-1) unstable; urgency=low
+
+  * An important bugfix to uname() for 64 bit systems
+  * Log format changed (no more pretty timestamps,
+    to avoid possible deadlocks inside glibc)
+  * Fixes to obs-rpm-build* modes
+  * + other minor fixes.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 01 Feb 2012 18:13:00 +0200
+
 scratchbox2 (2.3.25-1) unstable; urgency=low
 
   * Exec preprocessing is now completely implemented in C.

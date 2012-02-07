@@ -1,6 +1,19 @@
-diff -ru scratchbox2-2.3.10/utils/Makefile scratchbox2-2.3.10-werror/utils/Makefile
---- scratchbox2-2.3.10/utils/Makefile	2011-11-09 07:39:46.000000000 +0100
-+++ scratchbox2-2.3.10-werror/utils/Makefile	2011-12-05 08:41:23.109627187 +0100
+diff -ru scratchbox2-2.3.24-nowerror/sb2d/Makefile scratchbox2-2.3.24/sb2d/Makefile
+--- scratchbox2-2.3.24-nowerror/sb2d/Makefile	2012-01-28 23:16:48.000000000 +0200
++++ scratchbox2-2.3.24/sb2d/Makefile	2012-01-28 23:28:05.554002066 +0200
+@@ -1,7 +1,7 @@
+ # beware of namespace collisions, all subdir makefiles are included
+ # into the top-level Makefile
+ 
+-$(D)/sb2d: CFLAGS := $(CFLAGS) -Wall -W -Werror \
++$(D)/sb2d: CFLAGS := $(CFLAGS) -Wall -W \
+ 		$(PROTOTYPEWARNINGS) \
+ 		-I$(SRCDIR)/include \
+ 		-I$(SRCDIR)/preload -Ipreload/
+Only in scratchbox2-2.3.24/sb2d: Makefile~
+diff -ru scratchbox2-2.3.24-nowerror/utils/Makefile scratchbox2-2.3.24/utils/Makefile
+--- scratchbox2-2.3.24-nowerror/utils/Makefile	2012-01-11 15:09:24.000000000 +0200
++++ scratchbox2-2.3.24/utils/Makefile	2012-01-28 23:27:55.594261149 +0200
 @@ -1,7 +1,7 @@
  # beware of namespace collisions, all subdir makefiles are included
  # into the top-level Makefile
@@ -37,4 +50,3 @@ diff -ru scratchbox2-2.3.10/utils/Makefile scratchbox2-2.3.10-werror/utils/Makef
  		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
  		-I$(SRCDIR)/include
  
-Only in scratchbox2-2.3.10-werror/utils: Makefile~

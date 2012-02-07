@@ -1,3 +1,11 @@
+scratchbox2 (2.3.27-1) unstable; urgency=low
+
+  * All modes which use the cross-toolchain support: Redirect /usr/bin/cc
+    to /usr/bin/gcc, if the toolchain does not have "cc" command (this
+    now happens at exec preprocessing stage)
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Tue, 07 Feb 2012 15:40:00 +0200
+
 scratchbox2 (2.3.26-1) unstable; urgency=low
 
   * An important bugfix to uname() for 64 bit systems

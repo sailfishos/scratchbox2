@@ -17,6 +17,10 @@ gcc_compilers = {
 	"g77"
 }
 
+compiler_alternative_name = {
+	["cc"] = "gcc",
+}
+
 -- names, where cross_gcc_shortversion may be embedded to the name
 -- (e.g. gcc-3.4, g++-3.4)
 gcc_compilers_with_version = {
@@ -124,10 +128,20 @@ function add_cross_compiler(gccrule, version)
 			-- Compiler tools without version suffix
 			for i = 1, table.maxn(gcc_compilers) do
 				local tmp = {}
-				tmp.name = prefix .. gcc_compilers[i]
-				tmp.new_filename = gccrule.cross_gcc_dir .. "/" .. gccrule.cross_gcc_subst_prefix .. gcc_compilers[i]
-				gcc_compiler_arg_mods(tmp, gccrule)
-				register_gcc_component_path(tmp, gccrule)
+				local compiler_name = gcc_compilers[i]
+				tmp.name = prefix .. compiler_name
+				tmp.new_filename = gccrule.cross_gcc_dir .. "/" .. gccrule.cross_gcc_subst_prefix .. compiler_name
+				if not sblib.path_exists(tmp.new_filename) then
+					if compiler_alternative_name[compiler_name] ~= nil then
+						tmp.new_filename = gccrule.cross_gcc_dir .. "/" ..
+							gccrule.cross_gcc_subst_prefix .. compiler_alternative_name[compiler_name]
+					end
+				end
+
+				if sblib.path_exists(tmp.new_filename) then
+					gcc_compiler_arg_mods(tmp, gccrule)
+					register_gcc_component_path(tmp, gccrule)
+				end
 			end
 		end
 
@@ -137,8 +151,10 @@ function add_cross_compiler(gccrule, version)
 			tmp.name = prefix .. gcc_compilers_with_version[i] .. "-" ..
 				gccrule.cross_gcc_shortversion
 			tmp.new_filename = gccrule.cross_gcc_dir .. "/" .. gccrule.cross_gcc_subst_prefix .. gcc_compilers_with_version[i]
-			gcc_compiler_arg_mods(tmp, gccrule)
-			register_gcc_component_path(tmp, gccrule)
+			if sblib.path_exists(tmp.new_filename) then
+				gcc_compiler_arg_mods(tmp, gccrule)
+				register_gcc_component_path(tmp, gccrule)
+			end
 		end
 		
 		if require_version == false then

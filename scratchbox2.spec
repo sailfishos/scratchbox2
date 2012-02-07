@@ -1,7 +1,7 @@
 Summary: 	Scratchbox2 crosscompiling environment
 License: 	LGPL
 Name: 		scratchbox2
-Version: 	2.3.26
+Version: 	2.3.27
 Release: 	0
 Source: 	%{name}-%{version}.tar.gz
 Prefix: 	/usr

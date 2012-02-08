@@ -123,13 +123,3 @@ if (debug_messages_enabled) then
 		string.format("%d rules", num_rules))
 end
 
--- Modename => argvmods type table
-enable_cross_gcc_toolchain = true
-
-for m_index,m_name in pairs(all_modes) do
-	do_file(session_dir .. "/share/scratchbox2/modes/"..m_name.."/config.lua")
-
-	ruletree.catalog_set("use_gcc_argvmods", m_name,
-		ruletree.new_boolean(enable_cross_gcc_toolchain))
-end
-

@@ -344,6 +344,28 @@ static int lua_sb_ruletree_new_boolean(lua_State *l)
 	return 1;
 }
 
+static int lua_sb_add_exec_policy_selection_rule_to_ruletree(lua_State *l)
+{
+	int	n = lua_gettop(l);
+	uint32_t rule_location = 0;
+
+	if (n == 4) {
+		uint32_t	eps_ruletype = lua_tointeger(l, 1);
+		const char	*eps_selector = lua_tostring(l, 2);
+		const char	*exec_policy_name = lua_tostring(l, 3);
+		uint32_t	eps_flags = lua_tointeger(l, 4);
+
+		rule_location = add_exec_policy_selection_rule_to_ruletree(
+			eps_ruletype, eps_selector, exec_policy_name, eps_flags);
+
+		SB_LOG(SB_LOGLEVEL_NOISE,
+			"%s %d '%s' '%s' => %d",
+			__func__, eps_ruletype, eps_selector, exec_policy_name, rule_location);
+	}
+	lua_pushnumber(l, rule_location);
+	return 1;
+}
+
 
 /* mappings from c to lua */
 static const luaL_reg reg[] =
@@ -374,6 +396,7 @@ static const luaL_reg reg[] =
 
 	/* exec rules */
 	{"add_exec_preprocessing_rule_to_ruletree",	lua_sb_add_exec_preprocessing_rule_to_ruletree},
+	{"add_exec_policy_selection_rule_to_ruletree",	lua_sb_add_exec_policy_selection_rule_to_ruletree},
 
 	{NULL,				NULL}
 };

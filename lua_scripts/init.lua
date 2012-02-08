@@ -24,6 +24,19 @@ function do_file(filename)
 	end
 end
 
+-- Load session-specific settings
+do_file(session_dir .. "/sb2-session.conf")
+
+target_root = sbox_target_root
+if (not target_root or target_root == "") then
+	target_root = "/"
+end
+
+tools_root = sbox_tools_root
+if (tools_root == "") then
+	tools_root = nil
+end
+
 -- Build "all_modes" table. all_modes[1] will be name of default mode.
 all_modes_str = os.getenv("SB2_ALL_MODES")
 all_modes = {}
@@ -41,4 +54,7 @@ ruletree.catalog_set("MODES", "#default", ruletree.new_string(all_modes[1]))
 
 -- Exec preprocessing rules to ruletree:
 do_file(session_dir .. "/lua_scripts/init_argvmods_rules.lua")
+
+-- mode-spefic config to ruletree:
+do_file(session_dir .. "/lua_scripts/init_modeconfig.lua")
 

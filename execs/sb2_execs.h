@@ -14,5 +14,7 @@
 
 extern int apply_exec_preprocessing_rules(char **file, char ***argv, char ***envp);
 
+extern const char *find_exec_policy_name(const char *mapped_path, const char *virtual_path);
+
 #endif /* __EXEC_INTERNAL_H */
 

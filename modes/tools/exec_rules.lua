@@ -6,7 +6,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "102"
+rule_file_interface_version = "203"
 ----------------------------------
 
 -- If the permission token exists and contains "root", use fakeroot.
@@ -68,14 +68,6 @@ local exec_policy_tools = {
 	native_app_message_catalog_prefix = conf_tools_message_catalog_prefix,
 }
 
--- Note that the real path (mapped path) is used when looking up rules!
-exec_policy_rules = {
-		-- Tools binaries:
-		{prefix = tools_root, exec_policy_name = "Tools_root"},
-
-		-- DEFAULT RULE (must exist):
-		{prefix = "/", exec_policy_name = "Default"}
-}
 
 -- This table lists all exec policies - this is used when the current
 -- process wants to locate the currently active policy

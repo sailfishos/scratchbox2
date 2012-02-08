@@ -83,3 +83,33 @@ ruletree_object_offset_t add_exec_preprocessing_rule_to_ruletree(
 	return(rule_location);
 }
 
+ruletree_object_offset_t add_exec_policy_selection_rule_to_ruletree(
+	uint32_t	ruletype,
+	const char	*selector,
+	const char	*exec_policy_name,
+	uint32_t	flags)
+{
+	ruletree_object_offset_t rule_location = 0;
+	ruletree_exec_policy_selection_rule_t new_rule;
+
+	memset(&new_rule, 0, sizeof(new_rule));
+	
+	new_rule.rtree_xps_type = ruletype;
+	new_rule.rtree_xps_flags = flags;
+	if (selector) {
+		new_rule.rtree_xps_selector_offs = append_string_to_ruletree_file(selector);
+	}
+	if (exec_policy_name) {
+		new_rule.rtree_xps_exec_policy_name_offs = append_string_to_ruletree_file(exec_policy_name);
+	}
+
+	rule_location = append_struct_to_ruletree_file(&new_rule, sizeof(new_rule),
+		SB2_RULETREE_OBJECT_TYPE_EXEC_SEL_RULE);
+	
+	SB_LOG(SB_LOGLEVEL_DEBUG,
+		"Added exec policy selection rule @ %u",
+			rule_location);
+
+	return(rule_location);
+}
+

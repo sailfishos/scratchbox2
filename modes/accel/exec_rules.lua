@@ -11,7 +11,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "102"
+rule_file_interface_version = "203"
 ----------------------------------
 
 tools = tools_root
@@ -203,40 +203,6 @@ exec_policy_host_os = {
 	-- host settings will be used (but then it won't add user's
 	-- LD_LIBRARY_PATH, which is exactly what we want).
 	-- native_app_ld_preload* is not set because of the same reason.
-}
--- Exec policy rules.
--- These are used only if the mapping rule did not provide an exec policy.
---
--- Note that the real path (mapped path) is used
---  when looking up rules from here!
-exec_policy_rules = {
-		-- Tools:
-		-- (tools must be listed first, the tools directory
-		-- might be under user's home directory)
-		{prefix = tools .. "/usr/bin/perl",
-		 exec_policy_name = "Tools-perl"},
-		{prefix = tools .. "/usr/bin/python",
-		 exec_policy_name = "Tools-python"},
-		{prefix = tools, exec_policy_name = "Tools"},
-
-		-- ~/bin probably contains programs for the host OS:
-                {prefix = sbox_user_home_dir.."/bin",
-		 exec_policy_name = "Host"},
-
-                -- Other places under the home directory are expected
-                -- to contain target binaries:
-                {prefix = sbox_user_home_dir, exec_policy_name = "Target"},
-
-		-- Target binaries:
-		{prefix = target_root, exec_policy_name = "Target"},
-
-		-- the place where the session was created is expected
-		-- to contain target binaries:
-		{prefix = sbox_workdir, exec_policy_name = "Target"},
-
-		-- -----------------------------------------------
-		-- DEFAULT RULE (must exist):
-		{prefix = "/", exec_policy_name = "Host"}
 }
 
 -- This table lists all exec policies - this is used when the current

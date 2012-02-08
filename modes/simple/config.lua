@@ -6,3 +6,9 @@
 
 enable_cross_gcc_toolchain = true
 
+-- Note that the real path (mapped path) is used when looking up rules!
+exec_policy_selection = {
+		-- DEFAULT RULE (must exist):
+		{prefix = "/", exec_policy_name = "Default"}
+}
+

@@ -1224,6 +1224,20 @@ static int prepare_exec(const char *exec_fn_name,
 	type = inspect_binary(mapped_file, 1/*check_x_permission*/);
 	if (typep) *typep = type;
 
+	if (!exec_policy_name) {
+		if ((type != BIN_INVALID) && (type != BIN_NONE)) {
+			exec_policy_name = find_exec_policy_name(mapped_file, my_file);
+			if (!exec_policy_name) {
+				errno = ENOEXEC;
+				ret = -1;
+				SB_LOG(SB_LOGLEVEL_ERROR,
+					"No exec policy (%s,%s) => ENOEXEC",
+					my_file, mapped_file);
+				goto out;
+			}
+		}
+	}
+
 	START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk4, "exec/typeswitch");
 	switch (type) {
 		case BIN_HASHBANG:
@@ -1329,7 +1343,7 @@ static int prepare_exec(const char *exec_fn_name,
 			break;
 	}
 	STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk4, my_file);
-
+    out:
 	*new_file = mapped_file;
 	*new_argv = my_argv;
 	*new_envp = my_envp;

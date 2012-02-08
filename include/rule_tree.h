@@ -39,6 +39,7 @@ typedef struct ruletree_object_hdr_s {
 #define SB2_RULETREE_OBJECT_TYPE_UINT32		8	/* ruletree_uint32_t */
 #define SB2_RULETREE_OBJECT_TYPE_BOOLEAN	9	/* also ruletree_uint32_t */
 #define SB2_RULETREE_OBJECT_TYPE_EXEC_PP_RULE	14	/* ruletree_exec_preprocessing_rule_t */
+#define SB2_RULETREE_OBJECT_TYPE_EXEC_SEL_RULE	15	/* ruletree_exec_policy_selection_rule_t */
 
 typedef struct ruletree_hdr_s {
 	ruletree_object_hdr_t	rtree_hdr_objhdr;
@@ -104,6 +105,15 @@ typedef struct ruletree_exec_preprocessing_rule_s {
         ruletree_object_offset_t	rtree_xpr_new_filename_offs;
         uint32_t			rtree_xpr_disable_mapping;
 } ruletree_exec_preprocessing_rule_t;
+
+typedef struct ruletree_exec_policy_selection_rule_s {
+	ruletree_object_hdr_t		rtree_xps_objhdr;
+
+	uint32_t			rtree_xps_type;
+	uint32_t			rtree_xps_flags;
+        ruletree_object_offset_t	rtree_xps_selector_offs;
+        ruletree_object_offset_t	rtree_xps_exec_policy_name_offs;
+} ruletree_exec_policy_selection_rule_t;
 
 /* the string header structure is followed by the string itself. */
 typedef struct ruletree_string_hdr_s {
@@ -239,5 +249,11 @@ ruletree_object_offset_t add_exec_preprocessing_rule_to_ruletree(
         ruletree_object_offset_t remove_table_offs,
         const char *new_filename,
         int disable_mapping);
+
+ruletree_object_offset_t add_exec_policy_selection_rule_to_ruletree(
+	uint32_t	ruletype,
+        const char      *selector,
+        const char      *exec_policy_name,
+	uint32_t	flags);
 
 #endif /* SB2_RULETREE_H__ */

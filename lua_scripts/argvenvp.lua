@@ -9,18 +9,13 @@ do_file(session_dir .. "/exec_config.lua")
 
 isprefix = sb.isprefix
 
-exec_policy_rules = nil
-
 all_exec_policies = nil
 
 -- Load mode-specific rules.
--- A mode file must define three variables:
+-- A mode file must define two variables:
 --  1. rule_file_interface_version (string) is checked and must match,
 --     mismatch is a fatal error.
 --  2. all_exec_policies (array)
---  3. exec_policy_rules (array) contains default execution policies;
---     real path (mapped path) is used as the key. A default exec_policy
---     must be present.
 -- Additionally, following variables may be modified:
 -- "enable_cross_gcc_toolchain" (default=true): All special processing
 --     for the gcc-related tools (gcc,as,ld,..) will be disabled if set
@@ -30,7 +25,6 @@ function load_and_check_exec_rules()
 
 	-- initialize global variables:
 	rule_file_interface_version = nil
-	exec_policy_rules = nil
 
 	tools = tools_root
 	if (not tools) then
@@ -51,7 +45,9 @@ function load_and_check_exec_rules()
 	--   ruletree, it is defined originally
 	--   in mode's "config.lua" file (which is
 	--   never loaded directly)
-	local current_rule_interface_version = "102"
+	-- Version 203:
+	-- - exec policy is selected by sb_exec.c always.
+	local current_rule_interface_version = "203"
 
 	do_file(exec_rule_file_path)
 
@@ -70,11 +66,6 @@ function load_and_check_exec_rules()
 			"got %s, expected %s", rule_file_interface_version,
 			current_rule_interface_version))
 		os.exit(98)
-	end
-
-        if (type(exec_policy_rules) ~= "table") then
-		sb.log("error", "'exec_policy_rules' is not an array.");
-		os.exit(97)
 	end
 end
 
@@ -240,63 +231,6 @@ function setenv_native_app_ld_preload(exec_policy, envp)
 	return true
 end
 
---
--- Tries to find exec_policy for given binary using exec_policy_rules.
---
--- The exec policy selection table can contain three types of rules:
---      { prefix = "/path/prefix", exec_policy_name = "policyname" }
---      { path = "/exact/path/to/program", exec_policy_name = "policyname" }
---      { dir = "/directory/path", exec_policy_name = "policyname" }
--- Other types of rules are not anymore supported.
---
--- Returns: 1, exec_policy when exec_policy was found, otherwise
--- returns 0, nil.
---
-function sb_find_exec_policy(mapped_file)
-	if debug_messages_enabled then
-		sb.log("debug", "sb_find_exec_policy for "..mapped_file)
-	end
-	for i = 1, table.maxn(exec_policy_rules) do
-		local rule = exec_policy_rules[i]
-		min_path_len = sb.test_path_match(mapped_file,
-			rule.dir, rule.prefix, rule.path)
-		if min_path_len >= 0 then
-			if debug_messages_enabled then
-				sb.log("debug", "exec policy found: "..rule.exec_policy_name)
-			end
-			return 1, rule.exec_policy_name
-		end
-	end
-	return 0, nil
-end
-
--- ------------------------------------
--- returns args_ok, rule, exec_policy_name
-function check_exec_policy(exec_policy_name, filename, mapped_file)
-
-	-- if exec_policy_name was not provided by the caller (i.e. not
-	-- provided by the mapping rule), look up the policy from
-	-- exec_policy_rules array.
-	if (exec_policy_name == nil) then
-		local res
-
-		if debug_messages_enabled then
-			sb.log("debug", "trying exec_policy_rules..")
-		end
-		res, exec_policy_name = sb_find_exec_policy(mapped_file)
-		if (res == 0) or (exec_policy_name == nil) then
-			-- there is no default policy for this mode
-			sb.log("notice",
-				"sb_execve_postprocess: No exec_policy for "..filename)
-			return false, exec_policy_name
-		end
-	end
-
-	-- Exec policy is OK.
-	
-	return true, exec_policy_name
-end
-
 -- ------------------------------------
 -- Script interpreter mapping.
 
@@ -311,21 +245,9 @@ end
 function sb_execve_map_script_interpreter(exec_policy_name, interpreter,
 	interp_arg, mapped_script_filename, orig_script_filename, argv, envp)
 
-	local args_ok
-	args_ok, exec_policy_name = check_exec_policy(
-		exec_policy_name, orig_script_filename, mapped_script_filename) 
+	assert(exec_policy_name ~= nil)
 
-	if args_ok == false then
-		-- no exec policy. Deny exec, we can't find the interpreter
-		sb.log("error", "Unable to map script interpreter.");
-		return exec_policy_name, -1, interpreter, #argv, argv, #envp, envp
-	end
-
-	-- Exec policy found.
 	local exec_policy = get_exec_policy_by_name(exec_policy_name)
-
-	-- exec policy is OK.
-
 	if (exec_policy.script_log_level ~= nil) then
 		sb.log(exec_policy.script_log_level,
 			exec_policy.script_log_message)
@@ -838,17 +760,8 @@ end
 function sb_execve_postprocess(exec_policy_name, exec_type,
 	mapped_file, filename, binaryname, argv, envp)
 
-	local args_ok
-	args_ok, exec_policy_name = check_exec_policy(
-		exec_policy_name, filename, mapped_file) 
+	assert(exec_policy_name ~= nil)
 
-	if args_ok == false then
-		-- postprocessing is not needed / can't be done, but
-		-- exec must be allowed.
-		return 1, mapped_file, filename, #argv, argv, #envp, envp
-	end
-
-	-- Exec policy found.
 	local exec_policy = get_exec_policy_by_name(exec_policy_name)
 	if exec_policy == nil then
 		sb.log("error", "Exec policy '"..exec_policy_name.."' not found.")

@@ -4,7 +4,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "102"
+rule_file_interface_version = "203"
 ----------------------------------
 
 -- If the permission token exists and contains "root", use fakeroot.
@@ -177,35 +177,6 @@ local exec_policy_tools_python = {
 	script_set_argv0_to_mapped_interpreter = true,
 }
 
-if (tools == "/") then
-	tools_prefix = ""
-else
-	tools_prefix = tools
-end
-
-
--- Note that the real path (mapped path) is used when looking up rules!
-exec_policy_rules = {
-		-- Target binaries:
-		{prefix = target_root, exec_policy_name = "Target"},
-
-		-- Tools. at least qemu might be used from there.
-		{prefix = tools_prefix .. "/usr/bin/perl",
-		 exec_policy_name = "Tools-perl"},
-		{prefix = tools_prefix .. "/usr/bin/python",
-		 exec_policy_name = "Tools-python"},
-		-- Rule isn't active if tools_root is not set.
-		{prefix = tools_root, exec_policy_name = "Tools"},
-
-                -- the toolchain, if not from Tools:
-                {dir = sbox_target_toolchain_dir, exec_policy_name = "Toolchain"},
-
-                -- the home directory is expected to contain target binaries:
-                {dir = sbox_user_home_dir, exec_policy_name = "Target"},
-
-		-- DEFAULT RULE (must exist):
-		{prefix = "/", exec_policy_name = "Host"}
-}
 
 -- This table lists all exec policies - this is used when the current
 -- process wants to locate the currently active policy

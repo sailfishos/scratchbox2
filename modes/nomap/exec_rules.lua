@@ -21,7 +21,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "102"
+rule_file_interface_version = "203"
 ----------------------------------
 
 -- Exec policy rules.
@@ -30,11 +30,6 @@ default_exec_policy = {
 	name = "Default"
 }
 
--- Note that the real path (mapped path) is used when looking up rules!
-exec_policy_rules = {
-		-- DEFAULT RULE (must exist):
-		{prefix = "/", exec_policy_name = "Default"}
-}
 
 -- This table lists all exec policies - this is used when the current
 -- process wants to locate the currently active policy

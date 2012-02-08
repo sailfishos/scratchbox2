@@ -123,10 +123,11 @@ struct sb2context {
  * * New in version "98":
  *   - Lua fucntion sbox_execve_preprocess() was removed
  *     exec preprocessing code is now implemented in C)
+ * * New in 99: Moved exec policy selection rules to ruletree
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "98"
+#define SB2_LUA_C_INTERFACE_VERSION "99"
 
 /* get sb2context, without activating lua: */
 extern struct sb2context *get_sb2context(void);

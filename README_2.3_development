@@ -222,6 +222,9 @@ Exec preprocessing rules (the "argvmods" table) is now in "ruletree".
 There are no alternatives, preprocessing is now always done with
 the new implementation.
 
+Version 2.3.28 got another reimplementation; exec policy selection
+is now written in C.
+
 Other parts of the exec logic (postprocessing parameters for
 native and foreign binaries etc) still use in Lua code.
 

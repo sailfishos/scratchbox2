@@ -1,3 +1,11 @@
+scratchbox2 (2.3.28-1) unstable; urgency=low
+
+  * Exec policy selection is now implemented in C
+  * C/Lua interface version = 99
+  * A simple fix to obs-rpm-build+pp mode
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 08 Feb 2012 16:01:00 +0200
+
 scratchbox2 (2.3.27-1) unstable; urgency=low
 
   * All modes which use the cross-toolchain support: Redirect /usr/bin/cc

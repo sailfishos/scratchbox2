@@ -37,6 +37,17 @@ if (tools_root == "") then
 	tools_root = nil
 end
 
+tools = tools_root
+if (not tools) then
+	tools = "/"
+end
+
+if (tools == "/") then
+        tools_prefix = ""
+else
+        tools_prefix = tools
+end
+
 -- Build "all_modes" table. all_modes[1] will be name of default mode.
 all_modes_str = os.getenv("SB2_ALL_MODES")
 all_modes = {}

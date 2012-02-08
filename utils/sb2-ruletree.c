@@ -252,6 +252,38 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 	printf("}\n");
 }
 
+static void dump_exec_selection_rules(ruletree_object_offset_t offs, int indent)
+{
+	ruletree_exec_policy_selection_rule_t	*rule = offset_to_ruletree_object_ptr(
+		offs, SB2_RULETREE_OBJECT_TYPE_EXEC_SEL_RULE);
+
+	if (rule_dumped[offs]) {
+		print_indent(indent + 1);
+		printf("[ => @ %u]\n", offs);
+		return;
+	}
+	rule_dumped[offs] = 1;
+
+	print_indent(indent);
+	printf("{ Exec policy selection rule[%u]:\n", (unsigned)offs);
+	print_indent(indent+1);
+	printf("type = 0x%X\n", rule->rtree_xps_type);
+	if (rule->rtree_xps_selector_offs) {
+		print_indent(indent+1);
+		printf("selector = '%s'\n",
+			offset_to_ruletree_string_ptr(rule->rtree_xps_selector_offs, NULL));
+	}
+	if (rule->rtree_xps_exec_policy_name_offs) {
+		print_indent(indent+1);
+		printf("exec_policy_name = '%s'\n",
+			offset_to_ruletree_string_ptr(rule->rtree_xps_exec_policy_name_offs, NULL));
+	}
+	print_indent(indent+1);
+	printf("flags = 0x%X\n", rule->rtree_xps_flags);
+	print_indent(indent);
+	printf("}\n");
+}
+
 static void dump_exec_pp_rules(ruletree_object_offset_t offs, int indent)
 {
 	ruletree_exec_preprocessing_rule_t	*rule = offset_to_exec_preprocessing_rule_ptr(offs);
@@ -334,6 +366,9 @@ static void dump_objectlist(ruletree_object_offset_t list_offs, int indent)
 					break;
 				case SB2_RULETREE_OBJECT_TYPE_EXEC_PP_RULE:
 					dump_exec_pp_rules(item_offs, indent+1);
+					break;
+				case SB2_RULETREE_OBJECT_TYPE_EXEC_SEL_RULE:
+					dump_exec_selection_rules(item_offs, indent+1);
 					break;
 				case SB2_RULETREE_OBJECT_TYPE_STRING:
 					print_indent(indent+1);

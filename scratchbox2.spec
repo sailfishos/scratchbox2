@@ -7,6 +7,7 @@ Source: 	%{name}-%{version}.tar.gz
 Prefix: 	/usr
 Group: 		Development/Tools
 Patch0:		scratchbox2-2.3.10-werror.patch
+Patch1:         scratchbox2-2.3.27-fixperl.patch
 ExclusiveArch:	%{ix86}
 BuildRequires:	make
 Requires:	fakeroot
@@ -17,6 +18,7 @@ Scratchbox2 crosscompiling environment
 %prep
 %setup -q
 %patch0 -p1
+%patch1 -p1
 
 %build
 ./autogen.sh

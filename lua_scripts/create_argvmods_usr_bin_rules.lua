@@ -69,6 +69,17 @@ end
 
 enable_cross_gcc_toolchain = true
 
+tools = tools_root
+if (not tools) then
+	tools = "/"
+end
+
+if (tools == "/") then
+        tools_prefix = ""
+else
+        tools_prefix = tools
+end
+
 do_file(session_dir .. "/share/scratchbox2/modes/"..modename_in_ruletree.."/config.lua")
 
 ruletree.catalog_set("Conf."..modename_in_ruletree, "enable_cross_gcc_toolchain",

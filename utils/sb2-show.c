@@ -961,6 +961,22 @@ static int cmd_acct_off(const command_table_t *cmdp,
 	return(0);
 }
 
+static int cmd_start(const command_table_t *cmdp,
+			const cmdline_options_t *opts,
+			int cmd_argc, char *cmd_argv[])
+{
+	int	i;
+
+	(void)cmdp;
+	(void)opts;
+	if (opts->opt_verbose) {
+		for (i = 0; i < cmd_argc-1; i++)
+			printf("%d: '%s'\n", i, cmd_argv[i+1]);
+	}
+	execvp(cmd_argv[1], cmd_argv+1);
+	return(0);
+}
+
 const command_table_t commands[] = {
 	/* name	 must_have_session	min_argc,max_argc, fn
 	 * helptext */
@@ -1009,6 +1025,9 @@ const command_table_t commands[] = {
 	  "\trealpath path          call realpath(path) and print the result"},
 	{ "reverse", 	1,		2,	9999,	cmd_reverse,
 	  "\treverse path [path2]   reverse-map path(s) and print the results"},
+	{ "start", 	1,		2,	9999,	cmd_start,
+	  "\tstart command [params] Execute 'command' (this is used internally\n"
+	  "\t                       during session startup)"},
 	{ "var",	1,		2,	2,	cmd_var,
 	  "\tvar variablename       show value of a string variable"},
 	{ "verify-pathlist-mappings",1,	2,	9999,	cmd_verify_pathlist_mappings,

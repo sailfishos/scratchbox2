@@ -1950,26 +1950,30 @@ fi
 SBOX_CONFIG_DIR=$HOME/.scratchbox2/$SBOX_TARGET/sb2.config.d
 
 #
-# We need to start "trampoline" host shell that is run under
-# influence of libsb2.so.1.  When it exec's real shell, we can
+# We need to start "trampoline" that is run under
+# influence of libsb2.so.1; "sb2-show start" is used for that.
+# The "trampoline" program is halfway in the new session
+# (e.g. exec policy is empty, etc). But when it exec's shell, we can
 # be sure that all mappings and exec rules are in place.
 #
 if [ $# -gt 0 -o "$STDIN" = true ]; then
 	binary="$1"
 	shift 1
-	args="$@"
+
+	# Use an array to preserve spaces in original arguments:
+	declare -a orig_args_array
+	orig_args_array=("$@")
 	exec $SBOX_FAKEROOT_PREFIX sb2-monitor $OPTS_FOR_SB2_MONITOR \
 		-L $SBOX_LIBSB2 \
 		-X $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
 		-e $SBOX_CONFIG_DIR/env_vars \
 		-- \
-		$SHELL -c "exec $SHELL -c '$binary $args'"
+		$SBOX_DIR/bin/sb2-show start -- $binary "${orig_args_array[@]}"
 else
 	exec $SBOX_FAKEROOT_PREFIX sb2-monitor $OPTS_FOR_SB2_MONITOR \
 		-L $SBOX_LIBSB2 \
 		-X $SBOX_DIR/share/scratchbox2/scripts/sb2-exitreport \
 		-e $SBOX_CONFIG_DIR/env_vars \
 		-- \
-		$SHELL -c \
-		"export PS1='$PS1'; exec $SHELL --noprofile --norc"
+		$SBOX_DIR/bin/sb2-show start -- $SHELL --noprofile --norc
 fi

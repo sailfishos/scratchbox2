@@ -223,8 +223,6 @@ char *sbox_real_binary_name = NULL;
 char *sbox_orig_binary_name = NULL;
 char *sbox_active_exec_policy_name = NULL;
 char *sbox_mapping_method = NULL; /* optional */
-char *sbox_fakeroot_fakerootkey = NULL; /* stored FAKEROOTKEY (see sb_exec.c) */
-char *sbox_fakeroot_faked_mode = NULL; /* stored FAKED_MODE (see sb_exec.c) */
 
 int sb2_global_vars_initialized__ = 0;
 
@@ -333,23 +331,6 @@ void sb2_initialize_global_variables(void)
 		if (!sbox_mapping_method) {
 			cp = getenv("SBOX_MAPPING_METHOD");
 			if (cp) sbox_mapping_method = strdup(cp);
-		}
-
-		/* cache some variables from "fakeroot";
-		 * SB2 does not need these, but we'll protect
-		 * them - fakeroot can't do it itself.
-		 * (Seems that these are vital, when fakeroot
-		 * is used; otherwise e.g. "env -i" will clear
-		 * these, and fakeroot will be only partially
-		 * functional...)
-		*/
-		if (!sbox_fakeroot_fakerootkey) {
-			cp = getenv("FAKEROOTKEY");
-			if (cp) sbox_fakeroot_fakerootkey = strdup(cp);
-		}
-		if (!sbox_fakeroot_faked_mode) {
-			cp = getenv("FAKED_MODE");
-			if (cp) sbox_fakeroot_faked_mode = strdup(cp);
 		}
 
 		if (sbox_session_dir) {

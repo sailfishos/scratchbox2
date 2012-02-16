@@ -788,21 +788,6 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 				continue;
 			}
 			break;
-		case 'F':
-			if (sbox_fakeroot_fakerootkey &&
-			    (strncmp("FAKEROOTKEY=", *p,
-				strlen("FAKEROOTKEY=")) == 0)) {
-				SB_LOG(SB_LOGLEVEL_DEBUG, 
-					"Found '%s'", *p);
-			}
-
-			if (sbox_fakeroot_faked_mode &&
-			    (strncmp("FAKED_MODE=", *p,
-				strlen("FAKED_MODE=")) == 0)) {
-				SB_LOG(SB_LOGLEVEL_DEBUG, 
-					"Found '%s'", *p);
-			}
-			break;
 		}
 	}
 
@@ -840,20 +825,6 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 				strlen("LD_PRELOAD=")) == 0) ||
 			    (strncmp("LD_LIBRARY_PATH=", *p,
 				strlen("LD_LIBRARY_PATH=")) == 0)) continue;
-			break;
-		case 'F':
-			/* drop FAKEROOTKEY and FAKED_MODE, if present
-			 * and if these were already set.
-			 * we'll restore original values below. */
-			if (sbox_fakeroot_fakerootkey &&
-			    (strncmp("FAKEROOTKEY=", *p,
-				strlen("FAKEROOTKEY=")) == 0))
-				continue;
-
-			if (sbox_fakeroot_faked_mode &&
-			    (strncmp("FAKED_MODE=", *p,
-				strlen("FAKED_MODE=")) == 0))
-				 continue;
 			break;
 		}
 
@@ -944,26 +915,6 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 		     sbox_session_perm) < 0) {
 			SB_LOG(SB_LOGLEVEL_ERROR,
 				"asprintf failed to create SBOX_SESSION_PERM");
-		} else {
-			i++;
-		}
-	}
-
-	/* restore fakeroot's variables (optional) */
-	if (sbox_fakeroot_fakerootkey) {
-		if (asprintf(&(my_envp[i]), "FAKEROOTKEY=%s",
-		     sbox_fakeroot_fakerootkey) < 0) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
-				"asprintf failed to create FAKEROOTKEY");
-		} else {
-			i++;
-		}
-	}
-	if (sbox_fakeroot_faked_mode) {
-		if (asprintf(&(my_envp[i]), "FAKED_MODE=%s",
-		     sbox_fakeroot_faked_mode) < 0) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
-				"asprintf failed to create FAKED_MODE");
 		} else {
 			i++;
 		}

@@ -212,8 +212,6 @@ extern char *sbox_real_binary_name;
 extern char *sbox_orig_binary_name;
 extern char *sbox_active_exec_policy_name;
 extern char *sbox_mapping_method;
-extern char *sbox_fakeroot_fakerootkey;
-extern char *sbox_fakeroot_faked_mode;
 
 extern void check_pthread_library(void);
 

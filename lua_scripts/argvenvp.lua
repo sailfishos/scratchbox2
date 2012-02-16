@@ -280,8 +280,9 @@ function sb_execve_map_script_interpreter(exec_policy_name, interpreter,
 		end
 
 		-- FIXME: 4th parameter of find_rule() should be binary_name
+		-- 2nd parameter is func_class.
 		rule, min_path_len = find_rule(exec_policy.script_interpreter_rules,
-			"map_script_interpreter", interpreter, nil)
+			0, interpreter, nil)
 
 		if (rule) then
 			exec_pol_2, mapped_interpreter, ro_flag = sbox_execute_rule(

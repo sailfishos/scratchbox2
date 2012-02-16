@@ -24,7 +24,7 @@ valid_keywords_in_rules = {
 
 	-- additional conditions for rule selection:
 	binary_name = "string",
-	func_name = "string",
+	func_class = "number",
 
 	-- a subtree:
 	rules = "table",

@@ -42,12 +42,6 @@ local RULE_FLAGS_FORCE_ORIG_PATH = 4
 local RULE_FLAGS_READONLY_FS_IF_NOT_ROOT = 8
 local RULE_FLAGS_READONLY_FS_ALWAYS = 16
 
-local SB2_INTERFACE_CLASS_OPEN = 0x1
-local SB2_INTERFACE_CLASS_STAT = 0x2
-local SB2_INTERFACE_CLASS_EXEC = 0x4
-local SB2_INTERFACE_CLASS_SET_TIMES = 0x100
-local SB2_INTERFACE_CLASS_MKNOD = 0x400
-local SB2_INTERFACE_CLASS_RENAME = 0x800
 
 function get_rule_tree_offset_for_rule_list(rules, node_type_is_ordinary_rule)
 	if #rules < 1 then
@@ -79,30 +73,6 @@ function get_rule_tree_offset_for_union_dir_list(union_dir_list)
 	print("-- Added union dir to rule db: ",table.maxn(union_dir_list),
 		"rules, idx=", union_dir_rule_list_index)
 	return union_dir_rule_list_index
-end
-
--- Convert func_name, which is actually a Lua regexp, to 
--- classmask. This supports only a fixed set of predefined
--- masks, that are known to be in use.
---
--- FIXME: the real solution is to define the classmask in the rules
--- and obsole 'func_name' attributes completely.
-function func_name_to_classmask(func_name)
-	local mask = -1; -- default mask == -1 causes fallback to Lua mapping.
-	if (func_name == ".*open.*") then
-		mask = SB2_INTERFACE_CLASS_OPEN
-	elseif (func_name == ".*stat.*") then
-		mask = SB2_INTERFACE_CLASS_STAT
-	elseif (func_name == ".*exec.*") then
-		mask = SB2_INTERFACE_CLASS_EXEC
-	elseif (func_name == ".*utime.*") then
-		mask = SB2_INTERFACE_CLASS_SET_TIMES
-	elseif (func_name == ".*mknod.*") then
-		mask = SB2_INTERFACE_CLASS_MKNOD
-	elseif (func_name == ".*rename.*") then
-		mask = SB2_INTERFACE_CLASS_RENAME
-	end
-	return mask
 end
 
 -- Add a rule to the rule tree, return rule offset in the file.
@@ -231,18 +201,8 @@ function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule)
 		end
 	end
 
-	-- NOTE: func_name is a Lua-style pattern, which isn't usable
-	--	in C code. We'll try to convert it to a classmask (a bitmask)
-	local func_class = 0;
-	if (rule.func_name) then
-		func_class = func_name_to_classmask(rule.func_name)
-		if func_class == -1 then
-			io.stderr:write(string.format(
-				"Error: Rule loader: unsupported func_name (%s) in rule file\n",
-				rule.func_name))
-			return
-		end
-	end
+	-- a classmask == bitmask
+	local func_class = rule.func_class;
 
 	local rule_offs = ruletree.add_rule_to_ruletree(name,
 			selector_type, selector, action_type, action_str,

@@ -353,9 +353,17 @@ void sbox_map_path_for_sb2show(
 	while (ifp && ifp->fn_name) {
 		if (!strcmp(func_name, ifp->fn_name)) {
 			fn_class = ifp->fn_classmask;
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"%s: Found func_class 0x%X (%s)",
+				__func__, fn_class, func_name);
 			break;
 		}
 		ifp++;
+	}
+	if (!fn_class) {
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"%s: No func_class for %s",
+			__func__, func_name);
 	}
 
 	fwd_map_path(binary_name, func_name, virtual_path,

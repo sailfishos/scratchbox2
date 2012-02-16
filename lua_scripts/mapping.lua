@@ -9,6 +9,23 @@ local RULE_FLAGS_FORCE_ORIG_PATH = 4
 local RULE_FLAGS_READONLY_FS_IF_NOT_ROOT = 8
 local RULE_FLAGS_READONLY_FS_ALWAYS = 16
 
+-- Function class (bitmask) definitions for rule files:
+-- These must match SB2_INTERFACE_CLASS_* definitions in
+-- include/mapping.h
+FUNC_CLASS_OPEN		= 0x1
+FUNC_CLASS_STAT		= 0x2
+FUNC_CLASS_EXEC		= 0x4
+FUNC_CLASS_SOCKADDR	= 0x8
+FUNC_CLASS_FTSOPEN	= 0x10
+FUNC_CLASS_GLOB		= 0x20
+FUNC_CLASS_GETCWD	= 0x40
+FUNC_CLASS_REALPATH	= 0x80
+FUNC_CLASS_SET_TIMES	= 0x100
+FUNC_CLASS_L10N		= 0x200
+FUNC_CLASS_MKNOD	= 0x400
+FUNC_CLASS_RENAME	= 0x800
+
+
 -- Constants that can be used from the rules:
 --
 -- "protection" attribute:
@@ -91,6 +108,10 @@ function load_and_check_rules()
 	-- exec mapping code (argvenp.lua) and the
 	-- rule files:
 	--
+	-- Version 103:
+	-- - func_class (a bitmask) replaced func_name 
+	--   (a regexp) in rules.
+	--
 	-- Version 102:
 	-- - read "enable_cross_gcc_toolchain" from
 	--   ruletree, it is defined originally
@@ -154,7 +175,7 @@ function load_and_check_rules()
 	--   (previously only one was expected)
 	-- - variables "esc_tools_root" and "esc_target_root"
 	--   were removed
-	local current_rule_interface_version = "102"
+	local current_rule_interface_version = "103"
 
 	do_file(rule_file_path)
 
@@ -502,11 +523,12 @@ end
 
 -- returns rule and min_path_len, minimum length which is needed for
 -- successfull mapping.
-function find_rule(mapping_rules, func, full_path, binary_name)
+function find_rule(mapping_rules, fn_class, full_path, binary_name)
 	local i = 0
 	local min_path_len = 0
 	if (debug_messages_enabled) then
-		sb.log("noise", string.format("find_rule for (%s)", full_path))
+		sb.log("noise", string.format("find_rule for (%s), class=0x%X",
+			full_path, fn_class))
 	end
 
 	-- FIXME: Fix indentation:
@@ -524,19 +546,8 @@ function find_rule(mapping_rules, func, full_path, binary_name)
 					sb.log("error", "rule.chain is not supported (%s)", full_path)
 				end
 
-				if rule.func_name then
-					if string.match(func, rule.func_name) then
-						if (debug_messages_enabled) then
-							local rulename = rule.name
-							if rulename == nil then
-								rulename = string.format("#%d",i)
-							end
-
-							sb.log("noise", string.format(
-							  "func_name ok in rule '%s'",
-							  rulename))
-						end
-					else
+				if rule.func_class then
+					if sb.test_fn_class_match(fn_class, rule.func_class) < 1 then
 						rule = nil
 					end
 				end
@@ -565,7 +576,7 @@ function find_rule(mapping_rules, func, full_path, binary_name)
 					local s_rule
 					local s_min_len
 					s_rule, s_min_len = find_rule(
-						rule.rules, func, full_path, binary_name)
+						rule.rules, fn_class, full_path, binary_name)
 					if (s_rule ~= nil) then
 						return s_rule, s_min_len
 					end
@@ -607,7 +618,7 @@ end
 --   2. exec_policy_name
 --   3. path (mapping result)
 --   4. Flags (bitmask)
-function sbox_translate_path(rule, binary_name, func_name, path)
+function sbox_translate_path(rule, binary_name, func_name, path, fn_class)
 	local ret = path
 	local rp = path
 	local ret_flags = 0
@@ -658,12 +669,17 @@ end
 -- ("flags" may contain "call_translate_for_all", which
 -- is a flag which controls optimizations in
 -- the path resolution code)
-function sbox_get_mapping_requirements(binary_name, func_name, full_path)
+function sbox_get_mapping_requirements(binary_name, func_name, full_path, fn_class)
 	-- loop through the rules, first match is used
 	local min_path_len = 0
 	local rule = nil
 
-	rule, min_path_len = find_rule(fs_mapping_rules, func_name, full_path, binary_name)
+	if (debug_messages_enabled) then
+		sb.log("debug", string.format("sbox_get_mapping_requirements : fn_class type =%s",
+			type(fn_class)))
+	end
+
+	rule, min_path_len = find_rule(fs_mapping_rules, fn_class, full_path, binary_name)
 	if (not rule) then
 		-- error, not even a default rule found
 		sb.log("error", string.format("Unable to find rule for: %s(%s)", func_name, full_path))
@@ -681,7 +697,7 @@ end
 
 -- sbox_reverse_path is called from libsb2.so
 -- returns "orig_path", "flags"
-function sbox_reverse_path(binary_name, func_name, full_path)
+function sbox_reverse_path(binary_name, func_name, full_path, fn_class)
 	-- loop through the rules, first match is used
 	local min_path_len = 0
 	local rule = nil
@@ -696,7 +712,7 @@ function sbox_reverse_path(binary_name, func_name, full_path)
 		return nil, 0
 	end
 
-	rule, min_path_len = find_rule(reverse_fs_mapping_rules, func_name, full_path, binary_name)
+	rule, min_path_len = find_rule(reverse_fs_mapping_rules, fn_class, full_path, binary_name)
 	if (not rule) then
 		-- not even a default rule found
 		sb.log("info", string.format("Unable to find REVERSE rule for: %s(%s)", func_name, full_path))

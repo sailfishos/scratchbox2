@@ -155,8 +155,8 @@ char *call_lua_function_sbox_translate_path(
 	int flags;
 	char *host_path = NULL;
 
-	SB_LOG(SB_LOGLEVEL_NOISE, "calling sbox_translate_path for %s(%s)",
-		ctx->pmc_func_name, abs_clean_virtual_path);
+	SB_LOG(SB_LOGLEVEL_NOISE, "calling sbox_translate_path for %s(%s), fn_class=0x%X",
+		ctx->pmc_func_name, abs_clean_virtual_path, ctx->pmc_fn_class);
 	if (!sb2ctx->lua) sb2context_initialize_lua(sb2ctx);
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"call_lua_function_sbox_translate_path: gettop=%d",
@@ -174,8 +174,9 @@ char *call_lua_function_sbox_translate_path(
 	lua_pushstring(sb2ctx->lua, ctx->pmc_binary_name);
 	lua_pushstring(sb2ctx->lua, ctx->pmc_func_name);
 	lua_pushstring(sb2ctx->lua, abs_clean_virtual_path);
-	 /* 4 arguments, returns rule,policy,path,flags */
-	lua_call(sb2ctx->lua, 4, 4);
+	lua_pushnumber(sb2ctx->lua, ctx->pmc_fn_class);
+	 /* 5 arguments, returns rule,policy,path,flags */
+	lua_call(sb2ctx->lua, 5, 4);
 
 	host_path = (char *)lua_tostring(sb2ctx->lua, -2);
 	if (host_path && (*host_path != '/')) {
@@ -257,9 +258,10 @@ int call_lua_function_sbox_get_mapping_requirements(
 	lua_pushstring(sb2ctx->lua, ctx->pmc_binary_name);
 	lua_pushstring(sb2ctx->lua, ctx->pmc_func_name);
 	lua_pushstring(sb2ctx->lua, abs_virtual_source_path_string);
-	/* 3 arguments, returns 4: (rule, rule_found_flag,
+	lua_pushnumber(sb2ctx->lua, ctx->pmc_fn_class);
+	/* 4 arguments, returns 4: (rule, rule_found_flag,
 	 * min_path_len, flags) */
-	lua_call(sb2ctx->lua, 3, 4);
+	lua_call(sb2ctx->lua, 4, 4);
 
 	rule_found = lua_toboolean(sb2ctx->lua, -3);
 	min_path_len = lua_tointeger(sb2ctx->lua, -2);
@@ -301,8 +303,9 @@ char *call_lua_function_sbox_reverse_path(
 	lua_pushstring(sb2ctx->lua, ctx->pmc_binary_name);
 	lua_pushstring(sb2ctx->lua, ctx->pmc_func_name);
 	lua_pushstring(sb2ctx->lua, abs_host_path);
-	 /* 3 arguments, returns virtual_path and flags */
-	lua_call(sb2ctx->lua, 3, 2);
+	lua_pushnumber(sb2ctx->lua, ctx->pmc_fn_class);
+	 /* 4 arguments, returns virtual_path and flags */
+	lua_call(sb2ctx->lua, 4, 2);
 
 	virtual_path = (char *)lua_tostring(sb2ctx->lua, -2);
 	if (virtual_path) {

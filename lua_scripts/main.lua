@@ -16,7 +16,7 @@ mapping_engine_loaded = false
 --
 -- NOTE: the corresponding identifier for C is in include/sb2.h,
 -- see that file for description about differences
-sb2_lua_c_interface_version = "99"
+sb2_lua_c_interface_version = "120"
 
 function do_file(filename)
 	if (debug_messages_enabled) then
@@ -125,7 +125,7 @@ function sbox_get_host_policy_ld_params_loader()
 	return sbox_get_host_policy_ld_params()
 end
 
-function sbox_get_mapping_requirements(binary_name, func_name, full_path)
+function sbox_get_mapping_requirements(binary_name, func_name, full_path, fn_class)
 	local prev_fn = sbox_get_mapping_requirements
 
 	sb.log("info", "sbox_get_mapping_requirements called: loading mapping.lua")
@@ -139,10 +139,10 @@ function sbox_get_mapping_requirements(binary_name, func_name, full_path)
 
 	-- This loader has been replaced. The following call is not
 	-- a recursive call to this function, even if it may look like one:
-	return sbox_get_mapping_requirements(binary_name, func_name, full_path)
+	return sbox_get_mapping_requirements(binary_name, func_name, full_path, fn_class)
 end
 
-function sbox_reverse_path(binary_name, func_name, full_path)
+function sbox_reverse_path(binary_name, func_name, full_path, fn_class)
 	local prev_fn = sbox_reverse_path
 
 	sb.log("info", "sbox_reverse_path called: loading mapping.lua")
@@ -156,7 +156,7 @@ function sbox_reverse_path(binary_name, func_name, full_path)
 
 	-- This loader has been replaced. The following call is not
 	-- a recursive call to this function, even if it may look like one:
-	return sbox_reverse_path(binary_name, func_name, full_path)
+	return sbox_reverse_path(binary_name, func_name, full_path, fn_class)
 end
 
 function sbox_map_network_addr(realfnname, protocol, addr_type,

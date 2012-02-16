@@ -672,6 +672,28 @@ static int lua_sb_test_path_match(lua_State *l)
 	return 1;
 }
 
+/* sb.test_fn_class_match(fn_class, rule.func_class)
+ * - returns true if fn_class is in rule.func_class
+ * (Lua does not have bitwise operators)
+*/
+static int lua_sb_test_fn_class_match(lua_State *l)
+{
+	int	n = lua_gettop(l);
+	int	result = -1;
+
+	if (n == 2) {
+		int fn_class = lua_tointeger(l, 1);
+		int rule_fn_class = lua_tointeger(l, 2);
+
+		result = ((fn_class & rule_fn_class) != 0);
+		SB_LOG(SB_LOGLEVEL_NOISE,
+			"test_fn_class_match 0x%X,0x%X => %d",
+			fn_class, rule_fn_class, result);
+	}
+	lua_pushnumber(l, result);
+	return 1;
+}
+
 /* "sb.procfs_mapping_request", to be called from lua code */
 static int lua_sb_procfs_mapping_request(lua_State *l)
 {
@@ -789,6 +811,7 @@ static const luaL_reg reg[] =
 	{"get_session_dir",		lua_sb_get_session_dir},
 	{"isprefix",			lua_sb_isprefix},
 	{"test_path_match",		lua_sb_test_path_match},
+	{"test_fn_class_match",		lua_sb_test_fn_class_match},
 	{"test_net_addr_match",		lua_sb_test_net_addr_match},
 	{"procfs_mapping_request",	lua_sb_procfs_mapping_request},
 	{"test_if_listed_in_envvar",	lua_sb_test_if_listed_in_envvar},

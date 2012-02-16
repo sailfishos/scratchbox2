@@ -429,6 +429,174 @@ uint32_t ruletree_objectlist_get_list_size(
 	return (listhdr->rtree_olist_size);
 }
 
+/* =================== binary trees =================== */
+
+static ruletree_object_offset_t ruletree_create_bintree_entry(
+	uint64_t	key1,
+	uint64_t	key2,
+	ruletree_object_offset_t	value_offs)
+{
+	ruletree_bintree_t	new_entry;
+	ruletree_object_offset_t entry_location = 0;
+
+	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (0);
+	if (ruletree_ctx.rtree_ruletree_fd < 0) return(0);
+
+	memset(&new_entry, 0, sizeof(new_entry));
+
+	new_entry.rtree_bt_key1 = key1;
+	new_entry.rtree_bt_key2 = key2;
+	new_entry.rtree_bt_value = value_offs;
+
+	entry_location = append_struct_to_ruletree_file(&new_entry, sizeof(new_entry),
+		SB2_RULETREE_OBJECT_TYPE_BINTREE);
+	SB_LOG(SB_LOGLEVEL_NOISE,
+		"ruletree_create_bintree_entry: @%d",
+		(int)entry_location);
+	return(entry_location);
+}
+
+static ruletree_object_offset_t ruletree_find_bintree_entry(
+	uint64_t	key1,
+	uint64_t	key2,
+	ruletree_object_offset_t	root_offs,
+	ruletree_object_offset_t	*last_visited_node,
+	int				*last_result)
+{
+	ruletree_object_offset_t	node_offs;
+	ruletree_object_offset_t	last_compared_node = 0;
+	ruletree_object_offset_t	last_direction = 0;
+
+	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (0);
+	if (!root_offs) return(0);
+
+	SB_LOG(SB_LOGLEVEL_NOISE2,
+		"ruletree_find_bintree_entry: @%d : key1=0x%llX key2=%lld",
+		(int)root_offs, (long long)key1, (long long)key2);
+
+	node_offs = root_offs;
+
+	while(node_offs) {
+		ruletree_bintree_t	*bintrp;
+
+		bintrp = offset_to_ruletree_object_ptr(node_offs,
+				SB2_RULETREE_OBJECT_TYPE_BINTREE);
+		if (!bintrp) {
+			node_offs = 0;
+			break;
+		}
+		SB_LOG(SB_LOGLEVEL_NOISE3,
+			"ruletree_find_bintree_entry: check @%d",
+			node_offs);
+		
+		if ((bintrp->rtree_bt_key1 == key1) &&
+		    (bintrp->rtree_bt_key2 == key2)) {
+			SB_LOG(SB_LOGLEVEL_NOISE3,
+				"ruletree_find_bintree_entry: FOUND");
+			last_direction = 0;
+			return(node_offs);
+		}
+		last_compared_node = node_offs;
+		if ((key1 < bintrp->rtree_bt_key1) ||
+		    ((key1 == bintrp->rtree_bt_key1) &&
+		     (key2 <  bintrp->rtree_bt_key2))) {
+			SB_LOG(SB_LOGLEVEL_NOISE3,
+				"ruletree_find_bintree_entry: less");
+			last_direction = -1;
+			node_offs = bintrp->rtree_bt_link_less;
+		} else {
+			SB_LOG(SB_LOGLEVEL_NOISE3,
+				"ruletree_find_bintree_entry: more");
+			last_direction = +1;
+			node_offs = bintrp->rtree_bt_link_more;
+		}
+	}
+	SB_LOG(SB_LOGLEVEL_NOISE3,
+		"ruletree_find_bintree_entry: Not found.");
+	if(last_visited_node) *last_visited_node = last_compared_node;
+	if(last_result) *last_result = last_direction;
+	return(node_offs);
+}
+
+/* returns 0 or offset to new root. */
+static ruletree_object_offset_t ruletree_add_to_bintree_entry(
+	ruletree_object_offset_t value_node_offs,
+	uint64_t key1,
+	uint64_t key2,
+	ruletree_object_offset_t last_compared_node,
+	ruletree_object_offset_t last_direction)
+{
+	ruletree_bintree_t	*parent_bintrp;
+	ruletree_object_offset_t new_bintree_node_offs;
+
+	SB_LOG(SB_LOGLEVEL_NOISE2,
+		"ruletree_add_to_bintree_entry: @%d",
+		(int)value_node_offs);
+
+	if (last_compared_node == 0) {
+		/* no root - add first node. */
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"ruletree_add_to_bintree_entry: First node");
+		new_bintree_node_offs = ruletree_create_bintree_entry(
+			key1, key2, value_node_offs);
+		return(new_bintree_node_offs);
+	}
+
+	parent_bintrp = offset_to_ruletree_object_ptr(last_compared_node,
+				SB2_RULETREE_OBJECT_TYPE_BINTREE);
+
+	if (!parent_bintrp) {
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"ruletree_add_to_bintree_entry: invalid parent");
+		return(0);
+	}
+
+	new_bintree_node_offs = ruletree_create_bintree_entry(
+		key1, key2, value_node_offs);
+	switch (last_direction) {
+	case -1:
+		if ((key1 < parent_bintrp->rtree_bt_key1) ||
+		    ((key1 == parent_bintrp->rtree_bt_key1) &&
+		     (key2 <  parent_bintrp->rtree_bt_key2))) {
+			SB_LOG(SB_LOGLEVEL_NOISE3,
+				"ruletree_add_to_bintree_entry: less");
+			if (parent_bintrp->rtree_bt_link_less) {
+				SB_LOG(SB_LOGLEVEL_DEBUG,
+					"ruletree_add_to_bintree_entry: less already exits!");
+			} else {
+				parent_bintrp->rtree_bt_link_less = new_bintree_node_offs;
+			}
+		} else {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"ruletree_add_to_bintree_entry: invalid direction (-1)");
+		}
+		break;
+	case 1:
+		if ((key1 < parent_bintrp->rtree_bt_key1) ||
+		    ((key1 == parent_bintrp->rtree_bt_key1) &&
+		     (key2 <  parent_bintrp->rtree_bt_key2))) {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"ruletree_add_to_bintree_entry: invalid direction (+1)");
+		} else {
+			SB_LOG(SB_LOGLEVEL_NOISE3,
+				"ruletree_add_to_bintree_entry: more");
+			if (parent_bintrp->rtree_bt_link_more) {
+				SB_LOG(SB_LOGLEVEL_DEBUG,
+					"ruletree_add_to_bintree_entry: more already exits!");
+			} else {
+				parent_bintrp->rtree_bt_link_more = new_bintree_node_offs;
+			}
+		}
+		break;
+	default:
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"ruletree_add_to_bintree_entry: invalid direction(%d)!",
+			last_direction);
+		break;
+	}
+	return(0);
+}
+
 /* =================== catalogs =================== */
 
 static ruletree_object_offset_t ruletree_create_catalog_entry(

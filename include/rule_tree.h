@@ -36,6 +36,7 @@ typedef struct ruletree_object_hdr_s {
 #define SB2_RULETREE_OBJECT_TYPE_FSRULE		3	/* ruletree_fsrule_t */
 #define SB2_RULETREE_OBJECT_TYPE_STRING		4	/* ruletree_string_hdr_t */
 #define SB2_RULETREE_OBJECT_TYPE_OBJECTLIST	5	/* ruletree_objectlist_t */
+#define SB2_RULETREE_OBJECT_TYPE_BINTREE	6	/* ruletree_bintree_t */
 #define SB2_RULETREE_OBJECT_TYPE_UINT32		8	/* ruletree_uint32_t */
 #define SB2_RULETREE_OBJECT_TYPE_BOOLEAN	9	/* also ruletree_uint32_t */
 #define SB2_RULETREE_OBJECT_TYPE_EXEC_PP_RULE	14	/* ruletree_exec_preprocessing_rule_t */
@@ -114,6 +115,15 @@ typedef struct ruletree_exec_policy_selection_rule_s {
         ruletree_object_offset_t	rtree_xps_selector_offs;
         ruletree_object_offset_t	rtree_xps_exec_policy_name_offs;
 } ruletree_exec_policy_selection_rule_t;
+
+typedef struct ruletree_bintree_s {
+	ruletree_object_hdr_t		rtree_bt_objhdr;
+	uint64_t			rtree_bt_key1;
+	uint64_t			rtree_bt_key2;
+	ruletree_object_offset_t	rtree_bt_value;
+	ruletree_object_offset_t	rtree_bt_link_less;
+	ruletree_object_offset_t	rtree_bt_link_more;
+} ruletree_bintree_t;
 
 /* the string header structure is followed by the string itself. */
 typedef struct ruletree_string_hdr_s {

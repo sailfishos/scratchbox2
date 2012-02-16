@@ -389,6 +389,58 @@ static void dump_objectlist(ruletree_object_offset_t list_offs, int indent)
 	printf("}\n");
 }
 
+static void dump_bintree(ruletree_object_offset_t tree_offs, int indent,
+	int depth, int *maxdepth, int *nodes)
+{
+	ruletree_object_hdr_t *hdr;
+	int	maxd = 0, n = 0;
+
+	hdr = offset_to_ruletree_object_ptr(
+		tree_offs, SB2_RULETREE_OBJECT_TYPE_BINTREE);
+
+	if (!maxdepth) maxdepth = &maxd;
+	if (!nodes) nodes = &n;
+	if (*maxdepth < depth) *maxdepth = depth;
+	(*nodes)++;
+
+	print_indent(indent);
+	if (!hdr) {
+		printf("{ INVALID, not a bintree node [%u]}\n", (unsigned)tree_offs);
+	} else {
+		ruletree_bintree_t *bthdr = (ruletree_bintree_t*)hdr;
+
+		printf("{ bintree[%u], key=(%llu,%llu) less=%u, more=%u, value @%u\n",
+			(unsigned)tree_offs,
+			(long long unsigned int)bthdr->rtree_bt_key1,
+			(long long unsigned int)bthdr->rtree_bt_key2,
+			bthdr->rtree_bt_link_less, bthdr->rtree_bt_link_more,
+			bthdr->rtree_bt_value);
+		if (bthdr->rtree_bt_value) {
+			print_indent(indent+1);
+			print_ruletree_object_type(bthdr->rtree_bt_value);
+			printf("\n");
+			print_ruletree_object_recurse(indent+1, NULL, bthdr->rtree_bt_value);
+		}
+
+		if (bthdr->rtree_bt_link_less) {
+			print_indent(indent);
+			printf("  Less:\n");
+			dump_bintree(bthdr->rtree_bt_link_less, indent+1, depth+1, maxdepth, nodes);
+		}
+		if (bthdr->rtree_bt_link_more) {
+			print_indent(indent);
+			printf("  More:\n");
+			dump_bintree(bthdr->rtree_bt_link_more, indent+1, depth+1, maxdepth, nodes);
+		}
+	}
+	if (depth <= 1) {
+		print_indent(indent);
+		printf("  Bintree maddepth = %d, nodes = %d\n", *maxdepth, *nodes);
+	}
+	print_indent(indent);
+	printf("}\n");
+}
+
 static void print_ruletree_object_type(ruletree_object_offset_t obj_offs)
 {
 	ruletree_object_hdr_t *hdr;
@@ -417,6 +469,9 @@ static void print_ruletree_object_type(ruletree_object_offset_t obj_offs)
 			break;
 		case SB2_RULETREE_OBJECT_TYPE_OBJECTLIST:
 			printf("LIST @%u", obj_offs);
+			break;
+		case SB2_RULETREE_OBJECT_TYPE_BINTREE:
+			printf("BINTREE @%u", obj_offs);
 			break;
 		case SB2_RULETREE_OBJECT_TYPE_UINT32:
 			uip = ruletree_get_pointer_to_uint32(obj_offs);
@@ -459,6 +514,9 @@ static void print_ruletree_object_recurse(int indent, const char *name, ruletree
 				printf("'%s'\n", name);
 			}
 			dump_objectlist(obj_offs, indent+1);
+			break;
+		case SB2_RULETREE_OBJECT_TYPE_BINTREE:
+			dump_bintree(obj_offs, indent, 1, NULL, NULL);
 			break;
 		default:
 			/* ignore it. */

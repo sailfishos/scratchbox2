@@ -1,3 +1,18 @@
+scratchbox2 (2.3.29-1) unstable; urgency=low
+
+  * Important change to command-line parameter handling:
+    the "sb2" command now prevents re-evaluation of command
+    line parameters which are passed to the commands running
+    inside the session. It also preserves whitespace in such
+    parameters (previously, an extra shell was used there,
+    but that has been eliminated completely now)
+  * Important change to rule file format:
+    func_class (a bitmask) replaced func_name (a regexp)
+    in path mapping rules
+  * C/Lua interface version = 120
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Tue, 14 Feb 2012 18:27:00 +0200
+
 scratchbox2 (2.3.28-1) unstable; urgency=low
 
   * Exec policy selection is now implemented in C

@@ -207,24 +207,6 @@ function setenv_native_app_ld_preload(exec_policy, envp)
 				exec_policy.native_app_ld_preload_suffix))
 	else
 		new_preload = host_ld_preload
-		-- See if fakeroot is needed. The exec policy
-		-- didn't say anything about that; now there are
-		-- two ways how fakeroot may get in: 
-		if sb.get_session_perm() == "root" then
-			-- session was entered with -R 
-			new_preload = new_preload..":"..host_ld_preload_fakeroot
-		else
-			-- check if fakeroot session was created inside
-			-- the sb2 session. User's LD_PRELOAD variable
-			-- wiil reveal that.
-			local users_ld_preload = get_users_ld_preload(envp)
-			if (users_ld_preload ~= "") then
-				if string.find(users_ld_preload,"libfakeroot") then
-					-- need to use fakeroot.
-					new_preload = new_preload..":"..host_ld_preload_fakeroot
-				end
-			end
-		end
 	end
 
 	set_ld_preload(envp, new_preload)
@@ -639,11 +621,6 @@ function sb_execve_postprocess_cpu_transparency_executable(exec_policy,
 			table.insert(new_argv, "-libattr-hack")
 		end
 
-		local needs_libfakeroot = false
-		if sb.get_session_perm() == "root" then
-			needs_libfakeroot = true
-		end
-
 		if conf_cputransparency_qemu_has_env_control_flags then
 			for i = 1, #envp do
 				-- drop LD_TRACE_* from target environment
@@ -652,16 +629,9 @@ function sb_execve_postprocess_cpu_transparency_executable(exec_policy,
 					table.insert(new_argv, "-E")
 					table.insert(new_argv, envp[i])
 				elseif string.match(envp[i], "^__SB2_LD_PRELOAD=.*") then
-					if string.match(envp[i], "libfakeroot") then
-						if needs_libfakeroot == false then
-							table.insert(new_envp, "SBOX_SESSION_PERM=root")
-						end
-						needs_libfakeroot = true
-					end
 					-- FIXME: This will now drop application's
 					-- LD_PRELOAD. This is not really what should 
-					-- be done; instead we should only drop 
-					-- libfakeroot, not everything... To Be Fixed.
+					-- be done... To Be Fixed.
 				else
 					table.insert(new_envp, envp[i])
 				end
@@ -700,18 +670,6 @@ function sb_execve_postprocess_cpu_transparency_executable(exec_policy,
 			qemu_ldpreload = "LD_PRELOAD=" ..  host_ld_preload
 		else
 			qemu_ldpreload = conf_cputransparency_qemu_ld_preload
-		end
-
-		-- NOTE/FIXME: This still assumes that the name of the libfakeroot
-		-- library is the same as what is used on the host. This is 
-		-- usually (always?) the case, and if it isn't, there is
-		-- something fatally wrong anyway. That is why 
-		-- "host_ld_preload_fakeroot" is used here, even if "host_*"
-		-- should not be mixed to things that might actually come from
-		-- the target. But using libsb2 and libfakeroot at the same
-		-- time is a complex thing...
-		if needs_libfakeroot then
-			qemu_ldpreload = qemu_ldpreload ..  ":" .. host_ld_preload_fakeroot
 		end
 
 		table.insert(new_envp, qemu_ldlibpath)
@@ -824,13 +782,10 @@ function sbox_get_host_policy_ld_params()
 	-- in the future we should get these values from a "Host" exec policy,
 	-- but can't do so before the exec policy conventions dictate
 	-- that a "Host" policy must exist. Now the values are hardcoded:
-	local ldpreload
-	if sb.get_session_perm() == "root" then
-		ldpreload = host_ld_preload ..  ":" .. host_ld_preload_fakeroot
-	else
-		ldpreload = host_ld_preload
-	end
-	return ldpreload, host_ld_library_path
+	-- FIXME 2:
+	-- Now when fakeroot has been eliminated, this function isn't 
+	-- very useful and might be removed completely?
+	return host_ld_preload, host_ld_library_path
 end
 
 exec_engine_loaded = true

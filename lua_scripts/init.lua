@@ -10,6 +10,14 @@
 session_dir = os.getenv("SBOX_SESSION_DIR")
 debug_messages_enabled = sblib.debug_messages_enabled()
 
+-- Create the "vperm" catalog
+--	vperm::inodestats is the binary tree, initially empty,
+--	but the entry must be present.
+--	all counters must be present and zero in the beginning.
+ruletree.catalog_set("vperm", "inodestats", 0)
+ruletree.catalog_set("vperm", "num_active_inodestats",
+	ruletree.new_uint32(0))
+
 function do_file(filename)
 	if (debug_messages_enabled) then
 		sblib.log("debug", string.format("Loading '%s'", filename))

@@ -169,8 +169,6 @@ install-noarch: regular
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-config $(prefix)/bin/sb2-config
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-session $(prefix)/bin/sb2-session
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-build-libtool $(prefix)/bin/sb2-build-libtool
-	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-build-qemuserver $(prefix)/bin/sb2-build-qemuserver
-	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-mkinitramfs $(prefix)/bin/sb2-mkinitramfs
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-start-qemuserver $(prefix)/bin/sb2-start-qemuserver
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-qemu-gdbserver-prepare $(prefix)/bin/sb2-qemu-gdbserver-prepare
 

@@ -19,7 +19,6 @@ Prefix: 		/usr
 Group: 			Development/Tools
 
 BuildRequires:	make
-Requires:	fakeroot
 
 %description
 Scratchbox2 crosscompiling environment

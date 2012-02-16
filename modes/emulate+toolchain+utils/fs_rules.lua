@@ -3,7 +3,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "102"
+rule_file_interface_version = "103"
 ----------------------------------
 
 sb1_compat_dir = sbox_target_root .. "/scratchbox1-compat"
@@ -61,11 +61,8 @@ rootdir_rules = {
 		{path = "/", binary_name = "pwd", use_orig_path = true},
 
 		-- All other programs:
-		{path = "/", func_name = ".*stat.*",
-                    map_to = target_root, protection = readonly_fs_if_not_root },
-		{path = "/", func_name = ".*open.*",
-                    map_to = target_root, protection = readonly_fs_if_not_root },
-		{path = "/", func_name = ".*utime.*",
+		{path = "/",
+		    func_class = FUNC_CLASS_STAT + FUNC_CLASS_OPEN + FUNC_CLASS_SET_TIMES,
                     map_to = target_root, protection = readonly_fs_if_not_root },
 
 		-- Default: Map to real root.
@@ -251,7 +248,8 @@ emulate_mode_rules_dev = {
 		-- We can't change times or attributes of host's devices,
 		-- but must pretend to be able to do so. Redirect the path
 		-- to an existing, dummy location.
-		{dir = "/dev", func_name = ".*utime.*",
+		{dir = "/dev",
+		 func_class = FUNC_CLASS_SET_TIMES,
 	         set_path = session_dir.."/dummy_file", protection = readonly_fs_if_not_root },
 
 		-- Default: Use real devices.

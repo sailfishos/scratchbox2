@@ -159,20 +159,3 @@ ld.so --nodefaultdirs option patch
 	the "scratchboxed" environment but are present in the host)
 
 
-OTHER THINGS
-============
-
-ubuntu_lucid_64bit_fakeroot_fix.patch
--------------------------------------
-
-	32-bit libfakeroot is missing from 64-bit Ubuntu Lucid
-	(version 1.14.4-1ubuntu1 of fakeroot is buggy); the bug
-	has been reported but haven't been fixed (Dec 16, 2010);
-	https://bugs.launchpad.net/ubuntu/+source/fakeroot/+bug/571091
-
-	To fix the problem:
-	- get the sources (atp-get source fakeroot)
-	- apply the patch
-	- use dpkg-buidpackage
-	- install the fixed version (1.14.4-1ubuntu1.1)
-

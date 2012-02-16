@@ -37,6 +37,7 @@ typedef struct ruletree_object_hdr_s {
 #define SB2_RULETREE_OBJECT_TYPE_STRING		4	/* ruletree_string_hdr_t */
 #define SB2_RULETREE_OBJECT_TYPE_OBJECTLIST	5	/* ruletree_objectlist_t */
 #define SB2_RULETREE_OBJECT_TYPE_BINTREE	6	/* ruletree_bintree_t */
+#define SB2_RULETREE_OBJECT_TYPE_INODESTAT	7	/* ruletree_inodestat_t */
 #define SB2_RULETREE_OBJECT_TYPE_UINT32		8	/* ruletree_uint32_t */
 #define SB2_RULETREE_OBJECT_TYPE_BOOLEAN	9	/* also ruletree_uint32_t */
 #define SB2_RULETREE_OBJECT_TYPE_EXEC_PP_RULE	14	/* ruletree_exec_preprocessing_rule_t */
@@ -124,6 +125,34 @@ typedef struct ruletree_bintree_s {
 	ruletree_object_offset_t	rtree_bt_link_less;
 	ruletree_object_offset_t	rtree_bt_link_more;
 } ruletree_bintree_t;
+
+typedef struct {
+	uint64_t	inodesimu_dev;     /* device containing it; used as key */
+	uint64_t	inodesimu_ino;     /* inode number; used as key */
+
+	uint64_t	inodesimu_rdev;	/* device id if special file */
+	uint32_t	inodesimu_devmode; /* S_IFCHR or S_IFBLK if special file */
+
+	uint32_t   	inodesimu_uid;	/* simulated UID */
+	uint32_t   	inodesimu_gid;	/* simulated GID */
+	uint32_t	inodesimu_mode;	/* simulated protection bits (Trwxrwxrwx) */
+	uint32_t	inodesimu_suidsgid;	/* simulated SUID/SGID bits */
+
+	uint32_t	inodesimu_active_fields;	/* bit mask (RULETREE_INODESTAT_SIM_*) */
+} inodesimu_t;
+
+typedef struct ruletree_inodestat_s {
+	ruletree_object_hdr_t	rtree_inode_objhdr;
+
+	inodesimu_t		rtree_inode_simu;
+} ruletree_inodestat_t;
+
+/* bit mask simulated_fields: */
+#define RULETREE_INODESTAT_SIM_UID	0x1	/* set when UID simulation is active */
+#define RULETREE_INODESTAT_SIM_GID	0x2	/* set when GID simulation is active */
+#define RULETREE_INODESTAT_SIM_MODE	0x4	/* set when mode simulation is active */
+#define RULETREE_INODESTAT_SIM_DEVNODE	0x8	/* set when simulating a blk/chr device */
+#define RULETREE_INODESTAT_SIM_SUIDSGID	0x10	/* set when SUID/SGID simulation is active */
 
 /* the string header structure is followed by the string itself. */
 typedef struct ruletree_string_hdr_s {
@@ -236,6 +265,35 @@ extern uint32_t *ruletree_catalog_get_uint32_ptr(
 extern uint32_t *ruletree_catalog_get_boolean_ptr(
 	const char *catalog_name, const char *object_name);
 
+/* inodestats */
+typedef struct {
+	uint64_t	rfh_dev;     /* device containing it; used as key */
+	uint64_t	rfh_ino;     /* inode number; used as key */
+
+	/* bintree node offset, if known */
+	ruletree_object_offset_t	rfh_offs;
+
+	/* next two fields are filled by ruletree_find_inodestat(),
+	 * and used by ruletree_set_inodestat() */
+	ruletree_object_offset_t        rfh_last_visited_node;
+	int				rfh_last_result;
+} ruletree_inodestat_handle_t;
+
+#define ruletree_clear_inodestat_handle(p) \
+	do {memset((p),0,sizeof(ruletree_inodestat_handle_t));} while(0)
+
+#define ruletree_init_inodestat_handle(p, dev, ino) \
+	do {ruletree_clear_inodestat_handle((p)); \
+	    (p)->rfh_dev = (dev); (p)->rfh_ino = (ino); \
+	} while(0)
+
+extern int ruletree_find_inodestat(
+	ruletree_inodestat_handle_t	*handle,
+        inodesimu_t                      *istat_struct);
+
+extern ruletree_object_offset_t ruletree_set_inodestat(
+	ruletree_inodestat_handle_t	*handle,
+        inodesimu_t      		*istat_struct);
 
 /* ------------ rule_tree_luaif.c: ------------ */
 extern int lua_bind_ruletree_functions(lua_State *l);

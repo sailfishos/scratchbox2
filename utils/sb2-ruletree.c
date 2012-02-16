@@ -473,6 +473,38 @@ static void print_ruletree_object_type(ruletree_object_offset_t obj_offs)
 		case SB2_RULETREE_OBJECT_TYPE_BINTREE:
 			printf("BINTREE @%u", obj_offs);
 			break;
+		case SB2_RULETREE_OBJECT_TYPE_INODESTAT:
+			{
+				ruletree_inodestat_t *fsp;
+
+				fsp = (ruletree_inodestat_t*)hdr;
+				if (fsp) {
+					int	a = fsp->rtree_inode_simu.inodesimu_active_fields;
+
+					printf("INODESTAT: dev=%lld ino=%lld act=0x%X",
+						(long long)fsp->rtree_inode_simu.inodesimu_dev,
+						(long long)fsp->rtree_inode_simu.inodesimu_ino, a);
+					if (a & RULETREE_INODESTAT_SIM_UID) 
+						printf(" uid=%d",
+							(int)fsp->rtree_inode_simu.inodesimu_uid);
+					if (a & RULETREE_INODESTAT_SIM_GID) 
+						printf(" gid=%d",
+							(int)fsp->rtree_inode_simu.inodesimu_gid);
+					if (a & RULETREE_INODESTAT_SIM_MODE) 
+						printf(" mode=0%o",
+							(int)fsp->rtree_inode_simu.inodesimu_mode);
+					if (a & RULETREE_INODESTAT_SIM_SUIDSGID) 
+						printf(" suid_sgid=0%o",
+							(int)fsp->rtree_inode_simu.inodesimu_suidsgid);
+					if (a & RULETREE_INODESTAT_SIM_DEVNODE) 
+						printf(" device_type=0%o rdev=0x%llX",
+							(int)fsp->rtree_inode_simu.inodesimu_devmode,
+							(long long)fsp->rtree_inode_simu.inodesimu_rdev);
+				} else {
+					printf("INODESTAT: <NULL>");
+				}
+			}
+			break;
 		case SB2_RULETREE_OBJECT_TYPE_UINT32:
 			uip = ruletree_get_pointer_to_uint32(obj_offs);
 			if (uip)

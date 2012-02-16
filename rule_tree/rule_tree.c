@@ -597,6 +597,148 @@ static ruletree_object_offset_t ruletree_add_to_bintree_entry(
 	return(0);
 }
 
+/* =================== file/inode status simulation structures =================== */
+
+static ruletree_object_offset_t ruletree_create_inodestat(
+	inodesimu_t	*istat_struct)
+{
+	ruletree_inodestat_t	new_entry;
+	ruletree_object_offset_t entry_location = 0;
+
+	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (0);
+	if (ruletree_ctx.rtree_ruletree_fd < 0) return(0);
+
+	memset(&new_entry, 0, sizeof(new_entry));
+
+	new_entry.rtree_inode_simu = *istat_struct;
+
+	entry_location = append_struct_to_ruletree_file(&new_entry, sizeof(new_entry),
+		SB2_RULETREE_OBJECT_TYPE_INODESTAT);
+	return(entry_location);
+}
+
+/* Inode number is the primary key to the bintree
+ * (device number is the secondary key), but
+ * sometimes inode allocation may be done somewhat
+ * sequentially. For a slightly better balancing 
+ * of the tree, reverse some bits of the key:
+ * This algorithm takes the lowest 8 bits, reverses
+ * them, and the result will be in bits 32..39 or
+ * "k" below (rest of bits in "k" are copies of the
+ * original bits or zero, those cause no harm here)
+ *
+ * For detailed explanation, see 
+ * http://graphics.stanford.edu/~seander/bithacks.html#ReverseByteWith64Bits
+*/
+static uint64_t ino_to_key(uint64_t ino)
+{
+	uint64_t	k;
+
+	k = ((((ino & 0xFF) * 0x80200802ULL) & 0x0884422110ULL) * 0x0101010101ULL) << 24;
+	return(k ^ ino);
+}
+
+static ruletree_object_offset_t	inodestats_bintree_root = 0;
+
+/* in: "handle" contains the keys
+ * out: istat_struct has been filled, if a matching node was found.
+ *	in any case, "handle" has been updated so that 
+ *      ruletree_set_inodestat() can be called later to add/update
+ *	a istat_struct.
+ * returns 0 if OK, negative if not found. */
+int ruletree_find_inodestat(
+	ruletree_inodestat_handle_t	*handle,
+	inodesimu_t			*istat_struct)
+{
+	ruletree_bintree_t	*bintrp;
+	ruletree_inodestat_t	*fsptr;
+
+	SB_LOG(SB_LOGLEVEL_NOISE,
+		"ruletree_find_inodestat (dev=%lld,ino=%lld,key=%llX)",
+			(long long)handle->rfh_dev,
+			(long long)handle->rfh_ino,
+			ino_to_key(handle->rfh_ino));
+	handle->rfh_last_visited_node = 0;
+	handle->rfh_last_result = 0;
+
+	if (!ruletree_ctx.rtree_ruletree_path) ruletree_to_memory();
+
+	if (!inodestats_bintree_root) {
+		inodestats_bintree_root = ruletree_catalog_get(
+			"vperm", "inodestats");
+		if (!inodestats_bintree_root) return(-1);
+	}
+	handle->rfh_offs = ruletree_find_bintree_entry(
+		ino_to_key(handle->rfh_ino), handle->rfh_dev,
+		inodestats_bintree_root, &handle->rfh_last_visited_node,
+		&handle->rfh_last_result);
+	if (!handle->rfh_offs) return(-1);
+		
+	bintrp = offset_to_ruletree_object_ptr(handle->rfh_offs,
+			SB2_RULETREE_OBJECT_TYPE_BINTREE);
+	if (!bintrp) return(-1);
+	fsptr = offset_to_ruletree_object_ptr(bintrp->rtree_bt_value,
+			SB2_RULETREE_OBJECT_TYPE_INODESTAT);
+	if (!fsptr) return(-1);
+
+	*istat_struct = fsptr->rtree_inode_simu;
+
+	return(0);
+}
+
+/* set/add a inodestat structure to the binary tree.
+ * ruletree_find_inodestat() must be called beforehand to 
+ * fill "handle" (unless adding the very first node)
+ *
+ * returns 0 or offset to new binary tree root. */
+ruletree_object_offset_t ruletree_set_inodestat(
+	ruletree_inodestat_handle_t	*handle,
+	inodesimu_t			*istat_struct)
+{
+	SB_LOG(SB_LOGLEVEL_NOISE,
+		"ruletree_set_inodestat (dev=%lld,ino=%lld,key=%llX))",
+			(long long)handle->rfh_dev,
+			(long long)handle->rfh_ino,
+			ino_to_key(handle->rfh_ino));
+	if (handle->rfh_offs) {
+		/* Node is already in the tree. Update it */
+		ruletree_inodestat_t	*fsptr;
+		ruletree_bintree_t	*bintrp;
+
+		bintrp = offset_to_ruletree_object_ptr(handle->rfh_offs,
+				SB2_RULETREE_OBJECT_TYPE_BINTREE);
+		if (!bintrp) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"ruletree_set_inodestat: Internal error: Invalid handle");
+			return(0);
+		}
+		fsptr = offset_to_ruletree_object_ptr(bintrp->rtree_bt_value,
+				SB2_RULETREE_OBJECT_TYPE_INODESTAT);
+		if (!fsptr) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"ruletree_set_inodestat: Internal error: Invalid bintree");
+			return(0);
+		}
+		SB_LOG(SB_LOGLEVEL_NOISE,
+			"ruletree_set_inodestat: set info");
+		fsptr->rtree_inode_simu = *istat_struct;
+		return(0);
+	} else {
+		/* Add to the tree. */
+		ruletree_object_offset_t	bt_root;
+
+		SB_LOG(SB_LOGLEVEL_NOISE,
+			"ruletree_set_inodestat: add to tree");
+		handle->rfh_offs = ruletree_create_inodestat(istat_struct);
+		bt_root = ruletree_add_to_bintree_entry(handle->rfh_offs,
+			ino_to_key(handle->rfh_ino), handle->rfh_dev,
+			handle->rfh_last_visited_node, handle->rfh_last_result);
+		if (bt_root)
+			ruletree_catalog_set("vperm", "inodestats", bt_root);
+		return (bt_root);
+	}
+}
+
 /* =================== catalogs =================== */
 
 static ruletree_object_offset_t ruletree_create_catalog_entry(

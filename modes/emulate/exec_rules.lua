@@ -6,17 +6,12 @@
 rule_file_interface_version = "203"
 ----------------------------------
 
--- If the permission token exists and contains "root", use fakeroot.
-local fakeroot_ld_preload = ""
-if sb.get_session_perm() == "root" then
-	fakeroot_ld_preload = ":"..host_ld_preload_fakeroot
-end
 
 -- Exec policy rules.
 
 exec_policy_host = {
 	name = "Host",
-	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
+	native_app_ld_preload_prefix = host_ld_preload,
 }
 
 -- For target binaries:
@@ -43,7 +38,6 @@ if (conf_target_sb2_installed) then
 	emulate_mode_target_ld_library_path_prefix = conf_target_ld_so_library_path
 else
 	emulate_mode_target_ld_library_path_prefix =
-		host_ld_library_path_libfakeroot ..
 		host_ld_library_path_prefix ..
 		host_ld_library_path_libsb2
 	emulate_mode_target_ld_library_path_suffix =
@@ -65,7 +59,7 @@ local exec_policy_target = {
 	native_app_locale_path = conf_target_locale_path,
 	native_app_gconv_path = conf_target_gconv_path,
 
-	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
+	native_app_ld_preload_prefix = host_ld_preload,
 }
 
 --
@@ -94,7 +88,6 @@ if ((tools_root ~= nil) and conf_tools_sb2_installed) then
 	end
 else
 	emulate_mode_tools_ld_library_path_prefix =
-		host_ld_library_path_libfakeroot ..
 		host_ld_library_path_prefix ..
 		host_ld_library_path_libsb2
 	emulate_mode_tools_ld_library_path_suffix =
@@ -115,7 +108,7 @@ local exec_policy_tools = {
 	native_app_locale_path = conf_tools_locale_path,
 	native_app_gconv_path = conf_tools_gconv_path,
 
-	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
+	native_app_ld_preload_prefix = host_ld_preload,
 }
 
 

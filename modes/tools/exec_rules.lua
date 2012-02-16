@@ -9,17 +9,12 @@
 rule_file_interface_version = "203"
 ----------------------------------
 
--- If the permission token exists and contains "root", use fakeroot.
-local fakeroot_ld_preload = ""
-if sb.get_session_perm() == "root" then
-	fakeroot_ld_preload = ":"..host_ld_preload_fakeroot
-end
 
 -- Exec policy rules.
 
 default_exec_policy = {
 	name = "Default",
-	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
+	native_app_ld_preload_prefix = host_ld_preload,
 }
 
 -- For binaries from tools_root:
@@ -47,7 +42,6 @@ if (conf_tools_sb2_installed) then
 	tools_mode_tools_ld_library_path_prefix = conf_tools_ld_so_library_path
 else
 	tools_mode_tools_ld_library_path_prefix =
-		host_ld_library_path_libfakeroot ..
 		host_ld_library_path_prefix ..
 		host_ld_library_path_libsb2
 	tools_mode_tools_ld_library_path_suffix =

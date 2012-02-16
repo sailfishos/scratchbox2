@@ -277,7 +277,7 @@ emulate_mode_rules_dev = {
 		 func_class = FUNC_CLASS_SET_TIMES,
 	         set_path = session_dir.."/dummy_file", protection = readonly_fs_if_not_root },
 
-		-- mknod is simulated by fakeroot. Redirect to a directory where
+		-- mknod is simulated. Redirect to a directory where
 		-- mknod can create the node.
 		-- Also, typically, rename() is used to rename nodes created by
 		-- mknod() (and it can't be used to rename real devices anyway)
@@ -286,7 +286,7 @@ emulate_mode_rules_dev = {
 	         map_to = session_dir, protection = readonly_fs_if_not_root },
 
 		-- Default: If a node has been created by mknod, and that was
-		-- simulated by fakeroot, use the simulated target.
+		-- simulated, use the simulated target.
 		-- Otherwise use real devices.
 		-- However, there are some devices we never want to simulate...
 		{path = "/dev/console", use_orig_path = true},

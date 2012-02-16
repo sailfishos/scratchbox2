@@ -276,8 +276,6 @@ devel_mode_rules_usr = {
 		{prefix = "/usr/lib/dpkg", map_to = tools, readonly = true},
 		{prefix = "/usr/lib/apt", map_to = tools, readonly = true},
 
-		{prefix = "/usr/lib/libfakeroot", map_to = tools, readonly = true},
-
 		{path = "/usr/lib/pkgconfig",
 			union_dir = {
 				target_root.."/usr/lib/pkgconfig",

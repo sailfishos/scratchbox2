@@ -23,16 +23,6 @@ sb2_share_dir = sbox_user_home_dir.."/.scratchbox2/"..sbox_target.."/share"
 
 -- =========== Exec policies:  ===========
 
--- If the permission token exists and contains "root",
--- use fakeroot
-local fakeroot_ld_preload = ""
-if sb.get_session_perm() == "root" then
-	target_root_is_readonly = false
-	fakeroot_ld_preload = ":"..host_ld_preload_fakeroot
-else
-	target_root_is_readonly = true
-end
-
 --
 -- For tools: If tools_root is set and libsb2 has been installed there,
 -- then dynamic libraries can be used from tools_root (otherwise we'll
@@ -58,7 +48,6 @@ if ((tools_root ~= nil) and conf_tools_sb2_installed) then
 	end
 else
 	devel_mode_tools_ld_library_path_prefix =
-		host_ld_library_path_libfakeroot ..
 		host_ld_library_path_prefix ..
 		host_ld_library_path_libsb2
 	devel_mode_tools_ld_library_path_suffix =
@@ -83,7 +72,7 @@ exec_policy_tools = {
 	native_app_ld_library_path_prefix = devel_mode_tools_ld_library_path_prefix,
 	native_app_ld_library_path_suffix = devel_mode_tools_ld_library_path_suffix,
 
-	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
+	native_app_ld_preload_prefix = host_ld_preload,
 
 	native_app_locale_path = devel_mode_locale_path,
 	native_app_gconv_path = devel_mode_gconv_path,
@@ -105,7 +94,7 @@ exec_policy_tools_perl = {
 	native_app_ld_library_path_prefix = devel_mode_tools_ld_library_path_prefix,
 	native_app_ld_library_path_suffix = devel_mode_tools_ld_library_path_suffix,
 
-	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
+	native_app_ld_preload_prefix = host_ld_preload,
 
 	native_app_locale_path = devel_mode_locale_path,
 	native_app_gconv_path = devel_mode_gconv_path,
@@ -127,7 +116,7 @@ exec_policy_tools_python = {
 	native_app_ld_library_path_prefix = devel_mode_tools_ld_library_path_prefix,
 	native_app_ld_library_path_suffix = devel_mode_tools_ld_library_path_suffix,
 
-	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
+	native_app_ld_preload_prefix = host_ld_preload,
 
 	native_app_locale_path = devel_mode_locale_path,
 	native_app_gconv_path = devel_mode_gconv_path,
@@ -164,7 +153,6 @@ if (conf_target_sb2_installed) then
 	devel_mode_target_ld_library_path_prefix = conf_target_ld_so_library_path
 else
 	devel_mode_target_ld_library_path_prefix =
-		host_ld_library_path_libfakeroot ..
 		host_ld_library_path_prefix ..
 		host_ld_library_path_libsb2
 	devel_mode_target_ld_library_path_suffix =
@@ -181,7 +169,7 @@ exec_policy_target = {
 
 	native_app_locale_path = conf_target_locale_path,
 
-	native_app_ld_preload_prefix = host_ld_preload..fakeroot_ld_preload,
+	native_app_ld_preload_prefix = host_ld_preload,
 
 	native_app_ld_library_path_prefix = devel_mode_target_ld_library_path_prefix,
 	native_app_ld_library_path_suffix = devel_mode_target_ld_library_path_suffix,

@@ -567,7 +567,9 @@ WRAP: int truncate64(const char *path, off64_t length) : \
 
 WRAP: int unlink(const char *pathname) : \
 	dont_resolve_final_symlink map(pathname) \
-	fail_if_readonly(pathname,-1,EROFS)
+	fail_if_readonly(pathname,-1,EROFS) \
+	create_nomap_nolog_version
+
 WRAP: int unlinkat(int dirfd, const char *pathname, int flags) : \
 	dont_resolve_final_symlink map_at(dirfd,pathname) \
 	fail_if_readonly(pathname,-1,EROFS)
@@ -581,12 +583,19 @@ WRAP: int utimes(const char *filename, const struct timeval tv[2]) : \
 --    ----------
 -- Unix domain socket addresses need to be mapped.
 
-GATE: int bind(int sockfd, const struct sockaddr *my_addr, socklen_t addrlen)
+GATE: int bind(int sockfd, const struct sockaddr *my_addr, socklen_t addrlen) : \
+	create_nomap_nolog_version
+
 GATE: int connect(int sockfd, const struct sockaddr *serv_addr, socklen_t addrlen)
+
 GATE: ssize_t sendto(int s, const void *buf, size_t len, int flags, \
-	const struct sockaddr *to, socklen_t tolen)
+	const struct sockaddr *to, socklen_t tolen) : \
+	create_nomap_nolog_version
+
 GATE: ssize_t recvfrom(int s, void *buf, size_t len, int flags, \
-	struct sockaddr *from, socklen_t *fromlen)
+	struct sockaddr *from, socklen_t *fromlen) : \
+	create_nomap_nolog_version
+
 GATE: ssize_t __recvfrom_chk(int s, void *__restrict buf, size_t __n, \
 	size_t __buflen, int flags, \
 	struct sockaddr *from, socklen_t *__restrict fromlen)

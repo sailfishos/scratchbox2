@@ -1810,10 +1810,15 @@ if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 	# That process dies when the server socket is deleted
 	# (i.e. when the session is deleted)
 	#
+	# Log goes to stdout, otherwise the logging routines
+	# would reopen the log file constantly (and that can
+	# cause races while the session directory is being
+	# deleted when session is terminated.)
+	#
 	# sb2d will execute "init.lua" before returning.
 	SB2_ALL_MODES="$SB2_INTERNAL_MAPMODES" \
 		sb2d -s $SBOX_SESSION_DIR -p $SBOX_SESSION_DIR/sb2d.pid \
-		-d "debug" -l $SBOX_SESSION_DIR/sb2d.log \
+		-d "debug" -l - \
 		>$SBOX_SESSION_DIR/sb2d.out \
 		2>$SBOX_SESSION_DIR/sb2d.err
 	if [ $? != 0 ]; then

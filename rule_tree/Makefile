@@ -1,6 +1,7 @@
 
 objs := $(D)/rule_tree.o \
 	$(D)/rule_tree_luaif.o \
+	$(D)/rule_tree_utils.o \
 	$(D)/rule_tree_rpc_client.o
 
 rule_tree/libruletree.a: $(objs)

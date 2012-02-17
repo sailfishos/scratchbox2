@@ -263,3 +263,116 @@ void ruletree_rpc__ping(void)
 	command.rimc_message_type = RULETREE_RPC_MESSAGE_COMMAND__PING;
 	send_command_receive_reply(&command, &reply);
 }
+
+/* clear vperm info completely. */
+void ruletree_rpc__vperm_clear(uint64_t dev, uint64_t ino)
+{
+	ruletree_rpc_msg_command_t	command;
+	ruletree_rpc_msg_reply_t	reply;
+
+	memset(&command, 0, sizeof(command));
+	command.rimc_message_type = RULETREE_RPC_MESSAGE_COMMAND__CLEARFILEINFO;
+	command.rim_message.rimm_fileinfo.inodesimu_dev = dev;
+	command.rim_message.rimm_fileinfo.inodesimu_ino = ino;
+	send_command_receive_reply(&command, &reply);
+}
+
+void ruletree_rpc__vperm_set_ids(uint64_t dev, uint64_t ino,
+	int set_uid, uint32_t uid, int set_gid, uint32_t gid)
+{
+	ruletree_rpc_msg_command_t	command;
+	ruletree_rpc_msg_reply_t	reply;
+
+	if (set_uid) 
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: uid=%d", __func__, uid);
+	if (set_gid) 
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: gid=%d", __func__, gid);
+	memset(&command, 0, sizeof(command));
+	command.rimc_message_type = RULETREE_RPC_MESSAGE_COMMAND__SETFILEINFO;
+	command.rim_message.rimm_fileinfo.inodesimu_dev = dev;
+	command.rim_message.rimm_fileinfo.inodesimu_ino = ino;
+	command.rim_message.rimm_fileinfo.inodesimu_active_fields =
+		(set_uid ? RULETREE_INODESTAT_SIM_UID : 0) |
+		(set_gid ? RULETREE_INODESTAT_SIM_GID : 0);
+	command.rim_message.rimm_fileinfo.inodesimu_uid = uid;
+	command.rim_message.rimm_fileinfo.inodesimu_gid = gid;
+	send_command_receive_reply(&command, &reply);
+}
+
+void ruletree_rpc__vperm_release_ids(uint64_t dev, uint64_t ino,
+	int release_uid, int release_gid)
+{
+	ruletree_rpc_msg_command_t	command;
+	ruletree_rpc_msg_reply_t	reply;
+
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: %s %s", __func__,
+		(release_uid?"rel.uid":""), (release_gid?"rel.gid":""));
+	memset(&command, 0, sizeof(command));
+	command.rimc_message_type = RULETREE_RPC_MESSAGE_COMMAND__RELEASEFILEINFO;
+	command.rim_message.rimm_fileinfo.inodesimu_dev = dev;
+	command.rim_message.rimm_fileinfo.inodesimu_ino = ino;
+	command.rim_message.rimm_fileinfo.inodesimu_active_fields =
+		(release_uid ? RULETREE_INODESTAT_SIM_UID : 0) |
+		(release_gid ? RULETREE_INODESTAT_SIM_GID : 0);
+	send_command_receive_reply(&command, &reply);
+}
+
+void ruletree_rpc__vperm_set_mode(uint64_t dev, uint64_t ino,
+	mode_t real_mode, mode_t virt_mode, mode_t suid_sgid_bits)
+{
+	ruletree_rpc_msg_command_t	command;
+	ruletree_rpc_msg_reply_t	reply;
+
+	memset(&command, 0, sizeof(command));
+	command.rimc_message_type = RULETREE_RPC_MESSAGE_COMMAND__SETFILEINFO;
+	command.rim_message.rimm_fileinfo.inodesimu_dev = dev;
+	command.rim_message.rimm_fileinfo.inodesimu_ino = ino;
+	command.rim_message.rimm_fileinfo.inodesimu_mode = virt_mode;
+	command.rim_message.rimm_fileinfo.inodesimu_suidsgid = suid_sgid_bits;
+
+	if ((real_mode & ~(S_ISUID | S_ISGID)) != 
+	    (virt_mode & ~(S_ISUID | S_ISGID))) {
+		command.rim_message.rimm_fileinfo.inodesimu_active_fields |=
+			RULETREE_INODESTAT_SIM_MODE;
+	}
+
+	if (suid_sgid_bits != (real_mode & (S_ISUID | S_ISGID))) {
+		command.rim_message.rimm_fileinfo.inodesimu_active_fields |=
+			RULETREE_INODESTAT_SIM_SUIDSGID;
+	}
+	send_command_receive_reply(&command, &reply);
+}
+
+void ruletree_rpc__vperm_release_mode(uint64_t dev, uint64_t ino)
+{
+	ruletree_rpc_msg_command_t	command;
+	ruletree_rpc_msg_reply_t	reply;
+
+	memset(&command, 0, sizeof(command));
+	command.rimc_message_type = RULETREE_RPC_MESSAGE_COMMAND__RELEASEFILEINFO;
+	command.rim_message.rimm_fileinfo.inodesimu_dev = dev;
+	command.rim_message.rimm_fileinfo.inodesimu_ino = ino;
+	command.rim_message.rimm_fileinfo.inodesimu_active_fields =
+		RULETREE_INODESTAT_SIM_MODE | RULETREE_INODESTAT_SIM_SUIDSGID;
+	send_command_receive_reply(&command, &reply);
+}
+
+void ruletree_rpc__vperm_set_dev_node(uint64_t dev, uint64_t ino,
+        mode_t mode, uint64_t rdev)
+{
+	ruletree_rpc_msg_command_t	command;
+	ruletree_rpc_msg_reply_t	reply;
+
+	memset(&command, 0, sizeof(command));
+	command.rimc_message_type = RULETREE_RPC_MESSAGE_COMMAND__SETFILEINFO;
+	command.rim_message.rimm_fileinfo.inodesimu_dev = dev;
+	command.rim_message.rimm_fileinfo.inodesimu_ino = ino;
+	command.rim_message.rimm_fileinfo.inodesimu_active_fields =
+		RULETREE_INODESTAT_SIM_MODE | RULETREE_INODESTAT_SIM_DEVNODE;
+	command.rim_message.rimm_fileinfo.inodesimu_mode = mode & (~S_IFMT);
+	command.rim_message.rimm_fileinfo.inodesimu_devmode = mode & S_IFMT;
+	command.rim_message.rimm_fileinfo.inodesimu_rdev = rdev;
+	send_command_receive_reply(&command, &reply);
+}
+
+

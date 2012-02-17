@@ -114,6 +114,7 @@
 #include "processclock.h"
 
 #include "sb2_execs.h"
+#include "sb2_stat.h"
 #include "sb2_vperm.h"
 
 #ifndef ARRAY_SIZE
@@ -420,7 +421,7 @@ static enum binary_type inspect_binary(const char *filename,
 
 	retval = BIN_UNKNOWN;
 
-	if (fstat(fd, &status) < 0) {
+	if (sb2_fstat(fd, &status) < 0) {
 		goto _out_close;
 	}
 	if (modep) *modep = status.st_mode;

@@ -4,7 +4,9 @@ objs := wrappers.o privatewrappers.o \
 	execgates.o \
 	miscgates.o \
 	tmpnamegates.o \
+	vperm_filestatgates.o \
 	vperm_uid_gid_gates.o \
+	vperm_statfuncts.o \
 	fdpathdb.o procfs.o mempcpy.o \
 	union_dirs.o \
 	system.o

@@ -94,7 +94,11 @@ GATE: int uname(struct utsname *buf)
 #ifdef HAVE_FTS_H
 GATE: FTS * fts_open (char * const *path_argv, int options, \
 	int (*compar)(const FTSENT **, const FTSENT **))
+
+GATE: FTSENT *fts_read(FTS *ftsp)
+GATE: FTSENT *fts_children(FTS *ftsp, int options)
 #endif
+
 GATE: int glob (const char *pattern, int flags, \
 	int (*errfunc) (const char *, int), glob_t *pglob) :
 #ifdef HAVE_GLOB64
@@ -127,35 +131,36 @@ GATE: pid_t waitpid(pid_t pid, int *status, int options)
 --
 -- 5. "open()-class":
 --    ---------------
---    These are auto-generated wrappers with varargs: an optional "int mode"
---    parameter may be specified in the call. These can be completely handled
---    by the generated wrappers.
+--    open*() typically uses varargs for an optional "int mode"
+--    parameter, which is only used if the file is created.
 --
 #define OPEN_FLAGS_RW_MODE (O_WRONLY|O_RDWR|O_APPEND|O_CREAT|O_TRUNC)
 
-WRAP: int __open(const char *pathname, int flags, ...) : \
+GATE: int __open(const char *pathname, int flags, ...) : \
 	map(pathname) optional_arg_is_create_mode(flags&O_CREAT) \
 	postprocess(pathname) \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
 	class(OPEN)
-WRAP: int __open64(const char *pathname, int flags, ...) : \
+GATE: int __open64(const char *pathname, int flags, ...) : \
 	map(pathname) optional_arg_is_create_mode(flags&O_CREAT) \
 	postprocess(pathname) \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
 	class(OPEN)
-WRAP: int open(const char *pathname, int flags, ...) : \
+
+GATE: int open(const char *pathname, int flags, ...) : \
 	map(pathname) optional_arg_is_create_mode(flags&O_CREAT) \
 	postprocess(pathname) \
 	create_nomap_nolog_version \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
 	class(OPEN)
-WRAP: int open64(const char *pathname, int flags, ...) : \
+GATE: int open64(const char *pathname, int flags, ...) : \
 	map(pathname) optional_arg_is_create_mode(flags&O_CREAT) \
 	postprocess(pathname) \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
 	class(OPEN)
 
 -- open; variants witout varargs
+-- (these should not have O_CREAT => no need to se gates for Vperms)
 WRAP: int __open_2(const char *pathname, int flags) : \
 	map(pathname) \
 	postprocess(pathname) \
@@ -168,18 +173,21 @@ WRAP: int __open64_2(const char *pathname, int flags) : \
 	class(OPEN)
 
 -- openat:
-WRAP: int openat(int dirfd, const char *pathname, int flags, ...) : \
+GATE: int openat(int dirfd, const char *pathname, int flags, ...) : \
 	map_at(dirfd,pathname) optional_arg_is_create_mode(flags&O_CREAT) \
+	create_nomap_nolog_version \
 	postprocess(pathname) \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
 	class(OPEN)
-WRAP: int openat64(int dirfd, const char *pathname, int flags, ...) : \
+
+GATE: int openat64(int dirfd, const char *pathname, int flags, ...) : \
 	map_at(dirfd,pathname) optional_arg_is_create_mode(flags&O_CREAT) \
 	postprocess(pathname) \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
 	class(OPEN)
 
 -- openat; variants witout varargs
+-- (these should not have O_CREAT => no need to se gates for Vperms)
 WRAP: int __openat_2(int dirfd, const char *pathname, int flags) : \
  	map_at(dirfd,pathname) \
  	postprocess(pathname) \
@@ -219,11 +227,17 @@ WRAP: int fcntl64(int fd, int cmd, ...) : \
 --    ---------------
 --
 
-WRAP: int __lxstat(int ver, const char *filename, struct stat *buf) : \
+GATE: int __fxstat(int ver, int fd, struct stat *buf) : class(STAT) \
+	create_nomap_nolog_version
+
+GATE: int __fxstat64(int ver, int fd, struct stat64 *buf) : class(STAT)
+
+GATE: int __lxstat(int ver, const char *filename, struct stat *buf) : \
+	create_nomap_nolog_version \
 	dont_resolve_final_symlink map(filename) class(STAT)
 
 #ifdef HAVE___LXSTAT64
-WRAP: int __lxstat64(int ver, const char *filename, struct stat64 *buf) : \
+GATE: int __lxstat64(int ver, const char *filename, struct stat64 *buf) : \
 	dont_resolve_final_symlink map(filename) class(STAT)
 #endif
 
@@ -232,21 +246,27 @@ WRAP: int __lxstat64(int ver, const char *filename, struct stat64 *buf) : \
 WRAP: DIR *__opendir2(const char *name, int flags) : map(name) \
 	class(OPEN)
 
-WRAP: int __xmknod(int ver, const char *path, mode_t mode, dev_t *dev) : \
-	dont_resolve_final_symlink map(path) fail_if_readonly(path,-1,EROFS) class(MKNOD)
-WRAP: int __xmknodat(int ver, int dirfd, const char *pathname, mode_t mode, dev_t *dev) : \
-	dont_resolve_final_symlink map_at(dirfd,pathname) fail_if_readonly(pathname,-1,EROFS) class(MKNOD)
+GATE: int __xmknod(int ver, const char *path, mode_t mode, dev_t *dev) : \
+	dont_resolve_final_symlink map(path) \
+	fail_if_readonly(path,-1,EROFS) class(MKNOD)
 
-WRAP: int __xstat(int ver, const char *filename, struct stat *buf) : map(filename) class(STAT)
+GATE: int __xmknodat(int ver, int dirfd, const char *pathname, mode_t mode, dev_t *dev) : \
+	dont_resolve_final_symlink map_at(dirfd,pathname) \
+	fail_if_readonly(pathname,-1,EROFS) class(MKNOD)
+
+GATE: int __xstat(int ver, const char *filename, struct stat *buf) : \
+	create_nomap_nolog_version \
+	map(filename) class(STAT)
+
 #ifdef HAVE___XSTAT64
-WRAP: int __xstat64(int ver, const char *filename, struct stat64 *buf) : map(filename) class(STAT)
+GATE: int __xstat64(int ver, const char *filename, struct stat64 *buf) : map(filename) class(STAT)
 #endif
 
 #ifdef AT_SYMLINK_NOFOLLOW
-WRAP: int __fxstatat(int ver, int dirfd, const char *pathname, struct stat *buf, int flags) : \
+GATE: int __fxstatat(int ver, int dirfd, const char *pathname, struct stat *buf, int flags) : \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname) class(STAT)
-WRAP: int __fxstatat64(int ver, int dirfd, const char *pathname, struct stat64 *buf, int flags) : \
+GATE: int __fxstatat64(int ver, int dirfd, const char *pathname, struct stat64 *buf, int flags) : \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname) class(STAT)
 #endif
@@ -272,13 +292,16 @@ WRAP: int chflags(const char *path, u_int flags) : \
 	map(path) fail_if_readonly(path,-1,EROFS)
 #endif
 
-WRAP: int chmod(const char *path, mode_t mode) : \
+GATE: int chmod(const char *path, mode_t mode) : \
 	map(path) fail_if_readonly(path,-1,EROFS)
-WRAP: int chown(const char *path, uid_t owner, gid_t group) : \
+GATE: int chown(const char *path, uid_t owner, gid_t group) : \
 	map(path) fail_if_readonly(path,-1,EROFS)
-WRAP: int creat(const char *pathname, mode_t mode) : \
+
+GATE: int creat(const char *pathname, mode_t mode) : \
+	create_nomap_nolog_version \
 	map(pathname) fail_if_readonly(pathname,-1,EROFS)
-WRAP: int creat64(const char *pathname, mode_t mode) : \
+
+GATE: int creat64(const char *pathname, mode_t mode) : \
 	map(pathname) fail_if_readonly(pathname,-1,EROFS)
 
 -- dlmopen was introduced in glibc 2.3.4 and not present before that
@@ -307,36 +330,43 @@ WRAP: int faccessat(int dirfd, const char *pathname, int mode, int flags) : \
 
 -- FIXME: fchmod() should be handled when -at-functions can be handled 
 -- properly, now just introduce the wrapper (we'll get the calls to logger!)
-WRAP: int fchmod(int fildes, mode_t mode)
+GATE: int fchmod(int fildes, mode_t mode)
 
 #ifdef AT_SYMLINK_NOFOLLOW
-WRAP: int fchmodat(int dirfd, const char *pathname, mode_t mode, int flags) : \
+GATE: int fchmodat(int dirfd, const char *pathname, mode_t mode, int flags) : \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname) \
 	fail_if_readonly(pathname,-1,EROFS)
-WRAP: int fchownat(int dirfd, const char *pathname, uid_t owner, gid_t group, \
+
+GATE: int fchownat(int dirfd, const char *pathname, uid_t owner, gid_t group, \
 	int flags) : \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname) \
 	fail_if_readonly(pathname,-1,EROFS)
 #endif
 
-WRAP: FILE *fopen(const char *path, const char *mode) : \
+-- FIXME: fchown() should fail_if_readonly(...,-1,EROFS)
+GATE: int fchown(int fd, uid_t owner, gid_t group)
+
+GATE: FILE *fopen(const char *path, const char *mode) : \
 	map(path) \
 	check_and_fail_if_readonly(fopen_mode_w_perm(mode),path,NULL,EROFS) \
 	class(OPEN)
-WRAP: FILE *fopen64(const char *path, const char *mode) : \
+GATE: FILE *fopen64(const char *path, const char *mode) : \
 	map(path) \
 	check_and_fail_if_readonly(fopen_mode_w_perm(mode),path,NULL,EROFS) \
 	class(OPEN)
-WRAP: FILE *freopen(const char *path, const char *mode, FILE *stream) : \
+GATE: FILE *freopen(const char *path, const char *mode, FILE *stream) : \
 	map(path) \
 	check_and_fail_if_readonly(fopen_mode_w_perm(mode),path,NULL,freopen_errno(stream)) \
 	class(OPEN)
-WRAP: FILE *freopen64(const char *path, const char *mode, FILE *stream) : \
+GATE: FILE *freopen64(const char *path, const char *mode, FILE *stream) : \
 	map(path) \
 	check_and_fail_if_readonly(fopen_mode_w_perm(mode),path,NULL,freopen_errno(stream)) \
 	class(OPEN)
+
+GATE: int fstat(int fd, struct stat *buf) : class(STAT) \
+	create_nomap_nolog_version
 
 #ifdef AT_SYMLINK_NOFOLLOW
 WRAP: int fstatat(int dirfd, const char *pathname, struct stat *buf, int flags) : \
@@ -382,7 +412,7 @@ WRAP: int inotify_add_watch(int fd, const char *pathname, uint32_t mask) : \
 WRAP: int lchmod(const char *path, mode_t mode) : \
 	dont_resolve_final_symlink map(path) fail_if_readonly(path,-1,EROFS)
 
-WRAP: int lchown(const char *path, uid_t owner, gid_t group) : \
+GATE: int lchown(const char *path, uid_t owner, gid_t group) : \
 	dont_resolve_final_symlink map(path) fail_if_readonly(path,-1,EROFS)
 
 #ifdef HAVE_LGETXATTR
@@ -424,6 +454,7 @@ WRAP: int lsetxattr(const char *path, const char *name, const void *value, size_
 #endif
 
 WRAP: int lstat(const char *file_name, struct stat *buf) : \
+	create_nomap_nolog_version \
 	dont_resolve_final_symlink map(file_name) class(STAT)
 
 #ifdef HAVE_LSTAT64
@@ -435,11 +466,12 @@ WRAP: int lutimes(const char *filename, const struct timeval tv[2]) : \
 	dont_resolve_final_symlink map(filename) \
 	fail_if_readonly(filename,-1,EROFS) class(SET_TIMES)
 
-WRAP: int mkdir(const char *pathname, mode_t mode) : \
+GATE: int mkdir(const char *pathname, mode_t mode) : \
 	map(pathname) fail_if_readonly(pathname,-1,EROFS) \
 	create_nomap_nolog_version
-WRAP: int mkdirat(int dirfd, const char *pathname, mode_t mode) : \
+GATE: int mkdirat(int dirfd, const char *pathname, mode_t mode) : \
 	map_at(dirfd,pathname) fail_if_readonly(pathname,-1,EROFS)
+
 WRAP: int mkfifo(const char *pathname, mode_t mode) : \
 	map(pathname) fail_if_readonly(pathname,-1,EROFS)
 WRAP: int mkfifoat(int dirfd, const char *pathname, mode_t mode) : \
@@ -469,7 +501,7 @@ WRAP: ssize_t __readlinkat_chk(int dirfd, const char *__restrict pathname, \
 			char *__restrict buf, size_t len, size_t buflen) : \
 	dont_resolve_final_symlink map_at(dirfd,pathname)
 
-WRAP: int remove(const char *pathname) : \
+GATE: int remove(const char *pathname) : \
 	map(pathname) fail_if_readonly(pathname,-1,EROFS)
 #ifdef HAVE_REMOVEXATTR
 #ifdef HAVE_LINUX_XATTRS
@@ -481,13 +513,14 @@ WRAP: int removexattr(const char *path, const char *name, int options) : \
 	map(path) fail_if_readonly(path,-1,EROFS)
 #endif
 #endif
-WRAP: int rename(const char *oldpath, const char *newpath) : \
+
+GATE: int rename(const char *oldpath, const char *newpath) : \
 	dont_resolve_final_symlink map(oldpath) \
 	dont_resolve_final_symlink map(newpath) \
 	fail_if_readonly(oldpath,-1,EROFS) \
 	fail_if_readonly(newpath,-1,EROFS) \
 	class(RENAME)
-WRAP: int renameat(int olddirfd, const char *oldpath, int newdirfd, \
+GATE: int renameat(int olddirfd, const char *oldpath, int newdirfd, \
 	const char *newpath) : \
 	dont_resolve_final_symlink map_at(olddirfd,oldpath) \
 	dont_resolve_final_symlink map_at(newdirfd,newpath) \
@@ -497,7 +530,7 @@ WRAP: int renameat(int olddirfd, const char *oldpath, int newdirfd, \
 
 WRAP: int revoke(const char *file) : map(file)
 
-WRAP: int rmdir(const char *pathname) : \
+GATE: int rmdir(const char *pathname) : \
 	map(pathname) fail_if_readonly(pathname,-1,EROFS)
 
 #ifdef HAVE_SCANDIR
@@ -540,7 +573,10 @@ WRAP: int statfs(const char *path, struct statfs *buf) : map(path) class(STAT)
 WRAP: int statfs64(const char *path, struct statfs64 *buf) : map(path) class(STAT)
 WRAP: int statvfs(const char *path, struct statvfs *buf) : map(path) class(STAT)
 
-WRAP: int stat(const char *file_name, struct stat *buf) : map(file_name) class(STAT)
+WRAP: int stat(const char *file_name, struct stat *buf) : \
+	create_nomap_nolog_version \
+	map(file_name) class(STAT)
+
 #ifdef HAVE_STAT64
 WRAP: int stat64(const char *file_name, struct stat64 *buf) : map(file_name) class(STAT)
 #endif
@@ -565,12 +601,12 @@ WRAP: int truncate64(const char *path, off64_t length) : \
 	map(path) fail_if_readonly(path,-1,EROFS)
 #endif
 
-WRAP: int unlink(const char *pathname) : \
+GATE: int unlink(const char *pathname) : \
 	dont_resolve_final_symlink map(pathname) \
 	fail_if_readonly(pathname,-1,EROFS) \
 	create_nomap_nolog_version
 
-WRAP: int unlinkat(int dirfd, const char *pathname, int flags) : \
+GATE: int unlinkat(int dirfd, const char *pathname, int flags) : \
 	dont_resolve_final_symlink map_at(dirfd,pathname) \
 	fail_if_readonly(pathname,-1,EROFS)
 

@@ -15,6 +15,7 @@ $(D)/sb2d: $(D)/sb2d.o \
 		sblib/sb2_utils.o \
 		rule_tree/rule_tree.o \
 		rule_tree/rule_tree_luaif.o \
+		rule_tree/rule_tree_utils.o \
 		pathmapping/paths_ruletree_maint.o \
 		execs/exec_ruletree_maint.o \
 		luaif/sblib_luaif.o \

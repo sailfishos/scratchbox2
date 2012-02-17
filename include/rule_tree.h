@@ -324,4 +324,10 @@ ruletree_object_offset_t add_exec_policy_selection_rule_to_ruletree(
         const char      *exec_policy_name,
 	uint32_t	flags);
 
+/* ------------ rule_tree_utils.c: ------------ */
+
+extern void inc_vperm_num_active_inodestats(void);
+extern void dec_vperm_num_active_inodestats(void);
+extern uint32_t get_vperm_num_active_inodestats(void);
+
 #endif /* SB2_RULETREE_H__ */

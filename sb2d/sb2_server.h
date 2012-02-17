@@ -10,19 +10,21 @@
 
 #include "sb2.h"
 #include "rule_tree.h"
-#if 0 && defined(not_yet)
-#include "rule_tree_ipc.h"
-#endif
+#include "rule_tree_rpc.h"
 #include "mapping.h"
 
-#if 0 && defined(not_yet)
-extern void initialize_server_address(void);
 extern void create_server_socket(void);
+extern void ruletree_server(void);
+
 extern void send_reply_to_client(struct sockaddr_un *client_address,
-	ruletree_ipc_msg_reply_t *reply);
+	ruletree_rpc_msg_reply_t *reply);
+
 extern int receive_command_from_server_socket(struct sockaddr_un *client_address,
-	ruletree_ipc_msg_command_t *command);
-#endif
+	ruletree_rpc_msg_command_t *command);
+/* return codes from receive_command_from_server_socket(): */
+#define RPC_COMMAND_RECEIVED		1
+#define RECEIVE_FAILED_TRY_AGAIN	2
+#define	SOCKET_DELETED			3
 
 extern const char *progname;
 extern char    *pid_file;

@@ -8,7 +8,9 @@ $(D)/sb2d: CFLAGS := $(CFLAGS) -Wall -W -Werror \
 $(D)/sb2d: LDFLAGS := $(LDFLAGS) -lm -ldl
 
 $(D)/sb2d: $(D)/sb2d.o \
+		$(D)/server_socket.o \
 		$(D)/libsupport.o \
+		$(D)/ruletree_server.o \
 		sblib/sb_log.o \
 		sblib/sb2_utils.o \
 		rule_tree/rule_tree.o \

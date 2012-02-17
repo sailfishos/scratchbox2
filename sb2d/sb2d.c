@@ -42,7 +42,6 @@ char    *sbox_session_dir = NULL;
 char    *pid_file = NULL;
 
 
-#if 0 && defined(not_yet)
 static void write_pid_to_file(pid_t s_pid, const char *pid_file)
 {
 	if (pid_file) {
@@ -57,7 +56,6 @@ static void write_pid_to_file(pid_t s_pid, const char *pid_file)
 		}
 	}
 }
-#endif
 
 lua_State *sb2d_lua;
 
@@ -259,7 +257,6 @@ int main(int argc, char *argv[])
 	initialize_lua();
 
 	/* ----- Server ----- */
-#if 0 && defined(not_yet)
 	if (start_server) {
 		pid_t worker_pid;
 
@@ -278,10 +275,11 @@ int main(int argc, char *argv[])
 		SB_LOG(SB_LOGLEVEL_DEBUG, "Initializing server");
 		create_server_socket();
 
-		/* enter the server loop. */
+		/* enter the server loop. 
+		 * ruletree_server() returns when the socket has been
+		 * deleted and it is time to shut down. */
 		ruletree_server();
 	}
-#endif
 	return(0);
 }
 

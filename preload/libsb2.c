@@ -123,9 +123,18 @@ void *sbox_find_next_symbol(int log_enabled, const char *fn_name)
 				PACKAGE_NAME, fn_name, msg);
 		assert(0);
 	}
-	if (log_enabled)
-		SB_LOG(SB_LOGLEVEL_NOISE, "%s: %s at 0x%X", __func__,
-			fn_name, (int)fn_ptr);
+	if (log_enabled && SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE)) {
+		Dl_info	dli;
+
+		if (dladdr(fn_ptr, &dli)) {
+			SB_LOG(SB_LOGLEVEL_NOISE, "%s: %s at 0x%p, in file '%s'",
+				__func__, fn_name, fn_ptr, dli.dli_fname);
+		} else {
+			SB_LOG(SB_LOGLEVEL_NOISE, "%s: %s at 0x%p",
+				__func__, fn_name, fn_ptr);
+		}
+	}
+
 	return(fn_ptr);
 }
 

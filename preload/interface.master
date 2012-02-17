@@ -717,3 +717,37 @@ GATE: char *dngettext(const char *domainname, const char *msgid, \
     const char *msgid_plural, unsigned long int n)
 GATE: char *dcngettext(const char *domainname, const char *msgid, \
     const char *msgid_plural, unsigned long int n, int category)
+
+--
+-- 10. Vperm subsystem: UID / GID related 
+--
+-- FIXME: getgroups & setgroups are not currently supported.
+
+
+GATE: gid_t getegid(void) : create_nomap_nolog_version
+GATE: uid_t geteuid(void) : create_nomap_nolog_version
+
+GATE: gid_t getgid(void) : create_nomap_nolog_version
+
+GATE: int getresgid(gid_t *rgid, gid_t *egid, gid_t *sgid)
+GATE: int getresuid(uid_t *ruid, uid_t *euid, uid_t *suid)
+
+GATE: uid_t getuid(void) : create_nomap_nolog_version
+
+GATE: int setegid(gid_t egid)
+GATE: int seteuid(uid_t euid)
+
+GATE: int setfsgid(uid_t fsuid)
+GATE: int setfsuid(uid_t fsuid)
+
+GATE: int setgid(gid_t gid)
+
+GATE: int setregid(gid_t rgid, gid_t egid)
+
+GATE: int setresgid(gid_t rgid, gid_t egid, gid_t sgid)
+GATE: int setresuid(uid_t ruid, uid_t euid, uid_t suid)
+
+GATE: int setreuid(uid_t ruid, uid_t euid)
+
+GATE: int setuid(uid_t uid)
+

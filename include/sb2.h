@@ -202,7 +202,7 @@ extern int sb2_global_vars_initialized__;
 extern void sb2_initialize_global_variables(void);
 extern char *sbox_session_dir;
 extern char *sbox_session_mode;
-extern char *sbox_session_perm;
+extern char *sbox_vperm_ids;
 extern char *sbox_network_mode;
 extern char *sbox_orig_ld_preload;
 extern char *sbox_orig_ld_library_path;

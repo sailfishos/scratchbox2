@@ -1218,8 +1218,7 @@ void
 			res->mres_exec_policy_name = res->mres_allocated_exec_policy_name;
 #endif
 			if (flags & SB2_MAPPING_RULE_FLAGS_READONLY_FS_IF_NOT_ROOT) {
-				if (sbox_session_perm &&
-				    !strcmp(sbox_session_perm, "root")) {
+				if (vperm_geteuid() == 0) {
 					/* simulated root environment, allow writing */
 					res->mres_readonly = 0;
 				} else {

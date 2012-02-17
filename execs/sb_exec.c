@@ -114,6 +114,7 @@
 #include "processclock.h"
 
 #include "sb2_execs.h"
+#include "sb2_vperm.h"
 
 #ifndef ARRAY_SIZE
 # define ARRAY_SIZE(array) (sizeof (array) / sizeof ((array)[0]))
@@ -338,9 +339,13 @@ static enum binary_type inspect_elf_binary(const char *region)
 	return (BIN_UNKNOWN);
 }
 
-static enum binary_type inspect_binary(const char *filename, int check_x_permission)
+static enum binary_type inspect_binary(const char *filename,
+	int check_x_permission,
+	int *modep,
+	uid_t *uidp,
+	gid_t *gidp)
 {
-	static char *target_cpu = NULL;
+	static const char *target_cpu = NULL;
 	enum binary_type retval;
 	int fd, j;
 	struct stat status;
@@ -418,18 +423,9 @@ static enum binary_type inspect_binary(const char *filename, int check_x_permiss
 	if (fstat(fd, &status) < 0) {
 		goto _out_close;
 	}
-
-	if ((status.st_mode & S_ISUID)) {
-		SB_LOG(SB_LOGLEVEL_WARNING,
-			"SUID bit set for '%s' (SB2 may be disabled)",
-			filename);
-	}
-
-	if ((status.st_mode & S_ISGID)) {
-		SB_LOG(SB_LOGLEVEL_WARNING,
-			"SGID bit set for '%s' (SB2 may be disabled)",
-			filename);
-	}
+	if (modep) *modep = status.st_mode;
+	if (uidp) *uidp = status.st_uid;
+	if (gidp) *gidp = status.st_gid;
 
 	if (!S_ISREG(status.st_mode) && !S_ISLNK(status.st_mode)) {
 		goto _out_close;
@@ -715,6 +711,9 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 	const int sbox_sigtrap_varname_len = strlen("SBOX_SIGTRAP");
 	const int sbox_mapping_method_varname_len = strlen("SBOX_MAPPING_METHOD");
 	const int sbox_session_varname_prefix_len = strlen("SBOX_SESSION_");
+	const int sbox_vperm_ids_varname_len = strlen("SBOX_VPERM_IDS");
+	const int sbox_vperm_request_varname_len = strlen("SBOX_VPERM_REQUEST");
+	const char *user_vperm_request = NULL;
 
 	/* SBOX_SESSION_* is now preserved properly (these are practically
 	 * read-only variables now)
@@ -819,63 +818,77 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 			continue;
 		}
 		switch (**p) {
+		case 'N':
 		case 'L':
 			/* drop LD_PRELOAD and LD_LIBRARY_PATH */
 			if ((strncmp("LD_PRELOAD=", *p,
 				strlen("LD_PRELOAD=")) == 0) ||
 			    (strncmp("LD_LIBRARY_PATH=", *p,
 				strlen("LD_LIBRARY_PATH=")) == 0)) continue;
+
+			if ((strncmp(*p, "NLSPATH=", 8) == 0) ||
+			    (strncmp(*p, "LOCPATH=", 8) == 0)) {
+				/*
+				 * We need to drop any previously set locale
+				 * paths (set in argvenvp.lua) so that they
+				 * won't get inherited accidentally to child
+				 * process who don't need them.
+				 */
+				continue;
+			}
 			break;
-		}
 
-		if (strncmp(*p, "SBOX_SESSION_MODE=",
-				sbox_session_varname_prefix_len+5) == 0) {
-			/* user-provided SBOX_SESSION_MODE */
-			char *requested_mode = *p +
-				sbox_session_varname_prefix_len+5;
-			char *rulefile = NULL;
+		case 'S':
+			if (strncmp(*p, "SBOX_SESSION_MODE=",
+					sbox_session_varname_prefix_len+5) == 0) {
+				/* user-provided SBOX_SESSION_MODE */
+				char *requested_mode = *p +
+					sbox_session_varname_prefix_len+5;
+				char *rulefile = NULL;
 
-			if (sbox_session_mode &&
-			    (strcmp(requested_mode, sbox_session_mode) == 0)) {
-				/* same as current mode - skip it */
+				if (sbox_session_mode &&
+				    (strcmp(requested_mode, sbox_session_mode) == 0)) {
+					/* same as current mode - skip it */
+					continue;
+				}
+
+				if (asprintf(&rulefile, "%s/rules/%s.lua",
+					sbox_session_dir, requested_mode) < 0) {
+
+					SB_LOG(SB_LOGLEVEL_ERROR,
+						"asprintf failed to create path to rulefile");
+					continue;
+				}
+
+				if (access_nomap_nolog(rulefile, R_OK) == 0) {
+					SB_LOG(SB_LOGLEVEL_DEBUG,
+						"Accepted requested mode change to '%s'",
+						requested_mode);
+					has_sbox_session_mode = 1;
+				}
+				free(rulefile);
+				if (has_sbox_session_mode == 0) continue;
+			} else if (strncmp(*p, "SBOX_SESSION_",
+					sbox_session_varname_prefix_len) == 0) {
+				/* this is user-provided SBOX_SESSION_*, skip it. */
+				continue;
+			} else if (sbox_mapping_method &&
+				   (strncmp(*p, "SBOX_MAPPING_METHOD=",
+					sbox_mapping_method_varname_len+1) == 0)) {
+				/* this is user-provided SBOX_MAPPING_METHOD,
+				 * but we already have sbox_mapping_method. Skip it. */
+				continue;
+			} else if (strncmp(*p, "SBOX_VPERM_REQUEST=",
+					sbox_vperm_request_varname_len+1) == 0) {
+				user_vperm_request = *p;
+				/* remember it, but don't pass to the started program.*/
+				continue;
+			} else if (strncmp(*p, "SBOX_VPERM_IDS=",
+					sbox_vperm_ids_varname_len+1) == 0) {
+				/* user-provided or old SBOX_VPERM_IDS, skip it */
 				continue;
 			}
-
-			if (asprintf(&rulefile, "%s/rules/%s.lua",
-				sbox_session_dir, requested_mode) < 0) {
-
-				SB_LOG(SB_LOGLEVEL_ERROR,
-					"asprintf failed to create path to rulefile");
-				continue;
-			}
-
-			if (access_nomap_nolog(rulefile, R_OK) == 0) {
-				SB_LOG(SB_LOGLEVEL_DEBUG,
-					"Accepted requested mode change to '%s'",
-					requested_mode);
-				has_sbox_session_mode = 1;
-			}
-			free(rulefile);
-			if (has_sbox_session_mode == 0) continue;
-		} else if (strncmp(*p, "SBOX_SESSION_",
-				sbox_session_varname_prefix_len) == 0) {
-			/* this is user-provided SBOX_SESSION_*, skip it. */
-			continue;
-		} else if (sbox_mapping_method &&
-			   (strncmp(*p, "SBOX_MAPPING_METHOD=",
-				sbox_mapping_method_varname_len+1) == 0)) {
-			/* this is user-provided SBOX_MAPPING_METHOD,
-			 * but we already have sbox_mapping_method. Skip it. */
-			continue;
-		} else if ((strncmp(*p, "NLSPATH=", 8) == 0) ||
-		    		(strncmp(*p, "LOCPATH=", 8) == 0)) {
-			/*
-			 * We need to drop any previously set locale
-			 * paths (set in argvenvp.lua) so that they
-			 * won't get inherited accidentally to child
-			 * process who don't need them.
-			 */
-			continue;
+			break;
 		}
 		my_envp[i++] = strdup(*p);
 	}
@@ -909,15 +922,15 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 		}
 	}
 
-	/* add permission token (optional) */
-	if (sbox_session_perm) {
-		if (asprintf(&(my_envp[i]), "SBOX_SESSION_PERM=%s",
-		     sbox_session_perm) < 0) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
-				"asprintf failed to create SBOX_SESSION_PERM");
-		} else {
-			i++;
-		}
+	/* add virtual uid & gid info.
+	 * at this point we don't know it is has SUID/SGID bits, we'll fix that
+	 * later if it has those */
+	my_envp[i] = vperm_export_ids_as_string_for_exec("SBOX_VPERM_IDS=", 0,0,0, user_vperm_request);
+	if (!my_envp[i]) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"vperm_export_ids_as_string to create SBOX_VPERM_IDS");
+	} else {
+		i++;
 	}
 
 	/* add back SBOX_SIGTRAP if it was removed accidentally, so
@@ -1078,6 +1091,46 @@ static void change_environment_variable(
 	}
 }
 
+static void simulate_suid_and_sgid_if_needed(
+	const char *filename,
+	char **my_envp,
+	int file_mode,
+	uid_t file_uid,
+	gid_t file_gid,
+	int host_compatible_binary)
+{
+	if (file_mode & (S_ISUID | S_ISGID)) {
+		/* SUID and/or SGID, replace vperms in environment */
+		char *new_vperm_str;
+
+		new_vperm_str = vperm_export_ids_as_string_for_exec("",
+			file_mode, file_uid, file_gid, NULL);
+		change_environment_variable(my_envp, "SBOX_VPERM_IDS=", new_vperm_str);
+
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"Simulate SUID/SGID, new vperm str=%s", new_vperm_str);
+
+		/* SUID/SGID simulation works fine with qemu,
+		 * but print warnings for host-compatible binaries
+		 * FIXME. those should be started with
+		 * direct ld.so startup method.  */
+		if (host_compatible_binary) {
+			if ((file_mode & S_ISUID)) {
+				SB_LOG(SB_LOGLEVEL_WARNING,
+					"SUID bit set for '%s' (SB2 may be disabled)",
+					filename);
+			}
+
+			if ((file_mode & S_ISGID)) {
+				SB_LOG(SB_LOGLEVEL_WARNING,
+					"SGID bit set for '%s' (SB2 may be disabled)",
+					filename);
+			}
+		}
+	} else {
+		SB_LOG(SB_LOGLEVEL_DEBUG, "not SUID/SGID");
+	}
+}
 
 static int prepare_exec(const char *exec_fn_name,
 	char *exec_policy_name,
@@ -1097,6 +1150,9 @@ static int prepare_exec(const char *exec_fn_name,
 	enum binary_type type;
 	int postprocess_result = 0;
 	int ret = 0; /* 0: ok to exec, ret<0: exec fails */
+	int file_mode;
+	uid_t file_uid;
+	gid_t file_gid;
 	PROCESSCLOCK(clk1)
 	PROCESSCLOCK(clk4)
 
@@ -1172,7 +1228,8 @@ static int prepare_exec(const char *exec_fn_name,
 		"__SB2_REAL_BINARYNAME=", mapped_file);
 
 	/* inspect the completely mangled filename */
-	type = inspect_binary(mapped_file, 1/*check_x_permission*/);
+	type = inspect_binary(mapped_file, 1/*check_x_permission*/,
+		&file_mode, &file_uid, &file_gid);
 	if (typep) *typep = type;
 
 	if (!exec_policy_name) {
@@ -1211,6 +1268,10 @@ static int prepare_exec(const char *exec_fn_name,
 			if (postprocess_result < 0) {
 				errno = EINVAL;
 				ret = -1;
+			} else {
+				simulate_suid_and_sgid_if_needed(mapped_file, my_envp,
+					file_mode, file_uid, file_gid,
+					1/*host_compatible_binary*/);
 			}
 			break;
 
@@ -1256,6 +1317,12 @@ static int prepare_exec(const char *exec_fn_name,
 			if (postprocess_result < 0) {
 				errno = EINVAL;
 				ret = -1;
+			} else {
+				/* the static binary won't get SUID simulation,
+				 * but if it executes something else.. */
+				simulate_suid_and_sgid_if_needed(mapped_file, my_envp,
+					file_mode, file_uid, file_gid,
+					1/*host_compatible_binary*/);
 			}
 			break;
 
@@ -1272,6 +1339,10 @@ static int prepare_exec(const char *exec_fn_name,
 			if (postprocess_result < 0) {
 				errno = EINVAL;
 				ret = -1;
+			} else {
+				simulate_suid_and_sgid_if_needed(mapped_file, my_envp,
+					file_mode, file_uid, file_gid,
+					0/*not host_compatible_binary*/);
 			}
 			break;
 
@@ -1422,7 +1493,8 @@ int sb2show__execve_mods__(
 */
 char *sb2show__binary_type__(const char *filename)
 {
-	enum binary_type type = inspect_binary(filename, 0/*check_x_permission*/);
+	enum binary_type type = inspect_binary(filename,
+		 0/*check_x_permission*/, NULL, NULL, NULL);
 	char *result = NULL;
 
 	switch (type) {

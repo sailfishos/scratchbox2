@@ -561,9 +561,10 @@ static int lua_sb_get_forced_network_mode(lua_State *l)
 }
 
 /* "sb.get_session_perm", to be called from lua code */
+/* DEPRECATED. */
 static int lua_sb_get_session_perm(lua_State *l)
 {
-	if (sbox_session_perm) lua_pushstring(l, sbox_session_perm);
+	if (vperm_geteuid() == 0) lua_pushstring(l, "root");
 	else lua_pushnil(l);
 	return 1;
 }
@@ -807,7 +808,7 @@ static const luaL_reg reg[] =
 	{"get_active_exec_policy_name",	lua_sb_get_active_exec_policy_name},
 	{"get_forced_mapmode",		lua_sb_get_forced_mapmode},
 	{"get_forced_network_mode",	lua_sb_get_forced_network_mode},
-	{"get_session_perm",		lua_sb_get_session_perm},
+	{"get_session_perm",		lua_sb_get_session_perm}, /* DEPRECATED. */
 	{"get_session_dir",		lua_sb_get_session_dir},
 	{"isprefix",			lua_sb_isprefix},
 	{"test_path_match",		lua_sb_test_path_match},

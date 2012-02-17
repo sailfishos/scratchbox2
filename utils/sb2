@@ -49,7 +49,7 @@ Options:
     -r           do not create reverse mapping rules
     -O options   set options for the selected mapping mode ("options" is
                  a mode-specific string)
-    -R           use simulated root permissions (CURRENTLY NOT SUPPORTED)
+    -R           use simulated root permissions (activates the Vperm subsystem)
     -S file      Write session information to "file" (see option -J)
     -J file      Don't create a new session; join an existing one (see -S) 
     -D file      delete an old session (see -S). Warning: this does not
@@ -196,7 +196,7 @@ function create_argvmods_rules()
 		exit_error "Failed to create 'argvmods_misc' rules"
 	fi
 
-	# Alternative 1: misc and gcc rules
+	# Alternative 2: misc and gcc rules
 	__SB2_BINARYNAME="sb2:CreatingArgvmodsGccRules" \
 	SBOX_ARGVMODS_SOURCE_FILES="argvenvp_misc:argvenvp_gcc" sb2-monitor \
 	    -L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
@@ -520,7 +520,7 @@ function sboxify_environment()
 	# LD_PRELOAD will be set to SBOX_LIBSB2 by sb2-monitor.
 
 	export PS1="[SB2 $SBOX_MAPMODE $SBOX_TARGET$PS1_CLONE_MARK] \u@\h \W"
-	if [ -n "$SBOX_SESSION_PERM" ]; then
+	if [ -n "$SBOX_ROOT_SIMULATION" ]; then
 		export PS1="$PS1 # "
 	else
 		export PS1="$PS1 \$ "
@@ -1569,7 +1569,7 @@ SB2_INTERNAL_MAPMODES=""
 
 SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
 SBOX_WORKDIR=$(readlink -f $PWD)
-SBOX_SESSION_PERM=""
+SBOX_ROOT_SIMULATION=""
 SBOX_CREATE_REVERSE_RULES="y"
 SBOX_MODE_SPECIFIC_OPTIONS=""
 OPT_CLONE_TARGET_ROOT="n"
@@ -1601,7 +1601,7 @@ do
 	(s) SBOX_LUA_SCRIPTS=$OPTARG;;
 	(Z) SBOX_OPT_Z_NO_LD_SO_EXEC="y";;
 	(r) SBOX_CREATE_REVERSE_RULES="n";;
-	(R) SBOX_SESSION_PERM="root";;
+	(R) SBOX_ROOT_SIMULATION="root";;
 	(S) SBOX_WRITE_SESSION_INFO_TO_FILE=$OPTARG ;;
 	(J) SBOX_JOIN_SESSION_FILE=$OPTARG ;;
 	(P) SBOX_PRINT_SESSION_LOGS=$OPTARG ;;
@@ -1715,10 +1715,11 @@ if [ "$1" = "-" ] ; then
 	STDIN=true
 fi
 
-# if SBOX_SESSION_PERM is set, export it. It may enable special permissions
+# if SBOX_ROOT_SIMULATION is set, export it. It may enable special permissions
 # in some mapping modes (e.g. see the "emulate" mode)
-if [ -n "$SBOX_SESSION_PERM" ]; then
-	export SBOX_SESSION_PERM
+if [ -n "$SBOX_ROOT_SIMULATION" ]; then
+	export SBOX_ROOT_SIMULATION
+	export SBOX_VPERM_IDS="u0:0:0:0,g0:0:0:0"
 fi
 SBOX_LD_PRELOAD="$SBOX_LIBSB2"
 

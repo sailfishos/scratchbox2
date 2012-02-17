@@ -224,7 +224,7 @@ int freopen_errno(FILE *stream)
 */
 char *sbox_session_dir = NULL;
 char *sbox_session_mode = NULL; /* optional */
-char *sbox_session_perm = NULL; /* optional */
+char *sbox_vperm_ids = NULL;
 char *sbox_network_mode = NULL; /* optional */
 char *sbox_binary_name = NULL;
 char *sbox_exec_name = NULL;
@@ -307,10 +307,9 @@ void sb2_initialize_global_variables(void)
 			cp = getenv("SBOX_SESSION_MODE");
 			if (cp) sbox_session_mode = strdup(cp);
 		}
-		if (!sbox_session_perm) {
-			/* optional variable */
-			cp = getenv("SBOX_SESSION_PERM");
-			if (cp) sbox_session_perm = strdup(cp);
+		if (!sbox_vperm_ids) {
+			cp = getenv("SBOX_VPERM_IDS");
+			if (cp) sbox_vperm_ids = strdup(cp);
 		}
 		if (!sbox_network_mode) {
 			/* optional variable */

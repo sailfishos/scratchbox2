@@ -1391,6 +1391,9 @@ function initialize_new_sb2_session()
 	mkdir $SBOX_SESSION_DIR/uniondirs
 	mkdir $SBOX_SESSION_DIR/logs
 
+	# ruletree ipc client sockets.
+	mkdir $SBOX_SESSION_DIR/sock
+
 	# Some operations to /dev/* are redirected to this:
 	# (setting time of the nodes, etc)
 	touch $SBOX_SESSION_DIR/dummy_file

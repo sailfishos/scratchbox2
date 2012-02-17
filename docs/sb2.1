@@ -100,9 +100,6 @@ See
 .B mapping modes
 below.
 .TP
-\-f args
-additional fakeroot arguments (see option -R)
-.TP
 \-g
 Create a new session with setsid(); useful when executing commands in the background
 (i.e. creates a system session and a new process group, and detaches from the
@@ -156,7 +153,7 @@ Disable creating reverse mapping rules: functions like getcwd() and realpath() w
 .TP
 \-R
 "superuser  mode":
-Execute commands in fakeroot environment (see fakeroot(1) for details).
+Execute commands in simulated privileged environment, as simulated "root" user.
 Depending on the selected mapping mode,
 this may also disables some mode-specific features, like simulated write protection
 of the target filesystem.
@@ -307,7 +304,6 @@ and the networking modes can be found at /usr/share/scratchbox2/net_rules/*.
 .BR sb2-show (1),
 .BR sb2-logz (1),
 .BR sb2-session (1),
-.BR fakeroot (1),
 .BR qemu (1)
 .SH BUGS
 No known bugs at this time.

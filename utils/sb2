@@ -1804,6 +1804,12 @@ if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 	# new session, start the server.
 	# Logging is not yet initialized => must use a separate
 	# log file for this.
+	#
+	# sb2d creates a child process and leaves that to
+	# background after initializations.
+	# That process dies when the server socket is deleted
+	# (i.e. when the session is deleted)
+	#
 	# sb2d will execute "init.lua" before returning.
 	SB2_ALL_MODES="$SB2_INTERNAL_MAPMODES" \
 		sb2d -s $SBOX_SESSION_DIR -p $SBOX_SESSION_DIR/sb2d.pid \

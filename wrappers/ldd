@@ -96,7 +96,7 @@ done
 
 if [ $NUM_FILES -eq 0 ]
 then
-	exec /target_root/usr/bin/ldd $OPTIONS
+	exec $sbox_target_root/usr/bin/ldd $OPTIONS
 fi
 
 for f in $FILES
@@ -107,7 +107,7 @@ do
 	fi
 	type=`$SBOX_SESSION_DIR/bin/sb2-show binarytype $f`
 	case "$type" in
-	target*) /target_root/usr/bin/ldd $OPTIONS $f;;
+	target*) $sbox_target_root/usr/bin/ldd $OPTIONS $f;;
 	host/*) host_compatible_binary $f;;
 	*) echo "ldd wrapper: Don't know how to handle $f (type=$type)"
 	esac

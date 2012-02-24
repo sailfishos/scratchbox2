@@ -889,7 +889,6 @@ function locate_shell()
 	SHELL_PATH=`cat $SBOX_SESSION_DIR/path_to_shell.conf`
 	if [ -f $SHELL_PATH ]; then
 		# Good, bash exists. Use that.
-		__SB2_BINARYNAME="bash"
 		SHELL=/bin/bash
 	else
 		__SB2_BINARYNAME="sb2:LocatingShell" sb2-monitor \
@@ -897,10 +896,8 @@ function locate_shell()
 			which /bin/sh \
 			>$SBOX_SESSION_DIR/path_to_shell.conf
 		# Default to /bin/sh
-		__SB2_BINARYNAME="sh"
 		SHELL=/bin/sh
 	fi
-	export __SB2_BINARYNAME
 }
 
 # Try to determine dynamic linker
@@ -1948,6 +1945,8 @@ SBOX_CONFIG_DIR=$HOME/.scratchbox2/$SBOX_TARGET/sb2.config.d
 # (e.g. exec policy is empty, etc). But when it exec's shell, we can
 # be sure that all mappings and exec rules are in place.
 #
+__SB2_BINARYNAME="sb2:StartupTrampoline"
+export __SB2_BINARYNAME
 if [ $# -gt 0 -o "$STDIN" = true ]; then
 	binary="$1"
 	shift 1

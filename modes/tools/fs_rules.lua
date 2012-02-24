@@ -42,6 +42,8 @@ fs_mapping_rules = {
 
 		{path = "/usr/bin/sb2-show", use_orig_path = true,
 		 readonly = true},
+		{dir = "/usr/lib/libsb2", use_orig_path = true,
+		 readonly = true},
 
 		-- tools_root should not be mapped twice.
 		{prefix = tools_root, use_orig_path = true, readonly = true},

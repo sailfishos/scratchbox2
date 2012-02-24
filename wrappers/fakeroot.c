@@ -16,7 +16,7 @@
 static struct option long_fakeroot_opts[] = {
 	{"lib", 1, NULL, 0},
 	{"faked", 1, NULL, 0},
-	{"unknown-is-real", 1, NULL, 0},
+	{"unknown-is-real", 1, NULL, 'u'},
 };
 
 int main(int argc, char *argv[])
@@ -24,6 +24,12 @@ int main(int argc, char *argv[])
 	int opt = 0;
 	int opt_ind = 0;
 	const char *progname = argv[0];
+
+	/* default: set owner and group of unknown files to 0 and 0 */
+	const char *vperm_request = "u0:0:0:0,g0:0:0:0,f0.0";
+
+	/* alternative: use real owner and group info */
+	const char *vperm_request_u_is_r = "u0:0:0:0,g0:0:0:0";
 
 	while (opt != -1) {
 		opt = getopt_long(argc, argv, "+l:s:i:ub:hv",
@@ -39,6 +45,10 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "SB2 %s: option '%c', ignored.\n",
 				progname, opt);
 			break;
+		case 'u':
+			/* unknown-is-real flag: */
+			vperm_request = vperm_request_u_is_r;
+			break;
 		case 'h':
 		case 'v':
 			fprintf(stderr, "SB2 %s: A wrapper which emulates 'fakeroot'\n",
@@ -47,7 +57,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	setenv("PS1", "[SB2-root] \\u@\\h \\W # ", 1);
-	setenv("SBOX_VPERM_REQUEST", "u0:0:0:0,g0:0:0:0", 1);
+	setenv("SBOX_VPERM_REQUEST", vperm_request, 1);
 	if (argv[optind]) {
 		execvp(argv[optind], argv+optind);
 	} else {

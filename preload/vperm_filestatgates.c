@@ -153,9 +153,7 @@ int fstat_gate(int *result_errno_ptr,
 
 	res = (*real_fstat_ptr)(fd, buf);
 	if (res == 0) {
-		if (get_vperm_num_active_inodestats() > 0) {
-			i_virtualize_struct_stat(buf, NULL);
-		}
+		i_virtualize_struct_stat(buf, NULL);
 	} else {
 		*result_errno_ptr = errno;
 	}
@@ -173,9 +171,7 @@ int __fxstat_gate(int *result_errno_ptr,
 
 	res = (*real___fxstat_ptr)(ver, fd, buf);
 	if (res == 0) {
-		if (get_vperm_num_active_inodestats() > 0) {
-			i_virtualize_struct_stat(buf, NULL);
-		}
+		i_virtualize_struct_stat(buf, NULL);
 	} else {
 		*result_errno_ptr = errno;
 	}
@@ -193,9 +189,7 @@ int __fxstat64_gate(int *result_errno_ptr,
 
 	res = (*real___fxstat64_ptr)(ver, fd, buf64);
 	if (res == 0) {
-		if (get_vperm_num_active_inodestats() > 0) {
-			i_virtualize_struct_stat(NULL, buf64);
-		}
+		i_virtualize_struct_stat(NULL, buf64);
 	} else {
 		*result_errno_ptr = errno;
 	}
@@ -216,9 +210,7 @@ int __fxstatat_gate(int *result_errno_ptr,
 	res = (*real___fxstatat_ptr)(ver, dirfd, mapped_filename->mres_result_path, buf, flags);
 	*result_errno_ptr = errno;
 	if (res == 0) {
-		if (get_vperm_num_active_inodestats() > 0) {
-			i_virtualize_struct_stat(buf, NULL);
-		}
+		i_virtualize_struct_stat(buf, NULL);
 	} else {
 		*result_errno_ptr = errno;
 	}
@@ -238,9 +230,7 @@ int __fxstatat64_gate(int *result_errno_ptr,
 
 	res = (*real___fxstatat64_ptr)(ver, dirfd, mapped_filename->mres_result_path, buf64, flags);
 	if (res == 0) {
-		if (get_vperm_num_active_inodestats() > 0) {
-			i_virtualize_struct_stat(NULL, buf64);
-		}
+		i_virtualize_struct_stat(NULL, buf64);
 	} else {
 		*result_errno_ptr = errno;
 	}
@@ -1324,7 +1314,7 @@ FTSENT *fts_read_gate(int *result_errno_ptr,
 	FTSENT *res;
 
 	res = (*real_fts_read_ptr)(ftsp);
-	if (res && (res->fts_statp) && (get_vperm_num_active_inodestats() > 0)) {
+	if (res && (res->fts_statp)) {
 		i_virtualize_struct_stat(res->fts_statp, NULL);
 	} else if (res==NULL) {
 		*result_errno_ptr = errno;

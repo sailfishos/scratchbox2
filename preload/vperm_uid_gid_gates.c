@@ -39,7 +39,11 @@ static struct vperm_uids_gids_s {
 	gid_t	v_egid;
 	gid_t	v_saved_gid;
 	gid_t	v_fsgid; /* Linux specific */
-} vperm_simulated_ids = {0, 0,0,0,0, 0,0,0,0};
+
+	int	v_set_owner_and_group_of_unknown_files;
+	uid_t	v_unknown_file_owner;
+	gid_t	v_unknown_file_group;
+} vperm_simulated_ids = {0, 0,0,0,0, 0,0,0,0, 0,0,0};
 
 static uid_t	v_real_euid = 0;
 static uid_t	v_real_egid = 0;
@@ -90,6 +94,15 @@ static void initialize_simulated_ids(void)
 		vperm_simulated_ids.v_saved_gid = vperm_simulated_ids.v_egid;
 	}
 
+	if (sbox_vperm_ids && (cp = strchr(sbox_vperm_ids, 'f')) &&
+	    (sscanf(cp, "f%d.%d", &i1, &i2) == 2)) {
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: Initializing unknown file owner and group info from env: %d %d",
+			__func__, i1, i2);
+		vperm_simulated_ids.v_set_owner_and_group_of_unknown_files = 1;
+		vperm_simulated_ids.v_unknown_file_owner = i1;
+		vperm_simulated_ids.v_unknown_file_group = i2;
+	}
+
 	vperm_simulated_ids.initialized = 1;
 }
 
@@ -115,6 +128,13 @@ int vperm_uid_or_gid_virtualization_is_active(void)
 	       (v_real_egid != vperm_simulated_ids.v_egid));
 }
 
+int vperm_set_owner_and_group_of_unknown_files(uid_t *uidp, gid_t *gidp)
+{
+	if (uidp) *uidp = vperm_simulated_ids.v_unknown_file_owner;
+	if (gidp) *gidp = vperm_simulated_ids.v_unknown_file_group;
+	return(vperm_simulated_ids.v_set_owner_and_group_of_unknown_files);
+}
+
 char *vperm_export_ids_as_string_for_exec(const char *prefix,
 	int mode, uid_t suid, gid_t sgid, const char *user_vperm_request)
 {
@@ -123,6 +143,7 @@ char *vperm_export_ids_as_string_for_exec(const char *prefix,
 	gid_t	exec_egid;
 	uid_t	new_saveduid;
 	gid_t	new_savedgid;
+	char	ufbuf[100];
 
 	if (vperm_simulated_ids.initialized == 0) {
 		if ((mode & (S_ISUID | S_ISGID)) == 0) {
@@ -157,7 +178,16 @@ char *vperm_export_ids_as_string_for_exec(const char *prefix,
 	}
 	new_saveduid = exec_euid;
 	new_savedgid = exec_egid;
-	if (asprintf(&r, "%su%d:%d:%d:%d,g%d:%d:%d:%d", prefix,
+
+	if (vperm_simulated_ids.v_set_owner_and_group_of_unknown_files) {
+		snprintf(ufbuf, sizeof(ufbuf), ",f%d.%d",
+			vperm_simulated_ids.v_unknown_file_owner,
+			vperm_simulated_ids.v_unknown_file_group);
+	} else {
+		ufbuf[0] = '\0';
+	}
+
+	if (asprintf(&r, "%su%d:%d:%d:%d,g%d:%d:%d:%d%s", prefix,
 	     (int)vperm_simulated_ids.v_uid,
 	     (int)exec_euid,
 	     (int)new_saveduid,
@@ -165,7 +195,8 @@ char *vperm_export_ids_as_string_for_exec(const char *prefix,
 	     (int)vperm_simulated_ids.v_gid,
 	     (int)exec_egid,
 	     (int)new_savedgid,
-	     (int)vperm_simulated_ids.v_fsgid) < 0) /* FIXME: Is this ok or wrong? */
+	     (int)vperm_simulated_ids.v_fsgid, /* FIXME: Is this ok or wrong? */
+	     ufbuf) < 0)
 		return(NULL);
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: packed IDs => '%s'",
 		__func__, r);

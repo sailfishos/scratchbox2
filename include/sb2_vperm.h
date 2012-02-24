@@ -19,4 +19,6 @@ extern int vperm_uid_or_gid_virtualization_is_active(void);
 extern char *vperm_export_ids_as_string_for_exec(const char *prefix,
 	int mode, uid_t suid, gid_t sgid, const char *user_vperm_request);
 
+extern int vperm_set_owner_and_group_of_unknown_files(uid_t *uidp, gid_t *gidp);
+
 #endif

@@ -254,13 +254,8 @@ devel_mode_rules_usr_bin = {
 		 actions = test_first_tools_default_is_target},
 }
 
-
--- Used when dir = "/usr":
-devel_mode_rules_usr = {
-		{dir = "/usr/share", rules = devel_mode_rules_usr_share},
-
-		{name = "/usr/bin branch", dir = "/usr/bin", rules = devel_mode_rules_usr_bin},
-
+-- "/usr/lib/*"
+devel_mode_rules_usr_lib = {
 		-- -----------------------------------------------
 		-- 40. /usr/lib/*
 		-- Most of /usr/lib should come from target_root, but
@@ -284,9 +279,21 @@ devel_mode_rules_usr = {
 			readonly = true,
 		},
 
+		-- wrappers etc.
+		{dir = "/usr/lib/libsb2", force_orig_path = true},
+
 		{prefix = "/usr/lib",
 		 actions = test_first_target_then_tools_default_is_target},
 
+}
+
+-- Used when dir = "/usr":
+devel_mode_rules_usr = {
+		{dir = "/usr/share", rules = devel_mode_rules_usr_share},
+
+		{name = "/usr/bin branch", dir = "/usr/bin", rules = devel_mode_rules_usr_bin},
+
+		{prefix = "/usr/lib", rules = devel_mode_rules_usr_lib},
 		-- -----------------------------------------------
 		-- 50. /usr/src/*
 		{path = "/usr/src", map_to = target_root, readonly = true},

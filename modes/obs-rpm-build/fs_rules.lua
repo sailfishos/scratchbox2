@@ -389,9 +389,11 @@ emulate_mode_rules_usr = {
                 {path = "/usr/lib/rpm/debugedit", actions=accelerated_program_actions},
                 {path = "/usr/lib/rpm/javadeps", actions=accelerated_program_actions},
                 {path = "/usr/lib/rpm/rpmdeps", actions=accelerated_program_actions},
-		-- gdb wants to have access to our dynamic linker also.
-		{path = "/usr/lib/libsb2/ld-2.5.so", use_orig_path = true,
-		protection = readonly_fs_always},
+
+		-- gdb wants to have access to our dynamic linker also,
+		-- /usr/lib/libsb2/wrappers/*, etc.
+		{dir = "/usr/lib/libsb2", use_orig_path = true,
+		 protection = readonly_fs_always},
 
 		{dir = "/usr/lib/gcc", actions = test_first_tools_then_target_default_is_tools},
 

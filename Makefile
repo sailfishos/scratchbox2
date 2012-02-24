@@ -55,7 +55,7 @@ PROTOTYPEWARNINGS=-Wmissing-prototypes -Wstrict-prototypes
 
 # targets variable will be filled by llbuild
 targets = 
-subdirs = luaif sblib pathmapping execs rule_tree preload utils sb2d
+subdirs = luaif sblib pathmapping execs rule_tree preload utils sb2d wrappers
 
 -include config.mak
 
@@ -215,7 +215,6 @@ install-noarch: regular
 	$(Q)install -c -m 755 $(SRCDIR)/wrappers/gdb $(prefix)/share/scratchbox2/wrappers/gdb
 	$(Q)install -c -m 755 $(SRCDIR)/wrappers/ldd $(prefix)/share/scratchbox2/wrappers/ldd
 	$(Q)install -c -m 755 $(SRCDIR)/wrappers/pwd $(prefix)/share/scratchbox2/wrappers/pwd
-	$(Q)install -c -m 755 $(SRCDIR)/wrappers/fakeroot $(prefix)/share/scratchbox2/wrappers/fakeroot
 	$(Q)(set -e; cd $(prefix)/share/scratchbox2/wrappers; \
 	for f in $(host_prefixed_gcc_bins); do \
 		ln -sf host-gcc-tools-wrapper $$f; \
@@ -234,6 +233,8 @@ do-install: install-noarch
 	else install -d -m 755 $(prefix)/lib ; \
 	fi
 	$(Q)install -d -m 755 $(prefix)/lib/libsb2
+	$(Q)install -d -m 755 $(prefix)/lib/libsb2/wrappers
+	$(Q)install -c -m 755 $(OBJDIR)/wrappers/fakeroot $(prefix)/lib/libsb2/wrappers/fakeroot
 	$(Q)install -c -m 755 $(OBJDIR)/preload/libsb2.$(SHLIBEXT) $(prefix)/lib/libsb2/libsb2.so.$(PACKAGE_VERSION)
 	$(Q)install -c -m 755 $(OBJDIR)/utils/sb2-show $(prefix)/bin/sb2-show
 	$(Q)install -c -m 755 $(OBJDIR)/utils/sb2-monitor $(prefix)/bin/sb2-monitor

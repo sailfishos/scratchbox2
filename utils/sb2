@@ -816,6 +816,8 @@ function check_qemu_features()
 			conf_cputransparency_qemu_ld_preload=$qemuarg ;;
 		__SB2_*=*) # skip it
 			;;
+		SBOX_VPERM_*=*) # skip it
+			;;
 		[A-Z_]*=*)	# other additional env.vars.
 			if [ -z "$qemu_env" ]; then
 				qemu_env="'$qemuarg'"

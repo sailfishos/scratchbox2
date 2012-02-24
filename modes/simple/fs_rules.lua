@@ -20,6 +20,8 @@ qemu_binary_name = basename(sbox_cputransparency_cmd)
 simple_rules_usr = {
 		{path = "/usr/bin/sb2-show",
 		 use_orig_path = true, readonly = true},
+		{dir = "/usr/lib/libsb2", use_orig_path = true,
+		 readonly = true},
 
 		-- Qemu only:
 		{binary_name = qemu_binary_name,

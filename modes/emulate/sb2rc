@@ -29,7 +29,7 @@ case "$sb2rc_mode" in
 		;;
 
 	wrapper_list)
-		SBOX_WRAPPERS="gdb ldconfig"
+		SBOX_WRAPPERS="gdb ldconfig fakeroot"
 		;;
 
 	*)

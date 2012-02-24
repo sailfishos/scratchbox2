@@ -82,9 +82,10 @@ emulate_mode_map_to_sb1compat_unless_dpkg = {
 }
 
 emulate_mode_rules_usr = {
-		-- gdb wants to have access to our dynamic linker also.
-		{path = "/usr/lib/libsb2/ld-2.5.so", use_orig_path = true,
-		protection = readonly_fs_always},
+		-- gdb wants to have access to our dynamic linker also,
+		-- /usr/lib/libsb2/wrappers/*, etc.
+		{dir = "/usr/lib/libsb2", use_orig_path = true,
+		 protection = readonly_fs_always},
 
 		{path = "/usr/bin/sb2-show", use_orig_path = true,
 		 protection = readonly_fs_always},

@@ -128,10 +128,13 @@ struct sb2context {
  *   - New function sb.test_fn_class_match()
  *   - All mapping functions take an additional parameter
  *     (func_class)
+ * * New in 121:
+ *   - "fakeroot" isn't supported anymore, instead
+ *     SB2's own Vperm subsystem offers similar functionality
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "120"
+#define SB2_LUA_C_INTERFACE_VERSION "121"
 
 /* get sb2context, without activating lua: */
 extern struct sb2context *get_sb2context(void);

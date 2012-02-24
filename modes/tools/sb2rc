@@ -14,7 +14,7 @@ case "$sb2rc_mode" in
 		;;
 
 	wrapper_list)
-		SBOX_WRAPPERS="ldconfig dpkg"
+		SBOX_WRAPPERS="ldconfig dpkg fakeroot"
 		;;
 
 	dpkg)

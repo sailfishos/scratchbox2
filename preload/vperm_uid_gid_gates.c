@@ -140,6 +140,8 @@ char *vperm_export_ids_as_string_for_exec(const char *prefix,
 		char *cp = strchr(user_vperm_request, '=');
 		cp = cp ? cp + 1 : user_vperm_request;
 		if (asprintf(&r, "%s%s", prefix, cp) < 0) return(NULL);
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: user_vperm_request => '%s'",
+			__func__, r);
 		return(r);
 	}
 
@@ -165,6 +167,8 @@ char *vperm_export_ids_as_string_for_exec(const char *prefix,
 	     (int)new_savedgid,
 	     (int)vperm_simulated_ids.v_fsgid) < 0) /* FIXME: Is this ok or wrong? */
 		return(NULL);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: packed IDs => '%s'",
+		__func__, r);
 	return(r);
 }
 

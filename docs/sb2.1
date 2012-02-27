@@ -32,6 +32,9 @@ automatically whenever needed (Qemu is typically used for this).
 Third, scratchbox2 can also virtualize network (TCP/IP) addresses
 and connections.
 .PP
+Fourth, scratchbox2 can also virtualize file owner and permission
+information, and user and group IDs of the running processes.
+.PP
 The result is that the development machine appears as a virtual target system to
 the software development tools, and complex tools (like GNU Autotools)
 can be used directly.
@@ -155,8 +158,8 @@ Disable creating reverse mapping rules: functions like getcwd() and realpath() w
 "superuser  mode":
 Execute commands in simulated privileged environment, as simulated "root" user.
 Depending on the selected mapping mode,
-this may also disables some mode-specific features, like simulated write protection
-of the target filesystem.
+this may also disable some mode-specific features, like simulated write protection
+of the target filesystem. See also option -U and VIRTUAL PERMISSIONS below.
 .TP
 \-s DIRECTORY
 Use redirection rules from the DIRECTORY given in argument.
@@ -172,6 +175,14 @@ to set a default.
 .TP
 \-T DIRECTORY
 Use DIRECTORY as tools_root (override the value which was specified to sb2-init when the target specification was created).
+.TP
+\-U UID.GID
+Set default file owner and group:
+All "unknown" files appers to be owned by UID, and group appears to be GID.
+Both values need to be numeric values, e.g. use "-U 0.0" to set the
+default owner to "root", and group to "root".
+In this context an "unknown file" refers to anything which is not explicitly
+known to to the Vperm subsystem; See also VIRTUAL PERMISSIONS below.
 .TP
 \-u
 Disable automatic configuration upgrade.
@@ -287,6 +298,62 @@ network-related events.
 N.B. Together with the "nomap" filesystem mapping mode,
 you can also test what ordinary programs (programs that
 belong to the host OS) are doing.
+
+.SH VIRTUAL PERMISSIONS
+The virtual permission ("Vperm") subsystem does two things:
+.PP
+First, it can virtualize file system metadata, i.e. the
+information returned by stat(), lstat(), fstat() etc. calls.
+.PP
+Second, the Vperm subsystem can masquerade user- and group
+information of running processes: getuid(), getgid() etc
+calls may return simulated information (see option -R)
+.PP
+Virtualized metadata means that file ownership, access permission 
+information (mode bits) and even file type can be virtualized.
+Typically, the data is set by library/system calls like chown()
+or chmod(). These calls are always first tried directly, but if the call
+fails, the Vperm subsystem takes control and will set virtualized owner (or
+other information) for the file. This way practically any
+file on the system can get virtual metadata.
+.PP
+Virtual device nodes are also possible: if real
+device nodes (character/block special nodes) can not be created
+by mknod(), the Vperm system will create virtual device nodes
+by creating an empty file which doesn't have any permissions,
+and then setting the virtual file type to be a device. This
+is useful for e.g. creating "tar" archives which need to have
+device nodes inside, but the virtualized device nodes can not
+be used for anything real, of course.
+.PP
+Note that the Vperm subsystem does not affect the way
+how permission checks are done. The kernel is still responsible:
+All operations are still done with the real user
+ID and real group ID. This can present some surprises: For example,
+any file can be opened for reading only if the 
+real (effective) user ID of process permits and the file
+has owner's R-bit set, regardless of the virtual permissions
+or virtual metadata.
+.PP
+This subsystem is essentially a superset of what the
+.I fakeroot
+utility has done. But Scratchbox2 does more; For example,
+if user ID information is masqueraded, newly created files
+will appear to be owned by that simulated user if (fakeroot
+doesn't do that). Also, the set-user-ID and set-group-ID bits
+are correctly simulated for foreign binaries running under e.g. qemu
+(fakeroot can't do that).
+.PP
+For compatibility with
+.I fakeroot,
+scratchbox2 offers two features: Most modes have a built-in
+command "fakeroot" which accepts similar options as the real
+.I fakeroot
+command (but ignores most of those). Also, since the default in
+a fakeroot session is to have all files owned by root (and group=root),
+the Vperm subsystem can do a similar thing if the session is
+created with the -U option (this is also activated by the
+built-in "fakeroot" command.)
 
 .SH FILES
 .P

@@ -49,6 +49,7 @@ static struct sockaddr_un client_address;
 static char *client_socket_path = NULL;
 
 static int client_socket = -1;
+static pid_t client_pid = 0;
 static int server_address_initialized = 0;
 
 static int initialize_server_address(void)
@@ -90,14 +91,20 @@ static int initialize_server_address(void)
 static void cleanup_client_socket(void)
 {
 	SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_rpc: cleanup");
-	if (client_socket >= 0) {
-		close(client_socket);
-		client_socket = -1;
-	}
-	if (client_socket_path) {
-		unlink_nomap_nolog(client_socket_path);
-		free(client_socket_path);
-		client_socket_path = NULL;
+
+	/* double-check the that socket is belongs to this process
+	 * (if this is a forked child of the original socket owner..)
+	*/
+	if (client_pid == getpid()) {
+		if (client_socket >= 0) {
+			close(client_socket);
+			client_socket = -1;
+		}
+		if (client_socket_path) {
+			unlink_nomap_nolog(client_socket_path);
+			free(client_socket_path);
+			client_socket_path = NULL;
+		}
 	}
 }
 
@@ -129,7 +136,8 @@ static int create_client_socket(void)
 				client_socket);
 		}
 	}
-	if (asprintf(&client_socket_path, "%s/sock/%d", sbox_session_dir, getpid()) < 0) {
+	client_pid = getpid();
+	if (asprintf(&client_socket_path, "%s/sock/%d", sbox_session_dir, (int)client_pid) < 0) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"ruletree_rpc: asprintf failed");
 		goto error_out;
@@ -194,6 +202,13 @@ static int send_command_receive_reply(
 				"Failed to initialize server socket address (ruletree_rpc)");
 			goto error_out;
 		}
+	}
+
+	/* double-check the that socket is belongs to this process
+	 * (if this is a forked child of the original socket owner..)
+	*/
+	if (client_pid != getpid()) {
+		client_socket = -1;
 	}
 
     reopen_socket:

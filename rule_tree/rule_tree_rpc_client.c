@@ -157,12 +157,19 @@ static int create_client_socket(void)
 	unlink_nomap_nolog(client_socket_path); /* remove old socket, if any. */
 
 	client_addr_len = sizeof(sa_family_t) + sock_path_len + 1;
+	
 	if (bind_nomap_nolog(client_socket, (struct sockaddr*)&client_address, client_addr_len) < 0) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"ruletree_rpc: Failed to bind client socket address (%s)",
 			client_socket_path);
 		goto error_out;
 	}
+	/* Linux uses the protection bits, and umask can be anything
+	 * now => the socket might have weird permissions.
+	 * Fix that now. And trust that the directory permissions
+	 * are enough for access control.
+	*/
+	chmod_nomap_nolog(client_socket_path, 0777);
 
 	SB_LOG(SB_LOGLEVEL_DEBUG,
 		"ruletree_rpc: client socket = (%s)",

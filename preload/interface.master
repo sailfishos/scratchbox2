@@ -293,7 +293,9 @@ WRAP: int chflags(const char *path, u_int flags) : \
 #endif
 
 GATE: int chmod(const char *path, mode_t mode) : \
+	create_nomap_nolog_version \
 	map(path) fail_if_readonly(path,-1,EROFS)
+
 GATE: int chown(const char *path, uid_t owner, gid_t group) : \
 	map(path) fail_if_readonly(path,-1,EROFS)
 

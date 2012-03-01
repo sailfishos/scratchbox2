@@ -126,3 +126,9 @@ int bind_nomap_nolog(int sockfd, const struct sockaddr *my_addr, socklen_t addrl
 {
 	return(bind(sockfd, my_addr, addrlen));
 }
+
+int chmod_nomap_nolog(const char *path, mode_t mode)
+{
+	return(chmod(path, mode));
+}
+

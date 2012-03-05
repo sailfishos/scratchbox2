@@ -25,7 +25,11 @@ rule_file_interface_version = "103"
 ----------------------------------
 
 fs_mapping_rules = {
-		-- Don't map.
+		{prefix = "/sb2/wrappers",
+		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
+		 protection = readonly_fs_always},
+
+		-- Don't map anything else.
 		{prefix = "/", force_orig_path = true},
 }
 

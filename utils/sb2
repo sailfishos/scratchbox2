@@ -52,6 +52,8 @@ Options:
     -R           use simulated root permissions (activates the Vperm subsystem)
     -U UID.GID   use UID and GID as owner and group of "unknown" files
                  (for all files that are unknown to the Vperm subsystem)
+    -p           Do not simulate special FS privileges of the "root"
+                 user, when option -R is active
     -S file      Write session information to "file" (see option -J)
     -J file      Don't create a new session; join an existing one (see -S) 
     -D file      delete an old session (see -S). Warning: this does not
@@ -1588,8 +1590,9 @@ SBOX_LOG_AND_GRAPH_DIR=""
 SBOX_COLLECT_ACCT_DATA=""
 SBOX_QUIET=""
 VPERM_UIDGID_FOR_UNKNOWN_FILES=""
+VPERM_ROOT_PRIVILEGE_FLAG=""
 
-while getopts vdht:em:n:s:L:Q:M:ZrRU:S:J:D:P:W:O:cC:T:uf:gG:B:b:q foo
+while getopts vdht:em:n:s:L:Q:M:ZrRU:pS:J:D:P:W:O:cC:T:uf:gG:B:b:q foo
 do
 	case $foo in
 	(v) show_version; exit 0;;
@@ -1610,6 +1613,7 @@ do
 	(r) SBOX_CREATE_REVERSE_RULES="n";;
 	(R) SBOX_ROOT_SIMULATION="root";;
 	(U) VPERM_UIDGID_FOR_UNKNOWN_FILES=$OPTARG;;
+	(p) VPERM_ROOT_PRIVILEGE_FLAG=",p";;
 	(S) SBOX_WRITE_SESSION_INFO_TO_FILE=$OPTARG ;;
 	(J) SBOX_JOIN_SESSION_FILE=$OPTARG ;;
 	(P) SBOX_PRINT_SESSION_LOGS=$OPTARG ;;
@@ -1731,6 +1735,9 @@ if [ -n "$SBOX_ROOT_SIMULATION" ]; then
 fi
 if [ -n "$VPERM_UIDGID_FOR_UNKNOWN_FILES" ]; then
 	export SBOX_VPERM_IDS="$SBOX_VPERM_IDS,f$VPERM_UIDGID_FOR_UNKNOWN_FILES"
+fi
+if [ -n "$VPERM_ROOT_PRIVILEGE_FLAG" ]; then
+	export SBOX_VPERM_IDS="$SBOX_VPERM_IDS,$VPERM_ROOT_PRIVILEGE_FLAG"
 fi
 SBOX_LD_PRELOAD="$SBOX_LIBSB2"
 

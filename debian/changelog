@@ -1,3 +1,12 @@
+scratchbox2 (2.3.41-1) unstable; urgency=low
+
+  * Fakeroot has been eliminated; A built-in virtual permissions
+    ("Vperm") subsystem superseded it. See the manual page for details.
+  * A fix to the "ldd" wrapper [from Florent Viard] (ldd
+    is now wrapped in the "simple" mode, too)
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Mon, 05 Mar 2012 17:34:00 +0200
+
 scratchbox2 (2.3.29-1) unstable; urgency=low
 
   * Important change to command-line parameter handling:

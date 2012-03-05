@@ -79,6 +79,9 @@ int i_virtualize_struct_stat(struct stat *buf, struct stat64 *buf64)
 
 	if ((get_vperm_num_active_inodestats() > 0) &&
 	    (ruletree_find_inodestat(&handle, &istat_in_db) == 0)) {
+		int set_uid_gid_of_unknown = vperm_set_owner_and_group_of_unknown_files(
+			&uf_uid, &uf_gid);
+
 		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: inodestats struct found:", __func__);
 		if (istat_in_db.inodesimu_active_fields &
 			RULETREE_INODESTAT_SIM_UID) {
@@ -88,7 +91,15 @@ int i_virtualize_struct_stat(struct stat *buf, struct stat64 *buf64)
 			if (buf) buf->st_uid = istat_in_db.inodesimu_uid;
 			else   buf64->st_uid = istat_in_db.inodesimu_uid;
 			res++;
+		} else if (set_uid_gid_of_unknown) {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"%s: 'unknown' file, set owner to %d",
+					__func__, uf_uid);
+			if (buf) buf->st_uid = uf_uid;
+			else   buf64->st_uid = uf_uid;
+			res++;
 		}
+
 		if (istat_in_db.inodesimu_active_fields &
 			RULETREE_INODESTAT_SIM_GID) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
@@ -97,7 +108,15 @@ int i_virtualize_struct_stat(struct stat *buf, struct stat64 *buf64)
 			if (buf) buf->st_gid = istat_in_db.inodesimu_gid;
 			else   buf64->st_gid = istat_in_db.inodesimu_gid;
 			res++;
+		} else if (set_uid_gid_of_unknown) {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"%s: 'unknown' file, set group to %d",
+					__func__, uf_gid);
+			if (buf) buf->st_gid = uf_gid;
+			else   buf64->st_gid = uf_gid;
+			res++;
 		}
+
 		if (istat_in_db.inodesimu_active_fields &
 			RULETREE_INODESTAT_SIM_MODE) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,

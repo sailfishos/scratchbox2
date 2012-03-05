@@ -43,7 +43,9 @@ static struct vperm_uids_gids_s {
 	int	v_set_owner_and_group_of_unknown_files;
 	uid_t	v_unknown_file_owner;
 	gid_t	v_unknown_file_group;
-} vperm_simulated_ids = {0, 0,0,0,0, 0,0,0,0, 0,0,0};
+
+	int	v_simulate_root_fs_permissions;
+} vperm_simulated_ids = {0, 0,0,0,0, 0,0,0,0, 0,0,0, 1};
 
 static uid_t	v_real_euid = 0;
 static uid_t	v_real_egid = 0;
@@ -103,6 +105,10 @@ static void initialize_simulated_ids(void)
 		vperm_simulated_ids.v_unknown_file_group = i2;
 	}
 
+	if (sbox_vperm_ids && (cp = strchr(sbox_vperm_ids, 'p'))) {
+		vperm_simulated_ids.v_simulate_root_fs_permissions = 0;
+	}
+
 	vperm_simulated_ids.initialized = 1;
 }
 
@@ -126,6 +132,13 @@ int vperm_uid_or_gid_virtualization_is_active(void)
 		initialize_simulated_ids();
 	return((v_real_euid != vperm_simulated_ids.v_euid) ||
 	       (v_real_egid != vperm_simulated_ids.v_egid));
+}
+
+int vperm_simulate_root_fs_permissions(void)
+{
+	if (vperm_simulated_ids.initialized == 0)
+		initialize_simulated_ids();
+	return(vperm_simulated_ids.v_simulate_root_fs_permissions);
 }
 
 int vperm_set_owner_and_group_of_unknown_files(uid_t *uidp, gid_t *gidp)
@@ -187,7 +200,7 @@ char *vperm_export_ids_as_string_for_exec(const char *prefix,
 		ufbuf[0] = '\0';
 	}
 
-	if (asprintf(&r, "%su%d:%d:%d:%d,g%d:%d:%d:%d%s", prefix,
+	if (asprintf(&r, "%su%d:%d:%d:%d,g%d:%d:%d:%d%s%s", prefix,
 	     (int)vperm_simulated_ids.v_uid,
 	     (int)exec_euid,
 	     (int)new_saveduid,
@@ -196,7 +209,8 @@ char *vperm_export_ids_as_string_for_exec(const char *prefix,
 	     (int)exec_egid,
 	     (int)new_savedgid,
 	     (int)vperm_simulated_ids.v_fsgid, /* FIXME: Is this ok or wrong? */
-	     ufbuf) < 0)
+	     ufbuf,
+	     ((vperm_simulated_ids.v_simulate_root_fs_permissions == 0) ? ",p" : "")) < 0)
 		return(NULL);
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: packed IDs => '%s'",
 		__func__, r);

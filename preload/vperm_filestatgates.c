@@ -454,6 +454,7 @@ static void vperm_chmod(
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: virtualize stat "
 		" (real mode=0%o, new virtual mode=0%o, suid/sgid=0%o)",
 		realfnname, statbuf->st_mode, virt_mode, suid_sgid_bits);
+
 	if (((statbuf->st_mode & ~(S_IFMT | S_ISUID | S_ISGID)) !=
 		    (virt_mode & ~(S_IFMT | S_ISUID | S_ISGID))) ||
 	    ((statbuf->st_mode & (S_ISUID | S_ISGID)) != suid_sgid_bits))
@@ -490,6 +491,128 @@ static int vperm_chmod_if_simulated_device(
 	return(-1);
 }
 
+static int vperm_stat_for_chmod(
+	const char *realfnname,
+	int fd,
+	const mapping_results_t *mapped_filename,
+	int flags,
+	struct stat *buf)
+{
+	if (mapped_filename) {
+		return (get_stat_for_fxxat(realfnname, fd, mapped_filename, flags, buf));
+	}
+	return (real_fstat(fd, buf));
+}
+
+static void vperm_chmod_prepare(
+	const char *realfnname,
+	int	fd,
+	const mapping_results_t *mapped_filename,
+	int	flags,
+	struct stat *buf,
+	mode_t	mode,
+	mode_t	suid_sgid_bits,
+	int	*has_stat,
+	int	*forced_owner_rights,
+	int	*return_zero_now)
+{
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: %s", __func__, realfnname);
+
+	/* A simulated device => don't change real mode at all.*/
+	if (get_vperm_num_active_inodestats() > 0) {
+		if (vperm_stat_for_chmod(realfnname, fd, mapped_filename, flags, buf) == 0) {
+			*has_stat = 1;
+			if (vperm_chmod_if_simulated_device(realfnname, buf, mode,
+					suid_sgid_bits) == 0) {
+				*return_zero_now = 1;
+				return;
+			}
+			/* else not a simulated device, continue here */
+		} /* else the real function sets errno */
+	}
+
+	/* If simulated root and root FS permission simulation
+	 * is required => ensure that the file will
+	 * have RW permissions, and directories need to have X, too.
+	 *
+	 * Trying to set mode to something which
+	 * won't be fully usable by the simulated root user might
+	 * cause trouble. So we'll "fix" the mode here; That provides
+	 * compatibility with fakeroot, but breaks the semantics
+	 * for ordinary users..
+	*/
+	if (vperm_uid_or_gid_virtualization_is_active() &&
+	    (vperm_geteuid() == 0) &&
+	    vperm_simulate_root_fs_permissions()) {
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"%s: simulate_root_fs_permissions",
+			__func__);
+		if ((mode & 0700) != 0700) {
+			int	is_dir = 0;
+
+			/* new mode isn't 7xx, now check if it is a directory. */
+			if (!*has_stat) {
+				if (vperm_stat_for_chmod(realfnname, fd, mapped_filename, flags, buf) != 0)
+					return;
+				*has_stat = 1;
+			}
+			is_dir = S_ISDIR(buf->st_mode);
+			if ( (is_dir && ((mode & 0700) != 0700)) ||
+			     ((mode & 0600) != 0600) ) {
+				if (is_dir) *forced_owner_rights = 0700;
+				else *forced_owner_rights = 0600;
+				SB_LOG(SB_LOGLEVEL_DEBUG,
+					"%s: set forced_owner_rights = 0%o",
+					__func__, *forced_owner_rights);
+			}
+		}
+	}
+}
+
+static int vperm_chmod_done_update_state(
+	int *result_errno_ptr,
+	const char *realfnname,
+	int res,
+	int e,
+	int fd,
+	const mapping_results_t *mapped_filename,
+	int flags,
+	mode_t mode,
+	mode_t suid_sgid_bits,
+	int forced_owner_rights)
+{
+	struct stat	statbuf;
+
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: %s", __func__, realfnname);
+
+	/* need to update vperm state if
+	 *  - SUID/SGID is used
+	 *  - real function failed due to permissions
+	 *  - real function succeeded and there are active vperms.
+	 *  - always when root FS permissions simulation is
+	 *    active (nonzero forced_owner_rights) 
+	 * Don't need to update vperms, if
+	 *  - nothing active in vperm tree
+	 *  - other errors than EPERM.
+	*/
+	if (suid_sgid_bits ||
+	    forced_owner_rights ||
+	    ((res < 0) && ( e == EPERM)) ||
+	    ((res == 0) && (get_vperm_num_active_inodestats() > 0))) {
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: set vperms", __func__);
+
+		if (vperm_stat_for_chmod(realfnname, fd, mapped_filename, flags, &statbuf) == 0) {
+			vperm_chmod(realfnname, &statbuf, mode, suid_sgid_bits);
+			res = 0;
+		} else { /* real fn didn't work, and can't stat */
+			*result_errno_ptr = e;
+			res = -1;
+		}
+	}
+	return(res);
+}
+
+
 int fchmodat_gate(int *result_errno_ptr,
 	int (*real_fchmodat_ptr)(int dirfd, const char *pathname, mode_t mode, int flags),
         const char *realfnname,
@@ -502,47 +625,30 @@ int fchmodat_gate(int *result_errno_ptr,
 	struct stat	statbuf;
 	mode_t		suid_sgid_bits;
 	int		e;
+	int		forced_owner_rights = 0;
+	int		has_stat = 0;
+	int		return_zero_now = 0;
 
 	/* separate SUID and SGID bits from mode. Never set
 	 * real SUID/SGID bits. */
 	suid_sgid_bits = mode & (S_ISUID | S_ISGID);
 	mode &= ~(S_ISUID | S_ISGID);
 
-	/* Use stat only if there are active vperm inodestat nodes */
-	if (get_vperm_num_active_inodestats() > 0) {
-		/* check if this file already has vperms */
-		if (get_stat_for_fxxat(realfnname, dirfd, mapped_filename, 0, &statbuf) == 0) {
-			/* Exists & got stat */
-			if (vperm_chmod_if_simulated_device(realfnname, &statbuf, mode,
-					suid_sgid_bits) == 0)
-				return(0);
-			/* else not a simulated device, continue here */
-		} /* else the real function sets errno */
-	}
+	vperm_chmod_prepare(realfnname, dirfd, mapped_filename,
+		flags, &statbuf,
+		mode, suid_sgid_bits,
+		&has_stat, &forced_owner_rights, &return_zero_now);
+	if (return_zero_now) return(0);
 
 	/* try the real function */
-	res = (*real_fchmodat_ptr)(dirfd, mapped_filename->mres_result_path, mode, flags);
+	res = (*real_fchmodat_ptr)(dirfd, mapped_filename->mres_result_path,
+		mode | forced_owner_rights, flags);
 	e = errno;
-
-	/* need to update vperm state if
-	 *  - SUID/SGID is used
-	 *  - real function failed due to permissions
-	 *  - real function succeeded and there are active vperms.
-	 * Don't need to update vperms, if
-	 *  - nothing active in vperm tree
-	 *  - other errors than EPERM.
-	*/
-	if (suid_sgid_bits ||
-	    ((res < 0) && ( e == EPERM)) ||
-	    ((res == 0) && (get_vperm_num_active_inodestats() > 0))) {
-		if (get_stat_for_fxxat(realfnname, dirfd, mapped_filename, flags, &statbuf) == 0) {
-			vperm_chmod(realfnname, &statbuf, mode, suid_sgid_bits);
-			res = 0;
-		} else { /* real fn didn't work, and can't stat */
-			*result_errno_ptr = e;
-			res = -1;
-		}
-	}
+	/* finalize. */
+	res = vperm_chmod_done_update_state(result_errno_ptr,
+		realfnname, res, e,
+		dirfd, mapped_filename, flags,
+		mode, suid_sgid_bits, forced_owner_rights);
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "fchmodat: returns %d", res);
 	return(res);
@@ -558,44 +664,27 @@ int fchmod_gate(int *result_errno_ptr,
 	struct stat	statbuf;
 	mode_t		suid_sgid_bits;
 	int		e;
+	int		forced_owner_rights = 0;
+	int		has_stat = 0;
+	int		return_zero_now = 0;
 
 	/* separate SUID and SGID bits from mode. Never set
 	 * real SUID/SGID bits. */
 	suid_sgid_bits = mode & (S_ISUID | S_ISGID);
 	mode &= ~(S_ISUID | S_ISGID);
 
-	/* Use stat only if there are active vperm inodestat nodes */
-	if (get_vperm_num_active_inodestats() > 0) {
-		if (real_fstat(fd, &statbuf) == 0) {
-			if (vperm_chmod_if_simulated_device(realfnname, &statbuf, mode,
-					suid_sgid_bits) == 0)
-				return(0);
-			/* else not a simulated device, continue here */
-		} /* else the real function sets errno */
-	}
+	vperm_chmod_prepare(realfnname, fd, NULL/*no mapped_filename*/,
+		0/*no flags*/, &statbuf,
+		mode, suid_sgid_bits,
+		&has_stat, &forced_owner_rights, &return_zero_now);
+	if (return_zero_now) return(0);
 
-	res = (*real_fchmod_ptr)(fd, mode);
+	res = (*real_fchmod_ptr)(fd, mode | forced_owner_rights);
 	e = errno;
-
-	/* need to update vperm state if
-	 *  - SUID/SGID is used
-	 *  - real function failed due to permissions
-	 *  - real function succeeded and there are active vperms.
-	 * Don't need to update vperms, if
-	 *  - nothing active in vperm tree
-	 *  - other errors than EPERM.
-	*/
-	if (suid_sgid_bits ||
-	    ((res < 0) && ( e == EPERM)) ||
-	    ((res == 0) && (get_vperm_num_active_inodestats() > 0))) {
-		if (real_fstat(fd, &statbuf) == 0) {
-			vperm_chmod(realfnname, &statbuf, mode, suid_sgid_bits);
-			res = 0;
-		} else { /* real fn didn't work, and can't stat */
-			*result_errno_ptr = e;
-			res = -1;
-		}
-	}
+	res = vperm_chmod_done_update_state(result_errno_ptr,
+		realfnname, res, e,
+		fd, NULL/*no mapped_filename*/, 0/*no flags*/,
+		mode, suid_sgid_bits, forced_owner_rights);
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: returns %d", __func__, res);
 	return(res);
@@ -611,45 +700,28 @@ int chmod_gate(int *result_errno_ptr,
 	struct stat	statbuf;
 	mode_t		suid_sgid_bits;
 	int		e;
+	int		forced_owner_rights = 0;
+	int		has_stat = 0;
+	int		return_zero_now = 0;
 
 	/* separate SUID and SGID bits from mode. Never set
 	 * real SUID/SGID bits. */
 	suid_sgid_bits = mode & (S_ISUID | S_ISGID);
 	mode &= ~(S_ISUID | S_ISGID);
 
-	/* Use stat only if there are active vperm inodestat nodes */
-	if (get_vperm_num_active_inodestats() > 0) {
-		if (real_stat(mapped_filename->mres_result_path, &statbuf) == 0) {
-			if (vperm_chmod_if_simulated_device(realfnname, &statbuf, mode,
-					suid_sgid_bits) == 0)
-				return(0);
-			/* else not a simulated device, continue here */
-		} /* else the real function sets errno */
-	}
+	vperm_chmod_prepare(realfnname, AT_FDCWD, mapped_filename,
+		0/*flags:follow symlinks*/, &statbuf,
+		mode, suid_sgid_bits,
+		&has_stat, &forced_owner_rights, &return_zero_now);
+	if (return_zero_now) return(0);
 
-	res = (*real_chmod_ptr)(mapped_filename->mres_result_path, mode);
+	res = (*real_chmod_ptr)(mapped_filename->mres_result_path,
+		mode | forced_owner_rights);
 	e = errno;
-
-	/* need to update vperm state if
-	 *  - SUID/SGID is used
-	 *  - real function failed due to permissions
-	 *  - real function succeeded and there are active vperms.
-	 * Don't need to update vperms, if
-	 *  - nothing active in vperm tree
-	 *  - other errors than EPERM.
-	*/
-	if (suid_sgid_bits ||
-	    ((res < 0) && ( e == EPERM)) ||
-	    ((res == 0) && (get_vperm_num_active_inodestats() > 0))) {
-		if (real_stat(mapped_filename->mres_result_path, &statbuf) == 0) {
-			vperm_chmod(realfnname, &statbuf, mode, suid_sgid_bits);
-			res = 0;
-		} else { /* real fn didn't work, and can't stat */
-			*result_errno_ptr = e;
-			res = -1;
-		}
-	}
-
+	res = vperm_chmod_done_update_state(result_errno_ptr,
+		realfnname, res, e,
+		AT_FDCWD, mapped_filename, 0/*flags:follow symlinks*/,
+		mode, suid_sgid_bits, forced_owner_rights);
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: returns %d", __func__, res);
 	return(res);
 }
@@ -936,6 +1008,53 @@ static void vperm_set_owner_and_group(
 	}
 }
 
+static void vperm_mkdir_prepare(
+	const char *realfnname,
+	mode_t	mode,
+	int	*forced_owner_rights)
+{
+	/* If simulated root and root FS permission simulation
+	 * is required => ensure that the directory will
+	 * have RWX permissions.
+	 *
+	 * This is needed for fakeroot compatibility.
+	 * Trying to set mode to something which
+	 * won't be fully usable by the simulated root user might
+	 * cause trouble. So we'll "fix" the mode here; That provides
+	 * compatibility with fakeroot, but breaks the semantics
+	 * for ordinary users..
+	 *
+	 * There is a similar trick in chmod (and fchmod, etc)
+	*/
+	if (vperm_uid_or_gid_virtualization_is_active() &&
+	    (vperm_geteuid() == 0) &&
+	    vperm_simulate_root_fs_permissions()) {
+		if ((mode & 0700) != 0700) {
+			*forced_owner_rights = 0700;
+		}
+	}
+}
+
+static int vperm_mkdir_finalize(
+	const char *realfnname,
+	int	dirfd,
+	const mapping_results_t *mapped_pathname,
+	mode_t	mode,
+	int	forced_owner_rights)
+{
+	if (forced_owner_rights) {
+		struct stat statbuf;
+
+		if (get_stat_for_fxxat(realfnname, dirfd, mapped_pathname, 0/*flags*/, &statbuf) != 0) {
+			/* Strange. real fn worked, but here we can't stat */
+			return(-1);
+		}
+
+		vperm_chmod(realfnname, &statbuf, mode, 0);
+	}
+	return(0);
+}
+
 int mkdir_gate(int *result_errno_ptr,
 	int (*real_mkdir_ptr)(const char *pathname, mode_t mode),
         const char *realfnname,
@@ -944,14 +1063,19 @@ int mkdir_gate(int *result_errno_ptr,
 {
 	int res;
 	int e;
+	int forced_owner_rights = 0;
 
-	res = (*real_mkdir_ptr)(mapped_pathname->mres_result_path, mode);
+	vperm_mkdir_prepare(realfnname, mode, &forced_owner_rights);	
+	res = (*real_mkdir_ptr)(mapped_pathname->mres_result_path,
+		mode | forced_owner_rights);
 	e = errno;
 
 	if (res == 0) {
 		/* directory was created */
 		if (vperm_uid_or_gid_virtualization_is_active())
 			vperm_set_owner_and_group(AT_FDCWD, realfnname, mapped_pathname);
+		if (forced_owner_rights)
+			vperm_mkdir_finalize(realfnname, AT_FDCWD, mapped_pathname, mode, forced_owner_rights);
 	} else {
 		*result_errno_ptr = e;
 	}
@@ -967,14 +1091,18 @@ int mkdirat_gate(int *result_errno_ptr,
 {
 	int res;
 	int e;
+	int forced_owner_rights = 0;
 
+	vperm_mkdir_prepare(realfnname, mode, &forced_owner_rights);	
 	res = (*real_mkdirat_ptr)(dirfd, mapped_pathname->mres_result_path, mode);
 	e = errno;
 
 	if (res == 0) {
 		/* directory was created */
 		if (vperm_uid_or_gid_virtualization_is_active())
-			vperm_set_owner_and_group(AT_FDCWD, realfnname, mapped_pathname);
+			vperm_set_owner_and_group(dirfd, realfnname, mapped_pathname);
+		if (forced_owner_rights)
+			vperm_mkdir_finalize(realfnname, dirfd, mapped_pathname, mode, forced_owner_rights);
 	} else {
 		*result_errno_ptr = e;
 	}

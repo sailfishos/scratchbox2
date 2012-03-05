@@ -21,4 +21,6 @@ extern char *vperm_export_ids_as_string_for_exec(const char *prefix,
 
 extern int vperm_set_owner_and_group_of_unknown_files(uid_t *uidp, gid_t *gidp);
 
+extern int vperm_simulate_root_fs_permissions(void);
+
 #endif

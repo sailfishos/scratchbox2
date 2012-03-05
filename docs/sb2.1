@@ -19,7 +19,7 @@ has essential differences to the host OS environment:
 First, a virtual file system view is presented to the applications.
 In practise that means that the file names (paths) which an application
 uses may be modified before the OS does its operations;
-applications observe a different file system that what the real file system is. For example,
+applications observe a different file system than what the real file system is. For example,
 common directories like /bin, /usr/lib and /lib can be changed to point to target-specific directories,
 which contain files for a different CPU architecture than what the host has.
 .PP
@@ -148,6 +148,13 @@ print all logs related to a persistent session. Output can be piped to
 .I sb2-logz.
 This option can be used even before the session is terminated. (see also options -D, -S and -J)
 .TP
+\-p
+Do not simulate special filesystem permissions in "superuser mode" (see opt. -R):
+By default Scratchbox2 tries to simulate similar privileges as the real
+.I root
+user has; this option prevents that.
+See VIRTUAL PERMISSIONS below.
+.TP
 \-Q BUGLIST
 Emulate bugs of scratchbox 1 (BUGLIST consists of letters: 'x' enables exec permission checking bug emulation).
 .TP
@@ -263,7 +270,7 @@ for debugging purposes: It does not apply any file system related mappings,
 but otherwise scratchbox2 functions are fully operational.
 
 .SH NETWORKING MODES
-The networking subsystems is essentially a "mini-firewall", which
+The networking subsystem is essentially a "mini-firewall", which
 makes it possible to allow or deny TCP/IP connections independently of
 host system settings. Decisions are typically made when network
 addresses are processed (e.g. when connect(2),
@@ -300,7 +307,7 @@ you can also test what ordinary programs (programs that
 belong to the host OS) are doing.
 
 .SH VIRTUAL PERMISSIONS
-The virtual permission ("Vperm") subsystem does two things:
+The virtual permission ("Vperm") subsystem does three things:
 .PP
 First, it can virtualize file system metadata, i.e. the
 information returned by stat(), lstat(), fstat() etc. calls.
@@ -309,6 +316,9 @@ Second, the Vperm subsystem can masquerade user- and group
 information of running processes: getuid(), getgid() etc
 calls may return simulated information (see option -R)
 .PP
+Third, a subset of the special superuser filesystem privileges 
+can be simulated (unless option -p was used).
+.PP
 Virtualized metadata means that file ownership, access permission 
 information (mode bits) and even file type can be virtualized.
 Typically, the data is set by library/system calls like chown()
@@ -316,6 +326,9 @@ or chmod(). These calls are always first tried directly, but if the call
 fails, the Vperm subsystem takes control and will set virtualized owner (or
 other information) for the file. This way practically any
 file on the system can get virtual metadata.
+.PP
+Virtualized metadata is shared between all processes inside a
+session. It disappears when the session is deleted.
 .PP
 Virtual device nodes are also possible: if real
 device nodes (character/block special nodes) can not be created
@@ -326,7 +339,7 @@ is useful for e.g. creating "tar" archives which need to have
 device nodes inside, but the virtualized device nodes can not
 be used for anything real, of course.
 .PP
-Note that the Vperm subsystem does not affect the way
+Note that the Vperm subsystem does not affect the way real
 how permission checks are done. The kernel is still responsible:
 All operations are still done with the real user
 ID and real group ID. This can present some surprises: For example,
@@ -334,6 +347,13 @@ any file can be opened for reading only if the
 real (effective) user ID of process permits and the file
 has owner's R-bit set, regardless of the virtual permissions
 or virtual metadata.
+.PP
+For the simulated root user (option -R), some privileged operations
+are simulated (unless -p is used): If a directory is created (mkdir()
+or mode of directory is modified (chmod()) without 
+full permissions for the owner (rwx), Scratchbox2 will set the real
+mode bits and then virtualize them, so that the directory appears
+as more restricted as what it really is.
 .PP
 This subsystem is essentially a superset of what the
 .I fakeroot

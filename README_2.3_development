@@ -25,6 +25,9 @@ new features or improvements of old ones:
 
 4) Exec logic (partially) in C
 
+5) Fakeroot has been replaced with an internal, more comprehensive
+   solution (see "VIRTUAL PERMISSIONS" in the manual page.)
+
 In addition to these, there are smaller improvements here and there.
 For example, rule files have been reorganized, and there are some changes
 in them that had to be made because of other changes.
@@ -151,9 +154,10 @@ anymore [hopefully someday those could be re-implemented in C, too]
 
 Current status: The new path mapping logic is available for testing.
 Versions 2.3.5- have two mapping engines: The old one (in Lua)
-and the new one (in C). Both are active by default.
+and the new one (in C). 
 
-Path mapping method can be selected by an environment variable:
+Starting from 2.3.42 the C mapping engine is the default. The old
+code can still be enabled by an environment variable:
 
 - setenv SBOX_MAPPING_METHOD="Lua"
   All paths are mapped with the Lua engine only.
@@ -181,6 +185,9 @@ while the new implementation loads rules  only once when session
 is created. Some changes had to be done to the rule files (and syntax)
 because of this.
 
+N.B. Script interpreter mapping (defined in the exec policy files)
+still use the Lua mapping engine, always.
+
 The rule database, "ruletree":
 The C-based implementation collects rules to a binary, memory mapped
 database when a session is created (rules are still expressed as
@@ -191,6 +198,7 @@ just offsets there. And the ruletree shall not be modified after it has
 been created (no locks, etc)
 
 Testing and debugging:
+0) setenv SBOX_MAPPING_METHOD="Both"
 1) To verify the results, use SB2 as usual. If there are
 different results from Lua and C mappings, those will be logged
 as errors. 
@@ -228,3 +236,14 @@ is now written in C.
 Other parts of the exec logic (postprocessing parameters for
 native and foreign binaries etc) still use in Lua code.
 
+
+5. The Virtual Permission subsystem, which superseded "fakeroot"
+----------------------------------------------------------------
+Versions up to 2.3.29 used "fakeroot" for simulating superuser
+privileges. However, that tool turned out to be somewhat too fake,
+and having two different LD_PRELOAD libraries was a nightmare
+to maintain, too. So, version 2.3.41 introduced a complete 
+replacement for that. It is true replacement; it does not share
+any code with the "fakeroot" utility.
+
+See the manual page for more details.

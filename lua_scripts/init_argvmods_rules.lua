@@ -76,6 +76,50 @@ function find_offs_for_stringlist(name, stringlist)
 	return stringlist_offs
 end
 
+-- contents => variable name lookup table for the old-style table
+-- FIXME: This is almost obsolete, can be removed after 
+-- create_argvmods_usr_bin_rules.lua has been replaced
+-- (that functionality need to be moved to something which
+-- is executed from init.lua after this file has been executed)
+local table2tablename = {}
+local table2tablename_n = 0
+
+-- FIXME: This is almost obsolete, can be removed after 
+-- create_argvmods_usr_bin_rules.lua has been replaced.
+function clear_attr_list()
+	table2tablename = {}
+	table2tablename_n = 0
+end
+
+-- FIXME: This is almost obsolete, can be removed after 
+-- create_argvmods_usr_bin_rules.lua has been replaced.
+function prepare_stringlist(filehandle, name, stringlist)
+	if stringlist and #stringlist > 0 then
+		local x = stringlist_to_string(stringlist)
+		local key = name.."\n"..x
+		if table2tablename[key] == nil then
+			local z_name = string.format("z_argvmods_%s_%d",
+				name, table2tablename_n)
+			table2tablename[key] = z_name
+			table2tablename_n = table2tablename_n + 1
+			
+			filehandle:write(z_name.." = {\n"..x.."}\n")
+		end
+	end
+end
+
+-- FIXME: This is almost obsolete, can be removed after 
+-- create_argvmods_usr_bin_rules.lua has been replaced.
+function find_stringlist_name(name, stringlist)
+	local stringlist_name = ""
+	if stringlist and #stringlist > 0 then
+		local x = stringlist_to_string(stringlist)
+		local key = name.."\n"..x
+		return table2tablename[key]
+	end
+	return stringlist_name
+end
+
 function argvmods_to_ruletree(argvmods_mode_name, num_argvmods_rules, argvmods_tbl)
 	local argvmods_rule_list_index = ruletree.objectlist_create(num_argvmods_rules)
 	local k = 0;
@@ -96,6 +140,68 @@ function argvmods_to_ruletree(argvmods_mode_name, num_argvmods_rules, argvmods_t
 	ruletree.catalog_set("argvmods", argvmods_mode_name, argvmods_rule_list_index)
 end
 
+-- This function creates the old-style argvmods_*.lua files.
+-- FIXME: This is almost obsolete, can be removed after 
+-- create_argvmods_usr_bin_rules.lua has been replaced.
+function argvmods_to_file(filename, num_argvmods_rules, argvmods_tbl)
+	argvmods_file = io.open(filename, "w")
+	if not argvmods_file then
+		io.stderr:write(string.format(
+		    "Failed to open '%s' for writing\n", filename))
+		return
+	end
+	argvmods_file:write(
+		"--\n"..
+		"-- Generator: init_argvmods_rules.lua\n"..
+		"-- Automatically generated rules.  Do not modify:\n"..
+		"--\n")
+	for binary_name, rule in pairs(argvmods_tbl) do
+		for name, value in pairs(rule) do
+			if type(value) == "table" then
+				if #value ~= 0 then
+					prepare_stringlist(argvmods_file, name, value)
+				end
+			end
+		end
+	end
+	argvmods_file:write(
+		"argvmods = {\n")
+	for binary_name, rule in pairs(argvmods_tbl) do
+		argvmods_file:write(string.format("\t[\"%s\"] = {\n", binary_name))
+		for name, value in pairs(rule) do
+			if name == "name" then
+				-- "name" field is redundant, skip it
+			else
+				argvmods_file:write(string.format("\t%s = ", name))
+				if type(value) == "string" then
+					argvmods_file:write(string.format("\"%s\"", value))
+				elseif type(value) == "number" then
+					argvmods_file:write(string.format("%d", value))
+				elseif type(value) == "table" then
+					if #value == 0 then
+						argvmods_file:write("{}")
+					else
+						argvmods_file:write(find_stringlist_name(name,value))
+					end
+				else
+					io.stderr:write(string.format(
+					    "unsupported type '%s' in argvmods rule\n",
+					    type(value)))
+					assert(false)
+				end
+				argvmods_file:write(",\n")
+			end
+		end
+		argvmods_file:write("\t},\n")
+	end
+	argvmods_file:write(
+		"}\n"..
+		"--\n"..
+		string.format("-- Total %d rule(s).\n", num_argvmods_rules)..
+		"-- End of rules created by argvmods expander.\n"..
+		"--\n")
+end
+
 if (debug_messages_enabled) then
 	sblib.log("debug",
 		string.format("Adding exec preprocessing rules ('argvmods') to ruletree"))
@@ -107,6 +213,7 @@ argvmods_source_file = session_dir .. "/lua_scripts/argvenvp_misc.lua"
 do_file(argvmods_source_file)
 local num_rules = check_and_count_rules(argvmods)
 argvmods_to_ruletree("misc", num_rules, argvmods)
+argvmods_to_file(session_dir .. "/argvmods_misc.lua", num_rules, argvmods)
 if (debug_messages_enabled) then
 	sblib.log("debug",
 		string.format("%d rules", num_rules))
@@ -118,6 +225,8 @@ argvmods_source_file = session_dir .. "/lua_scripts/argvenvp_gcc.lua"
 do_file(argvmods_source_file)
 local num_rules = check_and_count_rules(argvmods)
 argvmods_to_ruletree("gcc", num_rules, argvmods)
+clear_attr_list()
+argvmods_to_file(session_dir .. "/argvmods_gcc.lua", num_rules, argvmods)
 if (debug_messages_enabled) then
 	sblib.log("debug",
 		string.format("%d rules", num_rules))

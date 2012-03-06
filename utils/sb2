@@ -179,49 +179,6 @@ function locate_target_nsswitch_conf()
 	fi
 }
 
-#
-# Generates argvmods for cross-compilers and misc binaries;
-# (two alternative files)
-# Generated files are placed under $SBOX_SESSION_DIR/argvmods/.
-#
-# Used during stage 3 (generation of automatic rules)
-function create_argvmods_rules()
-{
-	# Alternative 1: misc rules only
-	__SB2_BINARYNAME="sb2:CreatingArgvmodsMiscRules" \
-	SBOX_ARGVMODS_SOURCE_FILES="argvenvp_misc" sb2-monitor \
-	    -L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
-	    execluafile \
-	    $SBOX_SESSION_DIR/lua_scripts/create_argvmods_rules.lua \
-	    >$SBOX_SESSION_DIR/argvmods_misc.lua \
-	    2>$SBOX_SESSION_DIR/argvmods_misc.err
-	create_argvmods_rules_exit_status=$?
-	if [ $create_argvmods_rules_exit_status != 0 ]; then
-		exit_error "Failed to create 'argvmods_misc' rules"
-	fi
-
-	# Alternative 2: misc and gcc rules
-	__SB2_BINARYNAME="sb2:CreatingArgvmodsGccRules" \
-	SBOX_ARGVMODS_SOURCE_FILES="argvenvp_misc:argvenvp_gcc" sb2-monitor \
-	    -L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
-	    execluafile \
-	    $SBOX_SESSION_DIR/lua_scripts/create_argvmods_rules.lua \
-	    >$SBOX_SESSION_DIR/argvmods_gcc.lua \
-	    2>$SBOX_SESSION_DIR/argvmods_gcc.err
-	create_argvmods_rules_exit_status=$?
-	if [ $create_argvmods_rules_exit_status != 0 ]; then
-		exit_error "Failed to create 'argvmods_gcc' rules"
-	fi
-
-
-	if [ -s $SBOX_SESSION_DIR/argvmods_misc.err -o \
-	     -s $SBOX_SESSION_DIR/argvmods_gcc.err ]; then
-		cat $SBOX_SESSION_DIR/argvmods_gcc.err
-		cat $SBOX_SESSION_DIR/argvmods_misc.err
-		exit_error "Errors while creating 'argvmods' rules."
-	fi
-}
-
 # Create some additional rules for the default mapping mode:
 #
 # Used during stage 3 (generation of automatic rules)
@@ -1880,12 +1837,6 @@ fi
 # Now everything is ready, programs can be executed in SB2'ed environment.
 # Make automatically generated rules, if needed:
 if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
-	#
-	# Only generate argvmods rules when we are not joining
-	# to session.
-	#
-	create_argvmods_rules
-
 	# if needed, create path mapping rules for toolchain components.
 	# this can only be done after "create_argvmods_rules" has been executed.
 	if [ -n "CREATE_ARGVMODS_USR_BIN_RULES" ]

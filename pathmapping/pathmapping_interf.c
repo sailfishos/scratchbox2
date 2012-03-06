@@ -129,9 +129,9 @@ static struct sb2context *check_mapping_method(int need_sb2ctx)
 #endif
 		} else {
 			/* default to both */
-			mapping_method = MAPPING_METHOD_BOTH_ENGINES;
+			mapping_method = MAPPING_METHOD_C_ENGINE;
 			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"Activated both mapping methods (default)");
+				"(Using C mapping engine = the default)");
 		}
 	}
 	if (need_sb2ctx) {

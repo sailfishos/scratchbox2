@@ -79,6 +79,7 @@ Options:
                  (This may require special permissions, because acct(2)
                  system call is used) 
     -q           quiet; don't print debugging details to stdout etc.
+    -x OPTIONS   specify additional options for "sb2d"
 
 Examples:
     sb2 ./configure
@@ -1548,8 +1549,9 @@ SBOX_COLLECT_ACCT_DATA=""
 SBOX_QUIET=""
 VPERM_UIDGID_FOR_UNKNOWN_FILES=""
 VPERM_ROOT_PRIVILEGE_FLAG=""
+SB2D_OPTIONS=""
 
-while getopts vdht:em:n:s:L:Q:M:ZrRU:pS:J:D:P:W:O:cC:T:uf:gG:B:b:q foo
+while getopts vdht:em:n:s:L:Q:M:ZrRU:pS:J:D:P:W:O:cC:T:uf:gG:B:b:qx: foo
 do
 	case $foo in
 	(v) show_version; exit 0;;
@@ -1587,6 +1589,7 @@ do
 	(b) SBOX_LOG_AND_GRAPH_DIR="$OPTARG" ;;
 	(B) SBOX_LOG_AND_GRAPH_DIR="$OPTARG"; SBOX_COLLECT_ACCT_DATA="y" ;;
 	(q) export SBOX_QUIET="q";;
+	(x) SB2D_OPTIONS="$SB2D_OPTIONS $OPTARG" ;;
 	(*) show_usage_and_exit ;;
 	esac
 done
@@ -1797,9 +1800,9 @@ if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 	# sb2d will execute "init.lua" before returning.
 	SB2_ALL_MODES="$SB2_INTERNAL_MAPMODES" \
 		sb2d -s $SBOX_SESSION_DIR -p $SBOX_SESSION_DIR/sb2d.pid \
-		-d "debug" -l - \
-		>$SBOX_SESSION_DIR/sb2d.out \
-		2>$SBOX_SESSION_DIR/sb2d.err
+			-l - $SB2D_OPTIONS \
+			>$SBOX_SESSION_DIR/sb2d.out \
+			2>$SBOX_SESSION_DIR/sb2d.err
 	if [ $? != 0 ]; then
 		if [ -s $SBOX_SESSION_DIR/sb2d.err ]; then
 			echo "sb2d:"

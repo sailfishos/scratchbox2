@@ -1,4 +1,4 @@
-.TH sb2 1 "17 December 2010" "2.2" "sb2 man page"
+.TH sb2 1 "7 March 2012" "2.3" "sb2 man page"
 .SH NAME
 sb2 \- crosscompiling environment
 .SH SYNOPSIS
@@ -206,6 +206,12 @@ keep DIR as short as possible.
 .TP
 \-q
 quiet; don't print debugging details to stdout etc.
+.TP
+\-x OPTIONS
+specify additional options for
+.I sb2d(1)
+(effective only when a new session is created; it is
+too late to try to use this with option -J)
 
 .SH EXAMPLES
 .TP
@@ -391,6 +397,7 @@ and the networking modes can be found at /usr/share/scratchbox2/net_rules/*.
 .BR sb2-show (1),
 .BR sb2-logz (1),
 .BR sb2-session (1),
+.BR sb2d (1),
 .BR qemu (1)
 .SH BUGS
 No known bugs at this time.

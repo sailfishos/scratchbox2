@@ -1117,6 +1117,8 @@ static int vperm_multiopen(
 	int (*open_2va_ptr)(const char *pathname, int flags, ...),
 	int (*open_3va_ptr)(int dirfd, const char *pathname, int flags, ...),
 	int (*creat_ptr)(const char *pathname, mode_t mode),
+	int (*open_2_ptr)(const char *pathname, int flags),
+	int (*openat_3_ptr)(int dirfd, const char *pathname, int flags),
 	FILE *(*fopen_ptr)(const char *path, const char *mode),
 	FILE *(*freopen_ptr)(const char *path, const char *mode, FILE *stream),
 	FILE **file_ptr, /* in: stream, out:result if function return FILE */
@@ -1134,6 +1136,10 @@ static int vperm_multiopen(
 		return ((*open_3va_ptr)(dirfd, pathname, flags, modebits));
 	if (creat_ptr)
 		return ((*creat_ptr)(pathname, modebits));
+	if (open_2_ptr)
+		return ((*open_2_ptr)(pathname, flags));
+	if (openat_3_ptr)
+		return ((*openat_3_ptr)(dirfd, pathname, flags));
 	if (fopen_ptr) {
 		assert(file_ptr);
 		f = (*fopen_ptr)(pathname, file_mode);
@@ -1156,6 +1162,8 @@ static int vperm_do_open(
 	int (*open_2va_ptr)(const char *pathname, int flags, ...),
 	int (*open_3va_ptr)(int dirfd, const char *pathname, int flags, ...),
 	int (*creat_ptr)(const char *pathname, mode_t mode),
+	int (*open_2_ptr)(const char *pathname, int flags),
+	int (*openat_3_ptr)(int dirfd, const char *pathname, int flags),
 	FILE *(*fopen_ptr)(const char *path, const char *mode),
 	FILE *(*freopen_ptr)(const char *path, const char *mode, FILE *stream),
 	FILE **file_ptr, /* for the FILE* functions */
@@ -1181,6 +1189,7 @@ static int vperm_do_open(
 
 	/* try to open it */
 	res_fd = vperm_multiopen(open_2va_ptr, open_3va_ptr, creat_ptr, 
+		open_2_ptr, openat_3_ptr,
 		fopen_ptr, freopen_ptr, file_ptr, file_mode,
 		dirfd, mapped_pathname->mres_result_path, flags, modebits);
 	open_errno = errno;
@@ -1227,6 +1236,7 @@ static int vperm_do_open(
 							 * try again; if it won't open now,
 							 * we just can't do it. */
 							res_fd = vperm_multiopen(open_2va_ptr, open_3va_ptr, creat_ptr, 
+								open_2_ptr, openat_3_ptr,
 								fopen_ptr, freopen_ptr, file_ptr, file_mode,
 								dirfd, mapped_pathname->mres_result_path,
 								flags, modebits);
@@ -1284,7 +1294,7 @@ int open_gate(int *result_errno_ptr,
 {
 	return (vperm_do_open(
 		result_errno_ptr, realfnname,
-		real_open_ptr, NULL, NULL,
+		real_open_ptr, NULL, NULL, NULL, NULL,
 		NULL, NULL, NULL, NULL, /* FILE* stuff */
 		AT_FDCWD, mapped_pathname, flags, mode));
 }
@@ -1298,7 +1308,7 @@ int open64_gate(int *result_errno_ptr,
 {
 	return (vperm_do_open(
 		result_errno_ptr, realfnname,
-		real_open64_ptr, NULL, NULL,
+		real_open64_ptr, NULL, NULL, NULL, NULL,
 		NULL, NULL, NULL, NULL, /* FILE* stuff */
 		AT_FDCWD, mapped_pathname, flags, mode));
 }
@@ -1312,7 +1322,7 @@ int __open_gate(int *result_errno_ptr,
 {
 	return (vperm_do_open(
 		result_errno_ptr, realfnname,
-		real_open_ptr, NULL, NULL,
+		real_open_ptr, NULL, NULL, NULL, NULL,
 		NULL, NULL, NULL, NULL, /* FILE* stuff */
 		AT_FDCWD, mapped_pathname, flags, mode));
 }
@@ -1326,7 +1336,7 @@ int __open64_gate(int *result_errno_ptr,
 {
 	return (vperm_do_open(
 		result_errno_ptr, realfnname,
-		real_open64_ptr, NULL, NULL,
+		real_open64_ptr, NULL, NULL, NULL, NULL,
 		NULL, NULL, NULL, NULL, /* FILE* stuff */
 		AT_FDCWD, mapped_pathname, flags, mode));
 }
@@ -1341,7 +1351,7 @@ int openat_gate(int *result_errno_ptr,
 {
 	return (vperm_do_open(
 		result_errno_ptr, realfnname,
-		NULL, real_openat_ptr, NULL,
+		NULL, real_openat_ptr, NULL, NULL, NULL,
 		NULL, NULL, NULL, NULL, /* FILE* stuff */
 		dirfd, mapped_pathname, flags, mode));
 }
@@ -1356,9 +1366,67 @@ int openat64_gate(int *result_errno_ptr,
 {
 	return (vperm_do_open(
 		result_errno_ptr, realfnname,
-		NULL, real_openat64_ptr, NULL,
+		NULL, real_openat64_ptr, NULL, NULL, NULL,
 		NULL, NULL, NULL, NULL, /* FILE* stuff */
 		dirfd, mapped_pathname, flags, mode));
+}
+
+int __open_2_gate(int *result_errno_ptr,
+	int (*real___open_2_ptr)(const char *pathname, int flags),
+	const char *realfnname,
+	const mapping_results_t *pathname,
+	int flags)
+{
+	return (vperm_do_open(
+		result_errno_ptr, realfnname,
+		NULL, NULL, NULL, real___open_2_ptr, NULL,
+		NULL, NULL, NULL, NULL, /* FILE* stuff */
+		AT_FDCWD, pathname,
+		flags, 0777/*mode*/));
+}
+
+int __open64_2_gate(int *result_errno_ptr,
+	int (*real___open64_2_ptr)(const char *pathname, int flags),
+	const char *realfnname,
+	const mapping_results_t *pathname,
+	int flags)
+{
+	return (vperm_do_open(
+		result_errno_ptr, realfnname,
+		NULL, NULL, NULL, real___open64_2_ptr, NULL,
+		NULL, NULL, NULL, NULL, /* FILE* stuff */
+		AT_FDCWD, pathname,
+		flags, 0777/*mode*/));
+}
+
+int __openat_2_gate(int *result_errno_ptr,
+	int (*real___openat_2_ptr)(int dirfd, const char *pathname, int flags),
+	const char *realfnname,
+	int dirfd,
+	const mapping_results_t *pathname,
+	int flags)
+{
+	return (vperm_do_open(
+		result_errno_ptr, realfnname,
+		NULL, NULL, NULL, NULL, real___openat_2_ptr,
+		NULL, NULL, NULL, NULL, /* FILE* stuff */
+		dirfd, pathname,
+		flags, 0777/*mode*/));
+}
+
+int __openat64_2_gate(int *result_errno_ptr,
+	int (*real___openat64_2_ptr)(int dirfd, const char *pathname, int flags),
+	const char *realfnname,
+	int dirfd,
+	const mapping_results_t *pathname,
+	int flags)
+{
+	return (vperm_do_open(
+		result_errno_ptr, realfnname,
+		NULL, NULL, NULL, NULL, real___openat64_2_ptr,
+		NULL, NULL, NULL, NULL, /* FILE* stuff */
+		dirfd, pathname,
+		flags, 0777/*mode*/));
 }
 
 int creat_gate(int *result_errno_ptr,
@@ -1369,7 +1437,7 @@ int creat_gate(int *result_errno_ptr,
 {
 	return (vperm_do_open(
 		result_errno_ptr, realfnname,
-		NULL, NULL, real_creat_ptr,
+		NULL, NULL, real_creat_ptr, NULL, NULL,
 		NULL, NULL, NULL, NULL, /* FILE* stuff */
 		AT_FDCWD, mapped_pathname,
 		O_CREAT|O_WRONLY|O_TRUNC/*flags*/, mode));
@@ -1383,7 +1451,7 @@ int creat64_gate(int *result_errno_ptr,
 {
 	return (vperm_do_open(
 		result_errno_ptr, realfnname,
-		NULL, NULL, real_creat64_ptr,
+		NULL, NULL, real_creat64_ptr, NULL, NULL,
 		NULL, NULL, NULL, NULL, /* FILE* stuff */
 		AT_FDCWD, mapped_pathname,
 		O_CREAT|O_WRONLY|O_TRUNC/*flags*/, mode));
@@ -1400,7 +1468,7 @@ FILE *fopen_gate(int *result_errno_ptr,
 
 	vperm_do_open(
 		result_errno_ptr, realfnname,
-		NULL, NULL, NULL, /* fd functions */
+		NULL, NULL, NULL, NULL, NULL, /* fd functions */
 		real_fopen_ptr, NULL, &fp, mode, /* FILE* stuff */
 		AT_FDCWD, mapped_pathname,
 		(w_mode ? O_RDWR : O_RDONLY)/*flags*/,
@@ -1419,7 +1487,7 @@ FILE *fopen64_gate(int *result_errno_ptr,
 
 	vperm_do_open(
 		result_errno_ptr, realfnname,
-		NULL, NULL, NULL, /* fd functions */
+		NULL, NULL, NULL, NULL, NULL, /* fd functions */
 		real_fopen64_ptr, NULL, &fp, mode, /* FILE* stuff */
 		AT_FDCWD, mapped_pathname,
 		(w_mode ? O_RDWR : O_RDONLY)/*flags*/,
@@ -1439,7 +1507,7 @@ FILE *freopen_gate(int *result_errno_ptr,
 
 	vperm_do_open(
 		result_errno_ptr, realfnname,
-		NULL, NULL, NULL, /* fd functions */
+		NULL, NULL, NULL, NULL, NULL, /* fd functions */
 		NULL, real_freopen_ptr, &fp, mode, /* FILE* stuff */
 		AT_FDCWD, mapped_pathname,
 		(w_mode ? O_RDWR : O_RDONLY)/*flags*/,
@@ -1459,7 +1527,7 @@ FILE *freopen64_gate(int *result_errno_ptr,
 
 	vperm_do_open(
 		result_errno_ptr, realfnname,
-		NULL, NULL, NULL, /* fd functions */
+		NULL, NULL, NULL, NULL, NULL, /* fd functions */
 		NULL, real_freopen64_ptr, &fp, mode, /* FILE* stuff */
 		AT_FDCWD, mapped_pathname,
 		(w_mode ? O_RDWR : O_RDONLY)/*flags*/,

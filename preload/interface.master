@@ -160,13 +160,12 @@ GATE: int open64(const char *pathname, int flags, ...) : \
 	class(OPEN)
 
 -- open; variants witout varargs
--- (these should not have O_CREAT => no need to se gates for Vperms)
-WRAP: int __open_2(const char *pathname, int flags) : \
+GATE: int __open_2(const char *pathname, int flags) : \
 	map(pathname) \
 	postprocess(pathname) \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
 	class(OPEN)
-WRAP: int __open64_2(const char *pathname, int flags) : \
+GATE: int __open64_2(const char *pathname, int flags) : \
 	map(pathname) \
 	postprocess(pathname) \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
@@ -187,13 +186,12 @@ GATE: int openat64(int dirfd, const char *pathname, int flags, ...) : \
 	class(OPEN)
 
 -- openat; variants witout varargs
--- (these should not have O_CREAT => no need to se gates for Vperms)
-WRAP: int __openat_2(int dirfd, const char *pathname, int flags) : \
+GATE: int __openat_2(int dirfd, const char *pathname, int flags) : \
  	map_at(dirfd,pathname) \
  	postprocess(pathname) \
  	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
 	class(OPEN)
-WRAP: int __openat64_2(int dirfd, const char *pathname, int flags) : \
+GATE: int __openat64_2(int dirfd, const char *pathname, int flags) : \
  	map_at(dirfd,pathname) \
  	postprocess(pathname) \
  	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \

@@ -337,6 +337,7 @@ GATE: int fchmod(int fildes, mode_t mode)
 
 #ifdef AT_SYMLINK_NOFOLLOW
 GATE: int fchmodat(int dirfd, const char *pathname, mode_t mode, int flags) : \
+	create_nomap_nolog_version \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname) \
 	fail_if_readonly(pathname,-1,EROFS)

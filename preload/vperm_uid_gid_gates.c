@@ -119,6 +119,13 @@ uid_t vperm_geteuid(void)
 	return(vperm_simulated_ids.v_euid);
 }
 
+uid_t vperm_get_real_euid(void)
+{
+	if (vperm_simulated_ids.initialized == 0)
+		initialize_simulated_ids();
+	return(v_real_euid);
+}
+
 gid_t vperm_getegid(void)
 {
 	if (vperm_simulated_ids.initialized == 0)

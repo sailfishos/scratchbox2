@@ -532,39 +532,38 @@ static void vperm_chmod_prepare(
 	}
 
 	/* If simulated root and root FS permission simulation
-	 * is required => ensure that the file will
-	 * have RW permissions, and directories need to have X, too.
+	 * is required => ensure that directories have RWX 
+	 * mode for the owner.
 	 *
 	 * Trying to set mode to something which
 	 * won't be fully usable by the simulated root user might
 	 * cause trouble. So we'll "fix" the mode here; That provides
 	 * compatibility with fakeroot, but breaks the semantics
 	 * for ordinary users..
+	 *
+	 * (ordinary files will get special treatment in
+	 * open() (and "friends", including fopen()), so there
+	 * is no need to do this for other objects than
+	 * directories here)
 	*/
 	if (vperm_uid_or_gid_virtualization_is_active() &&
 	    (vperm_geteuid() == 0) &&
 	    vperm_simulate_root_fs_permissions()) {
-		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"%s: simulate_root_fs_permissions",
-			__func__);
-		if ((mode & 0700) != 0700) {
-			int	is_dir = 0;
+		int	is_dir = 0;
 
-			/* new mode isn't 7xx, now check if it is a directory. */
-			if (!*has_stat) {
-				if (vperm_stat_for_chmod(realfnname, fd, mapped_filename, flags, buf) != 0)
-					return;
-				*has_stat = 1;
-			}
-			is_dir = S_ISDIR(buf->st_mode);
-			if ( (is_dir && ((mode & 0700) != 0700)) ||
-			     ((mode & 0600) != 0600) ) {
-				if (is_dir) *forced_owner_rights = 0700;
-				else *forced_owner_rights = 0600;
-				SB_LOG(SB_LOGLEVEL_DEBUG,
-					"%s: set forced_owner_rights = 0%o",
-					__func__, *forced_owner_rights);
-			}
+		if (!*has_stat) {
+			if (vperm_stat_for_chmod(realfnname, fd, mapped_filename, flags, buf) != 0)
+				return;
+			*has_stat = 1;
+		}
+		is_dir = S_ISDIR(buf->st_mode);
+
+		if (is_dir && ((mode & 0700) != 0700)) {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"%s: simulate_root_fs_permissions for directory,"
+				" set forced_owner_rights = 0700",
+				__func__);
+			*forced_owner_rights = 0700;
 		}
 	}
 }
@@ -1114,31 +1113,167 @@ int mkdirat_gate(int *result_errno_ptr,
  * was created.
 */
 
-typedef struct open_state_s {
-	int target_exists_beforehand;
-	int uid_or_gid_is_virtual;
-} open_state_t;
+static int vperm_multiopen(
+	int (*open_2va_ptr)(const char *pathname, int flags, ...),
+	int (*open_3va_ptr)(int dirfd, const char *pathname, int flags, ...),
+	int (*creat_ptr)(const char *pathname, mode_t mode),
+	FILE *(*fopen_ptr)(const char *path, const char *mode),
+	FILE *(*freopen_ptr)(const char *path, const char *mode, FILE *stream),
+	FILE **file_ptr, /* in: stream, out:result if function return FILE */
+	const char *file_mode, /* for the FILE* functions */
+	int dirfd,
+	const char *pathname,
+	int flags,
+	int modebits)
+{
+	FILE *f = NULL;
 
-#define PREPARE_OPEN(open_state, dirfd, mapped_pathname) do { \
-		(open_state)->target_exists_beforehand = -1; \
-		(open_state)->uid_or_gid_is_virtual = vperm_uid_or_gid_virtualization_is_active(); \
-		if ((open_state)->uid_or_gid_is_virtual) { \
-			(open_state)->target_exists_beforehand = (faccessat_nomap_nolog((dirfd), \
-				(mapped_pathname)->mres_result_path, F_OK, 0) == 0); \
-		} \
-	} while(0)
+	if (open_2va_ptr)
+		return ((*open_2va_ptr)(pathname, flags, modebits));
+	if (open_3va_ptr)
+		return ((*open_3va_ptr)(dirfd, pathname, flags, modebits));
+	if (creat_ptr)
+		return ((*creat_ptr)(pathname, modebits));
+	if (fopen_ptr) {
+		assert(file_ptr);
+		f = (*fopen_ptr)(pathname, file_mode);
+		*file_ptr = f;
+		return (f ? 0 : -1);
+	}
+	if (freopen_ptr) {
+		assert(file_ptr);
+		f = (*freopen_ptr)(pathname, file_mode, *file_ptr);
+		*file_ptr = f;
+		return (f ? 0 : -1);
+	}
+	return(-1);
+}
 
-#define FINALIZE_OPEN(open_state, result_errno_ptr, realfnname, dirfd, mapped_pathname, res) do { \
-		if ((res) < 0) { \
-			*(result_errno_ptr) = errno; \
-		} else { \
-			if ((open_state)->uid_or_gid_is_virtual && \
-			    ((open_state)->target_exists_beforehand==0)) { \
-				/* file was created */ \
-				vperm_set_owner_and_group((dirfd), (realfnname), (mapped_pathname)); \
-			} \
-		} \
-	} while(0)
+static int vperm_do_open(
+	int *result_errno_ptr,
+	const char *realfnname,
+	/* five alternative prototypes for the function, only one should exist:*/
+	int (*open_2va_ptr)(const char *pathname, int flags, ...),
+	int (*open_3va_ptr)(int dirfd, const char *pathname, int flags, ...),
+	int (*creat_ptr)(const char *pathname, mode_t mode),
+	FILE *(*fopen_ptr)(const char *path, const char *mode),
+	FILE *(*freopen_ptr)(const char *path, const char *mode, FILE *stream),
+	FILE **file_ptr, /* for the FILE* functions */
+	const char *file_mode, /* for the FILE* functions */
+	int dirfd,
+	const mapping_results_t *mapped_pathname,
+	int flags,
+	int modebits)
+{
+	int res_fd = -1;
+	int open_errno = 0;
+	int target_exists_beforehand = 0;
+	int uid_or_gid_is_virtual = 0;
+	struct stat orig_stat;
+
+	/* prepare. */
+	uid_or_gid_is_virtual = vperm_uid_or_gid_virtualization_is_active();
+	if (uid_or_gid_is_virtual) {
+		if (real_fstatat(dirfd, mapped_pathname->mres_result_path, &orig_stat, 0) == 0) {
+			target_exists_beforehand = 1;
+		}
+	}
+
+	/* try to open it */
+	res_fd = vperm_multiopen(open_2va_ptr, open_3va_ptr, creat_ptr, 
+		fopen_ptr, freopen_ptr, file_ptr, file_mode,
+		dirfd, mapped_pathname->mres_result_path, flags, modebits);
+	open_errno = errno;
+
+	if (res_fd < 0) {
+		/* open failed. If running as simulated root,
+		 * try tricks.. */
+		if (uid_or_gid_is_virtual &&
+		    (vperm_geteuid() == 0) &&
+            	    vperm_simulate_root_fs_permissions()) {
+			/* simulated root user. */
+			if (target_exists_beforehand &&
+			    S_ISREG(orig_stat.st_mode)) {
+				/* file exist, but can not be opened.
+				 * try if it was a matter of insufficient
+				 * permissions. */
+				/* FIXME: do not do this for simulated devices. */
+				int accmode;
+				int need_w;
+				uid_t real_euid;
+
+				SB_LOG(SB_LOGLEVEL_DEBUG, "%s: open failed, simulated 'root', errno=%d (%s)",
+					realfnname, open_errno, mapped_pathname->mres_result_path);
+
+				switch (open_errno) {
+				case EACCES:
+				case EPERM:
+					accmode = flags & O_ACCMODE;
+					need_w = (accmode != O_RDONLY);
+					real_euid = vperm_get_real_euid();
+					if (real_euid == orig_stat.st_uid) {
+						int tmpmode = orig_stat.st_mode |
+							(need_w ? (S_IRUSR | S_IWUSR) : S_IRUSR);
+						/* owner matches, temporarily change the mode..
+						 * Warning: race conditions are possible here,
+						 * but this can't be done atomically. */
+						SB_LOG(SB_LOGLEVEL_DEBUG, "%s: trying to temporarily change "
+							"the mode to 0%o (orig.mode=0%o)",
+							realfnname, tmpmode, orig_stat.st_mode);
+
+						if (fchmodat_nomap_nolog(dirfd,
+							mapped_pathname->mres_result_path, tmpmode, 0) == 0) {
+							/* mode was set to tmpmode.
+							 * try again; if it won't open now,
+							 * we just can't do it. */
+							res_fd = vperm_multiopen(open_2va_ptr, open_3va_ptr, creat_ptr, 
+								fopen_ptr, freopen_ptr, file_ptr, file_mode,
+								dirfd, mapped_pathname->mres_result_path,
+								flags, modebits);
+							if (res_fd < 0) {
+								*result_errno_ptr = errno;
+							}
+							/* Hopefully the file is open now.
+							 * in any case restore orig. mode */
+							fchmodat_nomap_nolog(dirfd,
+								mapped_pathname->mres_result_path,
+								orig_stat.st_mode, 0);
+						}
+						if (res_fd < 0) {
+							SB_LOG(SB_LOGLEVEL_DEBUG, "%s: failed to open it for 'root'",
+								realfnname);
+						} else {
+							SB_LOG(SB_LOGLEVEL_DEBUG, "%s: file is now open, fd=%d",
+								realfnname, res_fd);
+						}
+					}
+					break;
+				}
+			} else {
+				/* the file did not exist, or not a regular file. */
+				/* FIXME: Here we should see if the open
+				 * failed due to insufficient access
+				 * rights to the directory. Not implemented
+				 * yet. */
+				*result_errno_ptr = open_errno;
+
+				SB_LOG(SB_LOGLEVEL_DEBUG, "%s: failed to open/create file, simulated 'root', errno=%d (%s)",
+					realfnname, open_errno, mapped_pathname->mres_result_path);
+			}
+		} else {
+			*result_errno_ptr = open_errno;
+		}
+	} else {
+		if (uid_or_gid_is_virtual &&
+		    (target_exists_beforehand==0)) {
+			/* file was created */
+			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: created file, setting simulated UID and GID (%s)",
+				realfnname, mapped_pathname->mres_result_path);
+			vperm_set_owner_and_group(dirfd, realfnname, mapped_pathname);
+		}
+	}
+	return (res_fd);
+}
 
 int open_gate(int *result_errno_ptr,
 	int (*real_open_ptr)(const char *pathname, int flags, ...),
@@ -1147,13 +1282,11 @@ int open_gate(int *result_errno_ptr,
 	int flags,
 	int mode)
 {
-	int res;
-	open_state_t openst;
-
-	PREPARE_OPEN(&openst, AT_FDCWD, mapped_pathname);
-	res = (*real_open_ptr)(mapped_pathname->mres_result_path, flags, mode);
-	FINALIZE_OPEN(&openst, result_errno_ptr, realfnname, AT_FDCWD, mapped_pathname, res);
-	return(res);
+	return (vperm_do_open(
+		result_errno_ptr, realfnname,
+		real_open_ptr, NULL, NULL,
+		NULL, NULL, NULL, NULL, /* FILE* stuff */
+		AT_FDCWD, mapped_pathname, flags, mode));
 }
 
 int open64_gate(int *result_errno_ptr,
@@ -1163,13 +1296,11 @@ int open64_gate(int *result_errno_ptr,
 	int flags,
 	int mode)
 {
-	int res;
-	open_state_t openst;
-
-	PREPARE_OPEN(&openst, AT_FDCWD, mapped_pathname);
-	res = (*real_open64_ptr)(mapped_pathname->mres_result_path, flags, mode);
-	FINALIZE_OPEN(&openst, result_errno_ptr, realfnname, AT_FDCWD, mapped_pathname, res);
-	return(res);
+	return (vperm_do_open(
+		result_errno_ptr, realfnname,
+		real_open64_ptr, NULL, NULL,
+		NULL, NULL, NULL, NULL, /* FILE* stuff */
+		AT_FDCWD, mapped_pathname, flags, mode));
 }
 
 int __open_gate(int *result_errno_ptr,
@@ -1179,13 +1310,11 @@ int __open_gate(int *result_errno_ptr,
 	int flags,
 	int mode)
 {
-	int res;
-	open_state_t openst;
-
-	PREPARE_OPEN(&openst, AT_FDCWD, mapped_pathname);
-	res = (*real_open_ptr)(mapped_pathname->mres_result_path, flags, mode);
-	FINALIZE_OPEN(&openst, result_errno_ptr, realfnname, AT_FDCWD, mapped_pathname, res);
-	return(res);
+	return (vperm_do_open(
+		result_errno_ptr, realfnname,
+		real_open_ptr, NULL, NULL,
+		NULL, NULL, NULL, NULL, /* FILE* stuff */
+		AT_FDCWD, mapped_pathname, flags, mode));
 }
 
 int __open64_gate(int *result_errno_ptr,
@@ -1195,13 +1324,11 @@ int __open64_gate(int *result_errno_ptr,
 	int flags,
 	int mode)
 {
-	int res;
-	open_state_t openst;
-
-	PREPARE_OPEN(&openst, AT_FDCWD, mapped_pathname);
-	res = (*real_open64_ptr)(mapped_pathname->mres_result_path, flags, mode);
-	FINALIZE_OPEN(&openst, result_errno_ptr, realfnname, AT_FDCWD, mapped_pathname, res);
-	return(res);
+	return (vperm_do_open(
+		result_errno_ptr, realfnname,
+		real_open64_ptr, NULL, NULL,
+		NULL, NULL, NULL, NULL, /* FILE* stuff */
+		AT_FDCWD, mapped_pathname, flags, mode));
 }
 
 int openat_gate(int *result_errno_ptr,
@@ -1212,13 +1339,11 @@ int openat_gate(int *result_errno_ptr,
 	int flags,
 	int mode)
 {
-	int res;
-	open_state_t openst;
-
-	PREPARE_OPEN(&openst, dirfd, mapped_pathname);
-	res = (*real_openat_ptr)(dirfd, mapped_pathname->mres_result_path, flags, mode);
-	FINALIZE_OPEN(&openst, result_errno_ptr, realfnname, dirfd, mapped_pathname, res);
-	return(res);
+	return (vperm_do_open(
+		result_errno_ptr, realfnname,
+		NULL, real_openat_ptr, NULL,
+		NULL, NULL, NULL, NULL, /* FILE* stuff */
+		dirfd, mapped_pathname, flags, mode));
 }
 
 int openat64_gate(int *result_errno_ptr,
@@ -1229,13 +1354,11 @@ int openat64_gate(int *result_errno_ptr,
 	int flags,
 	int mode)
 {
-	int res;
-	open_state_t openst;
-
-	PREPARE_OPEN(&openst, AT_FDCWD, mapped_pathname);
-	res = (*real_openat64_ptr)(dirfd, mapped_pathname->mres_result_path, flags, mode);
-	FINALIZE_OPEN(&openst, result_errno_ptr, realfnname, AT_FDCWD, mapped_pathname, res);
-	return(res);
+	return (vperm_do_open(
+		result_errno_ptr, realfnname,
+		NULL, real_openat64_ptr, NULL,
+		NULL, NULL, NULL, NULL, /* FILE* stuff */
+		dirfd, mapped_pathname, flags, mode));
 }
 
 int creat_gate(int *result_errno_ptr,
@@ -1244,13 +1367,12 @@ int creat_gate(int *result_errno_ptr,
 	const mapping_results_t *mapped_pathname,
 	mode_t mode)
 {
-	int res;
-	open_state_t openst;
-
-	PREPARE_OPEN(&openst, AT_FDCWD, mapped_pathname);
-	res = (*real_creat_ptr)(mapped_pathname->mres_result_path, mode);
-	FINALIZE_OPEN(&openst, result_errno_ptr, realfnname, AT_FDCWD, mapped_pathname, res);
-	return(res);
+	return (vperm_do_open(
+		result_errno_ptr, realfnname,
+		NULL, NULL, real_creat_ptr,
+		NULL, NULL, NULL, NULL, /* FILE* stuff */
+		AT_FDCWD, mapped_pathname,
+		O_CREAT|O_WRONLY|O_TRUNC/*flags*/, mode));
 }
 
 int creat64_gate(int *result_errno_ptr,
@@ -1259,96 +1381,90 @@ int creat64_gate(int *result_errno_ptr,
 	const mapping_results_t *mapped_pathname,
 	mode_t mode)
 {
-	int res;
-	open_state_t openst;
-
-	PREPARE_OPEN(&openst, AT_FDCWD, mapped_pathname);
-	res = (*real_creat64_ptr)(mapped_pathname->mres_result_path, mode);
-	FINALIZE_OPEN(&openst, result_errno_ptr, realfnname, AT_FDCWD, mapped_pathname, res);
-	return(res);
+	return (vperm_do_open(
+		result_errno_ptr, realfnname,
+		NULL, NULL, real_creat64_ptr,
+		NULL, NULL, NULL, NULL, /* FILE* stuff */
+		AT_FDCWD, mapped_pathname,
+		O_CREAT|O_WRONLY|O_TRUNC/*flags*/, mode));
 }
 
-#define PREPARE_FOPEN(open_state, mapped_pathname) do { \
-		(open_state)->target_exists_beforehand = -1; \
-		(open_state)->uid_or_gid_is_virtual = vperm_uid_or_gid_virtualization_is_active(); \
-		if ((open_state)->uid_or_gid_is_virtual) { \
-			(open_state)->target_exists_beforehand = (faccessat_nomap_nolog((AT_FDCWD), \
-				(mapped_pathname)->mres_result_path, F_OK, 0) == 0); \
-		} \
-	} while(0)
-
-#define FINALIZE_FOPEN(open_state, result_errno_ptr, realfnname, mapped_pathname, res) do { \
-		if ((res) == NULL) { \
-			*(result_errno_ptr) = errno; \
-		} else { \
-			if ((open_state)->uid_or_gid_is_virtual && \
-			    ((open_state)->target_exists_beforehand==0)) { \
-				/* file was created */ \
-				vperm_set_owner_and_group((AT_FDCWD), (realfnname), (mapped_pathname)); \
-			} \
-		} \
-	} while(0)
-
-FILE * fopen_gate(int *result_errno_ptr,
+FILE *fopen_gate(int *result_errno_ptr,
 	FILE *(*real_fopen_ptr)(const char *path, const char *mode),
         const char *realfnname,
 	const mapping_results_t *mapped_pathname,
 	const char *mode)
 {
-	FILE *res;
-	open_state_t openst;
+	FILE *fp;
+	int w_mode = fopen_mode_w_perm(mode);
 
-	PREPARE_FOPEN(&openst, mapped_pathname);
-	res = (*real_fopen_ptr)(mapped_pathname->mres_result_path, mode);
-	FINALIZE_FOPEN(&openst, result_errno_ptr, realfnname, mapped_pathname, res);
-	return(res);
+	vperm_do_open(
+		result_errno_ptr, realfnname,
+		NULL, NULL, NULL, /* fd functions */
+		real_fopen_ptr, NULL, &fp, mode, /* FILE* stuff */
+		AT_FDCWD, mapped_pathname,
+		(w_mode ? O_RDWR : O_RDONLY)/*flags*/,
+		0777);
+	return(fp);
 }
 
-FILE * fopen64_gate(int *result_errno_ptr,
+FILE *fopen64_gate(int *result_errno_ptr,
 	FILE *(*real_fopen64_ptr)(const char *path, const char *mode),
         const char *realfnname,
 	const mapping_results_t *mapped_pathname,
 	const char *mode)
 {
-	FILE *res;
-	open_state_t openst;
+	FILE *fp;
+	int w_mode = fopen_mode_w_perm(mode);
 
-	PREPARE_FOPEN(&openst, mapped_pathname);
-	res = (*real_fopen64_ptr)(mapped_pathname->mres_result_path, mode);
-	FINALIZE_FOPEN(&openst, result_errno_ptr, realfnname, mapped_pathname, res);
-	return(res);
+	vperm_do_open(
+		result_errno_ptr, realfnname,
+		NULL, NULL, NULL, /* fd functions */
+		real_fopen64_ptr, NULL, &fp, mode, /* FILE* stuff */
+		AT_FDCWD, mapped_pathname,
+		(w_mode ? O_RDWR : O_RDONLY)/*flags*/,
+		0777);
+	return(fp);
 }
 
-FILE * freopen_gate(int *result_errno_ptr,
+FILE *freopen_gate(int *result_errno_ptr,
 	FILE *(*real_freopen_ptr)(const char *path, const char *mode, FILE *stream),
         const char *realfnname,
 	const mapping_results_t *mapped_pathname,
 	const char *mode,
 	FILE *stream)
 {
-	FILE *res;
-	open_state_t openst;
+	FILE *fp = stream;
+	int w_mode = fopen_mode_w_perm(mode);
 
-	PREPARE_FOPEN(&openst, mapped_pathname);
-	res = (*real_freopen_ptr)(mapped_pathname->mres_result_path, mode, stream);
-	FINALIZE_FOPEN(&openst, result_errno_ptr, realfnname, mapped_pathname, res);
-	return(res);
+	vperm_do_open(
+		result_errno_ptr, realfnname,
+		NULL, NULL, NULL, /* fd functions */
+		NULL, real_freopen_ptr, &fp, mode, /* FILE* stuff */
+		AT_FDCWD, mapped_pathname,
+		(w_mode ? O_RDWR : O_RDONLY)/*flags*/,
+		0777);
+	return(fp);
 }
 
-FILE * freopen64_gate(int *result_errno_ptr,
+FILE *freopen64_gate(int *result_errno_ptr,
 	FILE *(*real_freopen64_ptr)(const char *path, const char *mode, FILE *stream),
         const char *realfnname,
 	const mapping_results_t *mapped_pathname,
 	const char *mode,
 	FILE *stream)
 {
-	FILE *res;
-	open_state_t openst;
+	FILE *fp = stream;
+	int w_mode = fopen_mode_w_perm(mode);
 
-	PREPARE_FOPEN(&openst, mapped_pathname);
-	res = (*real_freopen64_ptr)(mapped_pathname->mres_result_path, mode, stream);
-	FINALIZE_FOPEN(&openst, result_errno_ptr, realfnname, mapped_pathname, res);
-	return(res);
+	vperm_do_open(
+		result_errno_ptr, realfnname,
+		NULL, NULL, NULL, /* fd functions */
+		NULL, real_freopen64_ptr, &fp, mode, /* FILE* stuff */
+		AT_FDCWD, mapped_pathname,
+		(w_mode ? O_RDWR : O_RDONLY)/*flags*/,
+		0777);
+	return(fp);
 }
 
 /* ======================= rename(), renameat() ======================= */

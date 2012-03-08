@@ -12,6 +12,7 @@
 #include <sys/types.h>
 
 extern uid_t vperm_geteuid(void);
+extern uid_t vperm_get_real_euid(void);
 extern gid_t vperm_getegid(void);
 
 extern int vperm_uid_or_gid_virtualization_is_active(void);

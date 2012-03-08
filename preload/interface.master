@@ -264,6 +264,7 @@ GATE: int __xstat64(int ver, const char *filename, struct stat64 *buf) : map(fil
 
 #ifdef AT_SYMLINK_NOFOLLOW
 GATE: int __fxstatat(int ver, int dirfd, const char *pathname, struct stat *buf, int flags) : \
+	create_nomap_nolog_version \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname) class(STAT)
 GATE: int __fxstatat64(int ver, int dirfd, const char *pathname, struct stat64 *buf, int flags) : \

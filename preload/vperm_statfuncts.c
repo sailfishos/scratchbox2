@@ -42,7 +42,7 @@ int real_fstatat(int dirfd, const char *path, struct stat *statbuf, int flags)
 	int	r;
 
 #ifdef _STAT_VER
-	r = __fxstatat(_STAT_VER, dirfd, path, statbuf, flags);
+	r = __fxstatat_nomap_nolog(_STAT_VER, dirfd, path, statbuf, flags);
 #else
 	r = fstatat_nomap_nolog(dirfd, path, statbuf, flags);
 #endif

@@ -209,6 +209,8 @@ WRAP: int dup(int fd) : \
 	postprocess()
 WRAP: int dup2(int fd, int fd2) : \
 	postprocess()
+WRAP: int dup3(int oldfd, int newfd, int flags) : \
+	postprocess()
 
 -- 3rd parameter of fcntl() and fcntl64() is either a "long" or a
 -- "struct flock *".  However, treat it as "void*"; it is not needed

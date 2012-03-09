@@ -317,6 +317,17 @@ void dup2_postprocess_(const char *realfnname, int ret, int fd, int fd2)
 	}
 }
 
+void dup3_postprocess_(const char *realfnname, int ret, int fd, int fd2, int flags)
+{
+	const char	*cp = NULL;
+
+	if ((ret >= 0) && (fd != fd2)) {
+		cp = fdpathdb_find_path(fd);
+		if (cp) cp = strdup(cp);
+		fdpathdb_register_mapped_path(realfnname, fd2, cp, cp);
+	}
+}
+
 void close_postprocess_(const char *realfnname, int ret, int fd)
 {
 	(void)ret;

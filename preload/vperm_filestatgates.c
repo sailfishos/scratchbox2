@@ -1114,6 +1114,8 @@ int mkdirat_gate(int *result_errno_ptr,
 */
 
 static int vperm_multiopen(
+	int log_enabled,
+	const char *realfnname,
 	int (*open_2va_ptr)(const char *pathname, int flags, ...),
 	int (*open_3va_ptr)(int dirfd, const char *pathname, int flags, ...),
 	int (*creat_ptr)(const char *pathname, mode_t mode),
@@ -1130,28 +1132,63 @@ static int vperm_multiopen(
 {
 	FILE *f = NULL;
 
-	if (open_2va_ptr)
+	if (open_2va_ptr) {
+		if (log_enabled) {
+			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(path='%s',flags=0x%X,mode=0%o)",
+				__func__, realfnname, pathname, flags, modebits);
+		}
 		return ((*open_2va_ptr)(pathname, flags, modebits));
-	if (open_3va_ptr)
+	}
+	if (open_3va_ptr) {
+		if (log_enabled) {
+			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(dirfd=%d,path='%s',flags=0x%X,mode=0%o)",
+				__func__, realfnname, dirfd, pathname, flags, modebits);
+		}
 		return ((*open_3va_ptr)(dirfd, pathname, flags, modebits));
-	if (creat_ptr)
+	}
+	if (creat_ptr) {
+		if (log_enabled) {
+			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(path='%s',mode=0%o)",
+				__func__, realfnname, pathname, modebits);
+		}
 		return ((*creat_ptr)(pathname, modebits));
-	if (open_2_ptr)
+	}
+	if (open_2_ptr) {
+		if (log_enabled) {
+			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(path='%s',flags=0x%X)",
+				__func__, realfnname, pathname, flags);
+		}
 		return ((*open_2_ptr)(pathname, flags));
-	if (openat_3_ptr)
+	}
+	if (openat_3_ptr) {
+		if (log_enabled) {
+			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(dirfd=%d,path='%s',flags=0x%X)",
+				__func__, realfnname, dirfd, pathname, flags);
+		}
 		return ((*openat_3_ptr)(dirfd, pathname, flags));
+	}
 	if (fopen_ptr) {
 		assert(file_ptr);
+		if (log_enabled) {
+			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fileptr=%s(path='%s',mode='%s')",
+				__func__, realfnname, pathname, file_mode);
+		}
 		f = (*fopen_ptr)(pathname, file_mode);
 		*file_ptr = f;
 		return (f ? 0 : -1);
 	}
 	if (freopen_ptr) {
 		assert(file_ptr);
+		if (log_enabled) {
+			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fileptr=%s(path='%s',mode='%s',fileptr)",
+				__func__, realfnname, pathname, file_mode);
+		}
 		f = (*freopen_ptr)(pathname, file_mode, *file_ptr);
 		*file_ptr = f;
 		return (f ? 0 : -1);
 	}
+	SB_LOG(SB_LOGLEVEL_ERROR, "%s: Internal error: 'open' function is missing (%s)",
+		__func__, realfnname);
 	return(-1);
 }
 
@@ -1188,7 +1225,8 @@ static int vperm_do_open(
 	}
 
 	/* try to open it */
-	res_fd = vperm_multiopen(open_2va_ptr, open_3va_ptr, creat_ptr, 
+	res_fd = vperm_multiopen(1, realfnname,
+		open_2va_ptr, open_3va_ptr, creat_ptr, 
 		open_2_ptr, openat_3_ptr,
 		fopen_ptr, freopen_ptr, file_ptr, file_mode,
 		dirfd, mapped_pathname->mres_result_path, flags, modebits);
@@ -1232,17 +1270,17 @@ static int vperm_do_open(
 
 						if (fchmodat_nomap_nolog(dirfd,
 							mapped_pathname->mres_result_path, tmpmode, 0) == 0) {
+							/* NO LOGGING IN THIS BLOCK. TRY TO BE QUICK. */
 							/* mode was set to tmpmode.
 							 * try again; if it won't open now,
 							 * we just can't do it. */
-							res_fd = vperm_multiopen(open_2va_ptr, open_3va_ptr, creat_ptr, 
+							res_fd = vperm_multiopen(0, realfnname,
+								open_2va_ptr, open_3va_ptr, creat_ptr, 
 								open_2_ptr, openat_3_ptr,
 								fopen_ptr, freopen_ptr, file_ptr, file_mode,
 								dirfd, mapped_pathname->mres_result_path,
 								flags, modebits);
-							if (res_fd < 0) {
-								*result_errno_ptr = errno;
-							}
+							open_errno = errno;
 							/* Hopefully the file is open now.
 							 * in any case restore orig. mode */
 							fchmodat_nomap_nolog(dirfd,
@@ -1265,13 +1303,9 @@ static int vperm_do_open(
 				 * failed due to insufficient access
 				 * rights to the directory. Not implemented
 				 * yet. */
-				*result_errno_ptr = open_errno;
-
 				SB_LOG(SB_LOGLEVEL_DEBUG, "%s: failed to open/create file, simulated 'root', errno=%d (%s)",
 					realfnname, open_errno, mapped_pathname->mres_result_path);
 			}
-		} else {
-			*result_errno_ptr = open_errno;
 		}
 	} else {
 		if (uid_or_gid_is_virtual &&
@@ -1281,6 +1315,9 @@ static int vperm_do_open(
 				realfnname, mapped_pathname->mres_result_path);
 			vperm_set_owner_and_group(dirfd, realfnname, mapped_pathname);
 		}
+	}
+	if (res_fd < 0) {
+		*result_errno_ptr = errno;
 	}
 	return (res_fd);
 }

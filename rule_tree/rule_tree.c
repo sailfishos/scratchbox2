@@ -1029,6 +1029,33 @@ ruletree_object_offset_t ruletree_catalog_get(
 		object_name));
 }
 
+ruletree_object_offset_t ruletree_catalog_vget(const char *namev[])
+{
+	int				i;
+	ruletree_object_offset_t	catalog_start_offs = 0;
+
+	if (!ruletree_ctx.rtree_ruletree_hdr_p) ruletree_to_memory();
+
+	if (!ruletree_ctx.rtree_ruletree_hdr_p) {
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"%s: Failed, no rule tree", __func__);
+		return (0);
+	}
+
+	catalog_start_offs = 0; /* start from the root catalog */
+	for (i = 0; namev[i]; i++) {
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"%s [%d] '%s'", __func__, i, namev[i]);
+
+		catalog_start_offs = ruletree_catalog_find_value_from_catalog(
+			catalog_start_offs, namev[i]);
+		if (!catalog_start_offs) return(0);
+	}
+	SB_LOG(SB_LOGLEVEL_NOISE2,
+		"%s returns %d", __func__, (int)catalog_start_offs);
+	return (catalog_start_offs);
+}
+
 const char *ruletree_catalog_get_string(
 	const char *catalog_name,
 	const char *object_name)
@@ -1130,6 +1157,38 @@ int ruletree_catalog_set(
 		catalog_entry_ptr_in_root_catalog);
 	if (object_cat_entry) {
 		object_cat_entry->rtree_cat_value_offs = value_offset;
+		return(1);
+	}
+	return (0);
+}
+
+int ruletree_catalog_vset(
+	const char	*namev[],
+	ruletree_object_offset_t value_offset)
+{
+	ruletree_object_offset_t	catalog_start_offs = 0;
+	ruletree_catalog_entry_t	*catptr = NULL;
+	int				i;
+
+	if (!ruletree_ctx.rtree_ruletree_hdr_p) {
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"ruletree_catalog_set: Failed, no rule tree");
+		return (0);
+	}
+
+	catalog_start_offs = ruletree_ctx.rtree_ruletree_hdr_p->rtree_hdr_root_catalog;
+	for (i = 0; namev[i]; i++) {
+		SB_LOG(SB_LOGLEVEL_NOISE2, "%s [%d] %s", __func__, i, namev[i]);
+
+		catptr = ruletree_catalog_add_or_find_object(
+			catalog_start_offs, namev[i], catptr);
+		if (!catptr) return(0);
+
+		catalog_start_offs = catptr->rtree_cat_value_offs;
+	}
+	if (catptr) {
+		SB_LOG(SB_LOGLEVEL_NOISE2, "%s Found, set to %d", __func__, (int)value_offset);
+		catptr->rtree_cat_value_offs = value_offset;
 		return(1);
 	}
 	return (0);

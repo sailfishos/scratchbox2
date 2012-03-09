@@ -258,6 +258,9 @@ extern ruletree_object_offset_t ruletree_catalog_get(
 extern int ruletree_catalog_set(const char *catalog_name,
 	const char *object_name, ruletree_object_offset_t value_offset);
 
+extern ruletree_object_offset_t ruletree_catalog_vget(const char *namev[]);
+extern int ruletree_catalog_vset(const char *namev[], ruletree_object_offset_t value_offset);
+
 extern const char *ruletree_catalog_get_string(
 	const char *catalog_name, const char *object_name);
 extern uint32_t *ruletree_catalog_get_uint32_ptr(

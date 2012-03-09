@@ -290,6 +290,48 @@ static int lua_sb_ruletree_catalog_set(lua_State *l)
 	return 1;
 }
 
+static int lua_sb_ruletree_catalog_vget(lua_State *l)
+{
+	int				n = lua_gettop(l);
+	ruletree_object_offset_t	value = 0;
+
+	if (n >= 1) {
+		char	**namev;
+		int	i;
+
+		namev = calloc(n+1, sizeof(char*));
+		for (i = 0; i < n; i++) {
+			namev[i] = lua_tostring(l, i+1);
+		}
+		value = ruletree_catalog_vget(namev);
+	}
+	SB_LOG(SB_LOGLEVEL_NOISE, "%s => %d", __func__, (int)value);
+	lua_pushnumber(l, value);
+	return 1;
+}
+
+static int lua_sb_ruletree_catalog_vset(lua_State *l)
+{
+	int	n = lua_gettop(l);
+	int	status = 0;
+
+	if (n >= 2) {
+		char	**namev;
+		int	i;
+		ruletree_object_offset_t	value_offset;
+
+		namev = calloc(n, sizeof(char*));
+		for (i = 0; i < n-1; i++) {
+			namev[i] = lua_tostring(l, i+1);
+		}
+		value_offset = lua_tointeger(l, n);
+		status = ruletree_catalog_vset(namev, value_offset);
+	}
+	SB_LOG(SB_LOGLEVEL_NOISE, "%s => %d", __func__, status);
+	lua_pushnumber(l, status);
+	return 1;
+}
+
 static int lua_sb_ruletree_new_string(lua_State *l)
 {
 	int	n = lua_gettop(l);
@@ -375,11 +417,16 @@ static const luaL_reg reg[] =
 	{"objectlist_get",		lua_sb_ruletree_objectlist_get_item},
 	{"objectlist_size",		lua_sb_ruletree_objectlist_get_list_size},
 
+	/* simple interface to catalogs (two levels) */
 	{"catalog_get",			lua_sb_ruletree_catalog_get},
 	{"catalog_set",			lua_sb_ruletree_catalog_set},
 	{"catalog_get_uint32",		lua_sb_ruletree_catalog_get_uint32},
 	{"catalog_get_boolean",		lua_sb_ruletree_catalog_get_boolean},
 	{"catalog_get_string",		lua_sb_ruletree_catalog_get_string},
+
+	/* alternative interface to catalogs (variable levels) */
+	{"catalog_vget",		lua_sb_ruletree_catalog_vget},
+	{"catalog_vset",		lua_sb_ruletree_catalog_vset},
 
 	/* 'ruletree.catalog_set("catalogname","itemname",
 	 *   ruletree.new_string("str")' can be used from Lua to

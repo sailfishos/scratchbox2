@@ -1,3 +1,13 @@
+scratchbox2 (2.3.43-1) unstable; urgency=low
+
+  * Better simulation of root's privileges in open(), fopen(), etc:
+    The simulated root user can now write to write-protected files,
+    and read read-protected files (if file owner == real EUID)
+  * Added wrapper for dup3()
+  * A bugfix to real_fstatat()
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Fri, 09 Mar 2012 13:52:00 +0200
+
 scratchbox2 (2.3.42-1) unstable; urgency=low
 
   * "C" is now the default mapping strategy

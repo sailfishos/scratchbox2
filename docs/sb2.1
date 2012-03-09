@@ -355,17 +355,26 @@ has owner's R-bit set, regardless of the virtual permissions
 or virtual metadata.
 .PP
 For the simulated root user (option -R), some privileged operations
-are simulated (unless -p is used): If a directory is created (mkdir()
-or mode of directory is modified (chmod()) without 
-full permissions for the owner (rwx), Scratchbox2 will set the real
-mode bits and then virtualize them, so that the directory appears
-as more restricted as what it really is.
+are simulated (unless -p is used):
+.IP \(bu
+For directories, SB2 may silently add R and X permissions for the
+owner, otherwise various operations might fail.
+This migth happen in the mkdir(2) and chmod(2) functions.
+These additions are permanent modifications to the real directory
+modes, but not visible inside the session (the directory is masqueraded 
+with virtualized metadata, so that the directory appears to be
+more restricted than what it really is)
+.IP \(bu
+For files, SB2 simulates root's abilities to write to write-protected
+files and read from read-protected files. That is done by momentarily
+changing (chmod(2)) permissions to be able to open the file. Because
+this can't be atomically, race conditions are possible.
 .PP
 This subsystem is essentially a superset of what the
 .I fakeroot
 utility has done. But Scratchbox2 does more; For example,
 if user ID information is masqueraded, newly created files
-will appear to be owned by that simulated user if (fakeroot
+will appear to be owned by that simulated user ID (fakeroot
 doesn't do that). Also, the set-user-ID and set-group-ID bits
 are correctly simulated for foreign binaries running under e.g. qemu
 (fakeroot can't do that).

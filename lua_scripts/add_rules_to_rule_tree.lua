@@ -9,6 +9,9 @@
 if not mapping_engine_loaded then
 	do_file(session_dir .. "/lua_scripts/mapping.lua")
 end
+if not exec_engine_loaded then
+        do_file(session_dir .. "/lua_scripts/argvenvp.lua")
+end
 
 -- Rule tree constants. These must match the #defines in <rule_tree.h>
 local RULE_SELECTOR_PATH = 101
@@ -42,6 +45,7 @@ local RULE_FLAGS_FORCE_ORIG_PATH = 4
 local RULE_FLAGS_READONLY_FS_IF_NOT_ROOT = 8
 local RULE_FLAGS_READONLY_FS_ALWAYS = 16
 
+-- ================= Mapping rules =================
 
 function get_rule_tree_offset_for_rule_list(rules, node_type_is_ordinary_rule)
 	if #rules < 1 then
@@ -241,6 +245,91 @@ function add_list_of_rules(rules, node_type_is_ordinary_rule)
 	return rule_list_index
 end
 
+-- ================= Exec rules =================
+
+local valid_keywords_in_exec_policy = {
+	name = "string",
+
+	log_level = "string",
+	log_message = "string",
+
+	native_app_ld_library_path_prefix = "string",
+	native_app_ld_library_path_suffix = "string",
+	native_app_ld_preload_prefix = "string",
+
+	native_app_ld_so = "string",
+	native_app_ld_so_rpath_prefix = "string",
+	native_app_ld_so_supports_argv0 = "boolean",
+	native_app_ld_so_supports_nodefaultdirs = "boolean",
+	native_app_ld_so_supports_rpath_prefix = "boolean",
+
+	native_app_locale_path = "string",
+	native_app_gconv_path = "string",
+
+	script_log_level = "string",
+	script_log_message = "string",
+	script_set_argv0_to_mapped_interpreter = "boolean",
+	script_interpreter_rules = "MappingRules",
+}
+
+function add_to_exec_policy(modename_in_ruletree, ep_name, key, t, val)
+	if t == "string" then
+		ruletree.catalog_vset("exec_policy", modename_in_ruletree, ep_name,
+			key, ruletree.new_string(val))
+	elseif t == "boolean" then
+		ruletree.catalog_vset("exec_policy", modename_in_ruletree, ep_name,
+			key, ruletree.new_boolean(val))
+	else
+		io.stderr:write(string.format(
+			"exec policy loader: unsupported type %s (%s,%s,%s)\n",
+			t, modename_in_ruletree, ep_name, key))
+	end
+end
+
+function add_mapping_rules_to_exec_policy(modename_in_ruletree, ep_name, key, val)
+	local ri = add_list_of_rules(val, true)
+	ruletree.catalog_vset("exec_policy", modename_in_ruletree, ep_name,
+		key, ri)
+end
+
+function add_all_exec_policies(modename_in_ruletree)
+        if (all_exec_policies ~= nil) then
+                for i = 1, table.maxn(all_exec_policies) do
+                        local ep_name = all_exec_policies[i].name
+			if ep_name then
+				sb.log("debug", "Adding Exec policy "..ep_name)
+				for key,val in pairs(all_exec_policies[i]) do
+					local required_type = valid_keywords_in_exec_policy[key]
+					local t = type(val)
+					if required_type then
+						if t == required_type then
+							add_to_exec_policy(modename_in_ruletree, ep_name,
+								key, t, val)
+						elseif required_type == "MappingRules" and
+							t == "table" then
+							add_mapping_rules_to_exec_policy(
+								modename_in_ruletree, ep_name,
+								key, val)
+						else
+							io.stderr:write(string.format(
+								"exec policy loader: Invalid type %s for keyword "..
+								"%s in exec policy, expected %s (mode=%s, policy=%s)\n",
+								t, key, required_type, modename_in_ruletree, ep_name))
+						end
+					else
+						io.stderr:write(string.format(
+							"exec policy loader: Invalid keyword"..
+							" %s in exec policy (mode=%s, policy=%s)\n",
+							key, modename_in_ruletree, ep_name))
+					end
+				end
+			end
+                end
+        end
+end
+
+-- ================= Main =================
+
 ruletree.attach_ruletree()
 
 local forced_modename = sb.get_forced_mapmode()
@@ -263,3 +352,4 @@ ri = add_list_of_rules(reverse_fs_mapping_rules, true) -- add reverse  rules
 print("-- Added ruleset rev.rules")
 ruletree.catalog_set("rev_rules", modename_in_ruletree, ri)
 
+add_all_exec_policies(modename_in_ruletree)

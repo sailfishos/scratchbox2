@@ -17,7 +17,8 @@ extern int real_stat(const char *path, struct stat *statbuf);
 extern int real_fstat(int fd, struct stat *statbuf);
 extern int real_fstatat(int dirfd, const char *path, struct stat *statbuf, int flags);
 
-extern int i_virtualize_struct_stat(struct stat *buf, struct stat64 *buf64);
+extern int i_virtualize_struct_stat(const char *realfnname,
+	struct stat *buf, struct stat64 *buf64);
 
 extern int sb2_stat_file(const char *path, struct stat *buf, int *result_errno_ptr,
 	int (*statfn_with_ver_ptr)(int ver, const char *filename, struct stat *buf),

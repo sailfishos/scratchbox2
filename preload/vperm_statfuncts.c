@@ -10,6 +10,7 @@
 #include <string.h>
 #include "sb2.h"
 #include "sb2_stat.h"
+#include "sb2_vperm.h"
 
 #include "rule_tree.h"
 
@@ -61,8 +62,12 @@ int real_fstat(int fd, struct stat *statbuf)
 	return(r);
 }
 
-/* return 0 if not modified, positive if something was virtualized */
-int i_virtualize_struct_stat(struct stat *buf, struct stat64 *buf64)
+/* return 0 if not modified, positive if something was virtualized.
+ * only one of {buf,buf64} should be set; set the other one to NULL */
+int i_virtualize_struct_stat(
+	const char *realfnname,
+	struct stat *buf,
+	struct stat64 *buf64)
 {
 	int				res = 0;
 	ruletree_inodestat_handle_t	handle;
@@ -82,19 +87,19 @@ int i_virtualize_struct_stat(struct stat *buf, struct stat64 *buf64)
 		int set_uid_gid_of_unknown = vperm_set_owner_and_group_of_unknown_files(
 			&uf_uid, &uf_gid);
 
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: inodestats struct found:", __func__);
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s/%s: inodestats struct found:", realfnname, __func__);
 		if (istat_in_db.inodesimu_active_fields &
 			RULETREE_INODESTAT_SIM_UID) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"%s: found, set uid to %d",
-				__func__, istat_in_db.inodesimu_uid);
+				"%s/%s: found, set uid to %d",
+				realfnname, __func__, istat_in_db.inodesimu_uid);
 			if (buf) buf->st_uid = istat_in_db.inodesimu_uid;
 			else   buf64->st_uid = istat_in_db.inodesimu_uid;
 			res++;
 		} else if (set_uid_gid_of_unknown) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"%s: 'unknown' file, set owner to %d",
-					__func__, uf_uid);
+				"%s/%s: 'unknown' file, set owner to %d",
+					realfnname, __func__, uf_uid);
 			if (buf) buf->st_uid = uf_uid;
 			else   buf64->st_uid = uf_uid;
 			res++;
@@ -103,15 +108,15 @@ int i_virtualize_struct_stat(struct stat *buf, struct stat64 *buf64)
 		if (istat_in_db.inodesimu_active_fields &
 			RULETREE_INODESTAT_SIM_GID) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"%s: found, set gid to %d",
-				__func__, istat_in_db.inodesimu_gid);
+				"%s/%s: found, set gid to %d",
+				realfnname, __func__, istat_in_db.inodesimu_gid);
 			if (buf) buf->st_gid = istat_in_db.inodesimu_gid;
 			else   buf64->st_gid = istat_in_db.inodesimu_gid;
 			res++;
 		} else if (set_uid_gid_of_unknown) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"%s: 'unknown' file, set group to %d",
-					__func__, uf_gid);
+				"%s/%s: 'unknown' file, set group to %d",
+					realfnname, __func__, uf_gid);
 			if (buf) buf->st_gid = uf_gid;
 			else   buf64->st_gid = uf_gid;
 			res++;
@@ -120,8 +125,8 @@ int i_virtualize_struct_stat(struct stat *buf, struct stat64 *buf64)
 		if (istat_in_db.inodesimu_active_fields &
 			RULETREE_INODESTAT_SIM_MODE) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"%s: found, set mode to 0%o",
-				__func__, istat_in_db.inodesimu_mode);
+				"%s/%s: found, set mode to 0%o",
+				realfnname, __func__, istat_in_db.inodesimu_mode);
 			if (buf) buf->st_mode =
 					(buf->st_mode & S_IFMT) |
 					(istat_in_db.inodesimu_mode & (~S_IFMT));
@@ -133,8 +138,8 @@ int i_virtualize_struct_stat(struct stat *buf, struct stat64 *buf64)
 		if (istat_in_db.inodesimu_active_fields &
 			RULETREE_INODESTAT_SIM_SUIDSGID) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"%s: found, set suid/sgid 0%o",
-				__func__, istat_in_db.inodesimu_suidsgid);
+				"%s/%s: found, set suid/sgid 0%o",
+				realfnname, __func__, istat_in_db.inodesimu_suidsgid);
 			if (buf) buf->st_mode =
 				(buf->st_mode & ~(S_ISUID | S_ISGID)) |
 				(istat_in_db.inodesimu_suidsgid & (S_ISUID | S_ISGID));
@@ -146,8 +151,8 @@ int i_virtualize_struct_stat(struct stat *buf, struct stat64 *buf64)
 		if (istat_in_db.inodesimu_active_fields &
 			RULETREE_INODESTAT_SIM_DEVNODE) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"%s: found, simulated device 0%o,0x%X",
-				__func__, istat_in_db.inodesimu_devmode,
+				"%s/%s: found, simulated device 0%o,0x%X",
+				realfnname, __func__, istat_in_db.inodesimu_devmode,
 				(int)istat_in_db.inodesimu_rdev);
 			if (buf) {
 				buf->st_mode =
@@ -164,8 +169,8 @@ int i_virtualize_struct_stat(struct stat *buf, struct stat64 *buf64)
 		}
 	} else if (vperm_set_owner_and_group_of_unknown_files(&uf_uid, &uf_gid)) {
 		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"%s: 'unknown' file, set owner and group to %d.%d",
-				__func__, uf_uid, uf_gid);
+			"%s/%s: 'unknown' file, set owner and group to %d.%d",
+				realfnname, __func__, uf_uid, uf_gid);
 		if (buf) buf->st_uid = uf_uid;
 		else   buf64->st_uid = uf_uid;
 		if (buf) buf->st_gid = uf_gid;
@@ -173,7 +178,7 @@ int i_virtualize_struct_stat(struct stat *buf, struct stat64 *buf64)
 		res += 2;
 	}
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: done.", __func__);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s/%s: done, result=%d", realfnname, __func__, res);
 	return(res);
 }
 
@@ -198,7 +203,7 @@ int sb2_stat_file(const char *path, struct stat *buf, int *result_errno_ptr,
 	}
 
 	if (res == 0) {
-		i_virtualize_struct_stat(buf, NULL);
+		i_virtualize_struct_stat(__func__, buf, NULL);
 	} else {
 		*result_errno_ptr = errno;
 		SB_LOG(SB_LOGLEVEL_NOISE, "sb2_stat(%s) : failed, errno=%d",
@@ -213,7 +218,6 @@ int sb2_stat64_file(const char *path, struct stat64 *buf, int *result_errno_ptr,
 	int ver,
 	int (*stat64fn_ptr)(const char *filename, struct stat64 *buf))
 {
-	struct stat64	statbuf;
 	int		res;
 
 	SB_LOG(SB_LOGLEVEL_NOISE, "sb2_stat64(%s)", path);
@@ -230,7 +234,7 @@ int sb2_stat64_file(const char *path, struct stat64 *buf, int *result_errno_ptr,
 	}
 
 	if (res == 0) {
-		i_virtualize_struct_stat(NULL, buf);
+		i_virtualize_struct_stat(__func__, NULL, buf);
 	} else {
 		*result_errno_ptr = errno;
 		SB_LOG(SB_LOGLEVEL_NOISE, "sb2_stat64(%s) : failed, errno=%d",
@@ -242,12 +246,10 @@ int sb2_stat64_file(const char *path, struct stat64 *buf, int *result_errno_ptr,
 
 int sb2_fstat(int fd, struct stat *statbuf)
 {
-	int		res;
-
 	SB_LOG(SB_LOGLEVEL_NOISE, "sb2_fstat(%d)", fd);
 	if (real_fstat(fd, statbuf) < 0) return(-1);
 
-	i_virtualize_struct_stat(statbuf, NULL);
+	i_virtualize_struct_stat(__func__, statbuf, NULL);
 	return(0);
 }
 

@@ -223,28 +223,12 @@ static ruletree_object_offset_t ruletree_find_rule(
 	return (0); /* failed to find it */
 }
 
-/* Find the rule and mapping requirements.
- * returns object offset if rule was found, zero if not found.
-*/
-ruletree_object_offset_t ruletree_get_mapping_requirements(
-        const path_mapping_context_t *ctx,
-	int use_fwd_rules, /* flag */
-        const struct path_entry_list *abs_virtual_source_path_list,
-        int *min_path_lenp,
-        int *call_translate_for_all_p,
-	uint32_t fn_class,
-	char **fallback_to_lua)
+ruletree_object_offset_t ruletree_get_rule_list_offs(
+	int use_fwd_rules, char **fallback_to_lua) /* flag */
 {
 	static ruletree_object_offset_t fwd_rule_list_offs = 0;
 	static ruletree_object_offset_t rev_rule_list_offs = 0;
 
-	ruletree_object_offset_t	rule_list_offs = 0;
-	char    			*abs_virtual_source_path_string;
-	ruletree_fsrule_t		*rule = NULL;
-	ruletree_object_offset_t	rule_offs = 0;
-	PROCESSCLOCK(clk1)
-
-	START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "ruletree_get_mapping_requirements");
 	if (!fwd_rule_list_offs || !rev_rule_list_offs) {
 		const char *modename = sbox_session_mode;
 		
@@ -266,9 +250,28 @@ ruletree_object_offset_t ruletree_get_mapping_requirements(
 			"%s: rule list locations: fwd @%d, rev @%d",
 			__func__, fwd_rule_list_offs, rev_rule_list_offs);
 	}
+	return(use_fwd_rules ? fwd_rule_list_offs : rev_rule_list_offs);
+}
+
+/* Find the rule and mapping requirements.
+ * returns object offset if rule was found, zero if not found.
+*/
+ruletree_object_offset_t ruletree_get_mapping_requirements(
+	ruletree_object_offset_t	rule_list_offs,
+        const path_mapping_context_t *ctx,
+        const struct path_entry_list *abs_virtual_source_path_list,
+        int *min_path_lenp,
+        int *call_translate_for_all_p,
+	uint32_t fn_class)
+{
+	char    			*abs_virtual_source_path_string;
+	ruletree_fsrule_t		*rule = NULL;
+	ruletree_object_offset_t	rule_offs = 0;
+	PROCESSCLOCK(clk1)
+
+	START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "ruletree_get_mapping_requirements");
 	abs_virtual_source_path_string = path_list_to_string(abs_virtual_source_path_list);
 
-	rule_list_offs = use_fwd_rules ? fwd_rule_list_offs : rev_rule_list_offs;
 	if (rule_list_offs) {
 		rule_offs = ruletree_find_rule(ctx,
 			rule_list_offs, abs_virtual_source_path_string,
@@ -492,7 +495,7 @@ static char *execute_std_action(
 		{
 			ruletree_object_offset_t union_dir_list_offs = rule_selector->rtree_fsr_rule_list_link;
 			int	num_real_dir_entries;
-			char	**src_paths = NULL;
+			const char	**src_paths = NULL;
 			int	i;
 
 			num_real_dir_entries = ruletree_objectlist_get_list_size(union_dir_list_offs);

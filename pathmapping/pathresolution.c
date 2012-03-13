@@ -90,10 +90,11 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
-#include <mapping.h>
-#include <sb2.h>
+#include "mapping.h"
+#include "sb2.h"
 #include "libsb2.h"
 #include "exported.h"
+#include "sb2_vperm.h"
 
 #ifdef EXTREME_DEBUGGING
 #include <execinfo.h>
@@ -493,11 +494,22 @@ static ruletree_object_offset_t sb_path_resolution(
 #ifdef SB2_PATHRESOLUTION_C_ENGINE
 	{
 		char *fallback_to_lua = NULL;
+#if 0 /* see comment at pathmapping_interf.c/custom_map_path() */
+		ruletree_object_offset_t rule_list_offs = ctx->pmc_rule_list_offset;
+#else
+		ruletree_object_offset_t rule_list_offs = 0;
+#endif
 
-		rule_offs = ruletree_get_mapping_requirements(
-			ctx, 1/*use_fwd_rules*/, abs_virtual_clean_source_path_list,
-			&min_path_len_to_check, &call_translate_for_all,
-			ctx->pmc_fn_class, &fallback_to_lua);
+		if (!rule_list_offs)
+			rule_list_offs = ruletree_get_rule_list_offs(
+				1/*use_fwd_rules*/, &fallback_to_lua);
+
+		if (rule_list_offs) {
+			rule_offs = ruletree_get_mapping_requirements(
+				rule_list_offs, ctx, abs_virtual_clean_source_path_list,
+				&min_path_len_to_check, &call_translate_for_all,
+				ctx->pmc_fn_class);
+		}
 		if (rule_offs == 0) {
 			/* no rule */
 			resolved_virtual_path_res->mres_fallback_to_lua_mapping_engine =
@@ -1033,7 +1045,11 @@ void
 	int dont_resolve_final_symlink,
 	int process_path_for_exec,
 	uint32_t fn_class,
-	mapping_results_t *res)
+	mapping_results_t *res
+#ifdef SB2_PATHRESOLUTION_C_ENGINE
+	, ruletree_object_offset_t rule_list_offset
+#endif
+	)
 {
 	char *mapping_result = NULL;
 	path_mapping_context_t	ctx;
@@ -1048,6 +1064,13 @@ void
 	ctx.pmc_virtual_orig_path = virtual_orig_path;
 	ctx.pmc_dont_resolve_final_symlink = dont_resolve_final_symlink;
 	ctx.pmc_sb2ctx = sb2ctx;
+#ifdef SB2_PATHRESOLUTION_C_ENGINE
+#if 0 /* see comment at pathmapping_interf.c/custom_map_path() */
+	ctx.pmc_rule_list_offset = rule_list_offset;
+#else
+	(void)rule_list_offset;
+#endif
+#endif
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: %s(%s)", __func__, func_name, virtual_orig_path);
 
@@ -1298,7 +1321,8 @@ char *sbox_reverse_path_internal__c_engine(
 	int	call_translate_for_all = 0;
 	struct path_entry_list	abs_host_path_for_rule_selection_list;
 	char	*result_virtual_path = NULL;
-	ruletree_object_offset_t	rule_offs;
+	ruletree_object_offset_t	rule_offs = 0;
+	ruletree_object_offset_t	rule_list_offs = 0;
 	char *fallback_to_lua = NULL;
 
 	if (!abs_host_path) return(NULL);
@@ -1319,10 +1343,15 @@ char *sbox_reverse_path_internal__c_engine(
 	}
 
 	/* identify the rule.. */
-	rule_offs = ruletree_get_mapping_requirements(
-		ctx, 0/*use_fwd_rules*/, &abs_host_path_for_rule_selection_list,
-		&min_path_len_to_check, &call_translate_for_all,
-		ctx->pmc_fn_class, &fallback_to_lua);
+
+	rule_list_offs = ruletree_get_rule_list_offs(
+		0/*use_fwd_rules*/, &fallback_to_lua);
+	if (rule_list_offs) {
+		rule_offs = ruletree_get_mapping_requirements(
+			rule_list_offs, ctx, &abs_host_path_for_rule_selection_list,
+			&min_path_len_to_check, &call_translate_for_all,
+			ctx->pmc_fn_class);
+	}
         if (rule_offs != 0) {
 		int result_flags = 0;
 		const char *exec_policy_name = NULL;

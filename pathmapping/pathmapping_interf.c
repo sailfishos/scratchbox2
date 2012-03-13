@@ -195,6 +195,8 @@ static void fwd_map_path(
 {
 	struct sb2context *sb2ctx = NULL;
 
+	(void)exec_mode; /* not used */
+
 	if (!virtual_path) {
 		res->mres_result_buf = res->mres_result_path = NULL;
 		res->mres_readonly = 1;
@@ -209,7 +211,7 @@ static void fwd_map_path(
 		case MAPPING_METHOD_C_ENGINE_WITH_FALLBACKS:
 			sbox_map_path_internal__c_engine(sb2ctx, binary_name,
 				func_name, virtual_path,
-				dont_resolve_final_symlink, 0, fn_class, res);
+				dont_resolve_final_symlink, 0, fn_class, res, 0);
 			if (res->mres_fallback_to_lua_mapping_engine) {
 				SB_LOG(SB_LOGLEVEL_NOTICE,
 					"C path mapping engine failed (%s), fallback to Lua (%s)",
@@ -224,7 +226,7 @@ static void fwd_map_path(
 		case MAPPING_METHOD_C_ENGINE:
 			sbox_map_path_internal__c_engine(sb2ctx, binary_name,
 				func_name, virtual_path,
-				dont_resolve_final_symlink, 0, fn_class, res);
+				dont_resolve_final_symlink, 0, fn_class, res, 0);
 			if (res->mres_fallback_to_lua_mapping_engine &&
 			    (res->mres_fallback_to_lua_mapping_engine[0] == '#')) {
 				SB_LOG(SB_LOGLEVEL_NOTICE,
@@ -250,7 +252,7 @@ static void fwd_map_path(
 			sbox_map_path_internal__lua_engine(sb2ctx, binary_name, func_name, virtual_path,
 				dont_resolve_final_symlink, 0, fn_class, res);
 			sbox_map_path_internal__c_engine(sb2ctx, binary_name, func_name, virtual_path,
-				dont_resolve_final_symlink, 0, fn_class, &res2);
+				dont_resolve_final_symlink, 0, fn_class, &res2, 0);
 			if (res2.mres_fallback_to_lua_mapping_engine) {
 				SB_LOG(SB_LOGLEVEL_ERROR,
 					"C path mapping engine => fallback to Lua (%s), (%s)",
@@ -275,6 +277,50 @@ static void fwd_map_path(
 		STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, virtual_path);
 	}
 }
+
+#if 0
+/* map using a non-standard ruleset. Not used currently,
+ * but will be useful for e.g. mapping script interpreters
+ * when everything is ready for "full mapping" which
+ * includes full path resolution.
+*/
+void custom_map_path(
+	const char *binary_name,
+	const char *func_name,
+	const char *virtual_path,
+	int dont_resolve_final_symlink,
+	uint32_t fn_class,
+	mapping_results_t *res,
+	ruletree_object_offset_t rule_list_offset)
+{
+	struct sb2context *sb2ctx = NULL;
+
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: Map %s", __func__, virtual_path);
+
+	if (!virtual_path) {
+		res->mres_result_buf = res->mres_result_path = NULL;
+		res->mres_readonly = 1;
+	} else {
+		PROCESSCLOCK(clk1)
+
+		sb2ctx = check_mapping_method(1);
+
+		START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, __func__);
+
+		sbox_map_path_internal__c_engine(sb2ctx, binary_name,
+			func_name, virtual_path,
+			dont_resolve_final_symlink, 0, fn_class, res, rule_list_offset);
+
+		if (res->mres_fallback_to_lua_mapping_engine &&
+		    (res->mres_fallback_to_lua_mapping_engine[0] == '#')) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"C path mapping engine failed (%s), can't fallback to Lua (%s) - %s",
+				res->mres_fallback_to_lua_mapping_engine, virtual_path, __func__);
+		}
+	}
+	STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, virtual_path);
+}
+#endif
 
 char *reverse_map_path(
 	const path_mapping_context_t	*ctx,

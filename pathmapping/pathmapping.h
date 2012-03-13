@@ -90,6 +90,9 @@ typedef struct path_mapping_context_s {
 
 	/* for paths_ruletree_mapping.c: */
 	ruletree_object_offset_t pmc_ruletree_offset;
+#if 0 /* see comment at pathmapping_interf.c/custom_map_path() */
+	ruletree_object_offset_t pmc_rule_list_offset;
+#endif
 } path_mapping_context_t;
 
 #define clear_path_mapping_context(p) {memset((p),0,sizeof(*(p)));}
@@ -130,14 +133,17 @@ extern char *ruletree_translate_path(
 	int *flagsp,
 	const char **exec_policy_name_ptr,
 	char **fallback_to_lua);
+
+extern ruletree_object_offset_t ruletree_get_rule_list_offs(
+	int use_fwd_rules, char **fallback_to_lua);
+
 extern ruletree_object_offset_t ruletree_get_mapping_requirements(
+	ruletree_object_offset_t rule_list_offs,
 	const path_mapping_context_t *ctx,
-	int use_fwd_rules /* a flag */,
 	const struct path_entry_list *abs_virtual_source_path_list,
 	int *min_path_lenp,
 	int *call_translate_for_all_p,
-	uint32_t fn_class,
-	char **fallback_to_lua);
+	uint32_t fn_class);
 
 /* ----------- pathresolution.c ----------- */
 
@@ -167,7 +173,8 @@ extern void sbox_map_path_internal__c_engine(
 	int dont_resolve_final_symlink,
 	int process_path_for_exec,
 	uint32_t fn_class,
-	mapping_results_t *res);
+	mapping_results_t *res,
+	ruletree_object_offset_t rule_list_offset);
 
 extern char *sbox_reverse_path_internal__c_engine(
         const path_mapping_context_t  *ctx,

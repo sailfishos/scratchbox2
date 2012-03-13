@@ -177,6 +177,7 @@ extern int sb_path_exists(const char *path);
 extern void sblog_init(void);
 extern void sblog_init_level_logfile_format(const char *opt_level,
 	const char *opt_logfile, const char *opt_format);
+extern int sblog_level_name_to_number(const char *level_str);
 
 extern void sblog_vprintf_line_to_logfile(const char *file, int line,
 	int level, const char *format, va_list ap);

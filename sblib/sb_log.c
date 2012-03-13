@@ -155,6 +155,35 @@ static void write_to_logfile(const char *msg, int msglen)
 
 /* ===================== public functions ===================== */
 
+int sblog_level_name_to_number(const char *level_str)
+{
+	int level;
+
+	/* Both logfile and loglevel have been set. */
+	if (!strcmp(level_str,"error")) {
+		level = SB_LOGLEVEL_ERROR;
+	} else if (!strcmp(level_str,"warning")) {
+		level = SB_LOGLEVEL_WARNING;
+	} else if (!strcmp(level_str,"net")) {
+		level = SB_LOGLEVEL_NETWORK;
+	} else if (!strcmp(level_str,"notice")) {
+		level = SB_LOGLEVEL_NOTICE;
+	} else if (!strcmp(level_str,"info")) {
+		level = SB_LOGLEVEL_INFO;
+	} else if (!strcmp(level_str,"debug")) {
+		level = SB_LOGLEVEL_DEBUG;
+	} else if (!strcmp(level_str,"noise")) {
+		level = SB_LOGLEVEL_NOISE;
+	} else if (!strcmp(level_str,"noise2")) {
+		level = SB_LOGLEVEL_NOISE2;
+	} else if (!strcmp(level_str,"noise3")) {
+		level = SB_LOGLEVEL_NOISE3;
+	} else {
+		level = SB_LOGLEVEL_INFO;
+	}
+	return(level);
+}
+
 void sblog_init_level_logfile_format(const char *opt_level, const char *opt_logfile, const char *opt_format)
 {
 	if (sb_loglevel__ == SB_LOGLEVEL_uninitialized) {
@@ -204,31 +233,9 @@ void sblog_init_level_logfile_format(const char *opt_level, const char *opt_logf
 		if (sb_log_state.sbl_logfile[0]) {
 			if (level_str) {
 				/* Both logfile and loglevel have been set. */
-				if (!strcmp(level_str,"error")) {
-					sb_loglevel__ = SB_LOGLEVEL_ERROR;
-				} else if (!strcmp(level_str,"warning")) {
-					sb_loglevel__ = SB_LOGLEVEL_WARNING;
-				} else if (!strcmp(level_str,"net")) {
-					sb_loglevel__ = SB_LOGLEVEL_NETWORK;
-				} else if (!strcmp(level_str,"notice")) {
-					sb_loglevel__ = SB_LOGLEVEL_NOTICE;
-				} else if (!strcmp(level_str,"info")) {
-					sb_loglevel__ = SB_LOGLEVEL_INFO;
-				} else if (!strcmp(level_str,"debug")) {
-					sb_loglevel__ = SB_LOGLEVEL_DEBUG;
+				sb_loglevel__ = sblog_level_name_to_number(level_str);
+				if (sb_loglevel__ >= SB_LOGLEVEL_DEBUG)
 					sb_log_state.sbl_print_file_and_line = 1;
-				} else if (!strcmp(level_str,"noise")) {
-					sb_loglevel__ = SB_LOGLEVEL_NOISE;
-					sb_log_state.sbl_print_file_and_line = 1;
-				} else if (!strcmp(level_str,"noise2")) {
-					sb_loglevel__ = SB_LOGLEVEL_NOISE2;
-					sb_log_state.sbl_print_file_and_line = 1;
-				} else if (!strcmp(level_str,"noise3")) {
-					sb_loglevel__ = SB_LOGLEVEL_NOISE3;
-					sb_log_state.sbl_print_file_and_line = 1;
-				} else {
-					sb_loglevel__ = SB_LOGLEVEL_INFO;
-				}
 			} else {
 				/* logfile set, no level specified: */
 				sb_loglevel__ = SB_LOGLEVEL_INFO;

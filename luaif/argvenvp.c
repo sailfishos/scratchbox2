@@ -230,7 +230,8 @@ char *sb_execve_map_script_interpreter(
 	const char *orig_script_filename,
 	char ***argv,
 	char ***envp,
-	char **new_exec_policy_name)
+	char **new_exec_policy_name,
+	int *result_code)
 {
 	struct sb2context *sb2ctx;
 	char *mapped_interpreter;
@@ -305,6 +306,7 @@ char *sb_execve_map_script_interpreter(
 		*new_exec_policy_name = nep ? strdup(nep) : NULL;
 
 	res = lua_tointeger(sb2ctx->lua, -6);
+	*result_code = res;
 	switch (res) {
 
 	case 0:

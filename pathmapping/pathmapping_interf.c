@@ -322,6 +322,72 @@ void custom_map_path(
 }
 #endif
 
+/* map an "abstract" path: Don't do full path resolution. */
+char *custom_map_abstract_path(
+	ruletree_object_offset_t rule_list_offs,
+	const char *binary_name,
+	const char *virtual_orig_path,
+	const char *func_name,
+	int fn_class,
+	const char **new_exec_policy_p)
+{
+	char			*mapping_result = NULL;
+	path_mapping_context_t	ctx;
+	struct path_entry_list	abs_virtual_source_path_list;
+	int			min_path_len;
+	ruletree_object_offset_t	rule_offs;
+
+	if (!virtual_orig_path || (*virtual_orig_path != '/')) {
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"%s: path '%s' is relative => return(NULL)",
+			__func__, virtual_orig_path);
+		return(NULL);
+	}
+
+	/* fill ctx */
+	clear_path_mapping_context(&ctx);
+	ctx.pmc_binary_name = binary_name;
+	ctx.pmc_func_name = func_name;
+	ctx.pmc_fn_class = fn_class;
+	ctx.pmc_virtual_orig_path = virtual_orig_path;
+	ctx.pmc_dont_resolve_final_symlink = 0;
+	ctx.pmc_sb2ctx = get_sb2context();
+
+	split_path_to_path_list(virtual_orig_path,
+		&abs_virtual_source_path_list);
+
+	if (is_clean_path(&abs_virtual_source_path_list) != 0) {
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"%s: path '%s' is not a clean path => return(NULL)",
+			__func__, virtual_orig_path);
+		free_path_list(&abs_virtual_source_path_list);
+		return(NULL);
+	}
+
+	rule_offs = ruletree_get_mapping_requirements(
+		rule_list_offs, &ctx, &abs_virtual_source_path_list,
+		&min_path_len, NULL/*call_translate_for_all_p*/,
+		SB2_INTERFACE_CLASS_EXEC);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: rule_offs = %u", __func__, rule_offs);
+
+	if (rule_offs) {
+		char   		*fallback_to_lua = NULL;
+		const char	*new_exec_policy = NULL;
+		int		flags;
+
+		ctx.pmc_ruletree_offset = rule_offs;
+		mapping_result = ruletree_translate_path(
+			&ctx, SB_LOGLEVEL_DEBUG, virtual_orig_path, &flags,
+			&new_exec_policy, &fallback_to_lua);
+		if (new_exec_policy_p) *new_exec_policy_p = new_exec_policy;
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: mapping_result = %s", __func__,
+			(mapping_result ? mapping_result : "NULL"));
+	}
+	free_path_list(&abs_virtual_source_path_list);
+
+	return(mapping_result);
+}
+
 char *reverse_map_path(
 	const path_mapping_context_t	*ctx,
 	const char *abs_host_path)

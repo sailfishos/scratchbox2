@@ -38,7 +38,7 @@
 
 /* returns an allocated string */
 /* FIXME: This should be somewhere else! it does not belong to this file. */
-char *prep_union_dir(const char *dst_path, char **src_paths, int num_real_dir_entries)
+char *prep_union_dir(const char *dst_path, const char **src_paths, int num_real_dir_entries)
 {
 	DIR *d = NULL;
 	struct dirent *de;

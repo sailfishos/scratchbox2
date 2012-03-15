@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <stdint.h>
 
+#include "rule_tree.h"
 
 #define enable_mapping(a) ((a)->mapping_disabled--)
 #define disable_mapping(a) ((a)->mapping_disabled++)
@@ -91,13 +92,23 @@ extern void sbox_map_path_for_sb2show(const char *binary_name,
 extern void sbox_map_path_for_exec(const char *func_name, const char *path,
 	mapping_results_t *res);
 
+extern void custom_map_path(const char *binary_name,
+	const char *func_name, const char *virtual_path,
+	int dont_resolve_final_symlink, uint32_t fn_class,
+	mapping_results_t *res, ruletree_object_offset_t rule_list_offset);
+
+extern char *custom_map_abstract_path(
+        ruletree_object_offset_t rule_list_offs, const char *binary_name, 
+        const char *virtual_orig_path, const char *func_name, 
+        int fn_class, const char **new_exec_policy_p);
+
 extern char *emumode_map(const char *path);
 extern void sb_push_string_to_lua_stack(char *str);
 extern char *sb_execve_map_script_interpreter(const char *interpreter,
 	const char *exec_policy_name,
         const char *interp_arg, const char *mapped_script_filename,
 	const char *orig_script_filename, char ***argv, char ***envp,
-	char **new_exec_policy_name);
+	char **new_exec_policy_name, int *result_code);
 extern int sb_execve_postprocess(const char *exec_type,
 	const char *exec_policy_name,
 	char **mapped_file, char **filename, const char *binary_name,
@@ -110,7 +121,7 @@ extern char *scratchbox_reverse_path(
 extern const char *fdpathdb_find_path(int fd);
 
 extern char *prep_union_dir(const char *dst_path,
-		char **src_paths, int num_real_dir_entries);
+		const char **src_paths, int num_real_dir_entries);
 
 /* ---- internal constants: ---- */
 

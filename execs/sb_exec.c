@@ -162,7 +162,7 @@ static int elf_hdr_match(const char *region, uint16_t match, int ei_data);
 static enum binary_type inspect_elf_binary(const char *);
 
 static int prepare_exec(const char *exec_fn_name,
-	char *exec_policy_name,
+	const char *exec_policy_name,
 	const char *orig_file, int file_has_been_mapped,
 	char *const *orig_argv, char *const *orig_envp,
 	enum binary_type *typep,
@@ -541,7 +541,7 @@ static int prepare_hashbang(
 	char *orig_file,
 	char ***argvp,
 	char ***envpp,
-	char *exec_policy_name)
+	const char *exec_policy_name)
 {
 	int argc, fd, c, i, j, n;
 	char ch;
@@ -1212,7 +1212,7 @@ static void simulate_suid_and_sgid_if_needed(
 }
 
 static int prepare_exec(const char *exec_fn_name,
-	char *exec_policy_name,
+	const char *exec_policy_name,
 	const char *orig_file,
 	int file_has_been_mapped,
 	char *const *orig_argv,

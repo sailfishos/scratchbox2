@@ -616,18 +616,107 @@ static int prepare_hashbang(
 		*envpp, "__SB2_ORIG_BINARYNAME=", interpreter);
 
 	/* rule & policy are in the stack */
+	int lua_mapping_result_code = 99;
 	mapped_interpreter = sb_execve_map_script_interpreter(
 		exec_policy_name,
 		interpreter, interp_arg, *mapped_file, orig_file,
-		&new_argv, envpp, &nep);
+		&new_argv, envpp, &nep, &lua_mapping_result_code);
+#if 1
+	/* script interpreter mapping in C */
+	exec_policy_handle_t     eph = find_exec_policy_handle(exec_policy_name);
+	int c_mapping_result_code;
+	char *c_mapped_interpreter = NULL;
+	const char *c_new_exec_policy_name = NULL;
+	
+	c_mapping_result_code = exec_map_script_interpreter(eph, exec_policy_name,
+		interpreter, interp_arg, *mapped_file,
+		orig_file, new_argv, &c_new_exec_policy_name, &c_mapped_interpreter);
+	SB_LOG(SB_LOGLEVEL_DEBUG,
+		"back from exec_map_script_interpreter => %d (%s)",
+		c_mapping_result_code, (c_mapped_interpreter ? c_mapped_interpreter : "<NULL>"));
 
+	if (lua_mapping_result_code != c_mapping_result_code) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"%s: different result code, Lua=%d C=%d",
+			__func__, lua_mapping_result_code, c_mapping_result_code);
+	}
+	switch (c_mapping_result_code) {
+	case 0:
+                /* exec arguments were modified, argv has been modified */
+                SB_LOG(SB_LOGLEVEL_DEBUG,
+                        "%s: <0> argv has been updated", __func__);
+		break;
+	case 1:
+                SB_LOG(SB_LOGLEVEL_DEBUG,
+                        "%s: <1> argv was not modified", __func__);
+		break;
+	case 2:
+                SB_LOG(SB_LOGLEVEL_DEBUG,
+                        "%s: <2> Use ordinary path mapping", __func__);
+		if (c_mapped_interpreter) free(c_mapped_interpreter);
+                c_mapped_interpreter = NULL;
+                {
+                        mapping_results_t       mapping_result;
+
+                        clear_mapping_results_struct(&mapping_result);
+                        sbox_map_path_for_exec("script_interp",
+                                interpreter, &mapping_result);
+                        if (mapping_result.mres_result_buf) {
+                                c_mapped_interpreter =
+                                        strdup(mapping_result.mres_result_buf);
+                        }
+                        if (mapping_result.mres_exec_policy_name)
+				c_new_exec_policy_name = strdup(mapping_result.mres_exec_policy_name);
+			else
+				c_new_exec_policy_name = NULL;
+                        free_mapping_results(&mapping_result);
+                }
+                SB_LOG(SB_LOGLEVEL_DEBUG, "%s: "
+                        "interpreter=%s c_mapped_interpreter=%s policy=%s",
+                        __func__, interpreter, c_mapped_interpreter,
+                        c_new_exec_policy_name ? c_new_exec_policy_name : "NULL");
+		break;
+	case -1:
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: <-1> exec denied", __func__);
+		if (c_mapped_interpreter) free(c_mapped_interpreter);
+		c_mapped_interpreter = NULL;
+		return(-1);
+	default:
+                SB_LOG(SB_LOGLEVEL_ERROR,
+                        "%s: Unsupported result %d", __func__, c_mapping_result_code);
+		return(-1);
+	}
+		
+	if (mapped_interpreter && c_mapped_interpreter &&
+	    strcmp(mapped_interpreter,c_mapped_interpreter)) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"%s: different result path, Lua='%s' C='%s'", __func__,
+			(mapped_interpreter ? mapped_interpreter : "<NULL>"),
+			(c_mapped_interpreter ? c_mapped_interpreter : "<NULL>"));
+	}
+	if (nep && c_new_exec_policy_name &&
+	    strcmp(nep, c_new_exec_policy_name)) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"%s: different new exec policy, Lua='%s' C='%s'", __func__,
+			(nep ? nep : "<NULL>"),
+			(c_new_exec_policy_name ? c_new_exec_policy_name : "<NULL>"));
+	}
+#if 1
+	/* use results from C mapping */
+	exec_policy_name = c_new_exec_policy_name;
+	mapped_interpreter = c_mapped_interpreter;
+#endif
+
+#endif
 	if (!mapped_interpreter) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"failed to map script interpreter=%s", interpreter);
 		return(-1);
 	}
 
+#if 0
 	exec_policy_name = nep;
+#endif
 
 	/*
 	 * Binaryname (the one expected by the rules) comes still from

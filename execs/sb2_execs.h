@@ -16,5 +16,59 @@ extern int apply_exec_preprocessing_rules(char **file, char ***argv, char ***env
 
 extern const char *find_exec_policy_name(const char *mapped_path, const char *virtual_path);
 
+/* Exec policies are stored to catalogs in the rule tree;
+ * meaning that all values are accessed with strings as keys.
+ * (not very optimal, but easy for re-writing the Lua code in C)
+ *
+ * struct exec_policy_fields is used only for syntax checking:
+ * All valid keys for the exec policy catalogs are listed here,
+ * so that the C compiler can validate accesses (otherwise typos
+ * etc could be left unnoticed)
+ * (see the EXEC_POLICY_GET_* macros and exec_policy_get_* functions)
+*/
+struct exec_policy_fields {
+	char script_log_level;
+	char script_log_message;
+	char script_deny_exec;
+	char script_interpreter_rules;
+	char script_set_argv0_to_mapped_interpreter;
+};
+
+typedef struct {
+	ruletree_object_offset_t exec_policy_offset;
+} exec_policy_handle_t;
+
+extern exec_policy_handle_t	find_exec_policy_handle(const char *policyname);
+
+extern const char *exec_policy_get_string(exec_policy_handle_t eph,
+	const char *s_name, size_t fldoffs);
+extern int exec_policy_get_boolean(exec_policy_handle_t eph,
+	const char *b_name, size_t fldoffs);
+extern ruletree_object_offset_t exec_policy_get_rules(exec_policy_handle_t eph,
+	const char *r_name, size_t fldoffs);
+
+#define EXEC_POLICY_GET_STRING(eph, fieldname) \
+	exec_policy_get_string(eph, #fieldname, \
+		offsetof(struct exec_policy_fields, fieldname))
+
+#define EXEC_POLICY_GET_BOOLEAN(eph, fieldname) \
+	exec_policy_get_boolean(eph, #fieldname, \
+		offsetof(struct exec_policy_fields, fieldname))
+
+#define EXEC_POLICY_GET_RULES(eph, fieldname) \
+	exec_policy_get_rules(eph, #fieldname, \
+		offsetof(struct exec_policy_fields, fieldname))
+
+extern int exec_map_script_interpreter(
+	exec_policy_handle_t    eph,
+	const char *exec_policy_name,
+	const char *interpreter,
+	const char *interp_arg, 
+	const char *mapped_script_filename,
+	const char *orig_script_filename,
+	char    **argv,
+	const char **new_exec_policy_p, 
+        char       **mapped_interpreter_p);
+
 #endif /* __EXEC_INTERNAL_H */
 

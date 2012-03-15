@@ -354,6 +354,8 @@ static enum binary_type inspect_binary(const char *filename,
 	unsigned int ei_data;
 	uint16_t e_machine;
 
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s(%s)", __func__, filename);
+
 	retval = BIN_NONE; /* assume it doesn't exist, until proven otherwise */
 	if (check_x_permission && access_nomap_nolog(filename, X_OK) < 0) {
 		int saved_errno = errno;
@@ -365,6 +367,8 @@ static enum binary_type inspect_binary(const char *filename,
 			/* file is missing completely, or can't be accessed
 			 * at all.
 			 * errno has been set */
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"%s: access F_OK failed (1) => out", __func__);
 			goto _out;
 		}
 
@@ -409,6 +413,8 @@ static enum binary_type inspect_binary(const char *filename,
 			/* file is missing completely, or can't be accessed
 			 * at all.
 			 * errno has been set */
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"%s: access F_OK failed (2) => out", __func__);
 			goto _out;
 		}
 	}
@@ -416,12 +422,16 @@ static enum binary_type inspect_binary(const char *filename,
 	fd = open_nomap_nolog(filename, O_RDONLY, 0);
 	if (fd < 0) {
 		retval = BIN_HOST_DYNAMIC; /* can't peek in to look, assume dynamic */
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"%s: can't open for reading => out", __func__);
 		goto _out;
 	}
 
 	retval = BIN_UNKNOWN;
 
 	if (sb2_fstat(fd, &status) < 0) {
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"%s: fstat failed => out", __func__);
 		goto _out_close;
 	}
 	if (modep) *modep = status.st_mode;
@@ -429,6 +439,8 @@ static enum binary_type inspect_binary(const char *filename,
 	if (gidp) *gidp = status.st_gid;
 
 	if (!S_ISREG(status.st_mode) && !S_ISLNK(status.st_mode)) {
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"%s: not REG/LNK => out", __func__);
 		goto _out_close;
 	}
 
@@ -442,15 +454,22 @@ static enum binary_type inspect_binary(const char *filename,
 
 	region = mmap(0, status.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (!region) {
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"%s: mmap failed => out", __func__);
 		goto _out_close;
 	}
 
 	retval = inspect_elf_binary(region);
 	switch (retval) {
 	case BIN_HASHBANG:
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"%s: script => out", __func__);
+		goto _out_munmap;
 	case BIN_HOST_STATIC:
 	case BIN_HOST_DYNAMIC:
 		/* host binary, lets go out of here */
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"%s: host binary => out", __func__);
 		goto _out_munmap;
 
 	default:
@@ -483,6 +502,9 @@ static enum binary_type inspect_binary(const char *filename,
 		if (strncmp(target_cpu, ti->name, strlen(ti->name)))
 			continue;
 
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"%s: try target '%s'", __func__, target_cpu);
+
 		ei_data = ti->default_byteorder;
 		e_machine = ti->machine;
 
@@ -500,8 +522,11 @@ static enum binary_type inspect_binary(const char *filename,
 		break;
 	}
 
-	if (elf_hdr_match(region, e_machine, ei_data))
+	if (elf_hdr_match(region, e_machine, ei_data)) {
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"%s: BIN_TARGET", __func__);
 		retval = BIN_TARGET;
+	}
 
 _out_munmap:
 	munmap(region, status.st_size);
@@ -644,9 +669,11 @@ static char **duplicate_argv(char *const *argv)
 	int	i;
 	char	**my_argv;
 
+	SB_LOG(SB_LOGLEVEL_NOISE2, "duplicate_argv: argc=%d", argc);
 	my_argv = (char **)calloc(argc + 1, sizeof(char *));
 	for (i = 0, p = (char **)argv; *p; p++) {
 		my_argv[i++] = strdup(*p);
+		SB_LOG(SB_LOGLEVEL_NOISE2, "duplicate_argv: [%d] = '%s'", i-1, my_argv[i-1]);
 	}
 	my_argv[i] = NULL;
 
@@ -1164,6 +1191,8 @@ static int prepare_exec(const char *exec_fn_name,
 	SB_LOG(SB_LOGLEVEL_DEBUG,
 		"prepare_exec(): orig_file='%s'",
 		orig_file);
+	SB_LOG(SB_LOGLEVEL_NOISE,
+		"%s: exec_policy_name='%s'", __func__, exec_policy_name);
 
 	tmp = strdup(orig_file);
 	binaryname = strdup(basename(tmp)); /* basename may modify *tmp */
@@ -1246,6 +1275,7 @@ static int prepare_exec(const char *exec_fn_name,
 			}
 		}
 	}
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: exec_policy_name=%s", __func__, exec_policy_name);
 
 	START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk4, "exec/typeswitch");
 	switch (type) {

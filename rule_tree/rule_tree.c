@@ -934,7 +934,7 @@ static ruletree_object_offset_t ruletree_find_catalog_entry(
 	return(0);
 }
 
-static ruletree_object_offset_t	ruletree_catalog_find_value_from_catalog(
+ruletree_object_offset_t	ruletree_catalog_find_value_from_catalog(
 	ruletree_object_offset_t	first_catalog_entry_offs,
 	const char			*name)
 {

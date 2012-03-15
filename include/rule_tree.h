@@ -268,6 +268,9 @@ extern uint32_t *ruletree_catalog_get_uint32_ptr(
 extern uint32_t *ruletree_catalog_get_boolean_ptr(
 	const char *catalog_name, const char *object_name);
 
+extern ruletree_object_offset_t	ruletree_catalog_find_value_from_catalog(
+	ruletree_object_offset_t first_catalog_entry_offs, const char *name);
+
 /* inodestats */
 typedef struct {
 	uint64_t	rfh_dev;     /* device containing it; used as key */

@@ -131,10 +131,12 @@ struct sb2context {
  * * New in 121:
  *   - "fakeroot" isn't supported anymore, instead
  *     SB2's own Vperm subsystem offers similar functionality
+ * * 122:
+ *     sb_execve_map_script_interpreter() was removed
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "121"
+#define SB2_LUA_C_INTERFACE_VERSION "122"
 
 /* get sb2context, without activating lua: */
 extern struct sb2context *get_sb2context(void);

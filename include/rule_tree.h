@@ -298,9 +298,6 @@ extern ruletree_object_offset_t ruletree_set_inodestat(
 	ruletree_inodestat_handle_t	*handle,
         inodesimu_t      		*istat_struct);
 
-/* ------------ rule_tree_luaif.c: ------------ */
-extern int lua_bind_ruletree_functions(lua_State *l);
-
 /* ------------ fs mapping rule maintenance routines ------------ */
 extern ruletree_object_offset_t add_rule_to_ruletree(
 	const char *name, int selector_type, const char *selector,

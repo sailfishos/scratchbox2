@@ -36,6 +36,7 @@
 #include "mapping.h"
 #include "sb2.h"
 #include "rule_tree.h"
+#include "rule_tree_lua.h"
 #include "sb2_network.h"
 
 

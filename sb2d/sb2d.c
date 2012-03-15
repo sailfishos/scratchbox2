@@ -34,6 +34,7 @@
 #include <assert.h>
 
 #include "sb2_server.h"
+#include "rule_tree_lua.h"
 
 /* globals */
 

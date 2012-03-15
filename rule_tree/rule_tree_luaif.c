@@ -38,6 +38,7 @@
 #include <sb2.h>
 
 #include "rule_tree.h"
+#include "rule_tree_lua.h"
 
 
 /* ensure that the rule tree has been mapped. */

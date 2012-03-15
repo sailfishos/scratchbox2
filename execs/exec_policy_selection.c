@@ -96,9 +96,11 @@ const char *find_exec_policy_name(const char *mapped_path, const char *virtual_p
 {
 	static ruletree_object_offset_t		policy_selection_rules_offs = 0;
 	uint32_t	list_size;
-	int		i;
+	unsigned int	i;
 	int		mapped_path_len;
 	static const char	*modename = NULL;
+
+	(void)virtual_path; /* not used */
 
 	if (!policy_selection_rules_offs) {
 		modename = sbox_session_mode;
@@ -139,7 +141,7 @@ const char *find_exec_policy_name(const char *mapped_path, const char *virtual_p
 					const char *epn = offset_to_ruletree_string_ptr(
 						rule->rtree_xps_exec_policy_name_offs, NULL);
 					SB_LOG(SB_LOGLEVEL_DEBUG,
-						"%s: exec policy found, #%d '%s'",
+						"%s: exec policy found, #%u '%s'",
 						__func__, i, epn);
 					return(epn);
 				}

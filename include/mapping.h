@@ -104,11 +104,7 @@ extern char *custom_map_abstract_path(
 
 extern char *emumode_map(const char *path);
 extern void sb_push_string_to_lua_stack(char *str);
-extern char *sb_execve_map_script_interpreter(const char *interpreter,
-	const char *exec_policy_name,
-        const char *interp_arg, const char *mapped_script_filename,
-	const char *orig_script_filename, char ***argv, char ***envp,
-	char **new_exec_policy_name, int *result_code);
+
 extern int sb_execve_postprocess(const char *exec_type,
 	const char *exec_policy_name,
 	char **mapped_file, char **filename, const char *binary_name,

@@ -41,8 +41,8 @@
  *    following:
  *
  *    4a. For scripts (files starting with #!), script interpreter name 
- *        will be read from the file, mapped by sb_execve_map_script_interpreter()
- *	  (a lua function in argvenvp.lua), and once the interpreter
+ *        will be read from the file, mapped by exec_map_script_interpreter()
+ *	  (in exec_map_script_interp.c), and once the interpreter
  *	  location has been found, the parameters will be processed again by 
  *	  prepare_exec().
  *        This solution supports location- and exec policy based mapping
@@ -545,14 +545,13 @@ static int prepare_hashbang(
 {
 	int argc, fd, c, i, j, n;
 	char ch;
-	char *ptr, *mapped_interpreter;
-	char **new_argv;
+	char *mapped_interpreter = NULL;
+	char **new_argv = NULL;
 	char hashbang[SBOX_MAXPATH]; /* only 60 needed on linux, just be safe */
 	char interpreter[SBOX_MAXPATH];
 	char *interp_arg = NULL;
-	char *tmp, *mapped_binaryname;
+	char *tmp = NULL, *mapped_binaryname = NULL;
 	int result = 0;
-	char *nep;
 
 	if ((fd = open_nomap(*mapped_file, O_RDONLY)) < 0) {
 		/* unexpected error, just run it */
@@ -584,7 +583,7 @@ static int prepare_hashbang(
 			hashbang[i] = 0;
 			if (i > j) {
 				if (n == 0) {
-					ptr = &hashbang[j];
+					char *ptr = &hashbang[j];
 					strcpy(interpreter, ptr);
 					new_argv[n++] = strdup(interpreter);
 				} else {
@@ -609,37 +608,24 @@ static int prepare_hashbang(
 	new_argv[n] = NULL;
 
 	/* Now we need to update __SB2_ORIG_BINARYNAME to point to 
-	 * the unmapped script interpreter (sb_execve_map_script_interpreter
+	 * the unmapped script interpreter (exec_map_script_interpreter
 	 * may change it again (not currently, but in the future)
 	*/
 	change_environment_variable(
 		*envpp, "__SB2_ORIG_BINARYNAME=", interpreter);
 
-	/* rule & policy are in the stack */
-	int lua_mapping_result_code = 99;
-	mapped_interpreter = sb_execve_map_script_interpreter(
-		exec_policy_name,
-		interpreter, interp_arg, *mapped_file, orig_file,
-		&new_argv, envpp, &nep, &lua_mapping_result_code);
-#if 1
 	/* script interpreter mapping in C */
 	exec_policy_handle_t     eph = find_exec_policy_handle(exec_policy_name);
 	int c_mapping_result_code;
-	char *c_mapped_interpreter = NULL;
 	const char *c_new_exec_policy_name = NULL;
 	
 	c_mapping_result_code = exec_map_script_interpreter(eph, exec_policy_name,
 		interpreter, interp_arg, *mapped_file,
-		orig_file, new_argv, &c_new_exec_policy_name, &c_mapped_interpreter);
+		orig_file, new_argv, &c_new_exec_policy_name, &mapped_interpreter);
 	SB_LOG(SB_LOGLEVEL_DEBUG,
 		"back from exec_map_script_interpreter => %d (%s)",
-		c_mapping_result_code, (c_mapped_interpreter ? c_mapped_interpreter : "<NULL>"));
+		c_mapping_result_code, (mapped_interpreter ? mapped_interpreter : "<NULL>"));
 
-	if (lua_mapping_result_code != c_mapping_result_code) {
-		SB_LOG(SB_LOGLEVEL_ERROR,
-			"%s: different result code, Lua=%d C=%d",
-			__func__, lua_mapping_result_code, c_mapping_result_code);
-	}
 	switch (c_mapping_result_code) {
 	case 0:
                 /* exec arguments were modified, argv has been modified */
@@ -653,8 +639,8 @@ static int prepare_hashbang(
 	case 2:
                 SB_LOG(SB_LOGLEVEL_DEBUG,
                         "%s: <2> Use ordinary path mapping", __func__);
-		if (c_mapped_interpreter) free(c_mapped_interpreter);
-                c_mapped_interpreter = NULL;
+		if (mapped_interpreter) free(mapped_interpreter);
+                mapped_interpreter = NULL;
                 {
                         mapping_results_t       mapping_result;
 
@@ -662,7 +648,7 @@ static int prepare_hashbang(
                         sbox_map_path_for_exec("script_interp",
                                 interpreter, &mapping_result);
                         if (mapping_result.mres_result_buf) {
-                                c_mapped_interpreter =
+                                mapped_interpreter =
                                         strdup(mapping_result.mres_result_buf);
                         }
                         if (mapping_result.mres_exec_policy_name)
@@ -672,51 +658,27 @@ static int prepare_hashbang(
                         free_mapping_results(&mapping_result);
                 }
                 SB_LOG(SB_LOGLEVEL_DEBUG, "%s: "
-                        "interpreter=%s c_mapped_interpreter=%s policy=%s",
-                        __func__, interpreter, c_mapped_interpreter,
+                        "interpreter=%s mapped_interpreter=%s policy=%s",
+                        __func__, interpreter, mapped_interpreter,
                         c_new_exec_policy_name ? c_new_exec_policy_name : "NULL");
 		break;
 	case -1:
 		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: <-1> exec denied", __func__);
-		if (c_mapped_interpreter) free(c_mapped_interpreter);
-		c_mapped_interpreter = NULL;
+		if (mapped_interpreter) free(mapped_interpreter);
+		mapped_interpreter = NULL;
 		return(-1);
 	default:
                 SB_LOG(SB_LOGLEVEL_ERROR,
                         "%s: Unsupported result %d", __func__, c_mapping_result_code);
 		return(-1);
 	}
-		
-	if (mapped_interpreter && c_mapped_interpreter &&
-	    strcmp(mapped_interpreter,c_mapped_interpreter)) {
-		SB_LOG(SB_LOGLEVEL_ERROR,
-			"%s: different result path, Lua='%s' C='%s'", __func__,
-			(mapped_interpreter ? mapped_interpreter : "<NULL>"),
-			(c_mapped_interpreter ? c_mapped_interpreter : "<NULL>"));
-	}
-	if (nep && c_new_exec_policy_name &&
-	    strcmp(nep, c_new_exec_policy_name)) {
-		SB_LOG(SB_LOGLEVEL_ERROR,
-			"%s: different new exec policy, Lua='%s' C='%s'", __func__,
-			(nep ? nep : "<NULL>"),
-			(c_new_exec_policy_name ? c_new_exec_policy_name : "<NULL>"));
-	}
-#if 1
-	/* use results from C mapping */
 	exec_policy_name = c_new_exec_policy_name;
-	mapped_interpreter = c_mapped_interpreter;
-#endif
 
-#endif
 	if (!mapped_interpreter) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"failed to map script interpreter=%s", interpreter);
 		return(-1);
 	}
-
-#if 0
-	exec_policy_name = nep;
-#endif
 
 	/*
 	 * Binaryname (the one expected by the rules) comes still from

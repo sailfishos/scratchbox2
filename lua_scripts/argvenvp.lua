@@ -685,28 +685,13 @@ function sb_execve_postprocess(exec_policy_name, exec_type,
 			filename, argv, envp)
 	elseif (exec_type == "static") then
 		-- [see comment in sb_exec.c]
-		local ldlibpath
-		local ldpreload
-		ldpreload, ldlibpath = sbox_get_host_policy_ld_params()
-		set_ld_preload(envp, ldpreload)
-		set_ld_library_path(envp, ldlibpath)
+		set_ld_preload(envp, host_ld_preload)
+		set_ld_library_path(envp, host_ld_library_path)
 		return 0, mapped_file, filename, #argv, argv, #envp, envp
 	end
 	
 	-- all other exec_types: allow exec with orig.args
 	return 1, mapped_file, filename, #argv, argv, #envp, envp
-end
-
--- This is called from C:
-function sbox_get_host_policy_ld_params()
-	-- FIXME:
-	-- in the future we should get these values from a "Host" exec policy,
-	-- but can't do so before the exec policy conventions dictate
-	-- that a "Host" policy must exist. Now the values are hardcoded:
-	-- FIXME 2:
-	-- Now when fakeroot has been eliminated, this function isn't 
-	-- very useful and might be removed completely?
-	return host_ld_preload, host_ld_library_path
 end
 
 exec_engine_loaded = true

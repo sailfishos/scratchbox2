@@ -133,10 +133,12 @@ struct sb2context {
  *     SB2's own Vperm subsystem offers similar functionality
  * * 122:
  *     sb_execve_map_script_interpreter() was removed
+ * * 123:
+ *     sbox_get_host_policy_ld_params() was removed
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "122"
+#define SB2_LUA_C_INTERFACE_VERSION "123"
 
 /* get sb2context, without activating lua: */
 extern struct sb2context *get_sb2context(void);

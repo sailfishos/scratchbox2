@@ -16,7 +16,7 @@ mapping_engine_loaded = false
 --
 -- NOTE: the corresponding identifier for C is in include/sb2.h,
 -- see that file for description about differences
-sb2_lua_c_interface_version = "122"
+sb2_lua_c_interface_version = "123"
 
 function do_file(filename)
 	if (debug_messages_enabled) then
@@ -86,23 +86,6 @@ function sb_execve_postprocess_loader(rule, exec_policy, exec_type,
 	-- a recursive call to this function, even if it may look like one:
 	return sb_execve_postprocess(rule, exec_policy, exec_type,
 		mapped_file, filename, binaryname, argv, envp)
-end
-
-function sbox_get_host_policy_ld_params_loader()
-	local prev_fn = sbox_get_host_policy_ld_params
-
-	sb.log("info", "sbox_get_host_policy_ld_params called: loading argvenvp.lua")
-	do_file(session_dir .. "/lua_scripts/argvenvp.lua")
-
-	if prev_fn == sbox_get_host_policy_ld_params then
-		sb.log("error",
-			"Fatal: Failed to load real sbox_get_host_policy_ld_params")
-		os.exit(88)
-	end
-
-	-- This loader has been replaced. The following call is not
-	-- a recursive call to this function, even if it may look like one:
-	return sbox_get_host_policy_ld_params()
 end
 
 function sbox_get_mapping_requirements(binary_name, func_name, full_path, fn_class)
@@ -183,7 +166,6 @@ else
 		sb.log("debug", "exec code will be loaded on demand")
 	end
 	sb_execve_postprocess = sb_execve_postprocess_loader
-	sbox_get_host_policy_ld_params = sbox_get_host_policy_ld_params_loader
 end
 
 -- sb2 is ready for operation!

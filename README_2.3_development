@@ -233,8 +233,16 @@ the new implementation.
 Version 2.3.28 got another reimplementation; exec policy selection
 is now written in C.
 
+Starting from 2.3.44, stript interpreter mapping is implemented
+completely in C. This is actually quite important milestone:
+The Lua-based implementation (sb_execve_map_script_interpreter(),
+which was removed!) used to call path mapping functions from
+mapping.lua. Since that dependency is now eliminated, mapping.lua
+isn't mandatory anymore (under normal operation; it is still needed
+during session setup)
+
 Other parts of the exec logic (postprocessing parameters for
-native and foreign binaries etc) still use in Lua code.
+native and foreign binaries etc) still use Lua code.
 
 
 5. The Virtual Permission subsystem, which superseded "fakeroot"

@@ -542,8 +542,8 @@ FILE *popen_gate(int *result_errno_ptr,
 	char	*user_ld_lib_path = NULL;
 	char	*user_ld_preload = NULL;
 	char	*cp;
-	char	*popen_ld_preload = NULL;
-	char	*popen_ld_lib_path = NULL;
+	const char	*popen_ld_preload = NULL;
+	const char	*popen_ld_lib_path = NULL;
 	FILE	*res;
 
 	(void)realfnname;
@@ -558,7 +558,8 @@ FILE *popen_gate(int *result_errno_ptr,
 	cp  = getenv("LD_PRELOAD");
 	if (cp) user_ld_preload  = strdup(cp);
 
-	sb_get_host_policy_ld_params(&popen_ld_preload, &popen_ld_lib_path);
+	popen_ld_preload = ruletree_catalog_get_string("config", "host_ld_preload");
+	popen_ld_lib_path = ruletree_catalog_get_string("config", "host_ld_library_path");
 
 	if (popen_ld_lib_path) setenv("LD_LIBRARY_PATH", popen_ld_lib_path, 1);
 	else unsetenv("LD_LIBRARY_PATH");
@@ -579,8 +580,6 @@ FILE *popen_gate(int *result_errno_ptr,
 	if (user_ld_preload) setenv("LD_PRELOAD", user_ld_preload, 1);
 	else unsetenv("LD_PRELOAD");
 
-	if (popen_ld_lib_path) free(popen_ld_lib_path);
-	if (popen_ld_preload) free(popen_ld_preload);
 	if (user_ld_lib_path) free(user_ld_lib_path);
 	if (user_ld_preload) free(user_ld_preload);
 

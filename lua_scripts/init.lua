@@ -56,6 +56,16 @@ else
         tools_prefix = tools
 end
 
+-- Load exec config.
+-- NOTE: At this point all conf_cputransparency_* variables
+-- are still missing from exec_config.lua. Other variables
+-- (conf_tools_*, conf_target_*, host_*) are there.
+do_file(session_dir .. "/exec_config.lua")
+
+-- Add exec config parameters to ruletree:
+ruletree.catalog_set("config", "host_ld_preload", ruletree.new_string(host_ld_preload))
+ruletree.catalog_set("config", "host_ld_library_path", ruletree.new_string(host_ld_library_path))
+
 -- Build "all_modes" table. all_modes[1] will be name of default mode.
 all_modes_str = os.getenv("SB2_ALL_MODES")
 all_modes = {}

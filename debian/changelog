@@ -1,3 +1,13 @@
+scratchbox2 (2.3.45-1) unstable; urgency=low
+
+  * Exec code: Script interpreter mapping is now implemented 
+    in C (Lua code was removed), complete exec policies are 
+    added to the role tree db, etc. Also, there are related 
+    changes in other subsystems (pathmapping, etc)
+  * C/Lua interface version = 122
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Fri, 16 Mar 2012 13:51:00 +0200
+
 scratchbox2 (2.3.43-1) unstable; urgency=low
 
   * Better simulation of root's privileges in open(), fopen(), etc:

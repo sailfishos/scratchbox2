@@ -12,7 +12,7 @@ sb1_compat_dir = sbox_target_root .. "/scratchbox1-compat"
 -- the real sb1 compat directory.  To avoid mapping
 -- problems later, we resolve this symlink right now.
 --
-local resolved_compat_dir = sb.readlink(sb1_compat_dir)
+local resolved_compat_dir = sblib.readlink(sb1_compat_dir)
 if resolved_compat_dir ~= nil then
 	sb1_compat_dir = resolved_compat_dir
 end

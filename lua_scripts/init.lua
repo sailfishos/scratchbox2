@@ -56,6 +56,16 @@ else
         tools_prefix = tools
 end
 
+-- Load session configuration, and add variables to ruletree.
+do_file(session_dir .. "/sb2-session.conf")
+
+ruletree.catalog_set("config", "sbox_cpu",
+        ruletree.new_string(sbox_cpu))
+ruletree.catalog_set("config", "sbox_uname_machine",
+        ruletree.new_string(sbox_uname_machine))
+ruletree.catalog_set("config", "sbox_emulate_sb1_bugs",
+        ruletree.new_string(sbox_emulate_sb1_bugs))
+
 -- Load exec config.
 -- NOTE: At this point all conf_cputransparency_* variables
 -- are still missing from exec_config.lua. Other variables

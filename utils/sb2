@@ -191,20 +191,6 @@ function add_rules_to_rule_tree_db()
 {
 	mkdir $SBOX_SESSION_DIR/ruletree.logs
 
-	__SB2_BINARYNAME="sb2:CreatingRuleTree" \
-		sb2-monitor \
-		-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
-		execluafile \
-		$SBOX_SESSION_DIR/lua_scripts/add_config_to_rule_tree.lua \
-		>$SBOX_SESSION_DIR/ruletree.logs/Add_config.out \
-		2>$SBOX_SESSION_DIR/ruletree.logs/Add_config.err
-	add_config_exit_status=$?
-	if [ -s $SBOX_SESSION_DIR/ruletree.logs/Add_config.err \
-	     -o $add_config_exit_status != 0 ]; then
-		cat $SBOX_SESSION_DIR/ruletree.logs/Add_config.err
-		exit_error "Failed to insert config variables to the rule tree db."
-	fi
-
 	for ammf in $SBOX_SESSION_DIR/rules/*.lua; do
 		amm_base=`basename $ammf .lua`
 

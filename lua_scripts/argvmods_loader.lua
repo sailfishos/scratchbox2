@@ -5,13 +5,16 @@
 
 argvmods = nil
 
-function load_argvmods_file()
+function load_argvmods_file(modename)
 	local argvmods_file_path
 
 	argvmods = {}
 
+	if modename == nil then
+		modename = active_mapmode
+	end
 	enable_cross_gcc_toolchain = ruletree.catalog_get_boolean(
-		"Conf."..active_mapmode, "enable_cross_gcc_toolchain")
+		"Conf."..modename, "enable_cross_gcc_toolchain")
 
 	if (enable_cross_gcc_toolchain == true) then
 		-- only map gcc & friends if a cross compiler has been defined,
@@ -23,10 +26,10 @@ function load_argvmods_file()
 	end
 
 	-- load in automatically generated argvmods file
-	if sb.path_exists(argvmods_file_path) then
+	if sblib.path_exists(argvmods_file_path) then
 		do_file(argvmods_file_path)
 		if debug_messages_enabled then
-			sb.log("debug", string.format(
+			sblib.log("debug", string.format(
 			    "loaded argvmods from '%s'",
 			    argvmods_file_path))
 		end

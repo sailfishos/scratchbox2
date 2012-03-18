@@ -90,7 +90,7 @@ if exec_engine_loaded then
 end
 -- load the right argvmods_* file
 do_file(session_dir .. "/lua_scripts/argvmods_loader.lua")
-load_argvmods_file()
+load_argvmods_file(nil)
 
 -- Next, the argvmods stuff.
 

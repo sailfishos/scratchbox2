@@ -246,6 +246,8 @@ extern int lua_sb_log(lua_State *l);
 extern int lua_sb_path_exists(lua_State *l);
 extern int lua_sb_debug_messages_enabled(lua_State *l);
 extern int lua_sb_isprefix(lua_State *l);
+extern int lua_sb_test_path_match(lua_State *l);
+extern int lua_sb_readlink(lua_State *l);
 
 
 extern int test_if_str_in_colon_separated_list_from_env(

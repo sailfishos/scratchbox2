@@ -139,6 +139,101 @@ int lua_sb_isprefix(lua_State *l)
 	return 1;
 }
 
+/* "sb.test_path_match(path, rule.dir, rule.prefix, rule.path)":
+ * This is used from find_rule(); implementing this in C improves preformance.
+ * Returns min.path length if a match is found, otherwise returns -1
+*/
+int lua_sb_test_path_match(lua_State *l)
+{
+	int	n = lua_gettop(l);
+	int	result = -1;
+
+	if (n == 4) {
+		const char	*str_path = lua_tostring(l, 1);
+		const char	*str_rule_dir = lua_tostring(l, 2);
+		const char	*str_rule_prefix = lua_tostring(l, 3);
+		const char	*str_rule_path = lua_tostring(l, 4);
+		const char	*match_type = "no match";
+
+		if (str_path && str_rule_dir && (*str_rule_dir != '\0')) {
+			int	prefixlen = strlen(str_rule_dir);
+
+			/* test a directory prefix: the next char after the
+			 * prefix must be '\0' or '/', unless we are accessing
+			 * the root directory */
+			if (!strncmp(str_path, str_rule_dir, prefixlen)) {
+				if ( ((prefixlen == 1) && (*str_path=='/')) ||
+				     (str_path[prefixlen] == '/') ||
+				     (str_path[prefixlen] == '\0') ) {
+					result = prefixlen;
+					match_type = "dir";
+				}
+			}
+		}
+		if ((result == -1) && str_path
+		    && str_rule_prefix && (*str_rule_prefix != '\0')) {
+			int	prefixlen = strlen(str_rule_prefix);
+
+			if (!strncmp(str_path, str_rule_prefix, prefixlen)) {
+				result = prefixlen;
+				match_type = "prefix";
+			}
+		}
+		if ((result == -1) && str_path && str_rule_path) {
+			int rule_path_len = strlen(str_rule_path);
+			if (!strcmp(str_path, str_rule_path)) {
+				result = rule_path_len;
+				match_type = "path";
+			} else {
+				/* if "path" has a trailing slash, we may
+				 * want to try again, ignoring the trailing
+				 * slash. */
+				int	path_len = strlen(str_path);
+				if ((path_len > 2) &&
+				    (str_path[path_len-1] == '/') &&
+				    (path_len == (rule_path_len+1)) &&
+				    !strncmp(str_path, str_rule_path, rule_path_len)) {
+					result = rule_path_len;
+					match_type = "path/";
+				}
+			}
+		}
+		SB_LOG(SB_LOGLEVEL_NOISE2,
+			"lua_sb_test_path_match '%s','%s','%s' => %d (%s)",
+			str_path, str_rule_prefix, str_rule_path,
+			result, match_type);
+	}
+	lua_pushnumber(l, result);
+	return 1;
+}
+
+/* "sb.readlink", to be called from lua code */
+int lua_sb_readlink(lua_State *l)
+{
+	int n;
+	char *path;
+	char resolved_path[PATH_MAX + 1];
+
+	n = lua_gettop(l);
+	if (n != 1) {
+		lua_pushstring(l, NULL);
+		return 1;
+	}
+
+	memset(resolved_path, '\0', PATH_MAX + 1);
+
+	path = strdup(lua_tostring(l, 1));
+	if (readlink(path, resolved_path, PATH_MAX) < 0) {
+		free(path);
+		lua_pushstring(l, NULL);
+		return 1;
+	} else {
+		free(path);
+		lua_pushstring(l, resolved_path);
+		return 1;
+	}
+}
+
 /* mappings from c to lua */
 static const luaL_reg reg[] =
 {
@@ -146,6 +241,8 @@ static const luaL_reg reg[] =
 	{"path_exists",			lua_sb_path_exists},
 	{"debug_messages_enabled",	lua_sb_debug_messages_enabled},
 	{"isprefix",			lua_sb_isprefix},
+	{"test_path_match",		lua_sb_test_path_match},
+	{"readlink",			lua_sb_readlink},
 	{NULL,				NULL}
 };
 

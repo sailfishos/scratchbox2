@@ -360,6 +360,7 @@ for m_index,m_name in pairs(all_modes) do
 			reversing_disabled_message .. ")\n")
 		output_file:write("reverse_fs_mapping_rules = nil\n")
 	end
+        output_file:close()
 end
 
 --cleanup

@@ -222,16 +222,16 @@ function reverse_one_rule_xxxx(output_rules, rule, n, forward_path)
 		end
 end
 
-function reverse_rules(output_rules, input_rules)
+function reverse_rules(ofile, output_rules, input_rules)
         local n
         for n=1,table.maxn(input_rules) do
 		local rule = input_rules[n]
 
 		if rule.virtual_path then
 			-- don't reverse virtual paths
-			print("-- virtual_path set, not reversing", n)
+			ofile:write(string.format("-- virtual_path set, not reversing\t%d\n", n))
 		elseif rule.rules then
-			reverse_rules(output_rules, rule.rules)
+			reverse_rules(ofile, output_rules, rule.rules)
 		else
 			reverse_one_rule(output_rules, rule, n)
 		end
@@ -240,83 +240,84 @@ function reverse_rules(output_rules, input_rules)
 	return(output_rules)
 end
 
-function print_rules(rules)
+function print_rules(ofile, rules)
         local n
         for n=1,table.maxn(rules) do
 		local rule = rules[n]
 
-		print(string.format("\t{name=\"%s\",", rule.name))
+		ofile:write(string.format("\t{name=\"%s\",\n", rule.name))
 
 		local k
 		for k=1,table.maxn(rule.comments) do
-			print(rule.comments[k])
+			ofile:write(rule.comments[k].."\n")
 		end
 
 		if (rule.orig_prefix) then
-			print("\t -- orig_prefix", rule.orig_prefix)
+			ofile:write("\t -- orig_prefix\t"..rule.orig_prefix.."\n")
 		end
 		if (rule.orig_path) then
-			print("\t -- orig_path", rule.orig_path)
+			ofile:write("\t -- orig_path\t".. rule.orig_path.."\n")
 		end
 
 		if (rule.prefix) then
-			print("\t prefix=\""..rule.prefix.."\",")
+			ofile:write("\t prefix=\""..rule.prefix.."\",\n")
 		end
 		if (rule.path) then
-			print("\t path=\""..rule.path.."\",")
+			ofile:write("\t path=\""..rule.path.."\",\n")
 		end
 		if (rule.dir) then
-			print("\t dir=\""..rule.dir.."\",")
+			ofile:write("\t dir=\""..rule.dir.."\",\n")
 		end
 
 		if (rule.use_orig_path) then
-			print("\t use_orig_path=true,")
+			ofile:write("\t use_orig_path=true,\n")
 		end
 		if (rule.force_orig_path) then
-			print("\t force_orig_path=true,")
+			ofile:write("\t force_orig_path=true,\n")
 		end
 		if (rule.binary_name) then
-			print("\t binary_name=\""..rule.binary_name.."\",")
+			ofile:write("\t binary_name=\""..rule.binary_name.."\",\n")
 		end
 
 		-- FIXME: To be implemented. See the "TODO" list at top.
 		-- elseif (rule.actions) then
-		--	print("\t -- FIXME: handle 'actions'")
-		--	print(string.format(
-		--		"\t %s=\"%s\",\n\t use_orig_path=true},",
+		--	ofile:write("\t -- FIXME: handle 'actions'\n")
+		--	ofile:write(string.format(
+		--		"\t %s=\"%s\",\n\t use_orig_path=true},\n",
 		--		sel, fwd_target))
 		if (rule.map_to) then
-			print("\t map_to=\""..rule.map_to.."\",")
+			ofile:write("\t map_to=\""..rule.map_to.."\",\n")
 		end
 		if (rule.replace_by) then
-			print("\t replace_by=\""..rule.replace_by.."\",")
+			ofile:write("\t replace_by=\""..rule.replace_by.."\",\n")
 		end
 		if (rule.error) then
-			print("\t -- ",rule.error)
+			ofile:write(string.format("\t -- \t%s\n",rule.error))
 			allow_reversing = false
 			reversing_disabled_message = rule.error
 		end
-		print("\t},")
+		ofile:write("\t},\n")
 	end
-        print("-- Printed",table.maxn(rules),"rules")
+        ofile:write(string.format("-- Printed\t%d\trules\n",table.maxn(rules)))
 end
 
-print("-- Reversed rules from "..rule_file_path)
+local output_file = io.stdout
+output_file:write("-- Reversed rules from "..rule_file_path.."\n")
 
 local output_rules = {}
-local rev_rules = reverse_rules(output_rules, fs_mapping_rules)
+local rev_rules = reverse_rules(output_file, output_rules, fs_mapping_rules)
 if (allow_reversing) then
-	print("reverse_fs_mapping_rules={")
-	print_rules(rev_rules)
+	output_file:write("reverse_fs_mapping_rules={\n")
+	print_rules(output_file, rev_rules)
 	-- Add a final rule for the root directory itself.
-	print("\t{")
-	print("\t\tname = \"Final root dir rule\",")
-	print("\t\tpath = \""..target_root.."\",")
-	print("\t\treplace_by = \"/\"")
-	print("\t},")
-	print("}")
+	output_file:write("\t{\n")
+	output_file:write("\t\tname = \"Final root dir rule\",\n")
+	output_file:write("\t\tpath = \""..target_root.."\",\n")
+	output_file:write("\t\treplace_by = \"/\"\n")
+	output_file:write("\t},\n")
+	output_file:write("}\n")
 else
-	print("-- Failed to create reverse rules (" ..
-		reversing_disabled_message .. ")")
-	print("reverse_fs_mapping_rules = nil")
+	output_file:write("-- Failed to create reverse rules (" ..
+		reversing_disabled_message .. ")\n")
+	output_file:write("reverse_fs_mapping_rules = nil\n")
 end

@@ -578,34 +578,6 @@ static int lua_sb_get_session_dir(lua_State *l)
 	return 1;
 }
 
-/* "sb.isprefix(a,b)", to be called from lua code
- * Return true if "a" is prefix of "b"
-*/
-static int lua_sb_isprefix(lua_State *l)
-{
-	int	n = lua_gettop(l);
-
-	if (n != 2) {
-		lua_pushboolean(l, 0);
-	} else {
-		const char	*str_a = lua_tostring(l, 1);
-		const char	*str_b = lua_tostring(l, 2);
-		int	result = 0;
-
-		if (str_a && str_b) {
-			int	prefixlen = strlen(str_a);
-
-			if (!strncmp(str_a, str_b, prefixlen)) result = 1;
-		}
-
-		SB_LOG(SB_LOGLEVEL_DEBUG, "lua_sb_isprefix '%s','%s' => %d",
-			str_a, str_b, result);
-
-		lua_pushboolean(l, result);
-	}
-	return 1;
-}
-
 /* "sb.test_path_match(path, rule.dir, rule.prefix, rule.path)":
  * This is used from find_rule(); implementing this in C improves preformance.
  * Returns min.path length if a match is found, otherwise returns -1

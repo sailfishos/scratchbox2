@@ -111,12 +111,41 @@ int lua_sb_debug_messages_enabled(lua_State *l)
 	return 1;
 }
 
+/* "sb.isprefix(a,b)", to be called from lua code
+ * Return true if "a" is prefix of "b"
+*/
+int lua_sb_isprefix(lua_State *l)
+{
+	int	n = lua_gettop(l);
+
+	if (n != 2) {
+		lua_pushboolean(l, 0);
+	} else {
+		const char	*str_a = lua_tostring(l, 1);
+		const char	*str_b = lua_tostring(l, 2);
+		int	result = 0;
+
+		if (str_a && str_b) {
+			int	prefixlen = strlen(str_a);
+
+			if (!strncmp(str_a, str_b, prefixlen)) result = 1;
+		}
+
+		SB_LOG(SB_LOGLEVEL_DEBUG, "lua_sb_isprefix '%s','%s' => %d",
+			str_a, str_b, result);
+
+		lua_pushboolean(l, result);
+	}
+	return 1;
+}
+
 /* mappings from c to lua */
 static const luaL_reg reg[] =
 {
 	{"log",				lua_sb_log},
 	{"path_exists",			lua_sb_path_exists},
 	{"debug_messages_enabled",	lua_sb_debug_messages_enabled},
+	{"isprefix",			lua_sb_isprefix},
 	{NULL,				NULL}
 };
 

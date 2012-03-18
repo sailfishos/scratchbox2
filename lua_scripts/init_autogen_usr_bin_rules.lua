@@ -123,6 +123,12 @@ function create_mapping_rule_file(modename_in_ruletree)
 end
 
 for m_index,m_name in pairs(all_modes) do
-	create_mapping_rule_file(m_name)
+	local usr_bin_rules_flagfile = session_dir .. "/rules_auto/" ..
+		 m_name .. ".create_usr_bin_rules"
+	local ff = io.open(usr_bin_rules_flagfile, "r")
+	if ff ~= nil then
+		ff:close()
+		create_mapping_rule_file(m_name)
+	end
 end
 

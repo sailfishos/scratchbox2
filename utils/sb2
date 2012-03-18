@@ -101,6 +101,7 @@ function exit_error()
 # Parameters:
 #  - output file name
 #  - mapping mode name
+#  - name of "flag file"; created if /usr/bin/mapping rules need to be created
 #  - list of rule files (if specified by the -M option)
 #
 # Used during initialization stage 1 (while setting
@@ -109,8 +110,19 @@ function write_rules_to_session_dir()
 {
 	output_file_name=$1
 	mapmode_name=$2
-	shift 2
+	usr_bin_rules_flagfile=$3
+	shift 3
 	input_files="$@"
+
+	# read mode-specific settings
+	CREATE_ARGVMODS_USR_BIN_RULES=""
+	if [ -f $SBOX_SESSION_DIR/modes/$mapmode_name/sb2rc ]; then
+		. $SBOX_SESSION_DIR/modes/$mapmode_name/sb2rc mode_settings
+	fi
+	if [ -n "$CREATE_ARGVMODS_USR_BIN_RULES" ]
+	then
+		touch $usr_bin_rules_flagfile
+	fi
 
 	cat >$output_file_name <<END
 -- Rules for session $SBOX_SESSION_DIR
@@ -183,29 +195,17 @@ function locate_target_nsswitch_conf()
 # Create some additional rules for the default mapping mode:
 #
 # Used during stage 3 (generation of automatic rules)
-function create_argvmods_usr_bin_rules()
+function add_auto_rules_to_mapping_rules()
 {
-	default_rule=$1
-
-	# FIXME: this should process all modes, not just the default mode.
 	for ammf in $SBOX_SESSION_DIR/rules/$SBOX_MAPMODE.lua; do
 		amm_base=`basename $ammf .lua`
 
-		SBOX_ARGVMODS_USR_BIN_DEFAULT_RULE="$default_rule" \
-		__SB2_BINARYNAME="sb2:CreatingArgvmodsUsrBinRules" \
-		SBOX_SESSION_MODE=$amm_base sb2-monitor \
-			-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
-			execluafile \
-			$SBOX_SESSION_DIR/lua_scripts/create_argvmods_usr_bin_rules.lua \
-			>$SBOX_SESSION_DIR/rules/$amm_base.ARGVMODS
-		if [ $? != 0 ]; then
-			exit_error "Failed to create 'argvmods' for /usr/bin ($amm_base)"
+		if [ -f $SBOX_SESSION_DIR/rules_auto/$amm_base.usr_bin.lua ]; then
+			# add the generated rules to the beginning of the rule file
+			cat $SBOX_SESSION_DIR/rules_auto/$amm_base.usr_bin.lua $ammf \
+			    >$SBOX_SESSION_DIR/rules/$amm_base.NEW
+			mv $SBOX_SESSION_DIR/rules/$amm_base.NEW $ammf
 		fi
-		# add the generated rules to the beginning of the rule file
-		cat $SBOX_SESSION_DIR/rules/$amm_base.ARGVMODS $ammf \
-		    >$SBOX_SESSION_DIR/rules/$amm_base.NEW
-		mv $SBOX_SESSION_DIR/rules/$amm_base.NEW $ammf
-		rm $SBOX_SESSION_DIR/rules/$amm_base.ARGVMODS
 	done
 }
 
@@ -1345,6 +1345,7 @@ function initialize_new_sb2_session()
 	mkdir $SBOX_SESSION_DIR/var/tmp
 	mkdir $SBOX_SESSION_DIR/proc
 	mkdir $SBOX_SESSION_DIR/rules
+	mkdir $SBOX_SESSION_DIR/rules_auto
 	mkdir $SBOX_SESSION_DIR/net_rules
 	mkdir $SBOX_SESSION_DIR/rev_rules
 	mkdir $SBOX_SESSION_DIR/exec_rules
@@ -1462,6 +1463,7 @@ function write_configfiles_and_rules_for_new_session()
 		for amm in $SB2_INTERNAL_MAPMODES; do
 			write_rules_to_session_dir \
 				$SBOX_SESSION_DIR/rules/$amm.lua $amm \
+				$SBOX_SESSION_DIR/rules_auto/$amm.create_usr_bin_rules \
 				$SBOX_SESSION_DIR/modes/$amm/fs_rules.lua
 			ln -s $SBOX_SESSION_DIR/modes/$amm/exec_rules.lua \
 				$SBOX_SESSION_DIR/exec_rules/$amm.lua
@@ -1840,12 +1842,8 @@ fi
 # Now everything is ready, programs can be executed in SB2'ed environment.
 # Make automatically generated rules, if needed:
 if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
-	# if needed, create path mapping rules for toolchain components.
-	# this can only be done after "create_argvmods_rules" has been executed.
-	if [ -n "CREATE_ARGVMODS_USR_BIN_RULES" ]
-	then
-		create_argvmods_usr_bin_rules "$CREATE_ARGVMODS_USR_BIN_RULES"
-	fi
+	# if needed, add path mapping rules for toolchain components.
+	add_auto_rules_to_mapping_rules
 
 	#
 	# Create reverse mapping rules before starting the

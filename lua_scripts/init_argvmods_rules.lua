@@ -79,13 +79,17 @@ end
 -- contents => variable name lookup table for the old-style table
 -- FIXME: This is almost obsolete, can be removed after 
 -- create_argvmods_usr_bin_rules.lua has been replaced
--- (that functionality need to be moved to something which
--- is executed from init.lua after this file has been executed)
+-- completely, and files are not anymore used to store rules
+-- (currently all functionality from create_argvmods_usr_bin_rules.lua
+-- has been moved to init_autogen_usr_bin_rules.lua, but the
+-- algorithm is still the same => this code here is still needed.
+-- A bigger code cleanup is needed.)
 local table2tablename = {}
 local table2tablename_n = 0
 
 -- FIXME: This is almost obsolete, can be removed after 
 -- create_argvmods_usr_bin_rules.lua has been replaced.
+-- (see comment above)
 function clear_attr_list()
 	table2tablename = {}
 	table2tablename_n = 0
@@ -93,6 +97,7 @@ end
 
 -- FIXME: This is almost obsolete, can be removed after 
 -- create_argvmods_usr_bin_rules.lua has been replaced.
+-- (see comment above)
 function prepare_stringlist(filehandle, name, stringlist)
 	if stringlist and #stringlist > 0 then
 		local x = stringlist_to_string(stringlist)
@@ -110,6 +115,7 @@ end
 
 -- FIXME: This is almost obsolete, can be removed after 
 -- create_argvmods_usr_bin_rules.lua has been replaced.
+-- (see comment above)
 function find_stringlist_name(name, stringlist)
 	local stringlist_name = ""
 	if stringlist and #stringlist > 0 then
@@ -143,6 +149,7 @@ end
 -- This function creates the old-style argvmods_*.lua files.
 -- FIXME: This is almost obsolete, can be removed after 
 -- create_argvmods_usr_bin_rules.lua has been replaced.
+-- (see comment above)
 function argvmods_to_file(filename, num_argvmods_rules, argvmods_tbl)
 	argvmods_file = io.open(filename, "w")
 	if not argvmods_file then

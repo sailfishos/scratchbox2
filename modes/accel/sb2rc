@@ -28,7 +28,9 @@ case "$sb2rc_mode" in
 		# the mode even when it was not specified when the session
 		# was created.
 		add_map_mode emulate
+		;;
 
+	mode_settings)
 		# If $CREATE_ARGVMODS_USR_BIN_RULES is not empty, some 
 		# mapping rules will be automatically generated for
 		# programs that belong to the toolchain.

@@ -186,32 +186,6 @@ function add_auto_rules_to_mapping_rules()
 	done
 }
 
-# Used during stage 3 (generation of automatic rules)
-function add_rules_to_rule_tree_db()
-{
-	mkdir $SBOX_SESSION_DIR/ruletree.logs
-
-	for ammf in $SBOX_SESSION_DIR/rules/*.lua; do
-		amm_base=`basename $ammf .lua`
-
-		__SB2_BINARYNAME="sb2:Rules2RuleTree" \
-		SBOX_SESSION_MODE=$amm_base sb2-monitor \
-			-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
-			execluafile \
-			$SBOX_SESSION_DIR/lua_scripts/add_rules_to_rule_tree.lua \
-			>$SBOX_SESSION_DIR/ruletree.logs/$amm_base.out \
-			2>$SBOX_SESSION_DIR/ruletree.logs/$amm_base.err
-		add_rules_exit_status=$?
-		if [ -s $SBOX_SESSION_DIR/ruletree.logs/$amm_base.err ]; then
-			cat $SBOX_SESSION_DIR/ruletree.logs/$amm_base.err
-			exit_error "Faulty rule file ($amm_base)"
-		fi
-		if [ $add_rules_exit_status != 0 ]; then
-			exit_error "Failed to add rules from $amm_base to rule tree"
-		fi
-	done
-}
-
 #
 # Used during initialization stage 1 (while setting
 # up the environment, which can't be used yet)
@@ -1799,20 +1773,16 @@ fi
 # END OF INITIALIZATION STAGE 2.
 
 # ------------
-# STAGE 3, GENERATION OF AUTOMATIC RULES, begins:
+# STAGE 3, GENERATION OF AUTOMATIC RULES:
 #
-# Now everything is ready, programs can be executed in SB2'ed environment.
-# Make automatically generated rules, if needed:
+# This is easy now. All rule files are nowadays created by sb2d,
+# from init.lua. Just one additional step is needed, if 
+# mapping method == "Lua" is still used:
 if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 	# if needed, add path mapping rules for toolchain components
 	# to the rule files which may be loaded at runtime
 	# (if Lua mapping method is used)
 	add_auto_rules_to_mapping_rules
-
-	#
-	# Create the "rule tree" file for the C mapping
-	# engine:
-	add_rules_to_rule_tree_db
 
 	# session setup ok, stamp it.
 	touch $SBOX_SESSION_DIR/.session_stamp

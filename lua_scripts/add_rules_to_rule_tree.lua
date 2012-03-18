@@ -3,15 +3,9 @@
 --
 -- Licensed under MIT license
 
--- This script is executed when SB2 session is created,
--- to load FS mapping rules to the "rule tree" database.
-
-if not mapping_engine_loaded then
-	do_file(session_dir .. "/lua_scripts/mapping.lua")
-end
-if not exec_engine_loaded then
-        do_file(session_dir .. "/lua_scripts/argvenvp.lua")
-end
+-- This script is executed when SB2 session is created
+-- (from init.lua) to load FS mapping rules to the rule
+-- tree database.
 
 -- Rule tree constants. These must match the #defines in <rule_tree.h>
 local RULE_SELECTOR_PATH = 101
@@ -297,7 +291,7 @@ function add_all_exec_policies(modename_in_ruletree)
                 for i = 1, table.maxn(all_exec_policies) do
                         local ep_name = all_exec_policies[i].name
 			if ep_name then
-				sb.log("debug", "Adding Exec policy "..ep_name)
+				sblib.log("debug", "Adding Exec policy "..ep_name)
 				for key,val in pairs(all_exec_policies[i]) do
 					local required_type = valid_keywords_in_exec_policy[key]
 					local t = type(val)
@@ -330,26 +324,54 @@ end
 
 -- ================= Main =================
 
-ruletree.attach_ruletree()
+for m_index,m_name in pairs(all_modes) do
+	local modename_in_ruletree = m_name
 
-local forced_modename = sb.get_forced_mapmode()
-if forced_modename then
-	modename_in_ruletree = forced_modename
-else
-	print("ERROR: forced_modename = nil")
-	os.exit(12)
+	local autorule_file_path = session_dir .. "/rules_auto/" .. m_name .. ".usr_bin.lua"
+        local rule_file_path = session_dir .. "/rules/" .. m_name .. ".lua"
+	local rev_rule_filename = session_dir .. "/rev_rules/" ..
+                 m_name .. ".lua"
+	local exec_rule_file_path = session_dir .. "/exec_rules/" ..
+		 m_name .. ".lua"
+
+
+	-- FS rulefile will set these:
+        rule_file_interface_version = nil
+        fs_mapping_rules = nil
+
+	-- Exec rulefile will set:
+        all_exec_policies = nil
+
+        -- rulefiles expect to see this:
+        active_mapmode = m_name
+
+        -- Reload "constants", just to be sure:
+        do_file(session_dir .. "/lua_scripts/rule_constants.lua")
+
+	-- Main config file:
+	do_file(session_dir .. "/share/scratchbox2/modes/"..modename_in_ruletree.."/config.lua")
+
+	-- Load FS rules for this mode:
+	do_file(autorule_file_path)
+        do_file(rule_file_path)
+        do_file(rev_rule_filename)
+
+	-- Load exec policies:
+	do_file(session_dir .. "/exec_config.lua")
+	do_file(exec_rule_file_path)
+
+	print("sbox_mapmode = "..sbox_mapmode)
+	print("active_mapmode = "..active_mapmode)
+	print("modename_in_ruletree = "..modename_in_ruletree)
+
+	local ri
+	ri = add_list_of_rules(fs_mapping_rules, true) -- add ordinary (forward) rules
+	print("-- Added ruleset fwd rules")
+	ruletree.catalog_set("fs_rules", modename_in_ruletree, ri)
+
+	ri = add_list_of_rules(reverse_fs_mapping_rules, true) -- add reverse  rules
+	print("-- Added ruleset rev.rules")
+	ruletree.catalog_set("rev_rules", modename_in_ruletree, ri)
+
+	add_all_exec_policies(modename_in_ruletree)
 end
-print("sbox_mapmode = "..sbox_mapmode)
-print("active_mapmode = "..active_mapmode)
-print("modename_in_ruletree = "..modename_in_ruletree)
-
-local ri
-ri = add_list_of_rules(fs_mapping_rules, true) -- add ordinary (forward) rules
-print("-- Added ruleset fwd rules")
-ruletree.catalog_set("fs_rules", modename_in_ruletree, ri)
-
-ri = add_list_of_rules(reverse_fs_mapping_rules, true) -- add reverse  rules
-print("-- Added ruleset rev.rules")
-ruletree.catalog_set("rev_rules", modename_in_ruletree, ri)
-
-add_all_exec_policies(modename_in_ruletree)

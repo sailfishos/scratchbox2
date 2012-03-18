@@ -32,9 +32,7 @@ case "$sb2rc_mode" in
 		# If $CREATE_ARGVMODS_USR_BIN_RULES is not empty, some 
 		# mapping rules will be automatically generated for
 		# programs that belong to the toolchain.
-		# Value of this variable will be used as the default 
-		# mapping rule.
-		CREATE_ARGVMODS_USR_BIN_RULES="-- return"
+		CREATE_ARGVMODS_USR_BIN_RULES="yes"
 		;;
 
 	wrapper_list)

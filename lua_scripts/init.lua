@@ -87,3 +87,6 @@ do_file(session_dir .. "/lua_scripts/init_argvmods_rules.lua")
 -- mode-spefic config to ruletree:
 do_file(session_dir .. "/lua_scripts/init_modeconfig.lua")
 
+-- Create rules based on "argvmods", e.g. rules for toolchain components etc.
+do_file(session_dir .. "/lua_scripts/init_autogen_usr_bin_rules.lua")
+

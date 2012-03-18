@@ -200,6 +200,7 @@ function argvmods_to_file(filename, num_argvmods_rules, argvmods_tbl)
 		string.format("-- Total %d rule(s).\n", num_argvmods_rules)..
 		"-- End of rules created by argvmods expander.\n"..
 		"--\n")
+	argvmods_file:close()
 end
 
 if (debug_messages_enabled) then

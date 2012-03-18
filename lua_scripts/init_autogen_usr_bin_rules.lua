@@ -49,9 +49,8 @@ function argvmods_to_mapping_rules(rule_file, prefix)
 	end
 end
 
-function create_mapping_rule_file(modename_in_ruletree)
+function create_mapping_rule_file(filename, modename_in_ruletree)
 
-	local filename = session_dir .. "/rules_auto/" .. modename_in_ruletree .. ".usr_bin.lua"
 	local rule_file = io.open(filename, "w")
         if not rule_file then
                 io.stderr:write(string.format(
@@ -124,11 +123,17 @@ end
 
 for m_index,m_name in pairs(all_modes) do
 	local usr_bin_rules_flagfile = session_dir .. "/rules_auto/" ..
-		 m_name .. ".create_usr_bin_rules"
+		m_name .. ".create_usr_bin_rules"
+	local output_filename = session_dir .. "/rules_auto/" ..
+		m_name .. ".usr_bin.lua"
 	local ff = io.open(usr_bin_rules_flagfile, "r")
 	if ff ~= nil then
 		ff:close()
-		create_mapping_rule_file(m_name)
+		create_mapping_rule_file(output_filename, m_name)
+	else
+		-- create an empty file.
+		local rule_file = io.open(output_filename, "w")
+		rule_file:close()
 	end
 end
 

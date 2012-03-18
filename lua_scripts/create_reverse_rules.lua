@@ -10,15 +10,8 @@
 -- available and SB2 works just as it did before this feature was implemented)
 --
 
-if not exec_engine_loaded then
-	do_file(session_dir .. "/lua_scripts/argvenvp.lua")
-end
-if not mapping_engine_loaded then
-	do_file(session_dir .. "/lua_scripts/mapping.lua")
-end
-
-allow_reversing = true	-- default = create reverse rules.
-reversing_disabled_message = ""
+local allow_reversing = true	-- default = create reverse rules.
+local reversing_disabled_message = ""
 
 -- Order of reverse rules is not necessarily the same as order of forward rules
 function test_rev_rule_position(output_rules, d_path)
@@ -26,7 +19,7 @@ function test_rev_rule_position(output_rules, d_path)
         for n=1,table.maxn(output_rules) do
 		local rule = output_rules[n]
 		local cmp_result
-		cmp_result = sb.test_path_match(d_path,
+		cmp_result = sblib.test_path_match(d_path,
 			rule.dir, rule.prefix, rule.path)
 		if (cmp_result >= 0) then
 			return n
@@ -301,23 +294,75 @@ function print_rules(ofile, rules)
         ofile:write(string.format("-- Printed\t%d\trules\n",table.maxn(rules)))
 end
 
-local output_file = io.stdout
-output_file:write("-- Reversed rules from "..rule_file_path.."\n")
+for m_index,m_name in pairs(all_modes) do
+	local autorule_file_path = session_dir .. "/rules_auto/" .. m_name .. ".usr_bin.lua"
+	local rule_file_path = session_dir .. "/rules/" .. m_name .. ".lua"
+        local rev_rule_filename = session_dir .. "/rev_rules/" ..
+                 m_name .. ".lua"
+        local output_file = io.open(rev_rule_filename, "w")
 
-local output_rules = {}
-local rev_rules = reverse_rules(output_file, output_rules, fs_mapping_rules)
-if (allow_reversing) then
-	output_file:write("reverse_fs_mapping_rules={\n")
-	print_rules(output_file, rev_rules)
-	-- Add a final rule for the root directory itself.
-	output_file:write("\t{\n")
-	output_file:write("\t\tname = \"Final root dir rule\",\n")
-	output_file:write("\t\tpath = \""..target_root.."\",\n")
-	output_file:write("\t\treplace_by = \"/\"\n")
-	output_file:write("\t},\n")
-	output_file:write("}\n")
-else
-	output_file:write("-- Failed to create reverse rules (" ..
-		reversing_disabled_message .. ")\n")
-	output_file:write("reverse_fs_mapping_rules = nil\n")
+	allow_reversing = true	-- default = create reverse rules.
+	reversing_disabled_message = ""
+
+	local current_rule_interface_version = "103"
+
+	-- rulefile will set these:
+	rule_file_interface_version = nil
+	fs_mapping_rules = nil
+
+	-- rulefile expects to see this:
+	active_mapmode = m_name
+
+	-- Reload "constants", just to be sure:
+	do_file(session_dir .. "/lua_scripts/rule_constants.lua")
+
+	do_file(autorule_file_path)
+	do_file(rule_file_path)
+
+	-- fail and die if interface version is incorrect
+        if (rule_file_interface_version == nil) or 
+           (type(rule_file_interface_version) ~= "string") then
+                io.stderr:write(string.format(
+                        "Fatal: Rule file interface version check failed: "..
+                        "No version information in %s",
+                        rule_file_path))
+                os.exit(89)
+        end
+        if rule_file_interface_version ~= current_rule_interface_version then
+                io.stderr:write(string.format(
+                        "Fatal: Rule file interface version check failed: "..
+                        "got %s, expected %s", rule_file_interface_version,
+                        current_rule_interface_version))
+                os.exit(88)
+        end
+
+	if (type(fs_mapping_rules) ~= "table") then
+                io.stderr:write("'fs_mapping_rule' is not an array.");
+                os.exit(87)
+        end
+
+	output_file:write("-- Reversed rules from "..rule_file_path.."\n")
+
+	local output_rules = {}
+	local rev_rules = reverse_rules(output_file, output_rules, fs_mapping_rules)
+	if (allow_reversing) then
+		output_file:write("reverse_fs_mapping_rules={\n")
+		print_rules(output_file, rev_rules)
+		-- Add a final rule for the root directory itself.
+		output_file:write("\t{\n")
+		output_file:write("\t\tname = \"Final root dir rule\",\n")
+		output_file:write("\t\tpath = \""..target_root.."\",\n")
+		output_file:write("\t\treplace_by = \"/\"\n")
+		output_file:write("\t},\n")
+		output_file:write("}\n")
+	else
+		output_file:write("-- Failed to create reverse rules (" ..
+			reversing_disabled_message .. ")\n")
+		output_file:write("reverse_fs_mapping_rules = nil\n")
+	end
 end
+
+--cleanup
+rule_file_interface_version = nil
+fs_mapping_rules = nil
+

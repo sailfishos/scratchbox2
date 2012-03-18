@@ -46,7 +46,6 @@ Options:
     -s DIRECTORY load mapping scripts from alternative location
     -Q BUGLIST   emulate bugs of the old scratchbox 1 (BUGLIST consists of
                  letters: 'x' enables exec permission checking bug emulation)
-    -r           do not create reverse mapping rules
     -O options   set options for the selected mapping mode ("options" is
                  a mode-specific string)
     -R           use simulated root permissions (activates the Vperm subsystem)
@@ -136,28 +135,6 @@ END
 			cat $f >>$output_file_name
 		else
 			echo "-- [ Failed to read $f ]" >>$output_file_name
-		fi
-	done
-}
-
-# Create reverse rules. Since that will be done using sb2-show, the environment
-# must to be ready => this function can be called only just before the shell
-# is executed at end of this script.
-#
-# Used during stage 3 (generation of automatic rules)
-function create_reverse_rules()
-{
-	for ammf in $SBOX_SESSION_DIR/rules/*.lua; do
-		amm_base=`basename $ammf .lua`
-
-		__SB2_BINARYNAME="sb2:CreatingReverseRules" \
-		SBOX_SESSION_MODE=$amm_base sb2-monitor \
-			-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
-			execluafile \
-			$SBOX_SESSION_DIR/lua_scripts/create_reverse_rules.lua \
-			>$SBOX_SESSION_DIR/rev_rules/$amm_base.lua
-		if [ $? != 0 ]; then
-			exit_error "Failed to create reverse rules ($amm_base)"
 		fi
 	done
 }
@@ -1538,7 +1515,6 @@ SB2_INTERNAL_MAPMODES=""
 SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
 SBOX_WORKDIR=$(readlink -f $PWD)
 SBOX_ROOT_SIMULATION=""
-SBOX_CREATE_REVERSE_RULES="y"
 SBOX_MODE_SPECIFIC_OPTIONS=""
 OPT_CLONE_TARGET_ROOT="n"
 OPT_CLONE_TARGET_ROOT_FROM=""
@@ -1571,7 +1547,7 @@ do
 	(M) echo "Option -M is disabled (temporarily)"; exit 1 ;;
 	(s) SBOX_LUA_SCRIPTS=$OPTARG;;
 	(Z) SBOX_OPT_Z_NO_LD_SO_EXEC="y";;
-	(r) SBOX_CREATE_REVERSE_RULES="n";;
+	(r) show_usage_and_exit ;; # -r is not available anymore.
 	(R) SBOX_ROOT_SIMULATION="root";;
 	(U) VPERM_UIDGID_FOR_UNKNOWN_FILES=$OPTARG;;
 	(p) VPERM_ROOT_PRIVILEGE_FLAG=",p";;
@@ -1842,19 +1818,10 @@ fi
 # Now everything is ready, programs can be executed in SB2'ed environment.
 # Make automatically generated rules, if needed:
 if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
-	# if needed, add path mapping rules for toolchain components.
+	# if needed, add path mapping rules for toolchain components
+	# to the rule files which may be loaded at runtime
+	# (if Lua mapping method is used)
 	add_auto_rules_to_mapping_rules
-
-	#
-	# Create reverse mapping rules before starting the
-	# actual command (or shell).
-	#
-	if [ "$SBOX_CREATE_REVERSE_RULES" == "y" ]; then
-		create_reverse_rules
-	else
-		echo "-- Reverse rules disabled by command line option -r" \
-			>$SBOX_SESSION_DIR/rev_rules.note
-	fi
 
 	#
 	# Create the "rule tree" file for the C mapping

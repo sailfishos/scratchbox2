@@ -240,3 +240,4 @@ if (debug_messages_enabled) then
 		string.format("%d rules", num_rules))
 end
 
+argvmods = nil  -- cleanup.

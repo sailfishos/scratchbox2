@@ -94,7 +94,12 @@ static struct sb2context *check_mapping_method(int need_sb2ctx)
 						"Activated both mapping methods");
 				}
 			}
-#if 1
+#if 0
+
+	/* Disabled now - although all exec-related code is not yet in C,
+	 * native binaries don't need Lua code anymore.
+	*/
+
 			switch (mapping_method) {
 			case MAPPING_METHOD_C_ENGINE:
 			case MAPPING_METHOD_C_ENGINE_WITH_FALLBACKS:

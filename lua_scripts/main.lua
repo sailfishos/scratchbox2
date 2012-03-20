@@ -16,7 +16,7 @@ mapping_engine_loaded = false
 --
 -- NOTE: the corresponding identifier for C is in include/sb2.h,
 -- see that file for description about differences
-sb2_lua_c_interface_version = "123"
+sb2_lua_c_interface_version = "124"
 
 function do_file(filename)
 	if (debug_messages_enabled) then
@@ -144,28 +144,32 @@ end
 
 local binary_name = sb.get_binary_name()
 
-if (binary_name == "make") or
-   (binary_name == "sh") or
-   (binary_name == "bash") or
-   (binary_name == "gmake") or
-   (binary_name == "xargs") or
-   (binary_name == "gcc") or
-   (binary_name == "find") then
-	-- This is a performance optimization;
-	-- this process will probably do multiple fork()+exec*() calls,
-	-- so it is better to load the exec code right now.
-	-- otherwise every child process will be doing the loading..that
-	-- would work, of course, but this is better when the overall
-	-- performance is considered.
-	if debug_messages_enabled then
-		sb.log("debug", "Loading exec code now")
-	end
-	do_file(session_dir .. "/lua_scripts/argvenvp.lua")
-else
+-- This proformance hack is now disabled:
+-- although all exec-related code is not yet in C,
+-- native binaries don't need Lua code anymore.
+--
+--if (binary_name == "make") or
+--   (binary_name == "sh") or
+--   (binary_name == "bash") or
+--   (binary_name == "gmake") or
+--   (binary_name == "xargs") or
+--   (binary_name == "gcc") or
+--   (binary_name == "find") then
+--	-- This is a performance optimization;
+--	-- this process will probably do multiple fork()+exec*() calls,
+--	-- so it is better to load the exec code right now.
+--	-- otherwise every child process will be doing the loading..that
+--	-- would work, of course, but this is better when the overall
+--	-- performance is considered.
+--	if debug_messages_enabled then
+--		sb.log("debug", "Loading exec code now")
+--	end
+--	do_file(session_dir .. "/lua_scripts/argvenvp.lua")
+--else
 	if debug_messages_enabled then
 		sb.log("debug", "exec code will be loaded on demand")
 	end
 	sb_execve_postprocess = sb_execve_postprocess_loader
-end
+--end
 
 -- sb2 is ready for operation!

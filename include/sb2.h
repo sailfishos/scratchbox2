@@ -135,10 +135,14 @@ struct sb2context {
  *     sb_execve_map_script_interpreter() was removed
  * * 123:
  *     sbox_get_host_policy_ld_params() was removed
+ * * 124:
+ *     sb_execve_postprocess_native_executable() was re-written
+ *     in C => sb_execve_postprocess() must not be called with
+ *     exec_type=="native" anymore
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "123"
+#define SB2_LUA_C_INTERFACE_VERSION "124"
 
 /* get sb2context, without activating lua: */
 extern struct sb2context *get_sb2context(void);

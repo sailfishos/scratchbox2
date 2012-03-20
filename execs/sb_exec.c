@@ -1222,7 +1222,9 @@ static int prepare_exec(const char *exec_fn_name,
 	char ***new_argv,
 	char ***new_envp) /* *new_envp must be filled by the caller */
 {
-	char **my_envp = *new_envp;
+	char **my_envp = *new_envp; /* FIXME */
+	const char **my_new_envp = NULL;
+	const char **my_new_argv = NULL;
 	char **my_argv = NULL, *my_file = NULL;
 	char *binaryname, *tmp, *mapped_file;
 	int err = 0;
@@ -1342,10 +1344,19 @@ static int prepare_exec(const char *exec_fn_name,
 			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/host-dynamic %s",
 					mapped_file);
 
+#if 0
 			postprocess_result = sb_execve_postprocess("native",
 				exec_policy_name,
 				&mapped_file, &my_file, binaryname,
 				&my_argv, &my_envp);
+#else
+			postprocess_result = exec_postprocess_native_executable(
+				exec_policy_name,
+				&mapped_file, &my_file, binaryname,
+				(const char **)my_argv, &my_new_argv, (const char **)*new_envp, &my_new_envp);
+			my_envp = (char**)my_new_envp; /* FIXME */
+			my_argv = (char**)my_new_argv; /* FIXME */
+#endif
 
 			if (postprocess_result < 0) {
 				errno = EINVAL;

@@ -50,8 +50,13 @@ const char *exec_policy_get_string(exec_policy_handle_t eph,
 		offs = ruletree_catalog_find_value_from_catalog(
 			eph.exec_policy_offset, s_name);
 		str = offset_to_ruletree_string_ptr(offs, NULL);
-                SB_LOG(SB_LOGLEVEL_NOISE,
-                        "%s: %s='%s'", __func__, s_name, str, fldoffs);
+		if (str) {
+			SB_LOG(SB_LOGLEVEL_NOISE,
+				"%s: %s='%s'", __func__, s_name, str, fldoffs);
+		} else {
+			SB_LOG(SB_LOGLEVEL_NOISE,
+				"%s: No %s", __func__, s_name, fldoffs);
+		}
                 return(str);
 	}
 	return(NULL);

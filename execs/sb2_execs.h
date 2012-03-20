@@ -27,6 +27,26 @@ extern const char *find_exec_policy_name(const char *mapped_path, const char *vi
  * (see the EXEC_POLICY_GET_* macros and exec_policy_get_* functions)
 */
 struct exec_policy_fields {
+	char log_level;
+	char log_message;
+	char native_app_ld_so;
+
+	char native_app_ld_library_path;
+	char native_app_ld_library_path_prefix;
+	char native_app_ld_library_path_suffix;
+
+	char native_app_ld_preload;
+	char native_app_ld_preload_prefix;
+	char native_app_ld_preload_suffix;
+
+	char native_app_ld_so_rpath_prefix;
+	char native_app_ld_so_supports_rpath_prefix;
+	char native_app_ld_so_supports_argv0;
+	char native_app_ld_so_supports_nodefaultdirs;
+
+	char native_app_locale_path;
+	char native_app_gconv_path;
+
 	char script_log_level;
 	char script_log_message;
 	char script_deny_exec;
@@ -37,6 +57,8 @@ struct exec_policy_fields {
 typedef struct {
 	ruletree_object_offset_t exec_policy_offset;
 } exec_policy_handle_t;
+
+#define exec_policy_handle_is_valid(eph) ((eph).exec_policy_offset != 0)
 
 extern exec_policy_handle_t	find_exec_policy_handle(const char *policyname);
 
@@ -69,6 +91,16 @@ extern int exec_map_script_interpreter(
 	char    **argv,
 	const char **new_exec_policy_p, 
         char       **mapped_interpreter_p);
+
+int exec_postprocess_native_executable(
+        const char *exec_policy_name,
+        char **mapped_file,
+        char **filename,
+        const char *binary_name,
+        const char **orig_argv,
+        const char ***set_argv,
+	const char **orig_env,
+        const char ***set_envp);
 
 #endif /* __EXEC_INTERNAL_H */
 

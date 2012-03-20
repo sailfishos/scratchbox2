@@ -1,3 +1,15 @@
+scratchbox2 (2.3.46-1) unstable; urgency=low
+
+  * The rule tree DB is now completely initialized by sb2d
+    (the "sb2" command does not anymore execute any Lua files
+    with "sb2-show execluafile")
+  * Exec code: Postrocessing of dynamically linked native
+    binaries is now implemented in C (old code (Lua 
+    function sb_execve_postprocess_native_executable())
+    is still there, but not used.)
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Tue, 20 Mar 2012 16:48:00 +0200
+
 scratchbox2 (2.3.45-1) unstable; urgency=low
 
   * Exec code: Script interpreter mapping is now implemented 

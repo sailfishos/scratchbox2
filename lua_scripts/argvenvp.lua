@@ -676,6 +676,7 @@ function sb_execve_postprocess(exec_policy_name, exec_type,
 	-- the executable.
 
 	if (exec_type == "native") then
+		sb.log("error", "sb_execve_postprocess called to process native binary "..binaryname..", "..mapped_file)
 		return sb_execve_postprocess_native_executable(
 			exec_policy, exec_type, mapped_file,
 			filename, argv, envp)

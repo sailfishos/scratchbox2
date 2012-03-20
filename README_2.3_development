@@ -241,8 +241,13 @@ mapping.lua. Since that dependency is now eliminated, mapping.lua
 isn't mandatory anymore (under normal operation; it is still needed
 during session setup)
 
-Other parts of the exec logic (postprocessing parameters for
-native and foreign binaries etc) still use Lua code.
+2.3.46 does postprocessing of native binaries in C (for dynamically
+linked binaries; shared ones still go to the Lua code. The code
+is currently quite ugly, needs to be cleaned after all postprocessing
+functions have been rewritten in C)
+
+Other parts of the exec logic (rest of postprocessing parameters;
+foreign binaries, etc) still use Lua code.
 
 
 5. The Virtual Permission subsystem, which superseded "fakeroot"

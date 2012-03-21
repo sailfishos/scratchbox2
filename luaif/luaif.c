@@ -38,6 +38,9 @@
 #include "rule_tree.h"
 #include "rule_tree_lua.h"
 #include "sb2_network.h"
+#include "sb2_vperm.h"
+#include "libsb2.h"
+#include "exported.h"
 
 
 #define __set_errno(e) errno = e
@@ -427,7 +430,7 @@ static int lua_sb_prep_union_dir(lua_State *l)
 
 		if (dst_path && (num_real_dir_entries > 0)) {
 			lua_string_table_to_strvec(l, 3, &src_paths, num_real_dir_entries);
-			result_path = prep_union_dir(dst_path, src_paths, num_real_dir_entries);
+			result_path = prep_union_dir(dst_path, (const char **)src_paths, num_real_dir_entries);
 			strvec_free(src_paths);
 		}
 	}

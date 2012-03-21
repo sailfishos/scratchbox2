@@ -139,10 +139,13 @@ struct sb2context {
  *     sb_execve_postprocess_native_executable() was re-written
  *     in C => sb_execve_postprocess() must not be called with
  *     exec_type=="native" anymore
+ * * 125:
+ *     not directly related to Lua/C interface: Rule tree
+ *     header was changed (vrs 6).
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "124"
+#define SB2_LUA_C_INTERFACE_VERSION "125"
 
 /* get sb2context, without activating lua: */
 extern struct sb2context *get_sb2context(void);

@@ -36,6 +36,8 @@
 
 #include "mapping.h"
 #include "sb2.h"
+#include "libsb2.h"
+#include "exported.h"
 
 
 int sb_path_exists(const char *path)

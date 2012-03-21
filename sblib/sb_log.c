@@ -117,7 +117,8 @@ static void make_log_timestamp(char *buf, size_t bufsize)
 	 * inside glibc (if this logger is called via a signal
 	 * handler), so can't convert the time to a more
 	 * user-friedly format. Sad. */
-	snprintf(buf, bufsize, "%d.%03d", now.tv_sec, (int)(now.tv_usec/1000));
+	snprintf(buf, bufsize, "%u.%03u",
+		(unsigned int)now.tv_sec, (unsigned int)(now.tv_usec/1000));
 }
 
 /* Write a message block to a logfile.

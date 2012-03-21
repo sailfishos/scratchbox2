@@ -1,3 +1,11 @@
+scratchbox2 (2.3.47-1) unstable; urgency=low
+
+  * "intermediate cleanup release": Fixed compiler warnings,
+    rule tree DB header was changed, etc, but no real
+    functional changes.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 21 Mar 2012 14:27:00 +0200
+
 scratchbox2 (2.3.46-1) unstable; urgency=low
 
   * The rule tree DB is now completely initialized by sb2d

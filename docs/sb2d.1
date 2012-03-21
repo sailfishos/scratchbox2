@@ -63,7 +63,10 @@ and uses option "-l -")
 \-M MIN_MMAP_ADDR
 Set minimum address for the memory mapped database.
 Each client process will mmap(2) the database to be above
-this address. Default is 0.
+this address. Default is 0. This can be a 64-bit value,
+but note that there can be both 64- and 32-bit client processes,
+and the 32-bit processes will drop the most significant
+32 bits, and only use the lower part of this value.
 
 .TP
 \-n

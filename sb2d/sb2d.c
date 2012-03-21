@@ -149,7 +149,7 @@ static void initialize_lua(void)
 	free(main_lua_script);
 }
 
-static long parse_num(const char *cp)
+static long long parse_num(const char *cp)
 {
 	long	l;
 	char	*end = NULL;
@@ -158,7 +158,7 @@ static long parse_num(const char *cp)
 		fprintf(stderr, "ERROR: A numeric argument is required");
 		exit(1);
 	}
-	l = strtol(cp, &end, 0);
+	l = strtoll(cp, &end, 0);
 	if (!end || (end == cp) || (*end != '\0')) {
 		fprintf(stderr, "ERROR: %s is not a valid numeric argument", cp);
 		exit(1);
@@ -175,7 +175,7 @@ int main(int argc, char *argv[])
 	char	*debug_file = NULL;
 	char	*rule_tree_path = NULL;
 	uint32_t max_size = 16*1024*1024; /* default 16MB */
-	uint32_t min_mmap_addr = 0;
+	uint64_t min_mmap_addr = 0;
 	int	min_client_socket_fd = 279;
 
 	progname = argv[0];

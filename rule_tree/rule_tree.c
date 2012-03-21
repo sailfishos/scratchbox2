@@ -159,7 +159,7 @@ static int mmap_ruletree(ruletree_hdr_t *hdr)
 /* For the server:
  * create and attach a rule tree file, leaves it open for writing */
 int create_ruletree_file(const char *ruletree_path,
-	uint32_t max_size, uint32_t min_mmap_addr, int min_client_socket_fd)
+	uint32_t max_size, uint64_t min_mmap_addr, int min_client_socket_fd)
 {
 	ruletree_hdr_t	hdr;
 

@@ -44,19 +44,20 @@ typedef struct ruletree_object_hdr_s {
 #define SB2_RULETREE_OBJECT_TYPE_EXEC_SEL_RULE	15	/* ruletree_exec_policy_selection_rule_t */
 
 typedef struct ruletree_hdr_s {
-	ruletree_object_hdr_t	rtree_hdr_objhdr;
+	ruletree_object_hdr_t	rtree_hdr_objhdr;	/* [0], size 8 */
 
-	uint32_t		rtree_version;
+	uint32_t		rtree_version;		/* [8], size 4 */
 
-	ruletree_object_offset_t	rtree_hdr_root_catalog;
+	ruletree_object_offset_t	rtree_hdr_root_catalog;	/* [12], size 4 */
+
+	uint64_t		rtree_min_mmap_addr;		/* [16], size 8; for clients */
 
 	uint32_t		rtree_file_size;
 	uint32_t		rtree_max_size;			/* used when mmap'ing */
-	uint32_t		rtree_min_mmap_addr;		/* for clients */
 	uint32_t		rtree_min_client_socket_fd;	/* for clients */
 } ruletree_hdr_t;
 
-#define RULE_TREE_VERSION	5
+#define RULE_TREE_VERSION	6
 
 /* catalogs are lists of name+value pairs
  * (the value can be a rule, string, or another catalog).
@@ -221,7 +222,7 @@ extern char *ruletree_reverse_path(
         const char *func_name, const char *full_path);
 
 extern int create_ruletree_file(const char *ruletree_path,
-	uint32_t max_size, uint32_t min_mmap_addr, int min_client_socket_fd);
+	uint32_t max_size, uint64_t min_mmap_addr, int min_client_socket_fd);
 extern int attach_ruletree(const char *ruletree_path, int keep_open);
 
 extern void *offset_to_ruletree_object_ptr(ruletree_object_offset_t offs,

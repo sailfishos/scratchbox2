@@ -129,7 +129,7 @@ static int open_ruletree_file(int create_if_it_doesnt_exist)
 static int mmap_ruletree(ruletree_hdr_t *hdr)
 {
 	ruletree_ctx.rtree_ruletree_ptr = mmap(
-		(void*)hdr->rtree_min_mmap_addr, hdr->rtree_max_size,
+		(void*)(uintptr_t)(hdr->rtree_min_mmap_addr), hdr->rtree_max_size,
 		PROT_READ | PROT_WRITE, MAP_SHARED,
 		ruletree_ctx.rtree_ruletree_fd, 0);
 
@@ -353,6 +353,7 @@ ruletree_object_offset_t ruletree_objectlist_create_list(uint32_t size)
 	ruletree_objectlist_t		listhdr;
 	ruletree_object_offset_t	*a;
 	size_t				list_size_in_bytes;
+	ssize_t				wr_result;
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_objectlist_create_list(%d) fd=%d",
 		size, ruletree_ctx.rtree_ruletree_fd);
@@ -366,7 +367,8 @@ ruletree_object_offset_t ruletree_objectlist_create_list(uint32_t size)
 	SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_objectlist_create_list: hdr at %d", location);
 	list_size_in_bytes = size * sizeof(ruletree_object_offset_t);
 	a = calloc(size, sizeof(ruletree_object_offset_t));
-	if (write(ruletree_ctx.rtree_ruletree_fd, a, list_size_in_bytes) < list_size_in_bytes) {
+	wr_result = write(ruletree_ctx.rtree_ruletree_fd, a, list_size_in_bytes);
+	if ((wr_result == -1) || ((size_t)wr_result < list_size_in_bytes)) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"Failed to append a list (%d items, %d bytes) to the rule tree", 
 			size, list_size_in_bytes);
@@ -888,7 +890,7 @@ static ruletree_object_offset_t ruletree_find_catalog_entry(
 	ruletree_catalog_entry_t	*ep;
 	ruletree_object_offset_t entry_location = 0;
 	const char	*entry_name;
-	int		name_len;
+	size_t		name_len;
 
 	*entry_ptr = NULL;
 	if (!name) return(0);
@@ -1129,11 +1131,9 @@ int ruletree_catalog_set(
 	ruletree_object_offset_t value_offset)
 {
 	ruletree_object_offset_t	root_catalog_offs = 0;
-	ruletree_object_offset_t	catalog_entry_in_root_catalog_offs = 0;
 	ruletree_object_offset_t	subcatalog_start_offs = 0;
 	ruletree_catalog_entry_t	*catalog_entry_ptr_in_root_catalog = NULL;
 	ruletree_catalog_entry_t	*object_cat_entry = NULL;
-	ruletree_object_offset_t	object_offs = 0;
 
 	SB_LOG(SB_LOGLEVEL_NOISE2,
 		"ruletree_catalog_set(catalog=%s,object_name=%s,object_offset=%d)",

@@ -28,6 +28,7 @@
 #include <limits.h>
 #include <sys/param.h>
 #include <sys/file.h>
+#undef NDEBUG
 #include <assert.h>
 
 #include <lua.h>
@@ -50,7 +51,7 @@ static int lua_sb_attach_ruletree(lua_State *l)
 		char *rule_tree_path = NULL;
 
 		/* map the rule tree to memory: */
-		asprintf(&rule_tree_path, "%s/RuleTree.bin", sbox_session_dir);
+		assert(asprintf(&rule_tree_path, "%s/RuleTree.bin", sbox_session_dir) > 0);
 		attach_result = attach_ruletree(rule_tree_path, 1/*keep open*/);
 		SB_LOG(SB_LOGLEVEL_DEBUG, "attach(%s) = %d", rule_tree_path, attach_result);
 		free(rule_tree_path);
@@ -253,7 +254,6 @@ static int lua_sb_ruletree_catalog_get_boolean(lua_State *l)
 static int lua_sb_ruletree_catalog_get_string(lua_State *l)
 {
 	int		n = lua_gettop(l);
-	uint32_t	res = 0;
 	ruletree_object_offset_t	offs = 0;
 	const char	*str = NULL;
 
@@ -265,7 +265,7 @@ static int lua_sb_ruletree_catalog_get_string(lua_State *l)
 	}
 	SB_LOG(SB_LOGLEVEL_NOISE,
 		"lua_sb_ruletree_catalog_get_string @%u => %s", offs, str);
-	lua_pushboolean(l, str);
+	lua_pushstring(l, str);
 	return 1;
 }
 
@@ -302,9 +302,14 @@ static int lua_sb_ruletree_catalog_vget(lua_State *l)
 
 		namev = calloc(n+1, sizeof(char*));
 		for (i = 0; i < n; i++) {
-			namev[i] = lua_tostring(l, i+1);
+			namev[i] = strdup(lua_tostring(l, i+1));
 		}
-		value = ruletree_catalog_vget(namev);
+		value = ruletree_catalog_vget((const char**)namev);
+		for (i = 0; i < n; i++) {
+			if(namev[i]) free(namev[i]);
+			namev[i] = NULL;
+		}
+		free(namev);
 	}
 	SB_LOG(SB_LOGLEVEL_NOISE, "%s => %d", __func__, (int)value);
 	lua_pushnumber(l, value);
@@ -323,10 +328,15 @@ static int lua_sb_ruletree_catalog_vset(lua_State *l)
 
 		namev = calloc(n, sizeof(char*));
 		for (i = 0; i < n-1; i++) {
-			namev[i] = lua_tostring(l, i+1);
+			namev[i] = strdup(lua_tostring(l, i+1));
 		}
 		value_offset = lua_tointeger(l, n);
-		status = ruletree_catalog_vset(namev, value_offset);
+		status = ruletree_catalog_vset((const char**)namev, value_offset);
+		for (i = 0; i < n-1; i++) {
+			if(namev[i]) free(namev[i]);
+			namev[i] = NULL;
+		}
+		free(namev);
 	}
 	SB_LOG(SB_LOGLEVEL_NOISE, "%s => %d", __func__, status);
 	lua_pushnumber(l, status);

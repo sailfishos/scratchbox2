@@ -178,7 +178,7 @@ char *vperm_export_ids_as_string_for_exec(const char *prefix,
 	if (!mode && user_vperm_request) {
 		/* no SUID/SGID bits, but user-requested change
 		 * (usually set from our "fakeroot" wrapper) */
-		char *cp = strchr(user_vperm_request, '=');
+		const char *cp = strchr(user_vperm_request, '=');
 		cp = cp ? cp + 1 : user_vperm_request;
 		if (asprintf(&r, "%s%s", prefix, cp) < 0) return(NULL);
 		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: user_vperm_request => '%s'",

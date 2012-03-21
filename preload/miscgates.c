@@ -532,7 +532,7 @@ int uname_gate(
 	const char *realfnname,
 	struct utsname *buf)
 {
-	static char *uname_machine = NULL;
+	static const char *uname_machine = NULL;
 
 	(void)realfnname;	/* not used here */
 

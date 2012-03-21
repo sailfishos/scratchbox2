@@ -321,6 +321,7 @@ void dup3_postprocess_(const char *realfnname, int ret, int fd, int fd2, int fla
 {
 	const char	*cp = NULL;
 
+	(void)flags;
 	if ((ret >= 0) && (fd != fd2)) {
 		cp = fdpathdb_find_path(fd);
 		if (cp) cp = strdup(cp);

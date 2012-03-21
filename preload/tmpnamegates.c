@@ -146,6 +146,7 @@ extern void mkostemp_postprocess_template(const char *realfnname,
 	int ret, mapping_results_t *res, char *template, int flags)
 {
 	(void)ret;
+	(void)flags;
 	postprocess_tempname_template(realfnname, res->mres_result_path, template, 0);
 }
 
@@ -153,6 +154,7 @@ extern void mkostemp64_postprocess_template(const char *realfnname,
 	int ret, mapping_results_t *res, char *template, int flags)
 {
 	(void)ret;
+	(void)flags;
 	postprocess_tempname_template(realfnname, res->mres_result_path, template, 0);
 }
 

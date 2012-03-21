@@ -34,6 +34,8 @@
 #include "mapping.h"
 #include "sb2.h"
 #include "rule_tree.h"
+#include "libsb2.h"
+#include "exported.h"
 
 
 /* returns an allocated string */

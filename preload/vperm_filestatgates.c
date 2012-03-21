@@ -1029,6 +1029,7 @@ static void vperm_mkdir_prepare(
 	    (vperm_geteuid() == 0) &&
 	    vperm_simulate_root_fs_permissions()) {
 		if ((mode & 0700) != 0700) {
+			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: forcing owner rights to RWX", realfnname);
 			*forced_owner_rights = 0700;
 		}
 	}

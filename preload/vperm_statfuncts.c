@@ -13,6 +13,9 @@
 #include "sb2_vperm.h"
 
 #include "rule_tree.h"
+#include "libsb2.h"
+#include "exported.h"
+
 
 int real_lstat(const char *path, struct stat *statbuf)
 {

@@ -79,13 +79,13 @@ void *offset_to_ruletree_object_ptr(ruletree_object_offset_t offs, uint32_t requ
 		return(NULL);
 	}
 	if (hdrp->rtree_obj_magic != SB2_RULETREE_MAGIC) {
-		SB_LOG(SB_LOGLEVEL_NOISE3, "%s: wrong magic 0x%X", __func__,
-			hdrp->rtree_obj_magic);
+		SB_LOG(SB_LOGLEVEL_NOISE3, "%s: wrong magic 0x%X @%u", __func__,
+			hdrp->rtree_obj_magic, offs);
 		return(NULL);
 	}
 	if (required_type && (required_type != hdrp->rtree_obj_type)) {
-		SB_LOG(SB_LOGLEVEL_NOISE3, "%s: wrong type (req=0x%X, was 0x%X)",
-			__func__, required_type, hdrp->rtree_obj_type);
+		SB_LOG(SB_LOGLEVEL_NOISE3, "%s: wrong type (req=0x%X, was 0x%X, @%u)",
+			__func__, required_type, hdrp->rtree_obj_type, offs);
 		return(NULL);
 	}
 
@@ -1222,6 +1222,20 @@ ruletree_exec_preprocessing_rule_t *offset_to_exec_preprocessing_rule_ptr(int lo
 		if (rp->rtree_xpr_objhdr.rtree_obj_magic != SB2_RULETREE_MAGIC) rp = NULL;
 	}
 	return(rp);
+}
+
+/* =================== Net rules =================== */
+
+ruletree_object_offset_t add_net_rule_to_ruletree(
+        ruletree_net_rule_t     *rule)
+{
+	ruletree_object_offset_t rule_location = 0;
+
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: ", __func__);
+	rule_location = append_struct_to_ruletree_file(rule, sizeof(*rule),
+                SB2_RULETREE_OBJECT_TYPE_NET_RULE);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: done, @%u", __func__, rule_location);
+        return(rule_location);
 }
 
 /* =================== map "standard" ruletree to memory, if not yet mapped =================== */

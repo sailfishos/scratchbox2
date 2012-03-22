@@ -103,8 +103,11 @@ do_file(session_dir .. "/lua_scripts/init_autogen_usr_bin_rules.lua")
 -- Create reverse mapping rules.
 do_file(session_dir .. "/lua_scripts/create_reverse_rules.lua")
 
--- Now add all rules to ruletree:
+-- Now add all mapping rules to ruletree:
 do_file(session_dir .. "/lua_scripts/add_rules_to_rule_tree.lua")
+
+-- and networking rules:
+do_file(session_dir .. "/lua_scripts/init_net_modes.lua")
 
 -- Done. conf_cputransparency_* are still missing from the rule tree,
 -- but those can't be added yet (see the "sb2" script - it finds

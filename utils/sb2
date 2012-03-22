@@ -1409,9 +1409,12 @@ function write_configfiles_and_rules_for_new_session()
 		done
 	fi
 
+	SB2_ALL_NET_MODES=""
 	# Create links to network rules
 	for netr in $SBOX_DIR/share/scratchbox2/net_rules/*; do
 		ln -s $netr $SBOX_SESSION_DIR/net_rules
+		netr_b=`basename $netr`
+		SB2_ALL_NET_MODES="$SB2_ALL_NET_MODES $netr_b"
 	done
 	# Create a link to the default mode
 	ln -s $SBOX_DIR/share/scratchbox2/net_rules/$SBOX_DEFAULT_NETWORK_MODE $SBOX_SESSION_DIR/net_rules/Default
@@ -1736,6 +1739,8 @@ if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 	# deleted when session is terminated.)
 	#
 	# sb2d will execute "init.lua" before returning.
+	SB2_DEFAULT_NETWORK_MODE="$SBOX_DEFAULT_NETWORK_MODE" \
+	SB2_ALL_NET_MODES="$SB2_ALL_NET_MODES" \
 	SB2_ALL_MODES="$SB2_INTERNAL_MAPMODES" \
 		sb2d -s $SBOX_SESSION_DIR -p $SBOX_SESSION_DIR/sb2d.pid \
 			-l - $SB2D_OPTIONS \
@@ -1747,6 +1752,11 @@ if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 			cat $SBOX_SESSION_DIR/sb2d.err
 		fi
 		exit_error "startup of sb2d failed."
+	fi
+	if [ -s $SBOX_SESSION_DIR/sb2d.err ]; then
+		echo "sb2d:"
+		cat $SBOX_SESSION_DIR/sb2d.err
+		exit_error "errors detected during sb2d startup."
 	fi
 fi
 

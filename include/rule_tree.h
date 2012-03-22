@@ -42,6 +42,7 @@ typedef struct ruletree_object_hdr_s {
 #define SB2_RULETREE_OBJECT_TYPE_BOOLEAN	9	/* also ruletree_uint32_t */
 #define SB2_RULETREE_OBJECT_TYPE_EXEC_PP_RULE	14	/* ruletree_exec_preprocessing_rule_t */
 #define SB2_RULETREE_OBJECT_TYPE_EXEC_SEL_RULE	15	/* ruletree_exec_policy_selection_rule_t */
+#define SB2_RULETREE_OBJECT_TYPE_NET_RULE	21	/* ruletree_net_rule_t */
 
 typedef struct ruletree_hdr_s {
 	ruletree_object_hdr_t	rtree_hdr_objhdr;	/* [0], size 8 */
@@ -205,6 +206,26 @@ typedef struct ruletree_uint32_s {
 #define SB2_RULETREE_FSRULE_CONDITION_IF_ENV_VAR_IS_NOT_EMPTY 304
 #define SB2_RULETREE_FSRULE_CONDITION_IF_ENV_VAR_IS_EMPTY 305
 
+typedef struct ruletree_net_rule_s {
+	ruletree_object_hdr_t		rtree_net_objhdr;
+
+	uint32_t			rtree_net_ruletype;	/* see below */
+	ruletree_object_offset_t	rtree_net_func_name;	/* string offs. */
+	ruletree_object_offset_t	rtree_net_binary_name;	/* string offs. */
+	ruletree_object_offset_t	rtree_net_address;	/* string offs. */
+	uint32_t        		rtree_net_port;
+	ruletree_object_offset_t	rtree_net_new_address;	/* string offs. */
+	uint32_t        		rtree_net_new_port;
+	uint32_t			rtree_net_log_level;
+	ruletree_object_offset_t	rtree_net_log_msg;	/* string offs. */
+	uint32_t			rtree_net_errno;
+	ruletree_object_offset_t	rtree_net_rules;	/* offset of a list of subrules */
+} ruletree_net_rule_t;
+
+#define SB2_RULETREE_NET_RULETYPE_DENY	0
+#define SB2_RULETREE_NET_RULETYPE_ALLOW	1
+#define SB2_RULETREE_NET_RULETYPE_RULES	2
+
 /* ----------- rule_tree.c: ----------- */
 extern int ruletree_to_memory(void); /* 0 if ok, negative if rule tree is not available. */
 
@@ -327,6 +348,10 @@ ruletree_object_offset_t add_exec_policy_selection_rule_to_ruletree(
         const char      *selector,
         const char      *exec_policy_name,
 	uint32_t	flags);
+ 
+/* ------------ net rule maintenance routines ------------ */
+ruletree_object_offset_t add_net_rule_to_ruletree(
+	ruletree_net_rule_t	*rule);
 
 /* ------------ rule_tree_utils.c: ------------ */
 

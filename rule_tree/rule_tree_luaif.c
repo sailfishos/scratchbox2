@@ -350,9 +350,14 @@ static int lua_sb_ruletree_new_string(lua_State *l)
 
 	if (n == 1) {
 		const char	*str = lua_tostring(l, 1);
-		str_offs = append_string_to_ruletree_file(str);
-		SB_LOG(SB_LOGLEVEL_NOISE,
-			"lua_sb_ruletree_new_string(%s) => %d", str, str_offs);
+		if (str) {
+			str_offs = append_string_to_ruletree_file(str);
+			SB_LOG(SB_LOGLEVEL_NOISE,
+				"lua_sb_ruletree_new_string(%s) => %d", str, str_offs);
+		} else {
+			SB_LOG(SB_LOGLEVEL_NOISE,
+				"lua_sb_ruletree_new_string(NULL) => %d", str_offs);
+		}
 	} else {
 		SB_LOG(SB_LOGLEVEL_NOISE,
 			"lua_sb_ruletree_new_string => %d", str_offs);
@@ -419,6 +424,73 @@ static int lua_sb_add_exec_policy_selection_rule_to_ruletree(lua_State *l)
 	return 1;
 }
 
+static int lua_sb_add_net_rule_to_ruletree(lua_State *l)
+{
+	int	n = lua_gettop(l);
+	uint32_t rule_location = 0;
+
+	/* params: 
+	 *  1. ruletype (int),
+	 *  2. func_name (offset of a string) 
+	 *  3. binary_name (offset of a string)
+	 *  4. address (offset of a string)
+	 *  5. port (int)
+	 *  6. new_address (offset of a string)
+	 *  7. new_port (int)
+	 *  8. log_level (string; converted to a number here)
+	 *  9. log_msg (offset of a string)
+	 *  10. errno (offset of a string)
+	 *  11. subrules (offset to a list)
+	*/
+	if (n == 11) {
+		ruletree_net_rule_t	rule;
+		const char *errno_str;
+		
+		SB_LOG(SB_LOGLEVEL_NOISE, "%s:", __func__);
+
+		rule.rtree_net_ruletype = lua_tointeger(l, 1);
+		rule.rtree_net_func_name = lua_tointeger(l, 2);
+		rule.rtree_net_binary_name = lua_tointeger(l, 3);
+		rule.rtree_net_address = lua_tointeger(l, 4);
+		rule.rtree_net_port = lua_tointeger(l, 5);
+		rule.rtree_net_new_address = lua_tointeger(l, 6);
+		rule.rtree_net_new_port = lua_tointeger(l, 7);
+		rule.rtree_net_log_level = sblog_level_name_to_number(lua_tostring(l, 8));
+		rule.rtree_net_log_msg = lua_tointeger(l, 9);
+		errno_str = lua_tostring(l,10);
+		rule.rtree_net_rules = lua_tointeger(l, 11);
+
+		if (errno_str) {
+			int e;
+
+			/* following errno values can be set in networking rules.
+			 * Especially EACCES and EPERM are useful with connect(), they can
+			 * signify that that a local firewall rule caused
+			 * the failure; pretty neat for our purposes. */
+			if (!strcmp(errno_str, "ENETUNREACH")) e = ENETUNREACH;
+			else if (!strcmp(errno_str, "EACCES")) e = EACCES;
+			else if (!strcmp(errno_str, "EPERM")) e = EPERM;
+			else if (!strcmp(errno_str, "EFAULT")) e = EFAULT;
+			else if (!strcmp(errno_str, "EADDRNOTAVAIL")) e = EADDRNOTAVAIL;
+			else if (!strcmp(errno_str, "EADDRINUSE")) e = EADDRINUSE;
+			else {
+				SB_LOG(SB_LOGLEVEL_NOISE, "errno: use default (EACCESS)");
+				e = EACCES; /* the default */
+			}
+			SB_LOG(SB_LOGLEVEL_NOISE, "errno = %s => #%d", errno_str, e);
+			rule.rtree_net_errno = e;
+		} else {
+			rule.rtree_net_errno = 0;
+		}
+
+		rule_location = add_net_rule_to_ruletree(&rule);
+
+		SB_LOG(SB_LOGLEVEL_NOISE,
+			"%s => %d", __func__, rule_location);
+	}
+	lua_pushnumber(l, rule_location);
+	return 1;
+}
 
 /* mappings from c to lua */
 static const luaL_reg reg[] =
@@ -455,6 +527,9 @@ static const luaL_reg reg[] =
 	/* exec rules */
 	{"add_exec_preprocessing_rule_to_ruletree",	lua_sb_add_exec_preprocessing_rule_to_ruletree},
 	{"add_exec_policy_selection_rule_to_ruletree",	lua_sb_add_exec_policy_selection_rule_to_ruletree},
+
+	/* Network rules */
+	{"add_net_rule_to_ruletree",	lua_sb_add_net_rule_to_ruletree},
 
 	{NULL,				NULL}
 };

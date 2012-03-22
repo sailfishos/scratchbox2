@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -332,6 +333,84 @@ static void dump_exec_pp_rules(ruletree_object_offset_t offs, int indent)
 	printf("}\n");
 }
 
+static void dump_net_rules(ruletree_object_offset_t offs, int indent)
+{
+	ruletree_net_rule_t	*rule = offset_to_ruletree_object_ptr(offs,
+		SB2_RULETREE_OBJECT_TYPE_NET_RULE);
+
+	if (rule_dumped[offs]) {
+		print_indent(indent + 1);
+		printf("[ => @ %u]\n", offs);
+		return;
+	}
+	rule_dumped[offs] = 1;
+
+	print_indent(indent);
+	printf("{ net rule[%u]:\n", (unsigned)offs);
+	print_indent(indent + 1);
+	switch(rule->rtree_net_ruletype) {
+	case SB2_RULETREE_NET_RULETYPE_DENY:
+		printf("ruletype = deny\n");
+		break;
+	case SB2_RULETREE_NET_RULETYPE_ALLOW:
+		printf("ruletype = allow\n");
+		break;
+	case SB2_RULETREE_NET_RULETYPE_RULES:
+		printf("ruletype = rules\n");
+		break;
+	default:
+		printf("ruletype = %d (UNKNOWN)\n", rule->rtree_net_ruletype);
+		break;
+	}
+
+	if (rule->rtree_net_func_name) {
+		print_indent(indent + 1);
+		printf("func_name = '%s'\n",
+			offset_to_ruletree_string_ptr(rule->rtree_net_func_name, NULL));
+	}
+	if (rule->rtree_net_binary_name) {
+		print_indent(indent + 1);
+		printf("binary_name = '%s'\n",
+			offset_to_ruletree_string_ptr(rule->rtree_net_binary_name, NULL));
+	}
+	if (rule->rtree_net_address) {
+		print_indent(indent + 1);
+		printf("address = '%s'\n",
+			offset_to_ruletree_string_ptr(rule->rtree_net_address, NULL));
+	}
+	if (rule->rtree_net_port) {
+		print_indent(indent + 1);
+		printf("port = %d\n", rule->rtree_net_port);
+	}
+	if (rule->rtree_net_new_address) {
+		print_indent(indent + 1);
+		printf("new_address = '%s'\n",
+			offset_to_ruletree_string_ptr(rule->rtree_net_new_address, NULL));
+	}
+	if (rule->rtree_net_new_port) {
+		print_indent(indent + 1);
+		printf("new_port = %d\n", rule->rtree_net_new_port);
+	}
+	if (rule->rtree_net_log_msg) {
+		print_indent(indent + 1);
+		if (rule->rtree_net_log_level) {
+			printf("log_level = %d, ", rule->rtree_net_log_level);
+		}
+		printf("log_msg = '%s'\n",
+			offset_to_ruletree_string_ptr(rule->rtree_net_log_msg, NULL));
+	}
+	if (rule->rtree_net_errno) {
+		print_indent(indent + 1);
+		printf("errno = %d '%s'\n",
+			rule->rtree_net_errno, strerror(rule->rtree_net_errno));
+	}
+	if (rule->rtree_net_rules) {
+		dump_objectlist(rule->rtree_net_rules, indent+1);
+	}
+	print_indent(indent);
+	printf("}\n");
+}
+
 static void dump_objectlist(ruletree_object_offset_t list_offs, int indent)
 {
 	uint32_t	list_size = ruletree_objectlist_get_list_size(list_offs);
@@ -369,6 +448,9 @@ static void dump_objectlist(ruletree_object_offset_t list_offs, int indent)
 					break;
 				case SB2_RULETREE_OBJECT_TYPE_EXEC_SEL_RULE:
 					dump_exec_selection_rules(item_offs, indent+1);
+					break;
+				case SB2_RULETREE_OBJECT_TYPE_NET_RULE:
+					dump_net_rules(item_offs, indent+1);
 					break;
 				case SB2_RULETREE_OBJECT_TYPE_STRING:
 					print_indent(indent+1);

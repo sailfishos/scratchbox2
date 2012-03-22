@@ -160,6 +160,8 @@ int sblog_level_name_to_number(const char *level_str)
 {
 	int level;
 
+	if (!level_str) return(0);
+
 	/* Both logfile and loglevel have been set. */
 	if (!strcmp(level_str,"error")) {
 		level = SB_LOGLEVEL_ERROR;

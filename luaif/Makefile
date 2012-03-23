@@ -2,11 +2,9 @@ LUASRC = luaif/lua-5.1.4/src
 
 objs := $(D)/luaif.o \
 	$(D)/argvenvp.o \
-	$(D)/sblib_luaif.o \
-	$(D)/network_luaif.o
+	$(D)/sblib_luaif.o
 
 $(D)/sblib_luaif.o: preload/exported.h
-$(D)/network_luaif.o: preload/exported.h
 
 luaif/libluaif.a: $(objs)
 luaif/libluaif.a: override CFLAGS := $(CFLAGS) -O2 -g -fPIC -Wall -W -I$(SRCDIR)/$(LUASRC) -I$(OBJDIR)/preload -I$(SRCDIR)/preload

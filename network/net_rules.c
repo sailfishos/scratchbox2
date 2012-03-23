@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Nokia Corporation.
+ * Copyright (c) 2011,2012 Nokia Corporation.
  * Author: Lauri T. Aarnio
  * Portion Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
  *
@@ -7,7 +7,17 @@
  *
  * ----------------
  *
- * Interfaces to networking code Lua functions.
+ * networking rule engine.
+ *
+ * This is a very straightforward conversion from Lua; old
+ * Lua code is even preserved in the comments below.
+ * The downside is that the code is definitely not optimal
+ * (e.g. converts addresses to strings and back, just as
+ * the practise was with Lua). But a) the code is faster
+ * than the Lua implementation was and b) it is easy to
+ * optimize now if it turns out to be a problem. Remember
+ * that these routines are usually called for connections, not
+ * for every TCP packet (see "NETWORKING MODES" in sb2(1))
 */
 
 #include <lua.h>
@@ -24,107 +34,7 @@
 #include "libsb2.h"
 #include "exported.h"
 
-#if 0
-#ifdef EXTREME_DEBUGGING
-#include <execinfo.h>
-#endif
-#endif
-
-/* ========== Interfaces to Lua functions: ========== */
-
-int call_lua_function_sbox_map_network_addr(
-	const char *binary_name,
-	const char *realfnname,
-	const char *protocol,
-	const char *addr_type,
-	const char *orig_dst_addr,
-	int orig_port,
-	char *result_addr_buf,
-	int result_addr_buf_len,
-	int *result_port)
-{
-	struct sb2context	*sb2ctx = NULL;
-	char *result_code = NULL;
-	int return_value = 0;
-	char *log_level = NULL;
-
-	sb2ctx = get_sb2context_lua();
-        if (!sb2ctx) return(EBADF);	/* overload EBADF; if get_sb2context_lua() fails,
-					 * things are in a bad state anyway */
-
-	SB_LOG(SB_LOGLEVEL_NOISE, "calling sbox_map_network_addr for %s:%d",
-		orig_dst_addr, orig_port);
-	SB_LOG(SB_LOGLEVEL_NOISE, "binary_name = '%s'", binary_name);
-
-	lua_getfield(sb2ctx->lua, LUA_GLOBALSINDEX, "sbox_map_network_addr");
-	/* add parameters */
-	lua_pushstring(sb2ctx->lua, realfnname);
-	lua_pushstring(sb2ctx->lua, protocol);
-	lua_pushstring(sb2ctx->lua, addr_type);
-	lua_pushstring(sb2ctx->lua, orig_dst_addr);
-	lua_pushnumber(sb2ctx->lua, orig_port);
-	lua_pushstring(sb2ctx->lua, binary_name);
-
-	if(SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE3)) {
-		dump_lua_stack("call_lua_function_sbox_map_network_addr -> call",
-			sb2ctx->lua);
-	}
-	/* 6 arguments, returns result_code,address,port,log_level,log_msg */
-	lua_call(sb2ctx->lua, 6, 5);
-
-	result_code = (char *)lua_tostring(sb2ctx->lua, -5); /* result_code */
-	if ((*result_code == '\0') || (!strcmp(result_code, "OK"))) {
-		/* empty string or "OK" == success */
-		char *result_addr = (char *)lua_tostring(sb2ctx->lua, -4);
-		snprintf(result_addr_buf, result_addr_buf_len, "%s", result_addr);
-		*result_port = lua_tointeger(sb2ctx->lua, -3);
-		SB_LOG(SB_LOGLEVEL_NOISE, "sbox_map_network_addr => OK, addr=%s, port=%d",
-			result_addr_buf, *result_port);
-	} else {
-		/* following errno values can be set from sbox_map_network_addr().
-		 * Especially EACCES and EPERM are useful with connect(), they can
-		 * signify that that a local firewall rule caused
-		 * the failure; pretty neat for our purposes. */
-		if (!strcmp(result_code, "ENETUNREACH")) return_value = ENETUNREACH;
-		else if (!strcmp(result_code, "EACCES")) return_value = EACCES;
-		else if (!strcmp(result_code, "EPERM")) return_value = EPERM;
-		else if (!strcmp(result_code, "EFAULT")) return_value = EFAULT;
-		else if (!strcmp(result_code, "EADDRNOTAVAIL")) return_value = EADDRNOTAVAIL;
-		else if (!strcmp(result_code, "EADDRINUSE")) return_value = EADDRINUSE;
-		else return_value = EACCES; /* the default */
-		SB_LOG(SB_LOGLEVEL_NOISE, "sbox_map_network_addr => ERROR, code=%s => #%d",
-			result_code, return_value);
-	}
-	log_level = (char *)lua_tostring(sb2ctx->lua, -2);
-	if (log_level) {
-		char *log_msg = (char *)lua_tostring(sb2ctx->lua, -1);
-		if (log_msg) {
-			int lvl = SB_LOGLEVEL_ERROR; /* default */
-			if(!strcmp(log_level, "debug"))
-				lvl = SB_LOGLEVEL_DEBUG;
-			else if(!strcmp(log_level, "info"))
-				lvl = SB_LOGLEVEL_INFO;
-			else if(!strcmp(log_level, "warning"))
-				lvl = SB_LOGLEVEL_WARNING;
-			else if(!strcmp(log_level, "network"))
-				lvl = SB_LOGLEVEL_NETWORK;
-			else if(!strcmp(log_level, "notice"))
-				lvl = SB_LOGLEVEL_NOTICE;
-			else if(!strcmp(log_level, "error"))
-				lvl = SB_LOGLEVEL_ERROR;
-			else if(!strcmp(log_level, "noise"))
-				lvl = SB_LOGLEVEL_NOISE;
-			else if(!strcmp(log_level, "noise2"))
-				lvl = SB_LOGLEVEL_NOISE2;
-			else if(!strcmp(log_level, "noise3"))
-				lvl = SB_LOGLEVEL_NOISE3;
-			SB_LOG(lvl, "%s: %s", realfnname, log_msg);
-		}
-	}
-
-	lua_pop(sb2ctx->lua, 5); /* drop return values from the stack */
-	return(return_value);
-}
+/* ========== find & execute a network rule for given address: ========== */
 
 static int compare_ipv4_addrs(const char *address, const char *address_pattern)
 {
@@ -290,41 +200,329 @@ static int compare_ipv6_addrs(const char *address, const char *address_pattern)
 	return(0); /* no match */
 }
 
-/* "sb.test_net_addr_match(addr_type, address, address_pattern)":
- * This is used from find_net_rule(); implementing this in C improves preformance.
+/* test_net_addr_match:
  * Returns result (true if matched, false if it didn't)
- * and status string ("exact" or "net" if matched, or error msg. if it didn't match)
 */
-int lua_sb_test_net_addr_match(lua_State *l)
+static int test_net_addr_match(
+	const char *addr_type,
+	const char *address,
+	const char *address_pattern)
 {
-	int	n = lua_gettop(l);
-	int	result = 0;	/* false */
+	int	result = 0;	/* false: no match */
 	const char	*match_type = "No match";
 
-	if (n == 3) {
-		const char	*addr_type = lua_tostring(l, 1);
-		const char	*address = lua_tostring(l, 2);
-		const char	*address_pattern = lua_tostring(l, 3);
+	SB_LOG(SB_LOGLEVEL_NOISE2,
+		"test_net_addr_match '%s','%s','%s'",
+		addr_type, address, address_pattern);
 
-		SB_LOG(SB_LOGLEVEL_NOISE2,
-			"lua_sb_test_net_addr_match '%s','%s','%s'",
-			addr_type, address, address_pattern);
+	if (addr_type && !strncmp(addr_type, "ipv4", 4)) {
+		result = compare_ipv4_addrs(address, address_pattern);
+		match_type = "ipv4 test";
+	} else if (addr_type && !strncmp(addr_type, "ipv6", 4)) {
+		result = compare_ipv6_addrs(address, address_pattern);
+		match_type = "ipv6 test";
+	} else {
+		match_type = "Unsupported address type";
+	}
 
-		if (addr_type && !strncmp(addr_type, "ipv4", 4)) {
-			result = compare_ipv4_addrs(address, address_pattern);
-			match_type = "ipv4 test";
-		} else if (addr_type && !strncmp(addr_type, "ipv6", 4)) {
-			result = compare_ipv6_addrs(address, address_pattern);
-			match_type = "ipv6 test";
-		} else {
-			match_type = "Unsupported address type";
+	SB_LOG(SB_LOGLEVEL_NOISE2,
+		"%s => %d (%s)", __func__, result, match_type);
+	return(result);
+}
+
+/* Lua:
+ *	find_net_rule(netruletable, realfnname, addr_type,
+ *	        orig_dst_addr, orig_port, binary_name)
+*/
+static ruletree_net_rule_t *find_net_rule(
+	ruletree_object_offset_t	net_rule_list_offs,
+	const char *realfnname,
+	const char *addr_type,
+	const char *orig_dst_addr,
+	unsigned int orig_port,
+	const char *binary_name)
+{
+	unsigned int	i;
+	uint32_t	rule_list_size;
+
+	rule_list_size = ruletree_objectlist_get_list_size(net_rule_list_offs);
+
+	SB_LOG(SB_LOGLEVEL_NOISE,
+		"%s: %s %s %d, rules @%d",
+		__func__, addr_type, orig_dst_addr, orig_port, net_rule_list_offs);
+
+	/* Lua:
+	 *	  for i = 1, table.maxn(netruletable) do
+	 *	        local rule = netruletable[i]
+	*/
+	for (i = 0; i < rule_list_size; i++) {
+		ruletree_object_offset_t rule_offs;
+		ruletree_net_rule_t	*rule;
+
+                rule_offs = ruletree_objectlist_get_item(net_rule_list_offs, i);
+		rule = offset_to_ruletree_object_ptr(rule_offs,
+			SB2_RULETREE_OBJECT_TYPE_NET_RULE);
+
+		if (!rule) {
+			/* Usually the list does not have holes! */
+			SB_LOG(SB_LOGLEVEL_NOISE,
+				"%s: no rule @%d", __func__, rule_offs);
+			continue;
+		}
+
+		/* Lua:
+		 *	
+		 *        if rule and rule.port and rule.port ~= orig_port then
+		 *                rule = nil
+		 *        end
+		*/
+		if (rule->rtree_net_port &&
+		    (rule->rtree_net_port != orig_port)) {
+			SB_LOG(SB_LOGLEVEL_NOISE,
+				"%s: [%d] port does not match", __func__, i);
+			continue;
+		}
+
+		/* Lua:
+		 *        if rule and rule.func_name then
+		 *                if rule.func_name == realfnname then
+		 *                        sb.log("noise", "func_name ok in net_rule")
+		 *                else
+		 *                        rule = nil
+		 *                end
+		 *        end
+		*/
+		if (rule->rtree_net_func_name) {
+			const char *fn = offset_to_ruletree_string_ptr(
+				rule->rtree_net_func_name, NULL);
+			if (!fn || !realfnname ||
+			    strcmp(fn, realfnname)) {
+				SB_LOG(SB_LOGLEVEL_NOISE,
+					"%s: [%d] func_name does not match", __func__, i);
+				continue;
+			}
+		}
+
+		/* Lua:
+		 *       if rule and rule.binary_name then
+		 *              if rule.binary_name == realfnname then
+		 *                      sb.log("noise", "binary_name ok in net_rule")
+		 *              else
+		 *                      rule = nil
+		 *              end
+		 *       end
+		*/
+		if (rule->rtree_net_binary_name) {
+			const char *bn = offset_to_ruletree_string_ptr(
+				rule->rtree_net_binary_name, NULL);
+			if (!bn || !binary_name ||
+			    strcmp(bn, binary_name)) {
+				SB_LOG(SB_LOGLEVEL_NOISE,
+					"%s: [%d] binary_name does not match", __func__, i);
+				continue;
+			}
+		}
+		
+		/* Lua:
+		 *        if rule and rule.address then
+		 *                res,msg = sb.test_net_addr_match(addr_type,
+		 *                        orig_dst_addr, rule.address)
+		 *                if res then
+		 *                        sb.log("noise", "address ok in net_rule, "..msg)
+		 *                else
+		 *                        sb.log("noise", "address test failed; "..msg)
+		 *                        rule = nil
+		 *                end
+		 *          end
+		*/
+		if (rule->rtree_net_address) {
+			const char *addr = offset_to_ruletree_string_ptr(
+				rule->rtree_net_address, NULL);
+
+			if (!addr ||
+			    !test_net_addr_match(addr_type, orig_dst_addr, addr)) {
+				SB_LOG(SB_LOGLEVEL_NOISE,
+					"%s: [%d] addr. does not match", __func__, i);
+				continue;
+			}
+		}
+
+		/* Lua:
+		 *          if rule and rule.rules then
+		 *                return find_net_rule(rule.rules, realfnname, addr_type,
+		 *                        orig_dst_addr, orig_port, binary_name)
+		 *          end
+		*/
+		if (rule->rtree_net_rules) {
+			SB_LOG(SB_LOGLEVEL_NOISE,
+				"%s: [%d] => more rules @%d", __func__, rule->rtree_net_rules);
+			return (find_net_rule(rule->rtree_net_rules, realfnname,
+				addr_type, orig_dst_addr, orig_port, binary_name));
+		}
+		
+		/* Lua:
+		 *          if rule then
+		 *                return rule
+		 *          end
+		*/
+		SB_LOG(SB_LOGLEVEL_NOISE,
+			"%s: rule found @%d", __func__, rule_offs);
+		return(rule);
+	}
+	/* Lua:
+	 *        end
+	*/
+	SB_LOG(SB_LOGLEVEL_NOISE, "%s: rule NOT found", __func__);
+	return(NULL);
+}
+
+/* Body of this function was converted from (Lua) function
+ *  sbox_map_network_addr()
+ * returns zero if OK, or code for errno
+*/
+static int apply_net_rule(
+	ruletree_net_rule_t *rule,
+	char *result_addr_buf,
+	int result_addr_buf_len,
+	int *result_port)
+{
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s", __func__);
+	
+	/*	if rule.new_port then
+	 *		dst_port = rule.new_port
+	 *		sb.log("debug", "network port set to "..
+	 *			dst_port.." (was "..orig_port..")")
+	 *	end
+	*/
+	if (rule->rtree_net_new_port) {
+		*result_port = rule->rtree_net_new_port;
+		SB_LOG(SB_LOGLEVEL_NOISE, "%s: port = %d",
+			__func__, rule->rtree_net_new_port);
+	}
+	
+	/*	if rule.new_address then
+	 *		dst_addr = rule.new_address
+	 *		sb.log("debug", "network addr set to "..
+	 *			dst_addr.." (was "..orig_dst_addr..")")
+	 *	end
+	*/
+	if (rule->rtree_net_new_address) {
+		const char *n_addr = offset_to_ruletree_string_ptr(
+				rule->rtree_net_new_address, NULL);
+		if (n_addr) {
+			SB_LOG(SB_LOGLEVEL_NOISE, "%s: addr = %s",
+				__func__, n_addr);
+			strncpy(result_addr_buf, n_addr, result_addr_buf_len);
 		}
 	}
-	SB_LOG(SB_LOGLEVEL_NOISE2,
-		"lua_sb_test_net_addr_match => %d (%s)", result, match_type);
-	lua_pushboolean(l, result);
-	lua_pushstring(l, match_type);
-	return 2;
+
+	/*	if rule.allow then
+	 *		if rule.deny then
+	 *			sb.log("error", "network rule has both 'allow' and 'deny'")
+	 *			return "EPERM", orig_dst_addr, orig_port,
+	 *				rule.log_level, rule.log_msg
+	 *		end
+	 *		return "OK", dst_addr, dst_port, 
+	 *				rule.log_level, rule.log_msg
+	 *	else
+	 *		if not rule.deny then
+	 *			sb.log("error", "network rule must define either 'allow' or"..
+	 *				" 'deny', this rule has neither")
+	 *			return "EPERM", orig_dst_addr, orig_port,
+	 *				rule.log_level, rule.log_msg
+	 *		end
+	 *		return "ENETUNREACH", orig_dst_addr, orig_port,
+	 *				rule.log_level, rule.log_msg
+	 *	end
+	*/
+	/* here ruletype must be either ALLOW or DENY, the
+	 * third alternative (RULES) was handled in find_rule */
+	switch (rule->rtree_net_ruletype) {
+	case SB2_RULETREE_NET_RULETYPE_DENY:
+		if (rule->rtree_net_errno) {
+			SB_LOG(SB_LOGLEVEL_NOISE, "%s: deny; errno = %d",
+				__func__, rule->rtree_net_errno);
+			return(rule->rtree_net_errno);
+		}
+		SB_LOG(SB_LOGLEVEL_NOISE, "%s: deny; errno defaults to EPERM",
+			__func__);
+		return(EPERM);
+	case SB2_RULETREE_NET_RULETYPE_ALLOW:
+		SB_LOG(SB_LOGLEVEL_NOISE, "%s: allowed.", __func__);
+		return(0);
+	}
+	SB_LOG(SB_LOGLEVEL_ERROR, "%s: internal error: Unknown ruletype = %d",
+		__func__, rule->rtree_net_ruletype);
+	return(EPERM);
+}
+
+/* Returns:
+ *  - nonzero: value for errno, result_addr_buf and *result_port 
+ *    contain unknown values
+ *  - zero: address was mapped, results in result_addr_buf and *result_port
+*/
+int sb2_map_network_addr(
+	const char *binary_name,
+	const char *realfnname,
+	const char *protocol,
+	const char *addr_type,
+	const char *orig_dst_addr,
+	int orig_port,
+	char *result_addr_buf,
+	int result_addr_buf_len,
+	int *result_port)
+{
+	int result = 0;
+	ruletree_net_rule_t *rule = NULL;
+	const char *v[4];
+	ruletree_object_offset_t	net_rule_list_offs;
+	const char *modename = sbox_network_mode;
+
+#if 1
+	(void)protocol;
+	(void)result_addr_buf_len;
+#endif
+	SB_LOG(SB_LOGLEVEL_NOISE, "sb2_map_network_addr for %s:%d (%s)",
+		orig_dst_addr, orig_port, addr_type);
+	SB_LOG(SB_LOGLEVEL_NOISE, "binary_name = '%s', fn=%s", binary_name, realfnname);
+
+	if (!modename) {
+		modename = ruletree_catalog_get_string("NET_RULES", "#default");
+		if (!modename) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"failed to determine default network ruleset name (%s,function=%s)",
+				binary_name, realfnname);
+			return(EPERM);
+		}
+	}
+
+	v[0] = "NET_RULES";
+	v[1] = modename;
+	v[2] = addr_type;
+	v[3] = NULL;
+	net_rule_list_offs = ruletree_catalog_vget(v);
+	SB_LOG(SB_LOGLEVEL_NOISE, "%s: net rules at = %d", __func__, net_rule_list_offs);
+
+	rule = find_net_rule(net_rule_list_offs, realfnname, addr_type,
+		orig_dst_addr, orig_port, binary_name);
+
+	result = EPERM; /* default value */
+	if (rule) {
+		strncpy(result_addr_buf, orig_dst_addr, result_addr_buf_len); /*fill default*/
+		*result_port = orig_port; /* set default value */
+		result = apply_net_rule(rule, result_addr_buf, result_addr_buf_len, result_port);
+	}
+
+	if (!result) {
+		/* success */
+		SB_LOG(SB_LOGLEVEL_NOISE, "sb2_map_network_addr => OK, addr=%s, port=%d",
+			result_addr_buf, *result_port);
+	} else {
+		SB_LOG(SB_LOGLEVEL_NOISE, "sb2_map_network_addr => ERROR %d",
+			result);
+	}
+
+	return(result);
 }
 
 /* ----- EXPORTED from interface.master: ----- */
@@ -344,7 +542,7 @@ int sb2show__map_network_addr__(
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s '%s'", __func__, dst_addr);
 
 	result_buf[0] = '\0';
-	res = call_lua_function_sbox_map_network_addr(
+	res = sb2_map_network_addr(
 		binary_name, fn_name, protocol,
 		addr_type, dst_addr, port,
 		result_buf, sizeof(result_buf),

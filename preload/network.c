@@ -150,7 +150,7 @@ static int map_sockaddr_in(
 		 * currently it isn't. We have been able to live with a
 		 * common set of protocol-independent rules. FIXME.
 		*/
-		mapping_result_code = call_lua_function_sbox_map_network_addr(
+		mapping_result_code = sb2_map_network_addr(
 			(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
 			realfnname, NULL/*protocol. unknown. FIXME */,
 			addr_type, printable_dst_addr,
@@ -251,7 +251,7 @@ static int map_sockaddr_in6(
 		 * currently it isn't. We have been able to live with a
 		 * common set of protocol-independent rules. FIXME.
 		*/
-		mapping_result_code = call_lua_function_sbox_map_network_addr(
+		mapping_result_code = sb2_map_network_addr(
 			(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
 			realfnname, NULL/*protocol. unknown. FIXME */,
 			addr_type, printable_dst_addr,

@@ -30,6 +30,7 @@ $(D)/libsb2.$(SHLIBEXT): $(call O,$(objs))
 $(D)/libsb2.$(SHLIBEXT): luaif/libluaif.a luaif/liblua.a sblib/libsblib.a
 $(D)/libsb2.$(SHLIBEXT): pathmapping/libpaths.a
 $(D)/libsb2.$(SHLIBEXT): execs/libexecs.a
+$(D)/libsb2.$(SHLIBEXT): network/libsb2net.a
 $(D)/libsb2.$(SHLIBEXT): rule_tree/libruletree.a
 $(D)/libsb2.$(SHLIBEXT): CFLAGS := $(CFLAGS) -fPIC -Wall -W \
 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS)

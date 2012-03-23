@@ -8,7 +8,8 @@
 #ifndef SB2_NETWORK_H__
 #define SB2_NETWORK_H__
 
-extern int call_lua_function_sbox_map_network_addr(
+/* network/net_rules.c: */
+extern int sb2_map_network_addr(
 	const char *binary_name,
         const char *realfnname,
         const char *protocol,

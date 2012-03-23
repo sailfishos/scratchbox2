@@ -142,10 +142,13 @@ struct sb2context {
  * * 125:
  *     not directly related to Lua/C interface: Rule tree
  *     header was changed (vrs 6).
+ * * 126:
+ *     sbox_map_network_addr() and sb.test_net_addr_match() 
+ *     were removed.
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "125"
+#define SB2_LUA_C_INTERFACE_VERSION "126"
 
 /* get sb2context, without activating lua: */
 extern struct sb2context *get_sb2context(void);

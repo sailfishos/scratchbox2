@@ -20,6 +20,4 @@ extern int sb2_map_network_addr(
         int result_addr_buf_len,
         int *result_port);
 
-extern int lua_sb_test_net_addr_match(lua_State *l);
-
 #endif /* SB2_NETWORK_H__ */

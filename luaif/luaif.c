@@ -694,7 +694,6 @@ static const luaL_reg reg[] =
 	{"isprefix",			lua_sb_isprefix},
 	{"test_path_match",		lua_sb_test_path_match},
 	{"test_fn_class_match",		lua_sb_test_fn_class_match},
-	{"test_net_addr_match",		lua_sb_test_net_addr_match},
 	{"procfs_mapping_request",	lua_sb_procfs_mapping_request},
 	{"test_if_listed_in_envvar",	lua_sb_test_if_listed_in_envvar},
 	{NULL,				NULL}

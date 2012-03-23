@@ -63,9 +63,6 @@ pthread_t (*pthread_self_fnptr)(void) = NULL;
 int (*pthread_mutex_lock_fnptr)(pthread_mutex_t *mutex) = NULL;
 int (*pthread_mutex_unlock_fnptr)(pthread_mutex_t *mutex) = NULL;
 
-/* lua_sb_test_net_addr_match() is in network_sb2if.c */
-extern int lua_sb_test_net_addr_match(lua_State *l);
-
 void check_pthread_library(void)
 {
 	if (pthread_detection_done == 0) {

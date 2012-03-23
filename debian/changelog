@@ -1,3 +1,9 @@
+scratchbox2 (2.3.48-1) unstable; urgency=low
+
+  * Networking subsystem is now implemented in C.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Fri, 23 Mar 2012 19:22:00 +0200
+
 scratchbox2 (2.3.47-1) unstable; urgency=low
 
   * "intermediate cleanup release": Fixed compiler warnings,

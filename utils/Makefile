@@ -24,21 +24,21 @@ $(D)/sb2-ruletree: $(D)/sb2-ruletree.o $(D)/../rule_tree/rule_tree.o
 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 #------------
-# sb2-ruletree-client, a debugging tool
-$(D)/sb2-ruletree-client: override CFLAGS := $(CFLAGS) -Wall -W -Werror \
+# sb2dctl, a tool for communicating with sb2d
+$(D)/sb2dctl: override CFLAGS := $(CFLAGS) -Wall -W -Werror \
 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
 		-I$(SRCDIR)/include -ldl
 
-$(D)/sb2-ruletree-client.o: preload/exported.h
-$(D)/sb2-ruletree-client: $(D)/sb2-ruletree-client.o 
-$(D)/sb2-ruletree-client: rule_tree/rule_tree_rpc_client.o
-$(D)/sb2-ruletree-client: sblib/sb_log.o
-$(D)/sb2-ruletree-client: sb2d/libsupport.o
+$(D)/sb2dctl.o: preload/exported.h
+$(D)/sb2dctl: $(D)/sb2dctl.o 
+$(D)/sb2dctl: rule_tree/rule_tree_rpc_client.o
+$(D)/sb2dctl: sblib/sb_log.o
+$(D)/sb2dctl: sb2d/libsupport.o
 	$(MKOUTPUTDIR)
 	$(P)LD
 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
-targets := $(targets) $(D)/sb2-ruletree-client
+targets := $(targets) $(D)/sb2dctl
 #------------
 
 $(D)/sb2-monitor: CFLAGS := $(CFLAGS) -Wall -W -Werror \

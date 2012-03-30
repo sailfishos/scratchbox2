@@ -60,38 +60,41 @@ int ruletree_get_min_client_socket_fd(void)
 
 int main(int argc, char *argv[])
 {
-	int	opt;
+	int		opt;
 	const char	*cmd;
+	const char	*loglevel = "warning";
+	int		dlopen_libsb2 = 1;
 
 	progname = argv[0];
 
-	/* init logging before doing anything else,
-	 * otherwise the logger will auto-initialize itself.
-	 * if debug_level and/or debug_file is NULL, logger
-	 * will read the values from env.vars. */
-	sblog_init_level_logfile_format("debug", "-", NULL);
-
-	/* disable mapping; dlopen must run without mapping
-	 * if running inside an sb2 session */
-	setenv("SBOX_DISABLE_MAPPING", "1", 1/*overwrite*/);
-	libsb2_handle = dlopen(LIBSB2_SONAME, RTLD_NOW);
-	unsetenv("SBOX_DISABLE_MAPPING"); /* enable mapping */
-
-	while ((opt = getopt(argc, argv, "d:s:")) != -1) {
+	while ((opt = getopt(argc, argv, "l:s:n")) != -1) {
 		switch (opt) {
-#if 0
-		case 'd':
-			debug = sb_loglevel__ = atoi(optarg);
+		case 'l':
+			loglevel = optarg;
 			break;
-#endif
 		case 's':
                         sbox_session_dir = strdup(optarg);
                         break;
-
+		case 'n':
+                        dlopen_libsb2 = 0;
+                        break;
 		default:
 			fprintf(stderr, "Illegal option\n");
 			exit(1);
 		}
+	}
+
+	/* init logging.
+	 * if debug_level and/or debug_file is NULL, logger
+	 * will read the values from env.vars. */
+	sblog_init_level_logfile_format(loglevel, "-", NULL);
+
+	if (dlopen_libsb2) {
+		/* disable mapping; dlopen must run without mapping
+		 * if running inside an sb2 session */
+		setenv("SBOX_DISABLE_MAPPING", "1", 1/*overwrite*/);
+		libsb2_handle = dlopen(LIBSB2_SONAME, RTLD_NOW);
+		unsetenv("SBOX_DISABLE_MAPPING"); /* enable mapping */
 	}
 
 	if (!sbox_session_dir) {

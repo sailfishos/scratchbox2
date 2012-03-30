@@ -6,6 +6,7 @@
 
 -- Load session-specific exec-related settings
 do_file(session_dir .. "/exec_config.lua")
+do_file(session_dir .. "/cputransp_config.lua")
 
 isprefix = sb.isprefix
 

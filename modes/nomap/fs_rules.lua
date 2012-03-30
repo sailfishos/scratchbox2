@@ -21,7 +21,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "103"
+rule_file_interface_version = "104"
 ----------------------------------
 
 fs_mapping_rules = {

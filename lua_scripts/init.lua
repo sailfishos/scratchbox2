@@ -114,3 +114,5 @@ do_file(session_dir .. "/lua_scripts/init_net_modes.lua")
 -- values for those variables only after sb2d has executed this
 -- script)
 
+io.stdout:flush()
+io.stderr:flush()

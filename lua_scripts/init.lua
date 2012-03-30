@@ -10,6 +10,14 @@
 session_dir = os.getenv("SBOX_SESSION_DIR")
 debug_messages_enabled = sblib.debug_messages_enabled()
 
+-- This version string is used to check that the lua scripts offer 
+-- what sb2d expects, and v.v.
+-- Increment the number whenever the interface beween Lua and C is changed.
+--
+-- NOTE: the corresponding identifier for C is in include/sb2.h,
+-- see that file for description about differences
+sb2d_lua_c_interface_version = "301"
+
 -- Create the "vperm" catalog
 --	vperm::inodestats is the binary tree, initially empty,
 --	but the entry must be present.

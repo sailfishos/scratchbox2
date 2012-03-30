@@ -150,6 +150,11 @@ struct sb2context {
 */
 #define SB2_LUA_C_INTERFACE_VERSION "126"
 
+/* This version string is used to check that init.lua offers
+ * what sb2d expects, and v.v.
+*/
+#define SB2D_LUA_C_INTERFACE_VERSION "301"
+
 /* get sb2context, without activating lua: */
 extern struct sb2context *get_sb2context(void);
 /* get sb2context, activate lua if not already done: */

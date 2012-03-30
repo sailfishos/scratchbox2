@@ -1776,6 +1776,22 @@ export LD_LIBRARY_PATH
 
 if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 	add_cputransparency_settings_to_exec_config_file
+
+	# Instruct sb2d to execute init2.lua:
+	# the main purpose is to add CPU transparency settings
+	# to the rule tree.
+	# (this step needs to be syncronous; sb2dctl won't return
+	# before init2.lua is completed)
+	ctl_result=`$SBOX_DIR/lib/libsb2/sb2dctl -n -s $SBOX_SESSION_DIR init2`
+
+	case "$ctl_result" in
+	*OK*)	# Startup OK
+		;;
+	*)
+		echo "SB2: Session initialization, stage 2:"
+		echo "$ctl_result"
+		;;
+	esac
 fi
 
 # END OF INITIALIZATION STAGE 2.

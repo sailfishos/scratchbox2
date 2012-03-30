@@ -304,7 +304,7 @@ for m_index,m_name in pairs(all_modes) do
 	allow_reversing = true	-- default = create reverse rules.
 	reversing_disabled_message = ""
 
-	local current_rule_interface_version = "103"
+	local current_rule_interface_version = "104"
 
 	-- rulefile will set these:
 	rule_file_interface_version = nil

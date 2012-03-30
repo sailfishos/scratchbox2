@@ -231,6 +231,7 @@ do-install: install-noarch
 	$(Q)install -d -m 755 $(prefix)/lib/libsb2/wrappers
 	$(Q)install -c -m 755 $(OBJDIR)/wrappers/fakeroot $(prefix)/lib/libsb2/wrappers/fakeroot
 	$(Q)install -c -m 755 $(OBJDIR)/preload/libsb2.$(SHLIBEXT) $(prefix)/lib/libsb2/libsb2.so.$(PACKAGE_VERSION)
+	$(Q)install -c -m 755 $(OBJDIR)/utils/sb2dctl $(prefix)/lib/libsb2/sb2dctl
 	$(Q)install -c -m 755 $(OBJDIR)/utils/sb2-show $(prefix)/bin/sb2-show
 	$(Q)install -c -m 755 $(OBJDIR)/utils/sb2-monitor $(prefix)/bin/sb2-monitor
 	$(Q)install -c -m 755 $(OBJDIR)/sb2d/sb2d $(prefix)/bin/sb2d

@@ -43,20 +43,26 @@ local RULE_FLAGS_READONLY_FS_ALWAYS = 16
 
 function get_rule_tree_offset_for_rule_list(rules, node_type_is_ordinary_rule)
 	if #rules < 1 then
-		print ("-- NO RULES!")
+		if debug_messages_enabled then
+			print ("-- NO RULES!")
+		end
 		return 0
 	elseif rules[1]._rule_tree_offset == nil then
 		-- Not yet in the tree, add it.
 		rules[1]._rule_tree_offset = add_list_of_rules(rules, node_type_is_ordinary_rule)
 	else
-print ("get..Return existing at ", rules[1]._rule_tree_offset)
+		if debug_messages_enabled then
+			print ("get..Return existing at ", rules[1]._rule_tree_offset)
+		end
 	end
 	return rules[1]._rule_tree_offset
 end
 
 function get_rule_tree_offset_for_union_dir_list(union_dir_list)
 	if #union_dir_list < 1 then
-		print ("-- NO DIRS FOR UNION_DIR!")
+		if debug_messages_enabled then
+			print ("-- NO DIRS FOR UNION_DIR!")
+		end
 		return 0
 	end
 
@@ -68,8 +74,10 @@ function get_rule_tree_offset_for_union_dir_list(union_dir_list)
 
 		ruletree.objectlist_set(union_dir_rule_list_index, n-1, new_str_index)
 	end
-	print("-- Added union dir to rule db: ",table.maxn(union_dir_list),
-		"rules, idx=", union_dir_rule_list_index)
+	if debug_messages_enabled then
+		print("-- Added union dir to rule db: ",table.maxn(union_dir_list),
+			"rules, idx=", union_dir_rule_list_index)
+	end
 	return union_dir_rule_list_index
 end
 
@@ -86,7 +94,9 @@ function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule)
 		name = rule.name
 	end
 
-	print(string.format("\t-- name=\"%s\",", name))
+	if debug_messages_enabled then
+		print(string.format("\t-- name=\"%s\",", name))
+	end
 
 	-- Actions
 	-- Unconditional actions first
@@ -121,7 +131,9 @@ function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule)
 			action_type = RULE_ACTION_IF_EXISTS_THEN_REPLACE_BY
 			action_str = rule.if_exists_then_replace_by
 		else
-			print("No action!")
+			if debug_messages_enabled then
+				print("No action!")
+			end
 			action_type = 0;
 		end
 	end
@@ -207,17 +219,21 @@ function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule)
 			condition_type, condition_str,
 			rule_list_link, flags, rule.binary_name,
 			func_class, rule.exec_policy_name)
-	print (rule_offs,"adding selector_type=",selector_type," selector=",selector,
-		"action_type=",action_type, " action_str=",action_str,
-		"condition_type=",condition_type, " condition_str=",condition_str,
-		"func_class=",func_class)
+	if debug_messages_enabled then
+		print (rule_offs,"adding selector_type=",selector_type," selector=",selector,
+			"action_type=",action_type, " action_str=",action_str,
+			"condition_type=",condition_type, " condition_str=",condition_str,
+			"func_class=",func_class)
+	end
 	return rule_offs
 end
 
 function add_list_of_rules(rules, node_type_is_ordinary_rule)
         local n
 
-	print("-- add_list_of_rules:")
+	if debug_messages_enabled then
+		print("-- add_list_of_rules:")
+	end
 	local rule_list_index = 0
 
 	if rules ~= nil then
@@ -233,7 +249,9 @@ function add_list_of_rules(rules, node_type_is_ordinary_rule)
 				new_rule_index = add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule)
 				ruletree.objectlist_set(rule_list_index, n-1, new_rule_index)
 			end
-			print("-- Added to rule db: ",table.maxn(rules),"rules, idx=", rule_list_index)
+			if debug_messages_enabled then
+				print("-- Added to rule db: ",table.maxn(rules),"rules, idx=", rule_list_index)
+			end
 		end
 	end
 	return rule_list_index
@@ -360,17 +378,23 @@ for m_index,m_name in pairs(all_modes) do
 	do_file(session_dir .. "/exec_config.lua")
 	do_file(exec_rule_file_path)
 
-	print("sbox_mapmode = "..sbox_mapmode)
-	print("active_mapmode = "..active_mapmode)
-	print("modename_in_ruletree = "..modename_in_ruletree)
+	if debug_messages_enabled then
+		print("sbox_mapmode = "..sbox_mapmode)
+		print("active_mapmode = "..active_mapmode)
+		print("modename_in_ruletree = "..modename_in_ruletree)
+	end
 
 	local ri
 	ri = add_list_of_rules(fs_mapping_rules, true) -- add ordinary (forward) rules
-	print("-- Added ruleset fwd rules")
+	if debug_messages_enabled then
+		print("-- Added ruleset fwd rules")
+	end
 	ruletree.catalog_set("fs_rules", modename_in_ruletree, ri)
 
 	ri = add_list_of_rules(reverse_fs_mapping_rules, true) -- add reverse  rules
-	print("-- Added ruleset rev.rules")
+	if debug_messages_enabled then
+		print("-- Added ruleset rev.rules")
+	end
 	ruletree.catalog_set("rev_rules", modename_in_ruletree, ri)
 
 	add_all_exec_policies(modename_in_ruletree)

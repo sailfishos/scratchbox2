@@ -1747,10 +1747,8 @@ if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 			>$SBOX_SESSION_DIR/sb2d.out \
 			2>$SBOX_SESSION_DIR/sb2d.err
 	if [ $? != 0 ]; then
-		if [ -s $SBOX_SESSION_DIR/sb2d.err ]; then
-			echo "sb2d:"
-			cat $SBOX_SESSION_DIR/sb2d.err
-		fi
+		grep ERROR $SBOX_SESSION_DIR/sb2d.out
+		cat $SBOX_SESSION_DIR/sb2d.err
 		exit_error "startup of sb2d failed."
 	fi
 	if [ -s $SBOX_SESSION_DIR/sb2d.err ]; then

@@ -296,12 +296,16 @@ char *ruletree_rpc__init2(void)
 {
 	ruletree_rpc_msg_command_t	command;
 	ruletree_rpc_msg_reply_t	reply;
+	char *cp;
 
 	SB_LOG(SB_LOGLEVEL_DEBUG,
 		"ruletree_rpc: Sending command 'init2'");
 	memset(&command, 0, sizeof(command));
+	memset(&reply, 0, sizeof(reply));
 	command.rimc_message_type = RULETREE_RPC_MESSAGE_COMMAND__INIT2;
-	send_command_receive_reply(&command, &reply);
+	if (send_command_receive_reply(&command, &reply) < 0) {
+		return(strdup("RPC failed"));
+	}
 
 	switch(reply.hdr.rimr_message_type) {
 	case RULETREE_RPC_MESSAGE_REPLY__OK:
@@ -311,7 +315,10 @@ char *ruletree_rpc__init2(void)
 	case RULETREE_RPC_MESSAGE_REPLY__MESSAGE:
 		return(strdup(reply.msg.rimr_str));
 	default:
-		return(strdup("Illegal reply message type"));
+		if (asprintf(&cp, "Illegal reply message type (%d)",
+			reply.hdr.rimr_message_type) < 0)
+			return(strdup("Illegal reply message type"));
+		return(cp);
 	}
 	return(NULL);
 }

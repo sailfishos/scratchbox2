@@ -98,14 +98,34 @@ static int sb2_lua_panic(lua_State *l)
 	return 0;
 }
 
+static char *read_string_variable_from_lua(const char *name)
+{
+	char *result = NULL;
+
+	if (name && *name) {
+		lua_getglobal(sb2d_lua, name);
+		result = (char *)lua_tostring(sb2d_lua, -1);
+		if (result) {
+			result = strdup(result);
+		}
+		lua_pop(sb2d_lua, 1);
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"Lua variable %s = '%s', gettop=%d",
+			name, (result ? result : "<NULL>"),
+			lua_gettop(sb2d_lua));
+	}
+	return(result);
+}
+
 static void initialize_lua(void)
 {
 	char *main_lua_script = NULL;
+	char *lua_if_version = NULL;
 
 	if (asprintf(&main_lua_script, "%s/lua_scripts/init.lua",
 	     sbox_session_dir) < 0) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
-			"sb2context_initialize_lua: asprintf failed to allocate memory");
+			"%s: asprintf failed to allocate memory", __func__);
 		return;
 	}
 		
@@ -123,30 +143,52 @@ static void initialize_lua(void)
 
 	load_and_execute_lua_file(main_lua_script);
 
-#if 0
 	/* check Lua/C interface version. */
-	lua_if_version = read_string_variable_from_lua(sb2ctx,
-		"sb2_lua_c_interface_version");
+	lua_if_version = read_string_variable_from_lua("sb2d_lua_c_interface_version");
 	if (!lua_if_version) {
 		SB_LOG(SB_LOGLEVEL_ERROR, "FATAL ERROR: "
-			"sb2's Lua scripts didn't provide"
-			" 'sb2_lua_c_interface_version' identifier!");
+			"init.lua script didn't provide"
+			" 'sb2d_lua_c_interface_version' identifier!");
 		exit(1);
 	}
-	if (strcmp(lua_if_version, SB2_LUA_C_INTERFACE_VERSION)) {
+	if (strcmp(lua_if_version, SB2D_LUA_C_INTERFACE_VERSION)) {
 		SB_LOG(SB_LOGLEVEL_ERROR, "FATAL ERROR: "
-			"sb2's Lua script interface version mismatch:"
-			" scripts provide '%s', but '%s' was expected",
-			lua_if_version, SB2_LUA_C_INTERFACE_VERSION);
+			"init.lua script interface version mismatch:"
+			" script has '%s', but '%s' was expected",
+			lua_if_version, SB2D_LUA_C_INTERFACE_VERSION);
 		exit(1);
 	}
 	free(lua_if_version);
-#endif
 
 	SB_LOG(SB_LOGLEVEL_INFO, "lua initialized.");
 	SB_LOG(SB_LOGLEVEL_NOISE, "gettop=%d", lua_gettop(sb2d_lua));
 
 	free(main_lua_script);
+}
+
+char *execute_init2_script(void)
+{
+	char	*init2_script = NULL;
+	char	*result = NULL;
+
+	if (asprintf(&init2_script, "%s/lua_scripts/init2.lua",
+	     sbox_session_dir) < 0) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"%s: asprintf failed to allocate memory", __func__);
+		return(NULL);
+	}
+		
+	SB_LOG(SB_LOGLEVEL_INFO, "Loading '%s'", init2_script);
+
+	load_and_execute_lua_file(init2_script);
+
+	/* get result. */
+	result = read_string_variable_from_lua("init2_result");
+	if (!result) {
+		SB_LOG(SB_LOGLEVEL_ERROR, "init2 scripts didn't provide"
+			" 'init2_result'!");
+	}
+	return(result);
 }
 
 static long long parse_num(const char *cp)

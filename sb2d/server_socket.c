@@ -94,11 +94,12 @@ void create_server_socket(void)
 }
 
 void send_reply_to_client(struct sockaddr_un *client_address,
-	ruletree_rpc_msg_reply_t *reply)
+	ruletree_rpc_msg_reply_t *reply,
+	size_t reply_size)
 {
 	ssize_t	sent_msg_size;
 
-	sent_msg_size = sendto(server_socket, reply, sizeof(*reply), 0,
+	sent_msg_size = sendto(server_socket, reply, reply_size, 0,
 		client_address,
 		sizeof(sa_family_t) + strlen(client_address->sun_path) + 1);
 	SB_LOG(SB_LOGLEVEL_DEBUG, "sendto => %d (%s)",

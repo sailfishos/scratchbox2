@@ -263,7 +263,7 @@ static int send_command_receive_reply(
 		SB_LOG(SB_LOGLEVEL_NOISE, "unlocked client_socket_mutex");
 	}
 	SB_LOG(SB_LOGLEVEL_DEBUG,
-		"%s: Received reply type=%u", __func__, reply->rimr_message_type);
+		"%s: Received reply type=%u", __func__, reply->hdr.rimr_message_type);
 	return(0);
 
     error_out:
@@ -284,6 +284,42 @@ void ruletree_rpc__ping(void)
 	memset(&command, 0, sizeof(command));
 	command.rimc_message_type = RULETREE_RPC_MESSAGE_COMMAND__PING;
 	send_command_receive_reply(&command, &reply);
+}
+
+/* called from sb2dctl */
+void sb2__ruletree_rpc__ping__(void)
+{
+	ruletree_rpc__ping();
+}
+
+char *ruletree_rpc__init2(void)
+{
+	ruletree_rpc_msg_command_t	command;
+	ruletree_rpc_msg_reply_t	reply;
+
+	SB_LOG(SB_LOGLEVEL_DEBUG,
+		"ruletree_rpc: Sending command 'init2'");
+	memset(&command, 0, sizeof(command));
+	command.rimc_message_type = RULETREE_RPC_MESSAGE_COMMAND__INIT2;
+	send_command_receive_reply(&command, &reply);
+
+	switch(reply.hdr.rimr_message_type) {
+	case RULETREE_RPC_MESSAGE_REPLY__OK:
+		return(strdup("OK"));
+	case RULETREE_RPC_MESSAGE_REPLY__FAILED:
+		return(strdup("FAILED"));
+	case RULETREE_RPC_MESSAGE_REPLY__MESSAGE:
+		return(strdup(reply.msg.rimr_str));
+	default:
+		return(strdup("Illegal reply message type"));
+	}
+	return(NULL);
+}
+
+/* called from sb2dctl */
+char *sb2__ruletree_rpc__init2__(void)
+{
+	return(ruletree_rpc__init2());
 }
 
 /* clear vperm info completely. */

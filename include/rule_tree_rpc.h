@@ -34,21 +34,33 @@ typedef struct ruletree_rpc_msg_command_s {
 #define RULETREE_RPC_MESSAGE_COMMAND__SETFILEINFO	2
 #define RULETREE_RPC_MESSAGE_COMMAND__RELEASEFILEINFO	3
 #define RULETREE_RPC_MESSAGE_COMMAND__CLEARFILEINFO	4
+#define RULETREE_RPC_MESSAGE_COMMAND__INIT2		5
 
 /* Replies: Server -> Client messages */
-typedef struct ruletree_rpc_msg_reply_s {
+typedef struct ruletree_rpc_msg_reply_hdr_s {
 	uint16_t	rimr_message_protocol_version; /* copied from command struct */
 	uint16_t	rimr_message_serial; /* copied from command struct */
 	uint32_t	rimr_message_type;
+} ruletree_rpc_msg_reply_hdr_t;
+
+#define RULETREE_RPC_REPLY_MAX_STR_SIZE 1000
+
+typedef struct ruletree_rpc_msg_reply_s {
+	ruletree_rpc_msg_reply_hdr_t	hdr;
+	union {
+		char	rimr_str[RULETREE_RPC_REPLY_MAX_STR_SIZE];	/* Variable size, max RULETREE_RPC_REPLY_MAX_STR_SIZE */
+	} msg;
 } ruletree_rpc_msg_reply_t;
 
 #define RULETREE_RPC_MESSAGE_REPLY__OK		1	/* command ok. */
 #define RULETREE_RPC_MESSAGE_REPLY__FAILED	2	/* command failed */
 #define RULETREE_RPC_MESSAGE_REPLY__UNKNOWNCMD	3	/* unknown command */
 #define RULETREE_RPC_MESSAGE_REPLY__PROTOVRSERR	4	/* wrong protocol version */
+#define RULETREE_RPC_MESSAGE_REPLY__MESSAGE	5	/* string message */
 
 /* client-side RPC library: */
 extern void ruletree_rpc__ping(void);
+extern char *ruletree_rpc__init2(void);
 
 extern void ruletree_rpc__vperm_clear(uint64_t dev, uint64_t ino);
 

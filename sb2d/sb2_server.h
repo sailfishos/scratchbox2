@@ -13,11 +13,14 @@
 #include "rule_tree_rpc.h"
 #include "mapping.h"
 
+extern char *execute_init2_script(void);
+
 extern void create_server_socket(void);
 extern void ruletree_server(void);
 
 extern void send_reply_to_client(struct sockaddr_un *client_address,
-	ruletree_rpc_msg_reply_t *reply);
+	ruletree_rpc_msg_reply_t *reply,
+	size_t reply_size);
 
 extern int receive_command_from_server_socket(struct sockaddr_un *client_address,
 	ruletree_rpc_msg_command_t *command);

@@ -5,7 +5,7 @@
  * Licensed under LGPL version 2.1, see top level LICENSE file for details.
 */
 
-/* Rule tree client: A debugging tool, can be used to send commands to sb2d.
+/* sb2dctl, A tool for sending commands to sb2d.
 */
 
 #include <stdio.h>
@@ -36,8 +36,19 @@
 #include "libsb2.h"
 
 #include "exported.h"
+#include "scratchbox2_version.h"
+#include "libsb2callers.h"
 
+void *libsb2_handle = NULL;
 
+/* create call_sb2__ruletree_rpc__init2__() */
+LIBSB2_CALLER(char *, sb2__ruletree_rpc__init2__,
+	(void), (),
+	NULL)
+
+/* create call_sb2__ruletree_rpc__ping__() */
+LIBSB2_VOID_CALLER(sb2__ruletree_rpc__ping__,
+	(void), ())
 
 static const char *progname = NULL;
 char    *sbox_session_dir = NULL;
@@ -60,24 +71,36 @@ int main(int argc, char *argv[])
 	 * will read the values from env.vars. */
 	sblog_init_level_logfile_format("debug", "-", NULL);
 
-	while ((opt = getopt(argc, argv, "d:")) != -1) {
+	/* disable mapping; dlopen must run without mapping
+	 * if running inside an sb2 session */
+	setenv("SBOX_DISABLE_MAPPING", "1", 1/*overwrite*/);
+	libsb2_handle = dlopen(LIBSB2_SONAME, RTLD_NOW);
+	unsetenv("SBOX_DISABLE_MAPPING"); /* enable mapping */
+
+	while ((opt = getopt(argc, argv, "d:s:")) != -1) {
 		switch (opt) {
 #if 0
 		case 'd':
 			debug = sb_loglevel__ = atoi(optarg);
 			break;
 #endif
+		case 's':
+                        sbox_session_dir = strdup(optarg);
+                        break;
+
 		default:
 			fprintf(stderr, "Illegal option\n");
 			exit(1);
 		}
 	}
 
-	sbox_session_dir = getenv("SBOX_SESSION_DIR");
+	if (!sbox_session_dir) {
+		sbox_session_dir = getenv("SBOX_SESSION_DIR");
+	}
 	if (!sbox_session_dir) {
 		fprintf(stderr, "ERROR: no session "
-			"(SBOX_SESSION_DIR is not set) - this program"
-			" must be used inside a Scratchbox 2 session\n");
+			"(SBOX_SESSION_DIR is not set) - use option -s or "
+			"run this program inside a Scratchbox 2 session\n");
 		exit(1);
 	}
 
@@ -85,12 +108,30 @@ int main(int argc, char *argv[])
 	if (!cmd) {
 		fprintf(stderr, "Usage:\n\t%s command\n", argv[0]);
 		fprintf(stderr, "commands\n"
-				"   ping     Send a 'ping' to sb2d, wait for reply\n");
+				"   ping     Send a 'ping' to sb2d\n"
+				"   init2    Send a 'init2' to sb2d, wait and print the reply\n");
 		exit(1);
 	}
 
 	if (!strcmp(cmd, "ping")) {
-		ruletree_rpc__ping();
+		if (libsb2_handle) {
+			call_sb2__ruletree_rpc__ping__();
+		} else {
+			ruletree_rpc__ping();
+		}
+	} else if (!strcmp(cmd, "init2")) {
+		char *msg;
+		if (libsb2_handle) {
+			msg = call_sb2__ruletree_rpc__init2__();
+		} else {
+			msg = ruletree_rpc__init2();
+		}
+		if (msg) {
+			printf("%s\n", msg);
+			free(msg);
+		} else {
+			exit(1);
+		}
 	} else {
 		fprintf(stderr, "Unknown command %s\n", cmd);
 		exit(1);
@@ -100,7 +141,7 @@ int main(int argc, char *argv[])
 }
 
 /* This program is directly linked to the RPC routines
- * (because they are hidden in libsb2, and cound not be used otherwise).
+ * (because they are hidden in libsb2, and could not be used otherwise).
  * The RPC routines want some wrappers for *_nomap_nolog functions,
  * these will use the ordinary functions... a side-effect is that the 
  * network addresses are subject to mapping operations here. 

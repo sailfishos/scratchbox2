@@ -330,9 +330,9 @@ static void log_mapped_net_op_result(
 	case EPERM: result_str = "EPERM"; break;
 	default: result_str = "Failed"; break;
 	}
-	SB_LOG(SB_LOGLEVEL_NETWORK, "%s: %s => %s",
+	SB_LOG(SB_LOGLEVEL_NETWORK, "%s: %s => %s (%d)",
 		realfnname, addr->mapped_printable_dst_addr,
-		result_str);
+		result_str, result_errno);
 }
 
 /* map_sockaddr() returns one of: */
@@ -360,6 +360,8 @@ static int map_sockaddr(
 			map_sockaddr_un(realfnname,
 				(const struct sockaddr_un*)input_addr,
 				output_addr);
+			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: orig addr.len=%d, mapped_addrlen=%d",
+				__func__, input_addrlen, output_addr->mapped_addrlen);
 			return (MAP_SOCKADDR_MAPPED);
 
 		case AF_INET:
@@ -526,7 +528,7 @@ ssize_t sendto_gate(
 			&mapped_addr.mapped_sockaddr,
 			mapped_addr.mapped_addrlen);
 		*result_errno_ptr = errno;
-		log_mapped_net_op_result(realfnname, (result?errno:0),
+		log_mapped_net_op_result(realfnname, (result==-1?errno:0),
 			&mapped_addr);
 		return(result);
 	case MAP_SOCKADDR_USE_ORIG_ADDR:
@@ -570,7 +572,7 @@ ssize_t sendmsg_gate(
 			errno = *result_errno_ptr; /* restore to orig.value */
 			result = (*real_sendmsg_ptr)(s, &msg2, flags);
 			*result_errno_ptr = errno;
-			log_mapped_net_op_result(realfnname, (result?errno:0),
+			log_mapped_net_op_result(realfnname, (result==-1?errno:0),
 				&mapped_addr);
 			return(result);
 		case MAP_SOCKADDR_USE_ORIG_ADDR:

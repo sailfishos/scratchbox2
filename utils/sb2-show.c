@@ -31,7 +31,7 @@
  #endif
 #endif
 
-static void *libsb2_handle = NULL;
+void *libsb2_handle = NULL;
 
 /* command line options which will be exposed to sub-commands */
 typedef struct cmdline_options_s {
@@ -57,38 +57,12 @@ typedef struct command_table_s {
 	const char	*cmd_helptext;
 } command_table_t;
 
-/* -------------------- wrappers functions for calling functions from
+/* -------------------- wrapper functions for calling functions from
  * 			libsb2.so; if sb2-show is executed outside of
  *			an sb2 session, libsb2.so is not available.
 */
 
-/* create a wrapper to a function returning void */
-#define LIBSB2_VOID_CALLER(funct_name, param_list, param_names) \
-	static void call_ ## funct_name param_list \
-	{ \
-		static	void *fnptr = NULL; \
-		if (!fnptr && libsb2_handle) \
-			fnptr = dlsym(libsb2_handle, #funct_name); \
-		if (fnptr) { \
-			((void(*)param_list)fnptr)param_names; \
-			return; \
-		} \
-	} \
-	extern void funct_name param_list; /* ensure that we got the prototype right */
-
-/* create a wrapper to a function with returns something */
-#define LIBSB2_CALLER(return_type, funct_name, param_list, param_names, errorvalue) \
-	static return_type call_ ## funct_name param_list \
-	{ \
-		static	void *fnptr = NULL; \
-		if (!fnptr && libsb2_handle) \
-			fnptr = dlsym(libsb2_handle, #funct_name); \
-		if (fnptr) { \
-			return(((return_type(*)param_list)fnptr)param_names); \
-		} \
-		return(errorvalue); \
-	} \
-	extern return_type funct_name param_list; /* ensure that we got the prototype right */
+#include "libsb2callers.h"
 
 /* create call_sb2show__binary_type__() */
 LIBSB2_CALLER(char *, sb2show__binary_type__,

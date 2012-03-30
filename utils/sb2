@@ -468,13 +468,13 @@ function initialize_sb_logging()
 			if [ -z "$SBOX_QUIET" ];  then
 				echo "Running scratchbox with these settings:"
 				echo "SBOX_LIBSB2 = $SBOX_LIBSB2"
-				echo "SBOX_LUA_SCRIPTS = $SBOX_LUA_SCRIPTS"
 				if [ -n "$SBOX_TOOLS_ROOT" ]; then
 					echo "SBOX_TOOLS_ROOT = $SBOX_TOOLS_ROOT"
 				fi
 				echo "SBOX_TARGET_ROOT = $SBOX_TARGET_ROOT"
 				echo "SBOX_MAPPING_LOGFILE = $SBOX_MAPPING_LOGFILE"
 				echo "SBOX_MAPPING_LOGLEVEL = $SBOX_MAPPING_LOGLEVEL"
+				echo "SBOX_SESSION_DIR = $SBOX_SESSION_DIR"
 				echo
 			fi
 		fi

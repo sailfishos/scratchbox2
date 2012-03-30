@@ -303,6 +303,9 @@ int main(int argc, char *argv[])
 	if (start_server) {
 		pid_t worker_pid;
 
+		SB_LOG(SB_LOGLEVEL_DEBUG, "Initializing server");
+		create_server_socket();
+
 		/* Write PID to a file */
 		if (backgroud_server) {
 			if ((worker_pid = fork()) != 0) {
@@ -315,9 +318,6 @@ int main(int argc, char *argv[])
 			write_pid_to_file(getpid(), pid_file);
 		}
 		
-		SB_LOG(SB_LOGLEVEL_DEBUG, "Initializing server");
-		create_server_socket();
-
 		/* enter the server loop. 
 		 * ruletree_server() returns when the socket has been
 		 * deleted and it is time to shut down. */

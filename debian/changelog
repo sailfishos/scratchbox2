@@ -1,3 +1,18 @@
+scratchbox2 (2.3.49-1) unstable; urgency=low
+
+  * Adapted the host-static-binaries-with-Qemu feature [from
+    Rafal Krypa, for the 2.2 version] for 2.3; the code is
+    now there, but haven't been fully tested yet.
+  * A new internal tool, sb2dctl, for sending messages to sb2d
+    (used for intelnal purposes)
+  * Introduced init2.lua, which is executed by sb2d when
+    finilizing session setup. It is used for loading CPU 
+    transparency settings to the rule tree (those
+    variables are now loaded to the rule tree, but not yet
+    used for anything) 
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Sun, 01 Apr 2012 18:28:00 +0300
+
 scratchbox2 (2.3.48-1) unstable; urgency=low
 
   * Networking subsystem is now implemented in C.

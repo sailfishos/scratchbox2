@@ -27,6 +27,42 @@ static int elem_count(const char **elems)
         return count;
 }
 
+/* used for building new argv[] and envp[] vectors */
+struct strv_s {
+	const char	*strv_name;
+
+	const char	**strv_orig_v;
+	int		strv_num_orig_elems;
+
+	const char	**strv_new_v;
+	int		strv_first_free_idx;
+	int		strv_new_v_max_size;
+};
+
+static void init_strv(struct strv_s *svp, const char *name,
+	const char **orig_v, int num_additional_elems)
+{
+	int	num_orig_elems = elem_count(orig_v);
+
+	svp->strv_name = name;
+	svp->strv_num_orig_elems = num_orig_elems;
+	svp->strv_orig_v = orig_v;
+	svp->strv_new_v_max_size = num_orig_elems + num_additional_elems;
+	/* add one to 'nmemb' for the terminating NULL */
+	svp->strv_new_v = calloc(svp->strv_new_v_max_size + 1, sizeof(char*));
+	svp->strv_first_free_idx = 0;
+}
+
+static void add_string_to_strv(struct strv_s *svp, const char *str)
+{
+	SB_LOG(SB_LOGLEVEL_NOISE,
+		"%s: %s[%d] = '%s'",
+		__func__, svp->strv_name, svp->strv_first_free_idx, str);
+	assert(svp->strv_first_free_idx < svp->strv_new_v_max_size);
+	(svp->strv_new_v)[svp->strv_first_free_idx] = str;
+	(svp->strv_first_free_idx)++;
+}
+
 /* FIXME: combine "get_users_ld_preload" and
  * "get_users_ld_library_path" !
 */
@@ -64,11 +100,9 @@ static const char *get_users_ld_library_path(const char **orig_env)
 	return(NULL);
 }
 
-static int setenv_native_app_ld_preload(
+static void setenv_native_app_ld_preload(
 	exec_policy_handle_t	eph,
-	const char		**orig_env,
-	const char		**new_env,
-	int			new_env_idx)
+	struct strv_s *new_envp)
 {
 	const char *new_path = NULL;
 	const char *native_app_ld_preload = NULL;
@@ -79,7 +113,7 @@ static int setenv_native_app_ld_preload(
 	} else {
 		const char *native_app_ld_preload_prefix = NULL;
 		const char *native_app_ld_preload_suffix = NULL;
-		const char *libpath = get_users_ld_preload(orig_env);
+		const char *libpath = get_users_ld_preload(new_envp->strv_orig_v);
 
 		native_app_ld_preload_prefix = EXEC_POLICY_GET_STRING(eph,
 			native_app_ld_preload_prefix);
@@ -130,9 +164,7 @@ static int setenv_native_app_ld_preload(
 		assert(asprintf(&cp, "LD_PRELOAD=%s", new_path) > 0);
 		new_path = cp;
 	}
-	new_env[new_env_idx++] = new_path;
-
-	return(new_env_idx);
+	add_string_to_strv(new_envp, new_path);
 }
 
 /* Old Lua code for reference:
@@ -172,11 +204,9 @@ static int setenv_native_app_ld_preload(
 /* FIXME: combine "setenv_native_app_ld_library_path" and
  * "setenv_native_app_ld_preload" !
 */
-static int setenv_native_app_ld_library_path(
+static void setenv_native_app_ld_library_path(
 	exec_policy_handle_t	eph,
-	const char		**orig_env,
-	const char		**new_env,
-	int			new_env_idx)
+	struct strv_s *new_envp)
 {
 	const char *new_path = NULL;
 	const char *native_app_ld_library_path = NULL;
@@ -187,7 +217,7 @@ static int setenv_native_app_ld_library_path(
 	} else {
 		const char *native_app_ld_library_path_prefix = NULL;
 		const char *native_app_ld_library_path_suffix = NULL;
-		const char *libpath = get_users_ld_library_path(orig_env);
+		const char *libpath = get_users_ld_library_path(new_envp->strv_orig_v);
 
 		native_app_ld_library_path_prefix = EXEC_POLICY_GET_STRING(eph,
 			native_app_ld_library_path_prefix);
@@ -238,11 +268,82 @@ static int setenv_native_app_ld_library_path(
 		assert(asprintf(&cp, "LD_LIBRARY_PATH=%s", new_path) > 0);
 		new_path = cp;
 	}
-	new_env[new_env_idx++] = new_path;
-
-	return(new_env_idx);
+	add_string_to_strv(new_envp, new_path);
 }
 
+/* "generic part" (compare with Lua:sb_execve_postprocess() */
+static int exec_postprocess_prepare(
+	const char *exec_policy_name,
+	exec_policy_handle_t *ephp,
+	char **mapped_file,
+	char **filename,
+	const char *binary_name,
+        const char **orig_argv,
+	struct strv_s	*new_argv,
+	const char **orig_env,
+	struct strv_s	*new_envp)
+{
+	exec_policy_handle_t	eph;
+
+	SB_LOG(SB_LOGLEVEL_DEBUG,
+		"%s: mapped_file=%s filename=%s binary_name=%s exec_policy_name=%s",
+		__func__, *mapped_file, *filename, binary_name, exec_policy_name);
+
+	*ephp = eph = find_exec_policy_handle(exec_policy_name);
+	if (!exec_policy_handle_is_valid(eph)) {
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"%s: invalid exec_policy_handle, allow direct exec",
+			__func__);
+		return(1);
+	}
+	
+	{
+		const char		*log_level = NULL;
+
+		log_level = EXEC_POLICY_GET_STRING(eph, log_level);
+		if (log_level) {
+			const char	*log_message;
+
+			log_message = EXEC_POLICY_GET_STRING(eph, log_message);
+			SB_LOG(sblog_level_name_to_number(log_level), "%s", log_message);
+		}
+	}
+
+	SB_LOG(SB_LOGLEVEL_DEBUG,
+		"%s: Applying exec_policy '%s'",
+		__func__, exec_policy_name);
+
+	/* allocate new environment.
+	 * reserve space for new entries:
+	 *  1) __SB2_EXEC_POLICY_NAME
+	 *  2) LD_LIBRARY_PATH
+	 *  3) LD_PRELOAD
+	 *  4) LOCPATH (optional)
+	 *  5) NLSPATH (optional)
+	 *  6) GCONV_PATH (optional)
+	*/
+	init_strv(new_envp, "envp", orig_env, 6);
+	{
+		char	*cp;
+
+		assert(asprintf(&cp, "__SB2_EXEC_POLICY_NAME=%s", exec_policy_name) > 0);
+		add_string_to_strv(new_envp, cp);
+	}
+
+	/* allocate new argv.
+	 * reserve space for new entries, needed if indirect startup:
+	 *  1) ld.so path
+	 *  2) "--rpath-prefix" or  "--inhibit-rpath"
+	 *  3) exec_policy.native_app_ld_so_rpath_prefix or ""
+	 *  4) "--nodefaultdirs" (optional)
+	 *  5) "--argv0" (optional)
+	 *  6) value for argv0 (optional)
+	*/
+	init_strv(new_argv, "argv", orig_argv, 6);
+
+	/* --- end of "generic part" */
+	return(0);
+}
 
 /* A very straightforward conversion from Lua.
  * (old Lua code is included in the comments for
@@ -267,85 +368,16 @@ int exec_postprocess_native_executable(
         const char ***set_envp)
 {
 	exec_policy_handle_t	eph;
-	const char		**new_env = NULL;
-	int			num_orig_env_vars = 0;
-	int			new_env_max_size = 0;
-	int			new_env_idx = 0;
-	const char		**new_argv = NULL;
-	int			num_orig_argv_vars = 0;
-	int			new_argv_max_size = 0;
-	int			new_argv_idx = 0;
 	const char		*native_app_ld_so = NULL;
 	char			*new_filename = *filename;
 	char			*new_mapped_file = *mapped_file;
 	int			first_argv_element_to_copy = 0;
+	struct strv_s		new_envp;
+	struct strv_s		new_argv;
 
-	/* "generic part" (compare with Lua:sb_execve_postprocess() */
-	SB_LOG(SB_LOGLEVEL_DEBUG,
-		"%s: mapped_file=%s filename=%s binary_name=%s exec_policy_name=%s",
-		__func__, *mapped_file, *filename, binary_name, exec_policy_name);
-
-	eph = find_exec_policy_handle(exec_policy_name);
-	if (!exec_policy_handle_is_valid(eph)) {
-		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"%s: invalid exec_policy_handle, allow direct exec",
-			__func__);
-		return(1);
-	}
-	
-	{
-		const char		*log_level = NULL;
-
-		log_level = EXEC_POLICY_GET_STRING(eph, log_level);
-		if (log_level) {
-			const char	*log_message;
-
-			log_message = EXEC_POLICY_GET_STRING(eph, log_message);
-			SB_LOG(sblog_level_name_to_number(log_level), "%s", log_message);
-		}
-	}
-
-	SB_LOG(SB_LOGLEVEL_DEBUG,
-		"%s: Applying exec_policy '%s' to native binary",
-		__func__, exec_policy_name);
-
-	/* allocate new environment.
-	 * reserve space for new entries:
-	 *  1) __SB2_EXEC_POLICY_NAME
-	 *  2) LD_LIBRARY_PATH
-	 *  3) LD_PRELOAD
-	 *  4) LOCPATH (optional)
-	 *  5) NLSPATH (optional)
-	 *  6) GCONV_PATH (optional)
-	*/
-	num_orig_env_vars = elem_count(orig_env);
-	new_env_max_size = num_orig_env_vars + 6;
-	/* add one to size for the terminating NULL */
-	new_env = calloc(new_env_max_size + 1, sizeof(char*));
-
-	{
-		char	*cp;
-
-		assert(asprintf(&cp, "__SB2_EXEC_POLICY_NAME=%s", exec_policy_name) > 0);
-		new_env[new_env_idx++] = cp;
-	}
-
-	/* allocate new argv.
-	 * reserve space for new entries, needed if indirect startup:
-	 *  1) ld.so path
-	 *  2) "--rpath-prefix" or  "--inhibit-rpath"
-	 *  3) exec_policy.native_app_ld_so_rpath_prefix or ""
-	 *  4) "--nodefaultdirs" (optional)
-	 *  5) "--argv0" (optional)
-	 *  6) value for argv0 (optional)
-	*/
-	num_orig_argv_vars = elem_count(orig_argv);
-	new_argv_max_size = num_orig_argv_vars + 6;
-	/* add one to 'nmemb' for the terminating NULL */
-	new_argv = calloc(new_argv_max_size + 1, sizeof(char*));
-
-	/* --- end of "generic part" */
-
+	if (exec_postprocess_prepare(exec_policy_name, &eph, mapped_file,
+		filename, binary_name, orig_argv, &new_argv,
+		orig_env, &new_envp)) return(1);
 
 	/* Old Lua code, for reference:
 	 *	function sb_execve_postprocess_native_executable(exec_policy,
@@ -386,7 +418,7 @@ int exec_postprocess_native_executable(
 			"%s: native_app_ld_so='%s'",
 			__func__, native_app_ld_so);
 
-		new_argv[new_argv_idx++] = native_app_ld_so;
+		add_string_to_strv(&new_argv, native_app_ld_so);
 		new_mapped_file = strdup(native_app_ld_so); /* FIXME */
 
 		/* Ignore RPATH and RUNPATH information:
@@ -407,11 +439,11 @@ int exec_postprocess_native_executable(
 		native_app_ld_so_rpath_prefix = EXEC_POLICY_GET_STRING(eph, native_app_ld_so_rpath_prefix);
 		if (native_app_ld_so_rpath_prefix &&
 		    EXEC_POLICY_GET_BOOLEAN(eph, native_app_ld_so_supports_rpath_prefix)) {
-			new_argv[new_argv_idx++] = "--rpath-prefix";
-			new_argv[new_argv_idx++] = native_app_ld_so_rpath_prefix;
+			add_string_to_strv(&new_argv, "--rpath-prefix");
+			add_string_to_strv(&new_argv, native_app_ld_so_rpath_prefix);
 		} else {
-			new_argv[new_argv_idx++] = "--inhibit-rpath";
-			new_argv[new_argv_idx++] = "";
+			add_string_to_strv(&new_argv, "--inhibit-rpath");
+			add_string_to_strv(&new_argv, "");
 		}
 
 		/* Lua:
@@ -420,7 +452,7 @@ int exec_postprocess_native_executable(
 		 *	end
 		*/
 		if (EXEC_POLICY_GET_BOOLEAN(eph, native_app_ld_so_supports_nodefaultdirs)) {
-			new_argv[new_argv_idx++] = "--nodefaultdirs";
+			add_string_to_strv(&new_argv, "--nodefaultdirs");
 		}
 
 		/*
@@ -450,12 +482,12 @@ int exec_postprocess_native_executable(
 		 * end
 		*/
 		if (EXEC_POLICY_GET_BOOLEAN(eph, native_app_ld_so_supports_argv0)) {
-			new_argv[new_argv_idx++] = "--argv0";
-			new_argv[new_argv_idx++] = orig_argv[0];
+			add_string_to_strv(&new_argv, "--argv0");
+			add_string_to_strv(&new_argv, orig_argv[0]);
 		}
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"%s: argv: add '%s'", __func__, *mapped_file);
-		new_argv[new_argv_idx++] = *mapped_file;
+		add_string_to_strv(&new_argv, *mapped_file);
 		first_argv_element_to_copy = 1; /* in C, argv[0] is the first one */
 	}
 
@@ -471,10 +503,8 @@ int exec_postprocess_native_executable(
 	 *		updated_args = 1
 	 *	end
 	*/
-	new_env_idx = setenv_native_app_ld_library_path(eph,
-		orig_env, new_env, new_env_idx);
-	new_env_idx = setenv_native_app_ld_preload(eph,
-		orig_env, new_env, new_env_idx);
+	setenv_native_app_ld_library_path(eph, &new_envp); 
+	setenv_native_app_ld_preload(eph, &new_envp);
 
 	/* When exec_policy contains field 'native_app_locale_path' we
 	 * need to set environment variables $LOCPATH (and $NLSPATH) to
@@ -506,9 +536,9 @@ int exec_postprocess_native_executable(
 				"%s: setting LOCPATH and NLSPATH to '%s'",
 				__func__, native_app_locale_path);
 			assert(asprintf(&cp, "LOCPATH=%s", native_app_locale_path) > 0);
-			new_env[new_env_idx++] = cp;
+			add_string_to_strv(&new_envp, cp);
 			assert(asprintf(&cp, "NLSPATH=%s", native_app_locale_path) > 0);
-			new_env[new_env_idx++] = cp;
+			add_string_to_strv(&new_envp, cp);
 		}
 	}
 
@@ -534,7 +564,7 @@ int exec_postprocess_native_executable(
 				"%s: setting GCONV_PATH to '%s'",
 				__func__, native_app_gconv_path);
 			assert(asprintf(&cp, "GCONV_PATH=%s", native_app_gconv_path) > 0);
-			new_env[new_env_idx++] = cp;
+			add_string_to_strv(&new_envp, cp);
 		}
 	}
 		
@@ -565,7 +595,7 @@ int exec_postprocess_native_executable(
 			}
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"%s: env: add '%s'", __func__, orig_env[i]);
-			new_env[new_env_idx++] = orig_env[i];
+			add_string_to_strv(&new_envp, orig_env[i]);
 		}
 	}
 
@@ -594,14 +624,12 @@ int exec_postprocess_native_executable(
 		for (i = first_argv_element_to_copy; orig_argv[i]; i++) {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"%s: argv: add '%s'", __func__, orig_argv[i]);
-			new_argv[new_argv_idx++] = orig_argv[i];
+			add_string_to_strv(&new_argv, orig_argv[i]);
 		}
 	}
 
-	*set_envp = new_env;
-	*set_argv = new_argv;
-	assert(new_env_idx <= new_env_max_size);
-	assert(new_argv_idx <= new_argv_max_size);
+	*set_envp = new_envp.strv_new_v;
+	*set_argv = new_argv.strv_new_v;
 	*mapped_file = new_mapped_file;
 	*filename = new_filename;
 	/* instruct caller to always use argv,envp,filename

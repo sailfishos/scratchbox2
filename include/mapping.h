@@ -103,12 +103,16 @@ extern char *custom_map_abstract_path(
         int fn_class, const char **new_exec_policy_p);
 
 extern char *emumode_map(const char *path);
+#if 0
 extern void sb_push_string_to_lua_stack(char *str);
+#endif
 
+#if 0
 extern int sb_execve_postprocess(const char *exec_type,
 	const char *exec_policy_name,
 	char **mapped_file, char **filename, const char *binary_name,
 	char ***argv, char ***envp);
+#endif
 
 extern char *scratchbox_reverse_path(
 	const char *func_name, const char *full_path, uint32_t classmask);

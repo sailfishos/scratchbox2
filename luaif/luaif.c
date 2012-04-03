@@ -401,6 +401,32 @@ static int lua_sb_decolonize_path(lua_State *l)
 }
 #endif
 
+static void lua_string_table_to_strvec(lua_State *l,
+	int lua_stack_offs, char ***args, int new_argc)
+{
+	int	i;
+
+	*args = calloc(new_argc + 1, sizeof(char *));
+
+	for (i = 0; i < new_argc; i++) {
+		lua_rawgeti(l, lua_stack_offs, i + 1);
+		(*args)[i] = strdup(lua_tostring(l, -1));
+		lua_pop(l, 1); /* return stack state to what it
+					 * was before lua_rawgeti() */
+	}
+	(*args)[i] = NULL;
+}
+
+static void strvec_free(char **args)
+{
+	char **p;
+
+	for (p = args; *p; p++) {
+		free(*p);
+	}
+	free(args);
+}
+
 /* Make preparations for an union directory:
  * (FIXME. This is not very efficient)
  * (FIXME. Does not remove removed entries)

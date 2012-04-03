@@ -255,9 +255,11 @@ extern int (*pthread_setspecific_fnptr)(pthread_key_t key,
 	const void *value);
 extern int (*pthread_once_fnptr)(pthread_once_t *, void (*)(void));
 
+#if 0
 extern void lua_string_table_to_strvec(lua_State *l,
 	int lua_stack_offs, char ***args, int new_argc);
 void strvec_free(char **args);
+#endif
 
 extern int lua_bind_sblib_functions(lua_State *l);
 extern int lua_sb_log(lua_State *l);

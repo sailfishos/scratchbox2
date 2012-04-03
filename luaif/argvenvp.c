@@ -77,6 +77,7 @@ static void strvec_to_lua_table(struct sb2context *sb2ctx, char **args)
 }
 #endif
 
+#if 0
 void strvec_free(char **args)
 {
 	char **p;
@@ -86,6 +87,7 @@ void strvec_free(char **args)
 	}
 	free(args);
 }
+#endif
 
 #if 0
 /* convert a lua table (table of strings) to a string vector,

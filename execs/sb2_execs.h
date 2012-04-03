@@ -92,11 +92,32 @@ extern int exec_map_script_interpreter(
 	const char **new_exec_policy_p, 
         char       **mapped_interpreter_p);
 
-int exec_postprocess_native_executable(
+extern int exec_postprocess_native_executable(
         const char *exec_policy_name,
         char **mapped_file,
         char **filename,
         const char *binary_name,
+        const char **orig_argv,
+        const char ***set_argv,
+	const char **orig_env,
+        const char ***set_envp);
+
+extern int exec_postprocess_cpu_transparency_executable(
+	const char *exec_policy_name,
+	char **mapped_file,
+	char **filename,
+	const char *binary_name,
+        const char **orig_argv,
+        const char ***set_argv,
+	const char **orig_env,
+        const char ***set_envp,
+	const char *conf_cputransparency_name);
+
+extern int exec_postprocess_host_static_executable(
+	const char *exec_policy_name,
+	char **mapped_file,
+	char **filename,
+	const char *binary_name,
         const char **orig_argv,
         const char ***set_argv,
 	const char **orig_env,

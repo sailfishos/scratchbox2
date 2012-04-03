@@ -1375,6 +1375,8 @@ static int prepare_exec(const char *exec_fn_name,
 			 * every time when someone executes that)
 			*/
 			{
+				/* FIXME: This block of code should probably be active
+				 * only if host Qemu has not been configured */
 				const char *allow_static_bin;
 
 				allow_static_bin = getenv(
@@ -1394,20 +1396,54 @@ static int prepare_exec(const char *exec_fn_name,
 						mapped_file);
 				}
 			}
-			/* Call postprocessing.
-			 * This adds LD_LIBRARY_PATH and LD_PRELOAD.
-			 * the static binary itselft does not need
-			 * these, but if it executes another 
-			 * program, then there is at least some
-			 * hope of getting back to SB2. It won't
-			 * be able to start anything that runs
-			 * under CPU transparency, but host-compatible
-			 * binaries may be able to get back..
-			*/
+#if 0
 			postprocess_result = sb_execve_postprocess("static",
 				exec_policy_name,
 				&mapped_file, &my_file, binaryname,
 				&my_argv, &my_envp);
+#else
+			{
+				const char			*namev_in_ruletree[4];
+				const char			*cputransp_cmd = NULL;
+				ruletree_object_offset_t	cmd_offs;
+
+				namev_in_ruletree[0] = "cputransparency";
+				namev_in_ruletree[1] = "native";
+				namev_in_ruletree[2] = "cmd";
+				namev_in_ruletree[3] = NULL;
+				cmd_offs = ruletree_catalog_vget(namev_in_ruletree);
+				if (cmd_offs) {
+					cputransp_cmd = offset_to_ruletree_string_ptr(cmd_offs, NULL);
+				}
+				if (cputransp_cmd) {
+					postprocess_result = exec_postprocess_cpu_transparency_executable(
+						exec_policy_name,
+						&mapped_file, &my_file, binaryname,
+						(const char **)my_argv, &my_new_argv,
+						(const char **)*new_envp, &my_new_envp,
+						"native");
+					my_envp = (char**)my_new_envp; /* FIXME */
+					my_argv = (char**)my_new_argv; /* FIXME */
+				} else {
+					/* Add LD_LIBRARY_PATH and LD_PRELOAD.
+					 * the static binary itself does not need
+					 * these, but if it executes another 
+					 * program, then there is at least some
+					 * hope of getting back to SB2. It won't
+					 * be able to start anything that runs
+					 * under CPU transparency, but host-compatible
+					 * binaries may be able to get back..
+					*/
+					postprocess_result = exec_postprocess_host_static_executable(
+						exec_policy_name,
+						&mapped_file, &my_file, binaryname,
+						(const char **)my_argv, &my_new_argv,
+						(const char **)*new_envp, &my_new_envp);
+					my_envp = (char**)my_new_envp; /* FIXME */
+					my_argv = (char**)my_new_argv; /* FIXME */
+				}
+			}
+#endif
 			if (postprocess_result < 0) {
 				errno = EINVAL;
 				ret = -1;
@@ -1424,11 +1460,21 @@ static int prepare_exec(const char *exec_fn_name,
 			SB_LOG(SB_LOGLEVEL_DEBUG, "Exec/target %s",
 					mapped_file);
 
+#if 0
 			postprocess_result = sb_execve_postprocess(
 				"cpu_transparency",
 				exec_policy_name,
 				&mapped_file, &my_file,
 				binaryname, &my_argv, &my_envp);
+#else
+			postprocess_result = exec_postprocess_cpu_transparency_executable(
+				exec_policy_name,
+				&mapped_file, &my_file, binaryname,
+				(const char **)my_argv, &my_new_argv, (const char **)*new_envp, &my_new_envp,
+				"target");
+			my_envp = (char**)my_new_envp; /* FIXME */
+			my_argv = (char**)my_new_argv; /* FIXME */
+#endif
 
 			if (postprocess_result < 0) {
 				errno = EINVAL;

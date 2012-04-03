@@ -57,6 +57,7 @@ void dump_lua_stack(const char *msg, lua_State *L)
 	}
 }
 
+#if 0
 /* Convert a vector of strings to a lua table, leaves that table to
  * lua's stack.
 */
@@ -74,6 +75,7 @@ static void strvec_to_lua_table(struct sb2context *sb2ctx, char **args)
 		lua_settable(sb2ctx->lua, -3);
 	}
 }
+#endif
 
 void strvec_free(char **args)
 {
@@ -85,7 +87,7 @@ void strvec_free(char **args)
 	free(args);
 }
 
-
+#if 0
 /* convert a lua table (table of strings) to a string vector,
  * the vector will be dynamically allocated.
 */
@@ -104,7 +106,9 @@ void lua_string_table_to_strvec(lua_State *l,
 	}
 	(*args)[i] = NULL;
 }
+#endif
 
+#if 0
 void sb_push_string_to_lua_stack(char *str) 
 {
 	struct sb2context *sb2ctx = get_sb2context_lua();
@@ -114,7 +118,9 @@ void sb_push_string_to_lua_stack(char *str)
 		release_sb2context(sb2ctx);
 	}
 }
+#endif
 
+#if 0
 /* Exec Postprocessing:
 */
 int sb_execve_postprocess(const char *exec_type, 
@@ -219,4 +225,5 @@ int sb_execve_postprocess(const char *exec_type,
 	release_sb2context(sb2ctx);
 	return res;
 }
+#endif
 

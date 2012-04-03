@@ -645,6 +645,8 @@ function sb_execve_postprocess(exec_policy_name, exec_type,
 
 	assert(exec_policy_name ~= nil)
 
+	sb.log("error", "sb_execve_postprocess called. "..exec_policy_name.." "..mapped_file.." "..filename);
+
 	local exec_policy = get_exec_policy_by_name(exec_policy_name)
 	if exec_policy == nil then
 		sb.log("error", "Exec policy '"..exec_policy_name.."' not found.")

@@ -145,10 +145,13 @@ struct sb2context {
  * * 126:
  *     sbox_map_network_addr() and sb.test_net_addr_match() 
  *     were removed.
+ * * 127:
+ *     exec postprocessing is completely implemented in C,
+ *     sb_execve_postprocess() is not needed anymore.
  *
  * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
-#define SB2_LUA_C_INTERFACE_VERSION "126"
+#define SB2_LUA_C_INTERFACE_VERSION "127"
 
 /* This version string is used to check that init.lua offers
  * what sb2d expects, and v.v.

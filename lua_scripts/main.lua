@@ -16,7 +16,7 @@ mapping_engine_loaded = false
 --
 -- NOTE: the corresponding identifier for C is in include/sb2.h,
 -- see that file for description about differences
-sb2_lua_c_interface_version = "126"
+sb2_lua_c_interface_version = "127"
 
 function do_file(filename)
 	if (debug_messages_enabled) then
@@ -69,24 +69,24 @@ end
 --
 -- Also, "mapping.lua" is loaded only when needed.
 
-function sb_execve_postprocess_loader(rule, exec_policy, exec_type,
-		mapped_file, filename, binaryname, argv, envp)
-	local prev_fn = sb_execve_postprocess
-
-	sb.log("info", "sb_execve_postprocess called: loading argvenvp.lua")
-	do_file(session_dir .. "/lua_scripts/argvenvp.lua")
-
-	if prev_fn == sb_execve_postprocess then
-		sb.log("error",
-			"Fatal: Failed to load real sb_execve_postprocess")
-		os.exit(88)
-	end
-
-	-- This loader has been replaced. The following call is not
-	-- a recursive call to this function, even if it may look like one:
-	return sb_execve_postprocess(rule, exec_policy, exec_type,
-		mapped_file, filename, binaryname, argv, envp)
-end
+--function sb_execve_postprocess_loader(rule, exec_policy, exec_type,
+--		mapped_file, filename, binaryname, argv, envp)
+--	local prev_fn = sb_execve_postprocess
+--
+--	sb.log("info", "sb_execve_postprocess called: loading argvenvp.lua")
+--	do_file(session_dir .. "/lua_scripts/argvenvp.lua")
+--
+--	if prev_fn == sb_execve_postprocess then
+--		sb.log("error",
+--			"Fatal: Failed to load real sb_execve_postprocess")
+--		os.exit(88)
+--	end
+--
+--	-- This loader has been replaced. The following call is not
+--	-- a recursive call to this function, even if it may look like one:
+--	return sb_execve_postprocess(rule, exec_policy, exec_type,
+--		mapped_file, filename, binaryname, argv, envp)
+--end
 
 function sbox_get_mapping_requirements(binary_name, func_name, full_path, fn_class)
 	local prev_fn = sbox_get_mapping_requirements
@@ -146,10 +146,10 @@ local binary_name = sb.get_binary_name()
 --	end
 --	do_file(session_dir .. "/lua_scripts/argvenvp.lua")
 --else
-	if debug_messages_enabled then
-		sb.log("debug", "exec code will be loaded on demand")
-	end
-	sb_execve_postprocess = sb_execve_postprocess_loader
+	--if debug_messages_enabled then
+	--	sb.log("debug", "exec code will be loaded on demand")
+	--end
+	--sb_execve_postprocess = sb_execve_postprocess_loader
 --end
 
 -- sb2 is ready for operation!

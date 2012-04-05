@@ -1,3 +1,21 @@
+scratchbox2 (2.3.50-1) unstable; urgency=low
+
+  * No more Lua in libsb2. Lua is now used only in sb2d.
+    The runtime "core" of Scratchbox 2 operates now completely
+    without the Lua interpreter. Lua is used at session setup
+    time from sb2d, but after that, Lua is inactive.
+  * All parts of exec postprocessing are now implemented in C,
+    except one which was disabled: sbrsh is not anymore available
+    as a CPU transparency method.
+  * Qemu is the only supported CPU transparency method currently;
+    regardless of what has been configured with sb2-init, libsb2
+    assumes it is Qemu.
+  * The old Lua-related files are still there, and there is 
+    dead code in the C files, too. Those are now waiting for a
+    bigger cleanup.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 05 Apr 2012 17:51:00 +0300
+
 scratchbox2 (2.3.49-1) unstable; urgency=low
 
   * Adapted the host-static-binaries-with-Qemu feature [from

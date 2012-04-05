@@ -1,6 +1,9 @@
 
+# Not needed anymore in the library, because Lua was dropped from libsb2:
+#	$(D)/rule_tree_luaif.o
+# (instead, that file *is* needed for sb2d - to be moved)
+
 objs := $(D)/rule_tree.o \
-	$(D)/rule_tree_luaif.o \
 	$(D)/rule_tree_utils.o \
 	$(D)/rule_tree_rpc_client.o
 

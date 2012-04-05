@@ -12,6 +12,7 @@
 #include "rule_tree.h"
 #include "rule_tree_rpc.h"
 #include "mapping.h"
+#include "sblib_luaif.h"
 
 extern char *execute_init2_script(void);
 

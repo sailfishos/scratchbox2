@@ -1,8 +1,9 @@
 LUASRC = luaif/lua-5.1.4/src
 
-objs := $(D)/luaif.o \
-	$(D)/argvenvp.o \
-	$(D)/sblib_luaif.o
+# Not needed anymore, because Lua was dropped from libsb2:
+#	$(D)/luaif.o $(D)/argvenvp.o
+
+objs := $(D)/sblib_luaif.o
 
 $(D)/sblib_luaif.o: preload/exported.h
 

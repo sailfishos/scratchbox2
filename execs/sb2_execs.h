@@ -10,6 +10,7 @@
 #ifndef __EXEC_INTERNAL_H
 #define __EXEC_INTERNAL_H
 
+#include <stddef.h>
 #include "rule_tree.h"
 
 extern int apply_exec_preprocessing_rules(char **file, char ***argv, char ***envp);

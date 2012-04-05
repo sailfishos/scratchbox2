@@ -33,6 +33,7 @@
 #include <signal.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <stddef.h>
 #include "libsb2.h"
 #include "sb2_network.h"
 #include "exported.h"

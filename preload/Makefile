@@ -9,7 +9,8 @@ objs := wrappers.o privatewrappers.o \
 	vperm_statfuncts.o \
 	fdpathdb.o procfs.o mempcpy.o \
 	union_dirs.o \
-	system.o
+	system.o \
+	sb2context.o
 
 ifeq ($(shell uname -s),Linux)
 LIBSB2_LDFLAGS = -Wl,-soname=$(LIBSB2_SONAME) \
@@ -27,7 +28,8 @@ endif
 
 
 $(D)/libsb2.$(SHLIBEXT): $(call O,$(objs))
-$(D)/libsb2.$(SHLIBEXT): luaif/libluaif.a luaif/liblua.a sblib/libsblib.a
+# $(D)/libsb2.$(SHLIBEXT): luaif/libluaif.a luaif/liblua.a sblib/libsblib.a
+$(D)/libsb2.$(SHLIBEXT): sblib/libsblib.a
 $(D)/libsb2.$(SHLIBEXT): pathmapping/libpaths.a
 $(D)/libsb2.$(SHLIBEXT): execs/libexecs.a
 $(D)/libsb2.$(SHLIBEXT): network/libsb2net.a

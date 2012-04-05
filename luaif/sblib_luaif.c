@@ -24,6 +24,8 @@
 #include "libsb2.h"
 #include "exported.h"
 
+#include "sblib_luaif.h"
+
 /* "sb.log": interface from lua to the logging system.
  * Parameters:
  *  1. log level (string)

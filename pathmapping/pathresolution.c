@@ -105,11 +105,20 @@
 /* FIXME: Temporary hack. We have two versions of following
  * functions, lets rename the c_engine versions:
 */
+#if 0
 #ifdef SB2_PATHRESOLUTION_C_ENGINE
 #define clean_dotdots_from_path clean_dotdots_from_path__c_engine
 #define remove_dots_from_path_list remove_dots_from_path_list__c_engine
 #define sb_path_resolution sb_path_resolution__c_engine
 #define sb_path_resolution_resolve_symlink sb_path_resolution_resolve_symlink__c_engine
+#endif
+#else
+#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
+#define clean_dotdots_from_path clean_dotdots_from_path__lua_engine
+#define remove_dots_from_path_list remove_dots_from_path_list__lua_engine
+#define sb_path_resolution sb_path_resolution__lua_engine
+#define sb_path_resolution_resolve_symlink sb_path_resolution_resolve_symlink__lua_engine
+#endif
 #endif
 
 /* remove_dots_from_path_list(), "easy" path cleaning:
@@ -120,7 +129,7 @@
  * - doubled slashes ("//") have already been removed, when
  *   the path was split to components.
 */
-#ifdef SB2_PATHRESOLUTION_C_ENGINE
+#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
 /* the other one (from the Lua engine) is currently the public one*/
 static
 #endif
@@ -194,7 +203,7 @@ static ruletree_object_offset_t sb_path_resolution(
  * by accident.
  * Can be used for both virtual paths and host paths.
 */
-#ifdef SB2_PATHRESOLUTION_C_ENGINE
+#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
 /* the other one (from the Lua engine) is currently the public one*/
 static
 #endif

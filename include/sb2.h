@@ -18,9 +18,11 @@
 */
 #include <pthread.h>
 
+#if 0
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
+#endif
 
 #ifdef DMALLOC
 #include <dmalloc.h>
@@ -33,8 +35,10 @@
  * functions "get_sb2context() and get_sb2context_lua())
 */
 struct sb2context {
+#if 0
 	/* Lua: */
 	lua_State *lua;
+#endif
 
 	/* general: */
 	int mapping_disabled;
@@ -179,7 +183,9 @@ extern time_t get_sb2_timestamp(void);
 
 extern char *procfs_mapping_request(const char *path);
 
+#if 0
 extern void dump_lua_stack(const char *msg, lua_State *L);
+#endif
 
 extern int sb_path_exists(const char *path);
 
@@ -261,6 +267,7 @@ extern void lua_string_table_to_strvec(lua_State *l,
 void strvec_free(char **args);
 #endif
 
+#if 0
 extern int lua_bind_sblib_functions(lua_State *l);
 extern int lua_sb_log(lua_State *l);
 extern int lua_sb_path_exists(lua_State *l);
@@ -268,6 +275,7 @@ extern int lua_sb_debug_messages_enabled(lua_State *l);
 extern int lua_sb_isprefix(lua_State *l);
 extern int lua_sb_test_path_match(lua_State *l);
 extern int lua_sb_readlink(lua_State *l);
+#endif
 
 
 extern int test_if_str_in_colon_separated_list_from_env(

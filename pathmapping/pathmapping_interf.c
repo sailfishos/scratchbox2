@@ -67,6 +67,7 @@ static struct sb2context *check_mapping_method(int need_sb2ctx)
 	struct sb2context *sb2ctx = NULL;
 
 	if (mapping_method == MAPPING_METHOD_NOT_SET) {
+#if 0
 		if (sbox_mapping_method) {
 			if (!strcmp(sbox_mapping_method,"c") ||
 			    !strcmp(sbox_mapping_method,"C")) {
@@ -134,25 +135,33 @@ static struct sb2context *check_mapping_method(int need_sb2ctx)
 #endif
 		} else {
 			/* default to both */
+#endif
 			mapping_method = MAPPING_METHOD_C_ENGINE;
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"(Using C mapping engine = the default)");
+#if 0
 		}
+#endif
 	}
 	if (need_sb2ctx) {
+#if 0
 		switch (mapping_method) {
 		case MAPPING_METHOD_C_ENGINE:
 		case MAPPING_METHOD_C_ENGINE_WITH_FALLBACKS:
+#endif
 			sb2ctx = get_sb2context();
+#if 0
 			break;
 		default: /* ..LUA or ..BOTH */
 			sb2ctx = get_sb2context_lua();
 			break;
 		}
+#endif
 	}
 	return(sb2ctx);
 }
 
+#if 0
 static void compare_results_from_c_and_lua_engines(
 	const char *name,
 	const char *fn_name,
@@ -186,6 +195,7 @@ static void compare_results_from_c_and_lua_engines(
 		}
 	}
 }
+#endif
 
 /* ========== Public interfaces to the mapping & resolution code: ========== */
 
@@ -206,13 +216,16 @@ static void fwd_map_path(
 		res->mres_result_buf = res->mres_result_path = NULL;
 		res->mres_readonly = 1;
 	} else {
+#if 0
 		mapping_results_t res2;
+#endif
 		PROCESSCLOCK(clk1)
 
 		sb2ctx = check_mapping_method(1);
 
 		START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "fwd_map_path");
 		switch (mapping_method) {
+#if 0
 		case MAPPING_METHOD_C_ENGINE_WITH_FALLBACKS:
 			sbox_map_path_internal__c_engine(sb2ctx, binary_name,
 				func_name, virtual_path,
@@ -228,12 +241,14 @@ static void fwd_map_path(
 					dont_resolve_final_symlink, 0, fn_class, res);
 			}
 			break;
+#endif
 		case MAPPING_METHOD_C_ENGINE:
 			sbox_map_path_internal__c_engine(sb2ctx, binary_name,
 				func_name, virtual_path,
 				dont_resolve_final_symlink, 0, fn_class, res, 0);
 			if (res->mres_fallback_to_lua_mapping_engine &&
 			    (res->mres_fallback_to_lua_mapping_engine[0] == '#')) {
+#if 0
 				SB_LOG(SB_LOGLEVEL_NOTICE,
 					"C path mapping engine failed (%s), fallback to Lua was forced (%s)",
 					res->mres_fallback_to_lua_mapping_engine, virtual_path);
@@ -242,12 +257,18 @@ static void fwd_map_path(
 				sbox_map_path_internal__lua_engine(sb2ctx, binary_name,
 					func_name, virtual_path,
 					dont_resolve_final_symlink, 0, fn_class, res);
+#else
+				SB_LOG(SB_LOGLEVEL_ERROR,
+					"C path mapping engine tries to force fallback to Lua, won't do that (%s)",
+					res->mres_fallback_to_lua_mapping_engine, virtual_path);
+#endif
 			} else if (res->mres_fallback_to_lua_mapping_engine) {
 				SB_LOG(SB_LOGLEVEL_NOTICE,
 					"C path mapping engine failed (%s), NO fallback to Lua (%s)",
 					res->mres_fallback_to_lua_mapping_engine, virtual_path);
 			}
 			break;
+#if 0
 		case MAPPING_METHOD_LUA_ENGINE:
 			sbox_map_path_internal__lua_engine(sb2ctx, binary_name, func_name, virtual_path,
 				dont_resolve_final_symlink, 0, fn_class, res);
@@ -273,6 +294,7 @@ static void fwd_map_path(
 				res->mres_virtual_cwd);
 			free_mapping_results(&res2);
 			break;
+#endif
 		default:
 			SB_LOG(SB_LOGLEVEL_ERROR,
 				"%s: Invalid mapping method",
@@ -397,7 +419,10 @@ char *reverse_map_path(
 	const path_mapping_context_t	*ctx,
 	const char *abs_host_path)
 {
-	char *virtual_path = NULL, *vp2 = NULL;
+	char *virtual_path = NULL;
+#if 0
+	char *vp2 = NULL;
+#endif
 
 	if (!abs_host_path || !ctx) {
 		return(NULL);
@@ -406,6 +431,7 @@ char *reverse_map_path(
 	check_mapping_method(0);
 
 	switch (mapping_method) {
+#if 0
 	case MAPPING_METHOD_C_ENGINE_WITH_FALLBACKS:
 		virtual_path = sbox_reverse_path_internal__c_engine(
 			ctx, abs_host_path);
@@ -423,6 +449,7 @@ char *reverse_map_path(
 			virtual_path = call_lua_function_sbox_reverse_path(ctx, abs_host_path);
 		}
 		break;
+#endif
 
 	case MAPPING_METHOD_C_ENGINE:
 		virtual_path = sbox_reverse_path_internal__c_engine(
@@ -435,6 +462,7 @@ char *reverse_map_path(
 		}
 		break;
 
+#if 0
 	case MAPPING_METHOD_LUA_ENGINE:
 		if (!ctx->pmc_sb2ctx->lua) sb2context_initialize_lua(ctx->pmc_sb2ctx);
 		virtual_path = call_lua_function_sbox_reverse_path(ctx, abs_host_path);
@@ -449,6 +477,7 @@ char *reverse_map_path(
 			__func__, vp2, virtual_path);
 		if (vp2) free(vp2);
 		break;
+#endif
 
 	default:
 		SB_LOG(SB_LOGLEVEL_ERROR,

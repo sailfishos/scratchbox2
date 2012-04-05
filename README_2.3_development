@@ -23,7 +23,8 @@ new features or improvements of old ones:
 3) Path mapping logic has been re-implemented in C (originally, it was
    written in Lua).
 
-4) Exec logic (partially) in C
+4) Exec logic has been re-implemented in C (except support for sbrsh
+   as a CPU transparency method; that one is currently unsupported)
 
 5) Fakeroot has been replaced with an internal, more comprehensive
    solution (see "VIRTUAL PERMISSIONS" in the manual page.)
@@ -144,49 +145,28 @@ path_resolution"). And implemented in C.
 
 The other part, path mapping logic, was implemented in Lua in the early
 days of SB2 development. However, having the Lua interpreter running in
-every process is not really an optimal solution (there are several reasons
+every process was not really an optimal solution (there are several reasons
 for this, including performance).
+
 So, it was decided to create another implementation of path mapping logic
-in C. This would not solve all Lua-related problems instantly; the other
-two Lua-based subsystems (exec and networking) still mean that the Lua
-interpreter is needed, but it isn't necessarily initialized every time
-anymore [hopefully someday those could be re-implemented in C, too]
+in C. Later the other two Lua-based subsystems (exec and networking)
+were also rewritten.
 
-Current status: The new path mapping logic is available for testing.
-Versions 2.3.5- have two mapping engines: The old one (in Lua)
-and the new one (in C). 
+Current status:
+Versions 2.3.5-2.3.49 had two mapping engines: The old one (in Lua)
+and the new one (in C). Starting from 2.3.50, only the new one is
+available.
 
-Starting from 2.3.42 the C mapping engine is the default. The old
-code can still be enabled by an environment variable:
-
-- setenv SBOX_MAPPING_METHOD="Lua"
-  All paths are mapped with the Lua engine only.
-
-- setenv SBOX_MAPPING_METHOD="C"
-  All paths are mapped with the C engine only.
-
-- setenv SBOX_MAPPING_METHOD="C2"
-  All paths are mapped with the C engine, but if path mapping
-  fails, Lua mapping is tried. Note that there are some cases
-  (especially in path reversing side) where pathmapping simply
-  produces no result.
-
-- setenv SBOX_MAPPING_METHOD="Both"
-  Use both engines and log differences. Same as the default.
-
-The algorithms: The old implementation (in Lua) is considered stable,
+The algorithms: The old implementation (in Lua) was considered stable,
 and produces correct results (AFAIK). Therefore, the C engine replicates
 same algorithms, even if they are not the most powerful algorithms 
 on this planet. Replacing e.g. the string lookup algorithms would be
 a different story.
 There is one big difference in these two implementations: The old
-thing loads all rules when a process is started inside a session,
+thing loaded all rules when a process is started inside a session,
 while the new implementation loads rules  only once when session 
 is created. Some changes had to be done to the rule files (and syntax)
 because of this.
-
-N.B. Script interpreter mapping (defined in the exec policy files)
-still use the Lua mapping engine, always.
 
 The rule database, "ruletree":
 The C-based implementation collects rules to a binary, memory mapped
@@ -197,17 +177,7 @@ Note that the binary structures are position independent; no pointers,
 just offsets there. And the ruletree shall not be modified after it has
 been created (no locks, etc)
 
-Testing and debugging:
-0) setenv SBOX_MAPPING_METHOD="Both"
-1) To verify the results, use SB2 as usual. If there are
-different results from Lua and C mappings, those will be logged
-as errors. 
-2) activate debug messages (-d) and check if there are cases that
-the C engine can't map at all; grep for "ResultCheck" from the
-debug log.
-3) Run your processes with SBOX_MAPPING_METHOD=C and check that
-the results are the same as without it.
-4) the ruletree can be dumped with utils/sb2-ruletree. 
+Testing and debugging: the ruletree can be dumped with utils/sb2-ruletree. 
 
 Still missing / not implemented:
 1. There are still many "FIXME" comments in the source. Check and fix..
@@ -218,8 +188,8 @@ Still missing / not implemented:
    The replacement mechanism, "func_class", is a simple bitmask)
 4. Probably there are also other, undocumented restrictions :-)
 
-4. Exec logic (partially) in C
-------------------------------
+4. Exec logic in C
+------------------
 All versions up to 2.3.23 used a combination of C and Lua code
 for converting parameters of the exec calls (execvp(), etc).
 The algorithm is described in sb_exec.c.
@@ -234,20 +204,14 @@ Version 2.3.28 got another reimplementation; exec policy selection
 is now written in C.
 
 Starting from 2.3.44, stript interpreter mapping is implemented
-completely in C. This is actually quite important milestone:
-The Lua-based implementation (sb_execve_map_script_interpreter(),
-which was removed!) used to call path mapping functions from
-mapping.lua. Since that dependency is now eliminated, mapping.lua
-isn't mandatory anymore (under normal operation; it is still needed
-during session setup)
+completely in C.
 
 2.3.46 does postprocessing of native binaries in C (for dynamically
-linked binaries; shared ones still go to the Lua code. The code
+linked binaries; static ones still went to the Lua code. The code
 is currently quite ugly, needs to be cleaned after all postprocessing
 functions have been rewritten in C)
 
-Other parts of the exec logic (rest of postprocessing parameters;
-foreign binaries, etc) still use Lua code.
+Starting from 2.3.50, all parts of the exec logic are in C.
 
 
 5. The Virtual Permission subsystem, which superseded "fakeroot"

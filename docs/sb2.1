@@ -131,13 +131,13 @@ Use one of the pre-defined mapping modes.  See
 .B mapping modes
 below.
 .TP
+\-M FILE
+Read mapping rules from FILE.
+.TP
 \-n NET_MODE
 Use one of the pre-defined networking modes.  See
 .B networking modes
 below.
-.TP
-\-M FILE
-Read mapping rules from FILE.
 .TP
 \-O OPTIONS
 Set options for the selected mapping mode. OPTIONS is a mode-specific string.
@@ -157,6 +157,9 @@ See VIRTUAL PERMISSIONS below.
 .TP
 \-Q BUGLIST
 Emulate bugs of scratchbox 1 (BUGLIST consists of letters: 'x' enables exec permission checking bug emulation).
+.TP
+\-q
+quiet; don't print debugging details to stdout etc.
 .TP
 \-R
 "superuser  mode":
@@ -200,9 +203,6 @@ Use DIR as the session directory when creating the session (The default is to
 create the session in /tmp). DIR must be an absolute path and must not exist.
 Note that long pathnames may cause trouble with socket operations, so try to
 keep DIR as short as possible.
-.TP
-\-q
-quiet; don't print debugging details to stdout etc.
 .TP
 \-x OPTIONS
 specify additional options for

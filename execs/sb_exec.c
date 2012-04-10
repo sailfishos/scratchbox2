@@ -762,13 +762,12 @@ static int check_envp_has_ld_preload_and_ld_library_path(
  * - SBOX_SESSION_DIR can not be changed or removed
  * - SBOX_MAPPING_METHOD can not be changed, if it has been set.
  *
- * N.B The lua scripts will set LD_LIBRARY_PATH and
+ * N.B later steps (postprocessing) will set LD_LIBRARY_PATH and
  *    LD_PRELOAD to the actual values that should be active
  *    during the real exec; sb2's initialization code will
  *    restore the __SB2__LD... variables to the real variables.
- * N.B2. Proper LD_LIBRARY_PATH and LD_PRELOAD *must* be set
- *    by the Lua-based exec logic (argvenvp.lua), otherwise
- *    prepare_exec() will deny the exec.
+ *    (If LD_LIBRARY_PATH and LD_PRELOAD are not set,
+ *    prepare_exec() will deny the exec.)
 */
 static char **prepare_envp_for_do_exec(const char *orig_file,
 	const char *binaryname, char *const *envp)
@@ -909,9 +908,9 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 			    (strncmp(*p, "LOCPATH=", 8) == 0)) {
 				/*
 				 * We need to drop any previously set locale
-				 * paths (set in argvenvp.lua) so that they
-				 * won't get inherited accidentally to child
-				 * process who don't need them.
+				 * paths (maybe set by previous exec processing
+				 * steps) so that they won't get inherited
+				 * accidentally to child process who don't need them.
 				 */
 				continue;
 			}

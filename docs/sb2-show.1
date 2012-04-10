@@ -68,9 +68,6 @@ This is used by
 .I sb2-check-pkg-mappings,
 (an internal utility).
 .TP
-execluafile filename
-Load and execute Lua code from file.
-.TP
 binarytype realpath
 detect & show type of program at 
 .I realpath
@@ -80,7 +77,7 @@ var variablename
 show value of an internal string variable
 .TP
 libraryinterface
-show preload library interface version (the Lua <-> C code interface)
+show preload library interface version.
 
 .TP
 qemu-debug-exec file argv0 [argv1] [argv2]..
@@ -109,14 +106,6 @@ command)
 .TP
 \-t
 report elapsed time (real time elapsed while executing the command)
-.TP
-\-x file
-Load and execute Lua code from file before executing the command.
-Useful for debugging and tuning lua scripts of sb2.
-.TP
-\-X file
-Load and execute Lua code from file after executing the command.
-Useful for debugging and tuning lua scripts of sb2.
 .TP
 \-g port
 use port as qemu gdbserver listening port (default port is 1234).

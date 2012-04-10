@@ -94,10 +94,6 @@ LIBSB2_CALLER(int, sb2show__execve_mods__,
 LIBSB2_VOID_CALLER(sb2__set_active_exec_policy_name__,
 	(const char *name), (name))
 
-/* create call_sb2__load_and_execute_lua_file__() */
-LIBSB2_VOID_CALLER(sb2__load_and_execute_lua_file__,
-	(const char *filename), (filename))
-
 /* create call_sb2__lua_c_interface_version__() */
 LIBSB2_CALLER(const char *, sb2__lua_c_interface_version__,
 	(void), (), NULL)
@@ -171,10 +167,6 @@ static void usage_exit(const char *progname, const char *errmsg, int exitstatus,
 	    "\t-v             be more verbose\n"
 	    "\t-t             report elapsed time (real time elapsed while\n"
 	    "\t               executing 'command')\n"
-	    "\t-x filename    load and execute Lua code from file before\n"
-	    "\t               executing 'command'\n"
-	    "\t-X filename    load and execute Lua code from file after\n"
-	    "\t               executing 'command'\n"
 	    "\t-g port        use port as qemu gdbserver listening port\n"
 	    "\t               (default port is 1234)\n");
 
@@ -895,17 +887,6 @@ static int cmd_qemu_debug_exec(const command_table_t *cmdp,
 	return(0);
 }
 
-static int cmd_execluafile(const command_table_t *cmdp,
-			const cmdline_options_t *opts,
-			int cmd_argc, char *cmd_argv[])
-{
-	(void)cmdp;
-	(void)cmd_argc;
-	(void)opts;
-	call_sb2__load_and_execute_lua_file__(cmd_argv[1]);
-	return(0);
-}
-
 static int cmd_acct_on(const command_table_t *cmdp,
 			const cmdline_options_t *opts,
 			int cmd_argc, char *cmd_argv[])
@@ -970,10 +951,6 @@ const command_table_t commands[] = {
 	    "\t                       show execve() modifications on\n"
 	    "\t                       a single line (does not show full\n"
 	    "\t                       details)"},
-	{ "execluafile", 1,		2,	2,	cmd_execluafile,
-	  "\texecluafile filename   load and execute Lua code from file\n"
-	  "\t                       (useful for debugging and/or\n"
-	  "\t                       benchmarking sb2 itself)"},
 	{ "libraryinterface",1,		1,	1,	cmd_libraryinterface,
 	  "\tlibraryinterface       show preload library interface version\n"
 	  "\t                       (the Lua <-> C code interface)"},
@@ -1020,8 +997,6 @@ int main(int argc, char *argv[])
 	int	report_time = 0;
 	struct timeval	start_time, stop_time;
 	int	ret = 0;
-	char	*pre_cmd_file = NULL;
-	char	*post_cmd_file = NULL;
 	char	*active_exec_policy_name = NULL;
 	cmdline_options_t	opts;
 	const	command_table_t	*cmdp;
@@ -1051,8 +1026,14 @@ int main(int argc, char *argv[])
 		case 'v': opts.opt_verbose = 1; break;
 		case 't': report_time = 1; break;
 		case 'g': opts.debug_port = optarg; break;
+#if 0
+		/* -x and -X were used previously, but were removed
+		 * when Lua was removed from libsb2. Think twice
+		 * before recycling these options.
+		*/
 		case 'x': pre_cmd_file = optarg; break;
 		case 'X': post_cmd_file = optarg; break;
+#endif
 		case 'E':
 			if (!strchr(optarg,'=')) {
 				fprintf(stderr,
@@ -1135,12 +1116,6 @@ int main(int argc, char *argv[])
 		call_sb2__set_active_exec_policy_name__(active_exec_policy_name);
 	}
 
-	/* Execute the "pre-command" file before starting the clock (if both
-	 * -x and -t options were used)
-	*/
-	if (libsb2_handle && pre_cmd_file)
-		call_sb2__load_and_execute_lua_file__(pre_cmd_file);
-
 	if (report_time) {
 		if (gettimeofday(&start_time, (struct timezone *)NULL) < 0) {
 			fprintf(stderr, "%s: Failed to get time\n", opts.progname);
@@ -1167,12 +1142,6 @@ int main(int argc, char *argv[])
 			printf("TIME: %ld.%06ld\n", secs, usecs);
 		}
 	}
-
-	/* Execute the "post-command" file after the clock has been stopped
-	 * (if both -X and -t options were used)
-	*/
-	if (libsb2_handle && post_cmd_file)
-		call_sb2__load_and_execute_lua_file__(post_cmd_file);
 
 	return(ret);
 }

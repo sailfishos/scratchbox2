@@ -741,6 +741,9 @@ static int exec_postprocess_qemu(
 	const int	sb2_ld_preload_prefix_len = strlen(sb2_ld_preload_prefix);
 	int		num_ld_trace_env_vars = 0;
 
+	SB_LOG(SB_LOGLEVEL_DEBUG,
+		"%s: postprocess '%s' '%s'", __func__, *mapped_file, *mapped_file);
+
 	namev_in_ruletree[0] = "cputransparency";
 	namev_in_ruletree[1] = conf_cputransparency_name;
 	namev_in_ruletree[2] = NULL; /* this will be varied below */
@@ -1152,6 +1155,7 @@ int exec_postprocess_host_static_executable(
 	struct strv_s		new_argv;
 	char			*cp;
 	const char		 *hp;
+	int			i;
 
 	/* Preparations.
 	 * no arguments can be added, but two additions to env:
@@ -1170,7 +1174,16 @@ int exec_postprocess_host_static_executable(
 	hp = ruletree_catalog_get_string("config", "host_ld_preload");
 	assert(asprintf(&cp, "LD_PRELOAD=%s", hp) > 0);
 	add_string_to_strv(&new_envp, cp);
-	
+
+	/* Append arguments */
+	for (i = 0; i < new_argv.strv_num_orig_elems; i++) {
+		add_string_to_strv(&new_argv, new_argv.strv_orig_v[i]);
+	}
+	/* Append rest of env. */
+	for (i = 0; i < new_envp.strv_num_orig_elems; i++) {
+		add_string_to_strv(&new_envp, new_envp.strv_orig_v[i]);
+	}
+
 	*set_envp = new_envp.strv_new_v;
 	*set_argv = new_argv.strv_new_v;
 	/* instruct caller to always use argv,envp,filename

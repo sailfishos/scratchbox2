@@ -1415,7 +1415,7 @@ static int prepare_exec(const char *exec_fn_name,
 				if (cmd_offs) {
 					cputransp_cmd = offset_to_ruletree_string_ptr(cmd_offs, NULL);
 				}
-				if (cputransp_cmd) {
+				if (cputransp_cmd && (cputransp_cmd[0] != '\0')) {
 					postprocess_result = exec_postprocess_cpu_transparency_executable(
 						exec_policy_name,
 						&mapped_file, &my_file, binaryname,

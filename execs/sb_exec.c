@@ -1369,33 +1369,6 @@ static int prepare_exec(const char *exec_fn_name,
 			break;
 
 		case BIN_HOST_STATIC:
-			/* don't print warning, if this static binary
-			 * has been allowed (see the wrapper for
-			 * ldconfig - we don't want to see warnings
-			 * every time when someone executes that)
-			*/
-			{
-				/* FIXME: This block of code should probably be active
-				 * only if host Qemu has not been configured */
-				const char *allow_static_bin;
-
-				allow_static_bin = getenv(
-					"SBOX_ALLOW_STATIC_BINARY");
-				if ((allow_static_bin &&
-				     !strcmp(allow_static_bin, mapped_file))
-				    || getenv("SBOX_NATIVE_HAS_CPUTRANSP") != NULL) {
-					/* no warnning, just debug */
-					SB_LOG(SB_LOGLEVEL_DEBUG,
-						"statically linked "
-						"native binary %s (allowed)",
-						mapped_file);
-				}  else {
-					SB_LOG(SB_LOGLEVEL_WARNING,
-						"Executing statically "
-						"linked native binary %s",
-						mapped_file);
-				}
-			}
 #if 0
 			postprocess_result = sb_execve_postprocess("static",
 				exec_policy_name,
@@ -1425,6 +1398,27 @@ static int prepare_exec(const char *exec_fn_name,
 					my_envp = (char**)my_new_envp; /* FIXME */
 					my_argv = (char**)my_new_argv; /* FIXME */
 				} else {
+					const char *allow_static_bin = NULL;
+
+					/* don't print warning, if this static binary
+					 * has been allowed (see the wrapper for
+					 * ldconfig - we don't want to see warnings
+					 * every time when someone executes that)
+					*/
+					allow_static_bin = getenv("SBOX_ALLOW_STATIC_BINARY");
+					if (allow_static_bin &&
+					    !strcmp(allow_static_bin, mapped_file)) {
+						/* no warnning, just debug */
+						SB_LOG(SB_LOGLEVEL_DEBUG,
+							"statically linked "
+							"native binary %s (allowed)",
+							mapped_file);
+					} else {
+						SB_LOG(SB_LOGLEVEL_WARNING,
+							"Executing statically "
+							"linked native binary %s",
+							mapped_file);
+					}
 					/* Add LD_LIBRARY_PATH and LD_PRELOAD.
 					 * the static binary itself does not need
 					 * these, but if it executes another 

@@ -124,7 +124,7 @@ extern char *prep_union_dir(const char *dst_path,
 
 /* ---- internal constants: ---- */
 
-/* "flags", returned from mapping.lua to the C code:
+/* "flags", Used by both the Lua and the C code:
  *    RULE_FLAGS_READONLY_FS_ALWAYS is same as RULE_FLAGS_READONLY,
  *    but it is easier to have two flags for this because Lua
  *    does not have bit operations; also it enables us to find

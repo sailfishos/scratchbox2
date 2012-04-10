@@ -49,10 +49,14 @@ struct sb2context {
 	char *virtual_reversed_cwd;
 };
 
-/* This version string is used to check that the lua scripts offer 
+/* Library interface version string:
+ *
+ * Originally, This version string was used to check that the lua scripts offer 
  * what the C files expect, and v.v.
- * Increment the serial number (first number) and update the initials
- * and date whenever the interface beween Lua and C is changed.
+ * Now, when lua is not anymore included in libsb2, it is only used
+ * to identify the C interface (e.g. for sb2-show), and to locate
+ * a matching preload library (see session setup code in the "sb2"
+ * script)
  *
  * * Differences between "28,lta-2008-09-23" and "35,lta-2008-10-01":
  *   - sbox_get_mapping_requirements(): parameter work_dir was removed
@@ -152,8 +156,6 @@ struct sb2context {
  * * 127:
  *     exec postprocessing is completely implemented in C,
  *     sb_execve_postprocess() is not needed anymore.
- *
- * NOTE: the corresponding identifier for Lua is in lua_scripts/main.lua
 */
 #define SB2_LUA_C_INTERFACE_VERSION "127"
 

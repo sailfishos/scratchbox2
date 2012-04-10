@@ -11,10 +11,10 @@ $(D)/sb2d: $(D)/sb2d.o \
 		$(D)/server_socket.o \
 		$(D)/libsupport.o \
 		$(D)/ruletree_server.o \
+		$(D)/rule_tree_luaif.o \
 		sblib/sb_log.o \
 		sblib/sb2_utils.o \
 		rule_tree/rule_tree.o \
-		rule_tree/rule_tree_luaif.o \
 		rule_tree/rule_tree_utils.o \
 		pathmapping/paths_ruletree_maint.o \
 		execs/exec_ruletree_maint.o \

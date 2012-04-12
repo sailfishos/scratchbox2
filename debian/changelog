@@ -1,3 +1,11 @@
+scratchbox2 (2.3.52-1) unstable; urgency=low
+
+  * Virtual permission subsystem: For the simulated root user,
+    access(), euidaccess(), eaccess() and faccessat() will
+    simulate the checks.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 12 Apr 2012 17:37:00 +0300
+
 scratchbox2 (2.3.51-1) unstable; urgency=low
 
   * Bugfix to native static binary exec code

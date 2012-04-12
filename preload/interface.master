@@ -278,7 +278,7 @@ WRAP: int _xftw(int mode, const char *dir, int (*fn)(const char *file, const str
 WRAP: int _xftw64(int mode, const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag), int nopenfd) : map(dir)
 #endif
 
-WRAP: int access(const char *pathname, int mode) : map(pathname) \
+GATE: int access(const char *pathname, int mode) : map(pathname) \
 	create_nomap_nolog_version \
 	check_and_fail_if_readonly(mode&W_OK,pathname,-1,EROFS)
 
@@ -316,16 +316,16 @@ WRAP: void *dlmopen(Lmid_t nsid, const char *filename, int flag) : map(filename)
 WRAP: void *dlopen(const char *filename, int flag) : map(filename) \
 	class(OPEN)
 
-WRAP: int euidaccess(const char *pathname, int mode) : \
+GATE: int euidaccess(const char *pathname, int mode) : \
 	map(pathname) \
 	check_and_fail_if_readonly(mode&W_OK,pathname,-1,EROFS)
 -- eaccess() is same as euidaccess(), provided for compatibility
-WRAP: int eaccess(const char *pathname, int mode) : \
+GATE: int eaccess(const char *pathname, int mode) : \
 	map(pathname) \
 	check_and_fail_if_readonly(mode&W_OK,pathname,-1,EROFS)
 
 #ifdef AT_SYMLINK_NOFOLLOW
-WRAP: int faccessat(int dirfd, const char *pathname, int mode, int flags) : \
+GATE: int faccessat(int dirfd, const char *pathname, int mode, int flags) : \
 	create_nomap_nolog_version \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname) \

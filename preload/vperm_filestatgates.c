@@ -1697,3 +1697,152 @@ FTSENT *fts_children_gate(int *result_errno_ptr,
 }
 #endif /* HAVE_FTS_H */
 
+/* ======================= *access*() functions ======================= */
+
+/* for simulated privileged user (root), check access(), faccessat()
+ * or euidaccess() to a path.
+*/
+static int vperm_root_access(
+	int *result_errno_ptr,
+        const char *realfnname,
+	int dirfd,
+	const mapping_results_t *mapped_pathname,
+	int mode,
+	int flags)
+{
+	int r;
+	struct stat statbuf;
+
+	/* note: If write permission is requested, but mapping results say it is a R/O
+	 * target, this functions is not called at all (the GATE function
+	 * returns EROFS to the caller) => no need to handle EROFS here.
+	*/
+
+	r = get_stat_for_fxxat(realfnname, dirfd, mapped_pathname, flags, &statbuf);
+	if (r) {
+		/* stat failed => fail. */
+		int e = errno;
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"%s: as 'root', stat failed, errno=%d, returns -1",
+			realfnname, e);
+		*result_errno_ptr = e;
+		return(-1);
+	}
+	/* file exists. */
+	if (mode == F_OK) {
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"%s: as 'root', F_OK test => ok",
+			realfnname);
+		return(0);
+	}
+
+	if (mode & X_OK) {
+		/* X is ok for privileged users only
+		 * if any of the X bits are set */
+		if (statbuf.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"%s: as 'root', X_OK test => ok",
+				realfnname);
+			return(0);
+		}
+		/* No X permissions */
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"%s: as 'root', X_OK test => EACCES",
+			realfnname);
+		*result_errno_ptr = EACCES;
+		return(-1);
+	} 
+	/* root can read and write anything */
+	SB_LOG(SB_LOGLEVEL_DEBUG,
+		"%s: as 'root', default = ok",
+		realfnname);
+	return(0);
+}
+
+int euidaccess_gate(int *result_errno_ptr,
+	int (*real_euidaccess_ptr)(const char *pathname, int mode),
+        const char *realfnname,
+	const mapping_results_t *mapped_pathname,
+	int mode)
+{
+	int r;
+
+	/* If simulated root and root FS permission simulation
+	 * is required => don't call the real function, use stat
+	 * and return simulated info.
+	*/
+	if (vperm_uid_or_gid_virtualization_is_active() &&
+	    (vperm_geteuid() == 0) &&
+	    vperm_simulate_root_fs_permissions()) {
+		return(vperm_root_access(result_errno_ptr, realfnname,
+			AT_FDCWD, mapped_pathname, mode, 0/*flags*/));
+	}
+
+	/* ordinary uid, use the real function */
+	r = (*real_euidaccess_ptr)(mapped_pathname->mres_result_path, mode);
+	if (r < 0) *result_errno_ptr = errno;
+	return(r);
+}
+
+int eaccess_gate(int *result_errno_ptr,
+	int (*real_eaccess_ptr)(const char *pathname, int mode),
+        const char *realfnname,
+	const mapping_results_t *pathname,
+	int mode)
+{
+	return(euidaccess_gate(result_errno_ptr, real_eaccess_ptr,
+		realfnname, pathname, mode));
+}
+
+int access_gate(int *result_errno_ptr,
+	int (*real_access_ptr)(const char *pathname, int mode),
+        const char *realfnname,
+	const mapping_results_t *mapped_pathname,
+	int mode)
+{
+	int r;
+
+	/* If simulated root and root FS permission simulation
+	 * is required => don't call the real function, use stat
+	 * and return simulated info.
+	*/
+	if (vperm_uid_or_gid_virtualization_is_active() &&
+	    (vperm_getuid() == 0) &&
+	    vperm_simulate_root_fs_permissions()) {
+		return(vperm_root_access(result_errno_ptr, realfnname,
+			AT_FDCWD, mapped_pathname, mode, 0/*flags*/));
+	}
+
+	/* ordinary uid, use the real function */
+	r = (*real_access_ptr)(mapped_pathname->mres_result_path, mode);
+	if (r < 0) *result_errno_ptr = errno;
+	return(r);
+}
+
+int faccessat_gate(int *result_errno_ptr,
+	int (*real_faccessat_ptr)(int dirfd, const char *pathname, int mode, int flags),
+        const char *realfnname,
+	int dirfd,
+	const mapping_results_t *mapped_pathname,
+	int mode,
+	int flags)
+{
+	int r;
+
+	/* If simulated root and root FS permission simulation
+	 * is required => don't call the real function, use stat
+	 * and return simulated info.
+	*/
+	if (vperm_uid_or_gid_virtualization_is_active() &&
+	    ((flags & AT_EACCESS) ? (vperm_geteuid() == 0) : (vperm_getuid() == 0)) &&
+	    vperm_simulate_root_fs_permissions()) {
+		return(vperm_root_access(result_errno_ptr, realfnname,
+			dirfd, mapped_pathname, mode, (flags & ~AT_EACCESS)));
+	}
+
+	/* ordinary uid, use the real function */
+	r = (*real_faccessat_ptr)(dirfd, mapped_pathname->mres_result_path, mode, flags);
+	if (r < 0) *result_errno_ptr = errno;
+	return(r);
+}
+

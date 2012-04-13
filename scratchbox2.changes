@@ -1,3 +1,6 @@
+* Fri Apr 13 2012 Carsten Munk <carsten@merproject.org> - 2.3.27
+- Upgrade to 2.3.52
+
 * Mon Apr 02 2012 Carsten Munk <carsten@merproject.org> - 2.3.27
 - Add scratchbox2-2.3.27-usrsrc.patch, fix for MER#235
 

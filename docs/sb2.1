@@ -39,10 +39,12 @@ The result is that the development machine appears as a virtual target system to
 the software development tools, and complex tools (like GNU Autotools)
 can be used directly.
 .PP
-Scratchbox2 works by intercepting library calls of dynamically linked binaries.
-It uses a flexible and highly configurable rule engine, when deciding when, what, and how to
+Scratchbox2 works by intercepting library calls of dynamically linked binaries (see
+manual page libsb2_interface(7)).
+It uses a flexible and highly configurable rule engine for deciding how to
 modify parameters of the intercepted calls; this is completely
 transparent to the users and applications.
+.PP
 Scratchbox2 2 does not need any special privileges or kernel-level services;
 it is completely based on features that are available for all ordinary users.
 .PP
@@ -404,7 +406,8 @@ and the networking modes can be found at /usr/share/scratchbox2/net_rules/*.
 .BR sb2-logz (1),
 .BR sb2-session (1),
 .BR sb2d (1),
-.BR qemu (1)
+.BR qemu (1),
+.BR libsb2_interface (7)
 .SH BUGS
 No known bugs at this time.
 .SH AUTHORS

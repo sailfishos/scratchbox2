@@ -8,6 +8,40 @@
 --
 -- Copyright (C) 2007 Lauri T. Aarnio
 
+@MAN:	.SH NAME
+@MAN:	libsb2_interface, list of functions defined in the scratchbox2 preload library
+@MAN:	.SH DESCRIPTION
+@MAN:	This manual page lists all public functions which are exported from the
+@MAN:	.I libsb2
+@MAN:	preload library.
+@MAN:	.PP
+@MAN:	When scratchbox2 is active, functions from
+@MAN:	.I libsb2
+@MAN:	override functions with equal names from the C library,
+@MAN:	but not to completely replace the original functions: Instead, these functions are
+@MAN:	typically only wrappers which may replace parameters
+@MAN:	and then call the real functions from the C library.
+@MAN:	The most common parameter modification is related to changing
+@MAN:	pathnames (filenames), but that is not all what 
+@MAN:	.I libsb2
+@MAN:	can do; see manual page sb2(1)for more details.
+@MAN:	.PP
+@MAN:	This document has been generated automatically. Information is collected from
+@MAN:	the interface defintion file (see file
+@MAN:	.I interface.master
+@MAN:	in the sources), which defines all exported symbols for the preload library.
+@MAN:	That means that the list is complete, but on the other hand, does not
+@MAN:	explain the details what happen to the parameters when a listed function
+@MAN:	is called.
+
+@MAN_TAIL:	.SH SEE ALSO
+@MAN_TAIL:	.BR sb2 (1)
+@MAN_TAIL:	.SH AUTHORS
+@MAN_TAIL:	.nf
+@MAN_TAIL:	(This manual page was written by a generator, which was written by Lauri T. Aarnio)
+@MAN_TAIL:	.fi
+
+
 LOGLEVEL: SB_LOGLEVEL_NOISE
 
 -- 1. historical constructors/destructors.
@@ -65,6 +99,8 @@ EXPORT_SYMBOL: sb_loglevel__
 --    -------
 --    Interfaces to functions that are too complex to be generated
 --    completely by the interface generator.
+
+@MAN:	.SH FUNCTIONS
 
 GATE: int execl (const char *path, const char *arg, ...) : pass_va_list
 GATE: int execle (const char *path, const char *arg, ...) : pass_va_list

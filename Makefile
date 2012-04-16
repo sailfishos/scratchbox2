@@ -163,6 +163,10 @@ install-noarch: regular
 	then echo "$(prefix)/share/man/man1 present" ; \
 	else install -d -m 755 $(prefix)/share/man/man1 ; \
 	fi
+	@if [ -d $(prefix)/share/man/man7 ] ; \
+	then echo "$(prefix)/share/man/man7 present" ; \
+	else install -d -m 755 $(prefix)/share/man/man7 ; \
+	fi
 	$(Q)echo "$(PACKAGE_VERSION)" > $(prefix)/share/scratchbox2/version
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2 $(prefix)/bin/sb2
 	$(Q)install -c -m 755 $(SRCDIR)/utils/sb2-init $(prefix)/bin/sb2-init
@@ -194,6 +198,7 @@ install-noarch: regular
 	$(Q)chmod a+x $(prefix)/share/scratchbox2/tests/run.sh
 
 	$(Q)install -c -m 644 $(SRCDIR)/docs/*.1 $(prefix)/share/man/man1
+	$(Q)install -c -m 644 $(OBJDIR)/preload/libsb2_interface.7 $(prefix)/share/man/man7
 	$(Q)rm -f $(prefix)/share/scratchbox2/host_usr
 	$(Q)ln -sf /usr $(prefix)/share/scratchbox2/host_usr
 	@# Wrappers:

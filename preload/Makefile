@@ -51,6 +51,8 @@ $(D)/wrappers.c: preload/interface.master preload/gen-interface.pl
 		-W preload/wrappers.c \
 		-E preload/exported.h \
 		-M preload/export.map \
+		-V $(PACKAGE_VERSION) \
+		-m preload/libsb2_interface.7 \
 		<$(SRCDIR)/preload/interface.master
 
 $(D)/privatewrappers.h: preload/privatewrappers.c

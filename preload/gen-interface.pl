@@ -89,21 +89,38 @@
 
 use strict;
 
-our($opt_d, $opt_W, $opt_E, $opt_L, $opt_M, $opt_n);
+our($opt_d, $opt_W, $opt_E, $opt_L, $opt_M, $opt_n, $opt_m, $opt_V);
 use Getopt::Std;
 use File::Basename;
 
 # Process options:
-getopts("dW:E:L:M:n:");
+getopts("dW:E:L:M:n:m:V:");
 my $debug = $opt_d;
 my $wrappers_c_output_file = $opt_W;		# -W generated_c_filename
 my $export_h_output_file = $opt_E;		# -E generated_h_filename
 my $export_list_for_ld_output_file = $opt_L;	# -L generated_list_for_ld
 my $export_map_for_ld_output_file = $opt_M;	# -M generated_export_map_for_ld
 my $interface_name = $opt_n;			# -n interface_name
-
+my $man_page_output_file = $opt_m;		# -m man_page_file_name
+my $vrs = $opt_V;				# -V sb2_version
 
 my $num_errors = 0;
+
+my $man_page_name = "";
+my $man_page_sect = "";
+if ($man_page_output_file) {
+	if ($man_page_output_file =~ m/^(.*\/)(.*)\.([0-9])/) {
+		$man_page_name = $2;
+		$man_page_sect = $3;
+	} else {
+		printf "ERROR: failed to extract manual name and section number ".
+			"from '%s'\n", $man_page_output_file;
+		$num_errors++;
+	}
+}
+
+my $man_page_body = ".TH $man_page_name $man_page_sect \"\" \"$vrs\" \"libsb2 interface man page\"\n";
+my $man_page_tail = "";
 
 # loglevel defaults to a value which a) causes compilation to fail, if
 # "LOGLEVEL" was not in interface.master and b) tries to be informative
@@ -319,6 +336,7 @@ sub minimal_function_declarator_parser {
 
 	# this structure will be returned:
 	my $res = {
+		'orig_funct_def' => $fn_declarator,
 		'fn_return_type' => undef,
 		'fn_name' => undef,
 		'fn_parameter_list' => "",
@@ -966,6 +984,12 @@ typedef const void scandir64_arg_t;
 
 ";
 
+sub add_fn_to_man_page {
+	my $fn = shift;
+
+	$man_page_body .= ".TP\n".$fn->{'orig_funct_def'}.";\n";
+}
+
 my %fn_to_classmasks;
 
 # Handle "WRAP" and "GATE" commands.
@@ -991,7 +1015,12 @@ sub command_wrap_or_gate {
 	my $mods = process_wrap_or_gate_modifiers($command, $fn, $all_modifiers);
 	if(!defined($mods)) { return; } # return if modifiers failed
 
-	# Ok, all preparations done. Create the pointer, wrapper functions, etc.
+	# Ok, all preparations done.
+	
+	# Add it to the document
+	add_fn_to_man_page($fn);
+
+	# Create the pointer, wrapper functions, etc.
 	if($debug) { print "Creating code:\n"; }
 
 	my $real_fn_pointer_name = $mods->{'real_fn_pointer_name'};
@@ -1306,6 +1335,22 @@ while ($line = <STDIN>) {
 		next
 	}
 
+	# lines starting with @ are documentation
+	if ($line =~ m/^\s*@/) {
+		chomp($line);
+		# Split to fields. 1st=command, 2nd=text
+		my @man_field = split(/\s*:\s*/, $line, 2);
+		if($man_field[0] eq '@MAN') {
+			$man_page_body .= $man_field[1]."\n";
+		} elsif($man_field[0] eq '@MAN_TAIL') {
+			$man_page_tail .= $man_field[1]."\n";
+		} else {
+			printf "ERROR: Unknown documentation directive '%s'\n", $man_field[0];
+			$num_errors++;
+		}
+		next
+	}
+
 	# Add the line to the output files if it's not a command 
 	my $src_comment = $line;
 	if (not ($line =~ m/^(WRAP|EXPORT|GATE|LOGLEVEL)/i)) {
@@ -1405,6 +1450,11 @@ if(defined $export_map_for_ld_output_file) {
 
 	write_output_file($export_map_for_ld_output_file,
 		$export_map);
+}
+
+if(defined $man_page_output_file) {
+	write_output_file($man_page_output_file,
+		$man_page_body.$man_page_tail);
 }
 
 exit(0);

@@ -627,11 +627,13 @@ WRAP: int stat64(const char *file_name, struct stat64 *buf) : map(file_name) cla
 --   it must not mapped now when SB2 resolves symlinks
 -- * "newpath" is location where the symlink will be created.
 WRAP: int symlink(const char *oldpath, const char *newpath) : \
+	class(SYMLINK) \
 	dont_resolve_final_symlink map(newpath) \
 	fail_if_readonly(newpath,-1,EROFS) \
         create_nomap_nolog_version
 
 WRAP: int symlinkat(const char *oldpath, int newdirfd, const char *newpath) : \
+	class(SYMLINK) \
 	dont_resolve_final_symlink map_at(newdirfd,newpath) \
 	fail_if_readonly(newpath,-1,EROFS)
 

@@ -1081,7 +1081,8 @@ void
 #endif
 #endif
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: %s(%s)", __func__, func_name, virtual_orig_path);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: %s(%s) class=0x%X",
+		__func__, func_name, virtual_orig_path, fn_class);
 
 #ifdef EXTREME_DEBUGGING
 	#define SIZE 100

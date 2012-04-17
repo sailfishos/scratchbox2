@@ -143,7 +143,7 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 
 	if (rule->rtree_fsr_func_class) {
 		print_indent(indent+1);
-		printf("IF_CLASS: 0%o ( ", rule->rtree_fsr_func_class);
+		printf("IF_CLASS: 0x%X ( ", rule->rtree_fsr_func_class);
 		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_OPEN)
 		       printf("open ");
 		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_STAT)
@@ -162,6 +162,12 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 		       printf("realpath ");
 		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_L10N)
 		       printf("l10n ");
+		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_MKNOD)
+		       printf("mknod ");
+		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_RENAME)
+		       printf("rename ");
+		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_SYMLINK)
+		       printf("symlink ");
 		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_PROC_FS_OP)
 		       printf("proc_fs_op ");
 		printf(")\n");

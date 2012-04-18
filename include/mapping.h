@@ -174,6 +174,7 @@ extern char *prep_union_dir(const char *dst_path,
 #define SB2_INTERFACE_CLASS_PROC_FS_OP	0x1000	/* /proc file system operation */
 
 #define SB2_INTERFACE_CLASS_SYMLINK	0x2000
+#define SB2_INTERFACE_CLASS_CREAT	0x4000
 
 /* interface funtion ->  class(es) mapping table, 
  * created by gen-interface.c */

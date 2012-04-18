@@ -1,3 +1,22 @@
+scratchbox2 (2.3.53-1) unstable; urgency=low
+
+  * New manual page libsb2_interface(7), generated automatically
+    from interface.master
+  * fixes for /proc and /dev; "emulate" mode now allows simulated 
+    devices to be created under /dev
+  * Library interface version = 128
+  * Improved checking of rules at startup, refuses to start up if
+    there were errors
+  * A change to mapping rule format:
+    Rules which may not have a valid selector ('dir', 'prefix'
+    or 'path' may be nil) need to be marked with 'optional_rule = true'
+    (fs_rules: rule_file_interface_version = "105" now). Failing to
+    do so will generate warnings to sb2d's log. In the future that
+    will be an error which will prevent startup. 
+  * + other small fixes.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 18 Apr 2012 17:25:00 +0300
+
 scratchbox2 (2.3.52-1) unstable; urgency=low
 
   * Virtual permission subsystem: For the simulated root user,

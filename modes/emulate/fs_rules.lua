@@ -140,6 +140,9 @@ emulate_mode_rules_dev = {
 		-- FIXME: This rule should have "protection = eaccess_if_not_owner_or_root",
 		-- but that kind of protection is not yet supported.
 
+		-- The directory itself.
+		{path = "/dev", use_orig_path = true},
+
 		-- We can't change times or attributes of host's devices,
 		-- but must pretend to be able to do so. Redirect the path
 		-- to an existing, dummy location.
@@ -147,8 +150,29 @@ emulate_mode_rules_dev = {
 		 func_class = FUNC_CLASS_SET_TIMES,
 	         set_path = session_dir.."/dummy_file", protection = readonly_fs_if_not_root },
 
-		-- Default: Use real devices.
-		{dir = "/dev", use_orig_path = true},
+		-- mknod is simulated. Redirect to a directory where
+		-- mknod can create the node.
+		-- Also, typically, rename() is used to rename nodes created by
+		-- mknod() (and it can't be used to rename real devices anyway).
+		-- It must be possible to create symlinks and files in /dev, too.
+		{dir = "/dev",
+		 func_class = FUNC_CLASS_MKNOD + FUNC_CLASS_RENAME +
+			      FUNC_CLASS_SYMLINK + FUNC_CLASS_CREAT,
+	         map_to = session_dir, protection = readonly_fs_if_not_root },
+
+		-- Default: If a node has been created by mknod, and that was
+		-- simulated, use the simulated target.
+		-- Otherwise use real devices.
+		-- However, there are some devices we never want to simulate...
+		{path = "/dev/console", use_orig_path = true},
+		{path = "/dev/null", use_orig_path = true},
+		{prefix = "/dev/tty", use_orig_path = true},
+		{prefix = "/dev/fb", use_orig_path = true},
+		{dir = "/dev", actions = {
+				{ if_exists_then_map_to = session_dir },
+				{ use_orig_path = true }
+			},
+		},
 }
 
 -- /scratchbox or /targets

@@ -38,7 +38,7 @@ function is_identical_reverse_rule(r1,r2)
 	return false
 end
 
-function reverse_conditional_actions(output_rules, rev_rule_name, rule, n, forward_path)
+function reverse_conditional_actions(output_rules, rev_rule_name, rule, n, forward_path, modename)
 	local actions = rule.actions
 
 	local a
@@ -52,7 +52,7 @@ function reverse_conditional_actions(output_rules, rev_rule_name, rule, n, forwa
 		actions[a].path = rule.path
 		actions[a].dir = rule.dir
 		actions[a].name = string.format("%s/Act.%d", rev_rule_name, a)
-		reverse_one_rule_xxxx(output_rules, actions[a], a, forward_path)
+		reverse_one_rule_xxxx(output_rules, actions[a], a, forward_path, modename)
 		actions[a].prefix = nil
 		actions[a].path = nil
 		actions[a].dir = nil
@@ -60,7 +60,7 @@ function reverse_conditional_actions(output_rules, rev_rule_name, rule, n, forwa
 	end
 end
 
-function reverse_one_rule(output_rules, rule, n)
+function reverse_one_rule(output_rules, rule, n, modename)
 		local forward_path
 		if (rule.prefix) then
 			forward_path = rule.prefix
@@ -71,17 +71,17 @@ function reverse_one_rule(output_rules, rule, n)
 		else
 			forward_path = nil
 		end
-		reverse_one_rule_xxxx(output_rules, rule, n, forward_path)
+		reverse_one_rule_xxxx(output_rules, rule, n, forward_path, modename)
 end
 
-function reverse_one_rule_xxxx(output_rules, rule, n, forward_path)
+function reverse_one_rule_xxxx(output_rules, rule, n, forward_path, modename)
 
 		local new_rule = {}
 		new_rule.comments = {}
 
 		if rule.name then
 			new_rule.name = string.format(
-				"Rev: %s <%d>", rule.name, n)
+				"Rev(%s): %s <%d>", modename, rule.name, n)
 		else
 			local auto_name = "??"
 			if (rule.prefix) then
@@ -92,7 +92,7 @@ function reverse_one_rule_xxxx(output_rules, rule, n, forward_path)
 				auto_name = "path="..rule.path
 			end
 			new_rule.name = string.format(
-				"Rev: %s <%d>", auto_name, n)
+				"Rev(%s): %s <%d>", modename, auto_name, n)
 		end
 
 
@@ -117,7 +117,7 @@ function reverse_one_rule_xxxx(output_rules, rule, n, forward_path)
 			d_path = forward_path
 		elseif (rule.actions) then
 			reverse_conditional_actions(output_rules, new_rule.name,
-				rule, n, forward_path)
+				rule, n, forward_path, modename)
 			return
 		elseif (rule.map_to) then
 			d_path = rule.map_to .. forward_path
@@ -135,10 +135,18 @@ function reverse_one_rule_xxxx(output_rules, rule, n, forward_path)
 		elseif (rule.if_exists_then_replace_by) then
 			d_path = rule.if_exists_then_replace_by
 			new_rule.replace_by = forward_path
+		elseif (rule.if_env_var_is_not_empty) then
+			table.insert(new_rule.comments, string.format(
+				"-- WARNING: Skipping 'if_env_var_is_not_empty' rule\t%d\n", n))
+			new_rule.optional_rule = true
+		elseif (rule.if_env_var_is_empty) then
+			table.insert(new_rule.comments, string.format(
+				"-- WARNING: Skipping 'if_env_var_is_empty' rule\t%d\n", n))
 		else
 			new_rule.error = string.format(
 				"--ERROR: Rule '%s' does not contain any actions",
 				new_rule.name)
+			new_rule.optional_rule = true
 		end
 
 		local idx = nil
@@ -215,7 +223,7 @@ function reverse_one_rule_xxxx(output_rules, rule, n, forward_path)
 		end
 end
 
-function reverse_rules(ofile, output_rules, input_rules)
+function reverse_rules(ofile, output_rules, input_rules, modename)
         local n
         for n=1,table.maxn(input_rules) do
 		local rule = input_rules[n]
@@ -224,9 +232,12 @@ function reverse_rules(ofile, output_rules, input_rules)
 			-- don't reverse virtual paths
 			ofile:write(string.format("-- virtual_path set, not reversing\t%d\n", n))
 		elseif rule.rules then
-			reverse_rules(ofile, output_rules, rule.rules)
+			reverse_rules(ofile, output_rules, rule.rules, modename)
+		elseif rule.union_dir then
+			-- FIXME
+			ofile:write(string.format("-- WARNING: Skipping union_dir rule\t%d\n", n))
 		else
-			reverse_one_rule(output_rules, rule, n)
+			reverse_one_rule(output_rules, rule, n, modename)
 		end
 
 	end
@@ -271,6 +282,9 @@ function print_rules(ofile, rules)
 		if (rule.binary_name) then
 			ofile:write("\t binary_name=\""..rule.binary_name.."\",\n")
 		end
+		if (rule.optional_rule) then
+			ofile:write("\t optional_rule=true,\n")
+		end
 
 		-- FIXME: To be implemented. See the "TODO" list at top.
 		-- elseif (rule.actions) then
@@ -304,7 +318,7 @@ for m_index,m_name in pairs(all_modes) do
 	allow_reversing = true	-- default = create reverse rules.
 	reversing_disabled_message = ""
 
-	local current_rule_interface_version = "104"
+	local current_rule_interface_version = "105"
 
 	-- rulefile will set these:
 	rule_file_interface_version = nil
@@ -344,7 +358,7 @@ for m_index,m_name in pairs(all_modes) do
 	output_file:write("-- Reversed rules from "..rule_file_path.."\n")
 
 	local output_rules = {}
-	local rev_rules = reverse_rules(output_file, output_rules, fs_mapping_rules)
+	local rev_rules = reverse_rules(output_file, output_rules, fs_mapping_rules, m_name)
 	if (allow_reversing) then
 		output_file:write("reverse_fs_mapping_rules={\n")
 		print_rules(output_file, rev_rules)

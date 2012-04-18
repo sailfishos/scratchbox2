@@ -75,6 +75,9 @@
 #     list can be used to specify multiple classes). The classname
 #     can be OPEN, STAT, EXEC, or other pre-defined name (see
 #     SB2_INTERFACE_CLASS_* constant definitions)
+#   - conditionally_class(CONDITION,CLASSNAME,...) adds API class attributes
+#     if CONDITION is true (a comma-separated list can be used to specify
+#     multiple classes, just like for "class").
 # For "GATE" only:
 #   - "pass_va_list" is used for generic varargs processing: It passes a
 #     "va_list" to the gate function.
@@ -525,6 +528,7 @@ sub process_wrap_or_gate_modifiers {
 		'check_libsb2_has_been_initialized' => 1, # flag
 		'log_params' => undef,
 		'class' => '0',
+		'conditionally_class' => '0',
 
 		# name of the function pointer variable
 		'real_fn_pointer_name' => "${fn_name}_next__",
@@ -725,6 +729,15 @@ sub process_wrap_or_gate_modifiers {
 				$num_errors++;
 			} else {
 				$mods->{'class'} = class_list_to_expr($1);
+			}
+		} elsif($modifiers[$i] =~ m/^conditionally_class\(([^,]*),(.*)\)$/) {
+			if ($mods->{'conditionally_class'} ne '0') {
+				printf "ERROR: redefinition of 'conditionally_class' for '%s'\n",
+					$fn_name;
+				$num_errors++;
+			} else {
+				$mods->{'conditionally_class_cnd'} = $1;
+				$mods->{'conditionally_class'} = class_list_to_expr($2);
 			}
 		} else {
 			printf "ERROR: unsupported modifier '%s'\n",
@@ -1066,9 +1079,14 @@ sub command_wrap_or_gate {
 	}
 	$wrapper_fn_c_code .=	"\tint saved_errno = errno;\n".
 				"\tint result_errno = saved_errno;\n".
-				"\tconst uint32_t classmask = ".$mods->{'class'}.";\n".
+				"\tuint32_t classmask = ".$mods->{'class'}.";\n".
 				"\t(void)classmask; /* ok, if it isn't used */\n".
 				"\terrno = 0;\n";
+	if(defined($mods->{'conditionally_class_cnd'})) {
+		$wrapper_fn_c_code .=	"\tif(".$mods->{'conditionally_class_cnd'}.") {\n".
+				"\t\tclassmask |= (".$mods->{'conditionally_class'}.");\n".
+				"\t}\n";
+	}
 	$nomap_fn_c_code .=	"\tint saved_errno = errno;\n".
 				"\tint result_errno = saved_errno;\n";
 	$nomap_nolog_fn_c_code .= "\tint result_errno = errno;\n";

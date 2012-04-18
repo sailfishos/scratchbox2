@@ -4,7 +4,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "104"
+rule_file_interface_version = "105"
 ----------------------------------
 
 -- use "==" to test options as long as there is only one possible option,

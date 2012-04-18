@@ -11,7 +11,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "104"
+rule_file_interface_version = "105"
 ----------------------------------
 
 tools = tools_root

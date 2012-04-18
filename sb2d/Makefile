@@ -5,7 +5,6 @@ $(D)/sb2d: CFLAGS := $(CFLAGS) -Wall -W -Werror \
 		$(PROTOTYPEWARNINGS) \
 		-I$(SRCDIR)/include \
 		-I$(SRCDIR)/preload -Ipreload/
-$(D)/sb2d: LDFLAGS := $(LDFLAGS) -lm -ldl
 
 $(D)/sb2d: $(D)/sb2d.o \
 		$(D)/server_socket.o \
@@ -22,6 +21,6 @@ $(D)/sb2d: $(D)/sb2d.o \
 		luaif/liblua.a
 	$(MKOUTPUTDIR)
 	$(P)LD
-	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
+	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lm -ldl
 
 targets := $(targets) $(D)/sb2d

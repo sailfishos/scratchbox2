@@ -46,6 +46,15 @@ function sb2_procfs_mapper()
 	return true
 end
 
+-- Other utility functions for the mapping rules:
+function basename(path)
+	if (path == "/") then
+		return "/"
+	else
+		return string.match(path, "[^/]*$")
+	end
+end
+
 -- Load session-specific settings
 do_file(session_dir .. "/sb2-session.conf")
 

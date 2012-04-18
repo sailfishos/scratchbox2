@@ -168,6 +168,8 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 		       printf("rename ");
 		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_SYMLINK)
 		       printf("symlink ");
+		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_CREAT)
+		       printf("creat ");
 		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_PROC_FS_OP)
 		       printf("proc_fs_op ");
 		printf(")\n");

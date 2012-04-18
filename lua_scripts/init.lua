@@ -40,6 +40,12 @@ function do_file(filename)
 	end
 end
 
+-- A dummy sb2_procfs_mapper function is needed for the rules,
+-- now when the real function is gone
+function sb2_procfs_mapper()
+	return true
+end
+
 -- Load session-specific settings
 do_file(session_dir .. "/sb2-session.conf")
 

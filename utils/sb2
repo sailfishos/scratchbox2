@@ -810,7 +810,7 @@ function locate_shell()
 		which /bin/bash \
 		>$SBOX_SESSION_DIR/path_to_shell.conf
 	SHELL_PATH=`cat $SBOX_SESSION_DIR/path_to_shell.conf`
-	if [ -f $SHELL_PATH ]; then
+	if [ -f "$SHELL_PATH" ]; then
 		# Good, bash exists. Use that.
 		SHELL=/bin/bash
 	else

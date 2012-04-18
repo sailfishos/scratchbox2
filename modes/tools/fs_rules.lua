@@ -6,7 +6,7 @@
 
 -- Rule file interface version, mandatory.
 --
-rule_file_interface_version = "104"
+rule_file_interface_version = "105"
 ----------------------------------
 
 tools = tools_root
@@ -34,7 +34,8 @@ var_lib_dpkg_status_actions = {
 	{ map_to = tools_root, protection = readonly_fs_if_not_root}
 }
 
-fs_mapping_rules = {
+-- These rules are used only if there is a separate tools_root
+tools_in_subdir_mapping_rules = {
 		{dir = session_dir, use_orig_path = true},
 
 		{path = sbox_cputransparency_cmd, use_orig_path = true,
@@ -114,3 +115,13 @@ fs_mapping_rules = {
 		 protection = readonly_fs_if_not_root}
 }
 
+if (tools_root == nil) or (tools_root == "") or (tools_root == "/") then
+	-- Host tools used as tools root.
+	-- Not really useful use case, but keeps this mode functional.
+	fs_mapping_rules = {
+		{prefix = "/", use_orig_path = true},
+	}
+else
+	-- Tools in a subdir.
+	fs_mapping_rules = tools_in_subdir_mapping_rules
+end

@@ -66,13 +66,11 @@ There are two ways to build and install SB2:
 	"export PATH=$PATH:$HOME/sb2/bin")
 
 You need Qemu for cpu-transparency. As of 2009-03, qemu-0.10.1 seems to work
-pretty well. In addition to that, "fakeroot" and "realpath" are required;
-these are usually available in the host OS (or can be installed with the
-usual system management utilities, like "apt-get")
+pretty well. 
 
 Latest Qemu can be retrieved with: 
 
-$ git clone git://git.savannah.nongnu.org/qemu.git
+$ git clone git://git.qemu.org/qemu.git
 $ cd qemu
 $ ./configure --prefix=$HOME/sb2 --target-list=arm-linux-user
 $ make && make install

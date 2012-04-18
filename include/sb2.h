@@ -156,8 +156,10 @@ struct sb2context {
  * * 127:
  *     exec postprocessing is completely implemented in C,
  *     sb_execve_postprocess() is not needed anymore.
+ * * 128:
+ *     new interface classes SYMLINK and CREAT
 */
-#define SB2_LUA_C_INTERFACE_VERSION "127"
+#define SB2_LUA_C_INTERFACE_VERSION "128"
 
 /* This version string is used to check that init.lua offers
  * what sb2d expects, and v.v.

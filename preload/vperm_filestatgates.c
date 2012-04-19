@@ -799,6 +799,7 @@ int __xmknod_gate(int *result_errno_ptr,
 	/* first try the real function */
 	res = (*real___xmknod_ptr)(ver, mapped_filename->mres_result_path, mode, dev);
 	if (res == 0) {
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: real fn: ok", __func__);
 		/* OK, success. */
 		/* If this inode has been virtualized, update DB */
 		if (get_vperm_num_active_inodestats() > 0) {
@@ -813,11 +814,13 @@ int __xmknod_gate(int *result_errno_ptr,
 	} else {
 		int	e = errno;
 
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: real fn: %d, errno=%d",
+			__func__, res, e);
 		if (e == EPERM) {
 			res = vperm_mknod(AT_FDCWD, result_errno_ptr,
 				mapped_filename, mode, *dev);
 		} else {
-			*result_errno_ptr = errno;
+			*result_errno_ptr = e;
 		}
 	}
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: returns %d", __func__, res);
@@ -837,6 +840,7 @@ int __xmknodat_gate(int *result_errno_ptr,
 	/* first try the real function */
 	res = (*real___xmknodat_ptr)(ver, dirfd, mapped_filename->mres_result_path, mode, dev);
 	if (res == 0) {
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: real fn: ok", __func__);
 		/* OK, success. */
 		/* If this inode has been virtualized, update DB */
 		if (get_vperm_num_active_inodestats() > 0) {
@@ -851,11 +855,13 @@ int __xmknodat_gate(int *result_errno_ptr,
 	} else {
 		int	e = errno;
 
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: real fn: %d, errno=%d",
+			__func__, res, e);
 		if (e == EPERM) {
 			res = vperm_mknod(dirfd, result_errno_ptr,
 				mapped_filename, mode, *dev);
 		} else {
-			*result_errno_ptr = errno;
+			*result_errno_ptr = e;
 		}
 	}
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: returns %d", __func__, res);

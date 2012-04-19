@@ -1,3 +1,12 @@
+scratchbox2 (2.3.54-1) unstable; urgency=low
+
+  * A fix to emulate+toolchain mode [from Mika Westerberg]
+  * more /dev fixes for the "emulate" mode
+  * an additional trick for supporting debootrapping (see
+    full comment in the "sb2" script)
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 19 Apr 2012 19:58:00 +0300
+
 scratchbox2 (2.3.53-1) unstable; urgency=low
 
   * New manual page libsb2_interface(7), generated automatically

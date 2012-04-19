@@ -1332,6 +1332,14 @@ function initialize_new_sb2_session()
 	mkdir $SBOX_SESSION_DIR/uniondirs
 	mkdir $SBOX_SESSION_DIR/logs
 
+	# a trick for debootstrapping debian, which wants to 
+	# replace /var/run with symlink to ../run - that
+	# conflicts with SB2's symlink resolution algorithm,
+	# because e.g. "emulate" mode has a separate rule for
+	# /var/run. But yet another symlink in the session
+	# directory helps:
+	ln -s $SBOX_TARGET_ROOT/run $SBOX_SESSION_DIR/run
+
 	# ruletree ipc client sockets.
 	mkdir $SBOX_SESSION_DIR/sock
 

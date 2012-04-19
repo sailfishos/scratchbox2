@@ -175,6 +175,7 @@ extern char *prep_union_dir(const char *dst_path,
 
 #define SB2_INTERFACE_CLASS_SYMLINK	0x2000
 #define SB2_INTERFACE_CLASS_CREAT	0x4000
+#define SB2_INTERFACE_CLASS_REMOVE	0x8000	/* unlink*, remove, rmdir */
 
 /* interface funtion ->  class(es) mapping table, 
  * created by gen-interface.c */

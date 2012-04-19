@@ -545,6 +545,7 @@ WRAP: ssize_t __readlinkat_chk(int dirfd, const char *__restrict pathname, \
 	dont_resolve_final_symlink map_at(dirfd,pathname)
 
 GATE: int remove(const char *pathname) : \
+	class(REMOVE) \
 	map(pathname) fail_if_readonly(pathname,-1,EROFS)
 #ifdef HAVE_REMOVEXATTR
 #ifdef HAVE_LINUX_XATTRS
@@ -574,6 +575,7 @@ GATE: int renameat(int olddirfd, const char *oldpath, int newdirfd, \
 WRAP: int revoke(const char *file) : map(file)
 
 GATE: int rmdir(const char *pathname) : \
+	class(REMOVE) \
 	map(pathname) fail_if_readonly(pathname,-1,EROFS)
 
 #ifdef HAVE_SCANDIR
@@ -647,11 +649,13 @@ WRAP: int truncate64(const char *path, off64_t length) : \
 #endif
 
 GATE: int unlink(const char *pathname) : \
+	class(REMOVE) \
 	dont_resolve_final_symlink map(pathname) \
 	fail_if_readonly(pathname,-1,EROFS) \
 	create_nomap_nolog_version
 
 GATE: int unlinkat(int dirfd, const char *pathname, int flags) : \
+	class(REMOVE) \
 	dont_resolve_final_symlink map_at(dirfd,pathname) \
 	fail_if_readonly(pathname,-1,EROFS)
 

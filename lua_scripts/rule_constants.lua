@@ -31,6 +31,7 @@ FUNC_CLASS_MKNOD	= 0x400
 FUNC_CLASS_RENAME	= 0x800
 FUNC_CLASS_SYMLINK	= 0x2000
 FUNC_CLASS_CREAT	= 0x4000
+FUNC_CLASS_REMOVE	= 0x8000
 
 -- "protection" attribute:
 readonly_fs_if_not_root = 1

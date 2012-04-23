@@ -281,7 +281,7 @@ function load_configuration()
 			exit 1
 		fi
 		if [ -e "$_cputransp" ]; then
-			SBOX_CPUTRANSPARENCY_CMD=$(sb2-show realpath $_cputransp)
+			SBOX_CPUTRANSPARENCY_CMD=$($SBOX_DIR/bin/sb2-show realpath $_cputransp)
 		fi
 	fi
 
@@ -679,7 +679,7 @@ function write_ld_library_path_replacement_to_exec_config()
 # can be executed in the sb2'ed environment.
 function check_qemu_features()
 {
-	qemu_path=$(sb2-show realpath $1)
+	qemu_path=$($SBOX_DIR/bin/sb2-show realpath $1)
 	shift
 	qemu_options=$*
 
@@ -1071,7 +1071,7 @@ END
 -- CPU transparency settings. Automatically generated file, do not edit.
 END
 
-	library_interface=`LD_LIBRARY_PATH=$SBOX_DIR/lib/libsb2:$LD_LIBRARY_PATH sb2-show libraryinterface`
+	library_interface=`LD_LIBRARY_PATH=$SBOX_DIR/lib/libsb2:$LD_LIBRARY_PATH $SBOX_DIR/bin/sb2-show libraryinterface`
 
 	# 1. Exec settings for tools
 	if [ -n "$SBOX_TOOLS_ROOT" -a "$SBOX_TOOLS_ROOT" != "/" ]; then
@@ -1619,7 +1619,7 @@ if [ -n "$SBOX_LOG_AND_GRAPH_DIR" ]; then
 	else
 		exit_error "directory $SBOX_LOG_AND_GRAPH_DIR already exists"
 	fi
-	SBOX_LOG_AND_GRAPH_DIR=$(sb2-show realpath $SBOX_LOG_AND_GRAPH_DIR)
+	SBOX_LOG_AND_GRAPH_DIR=$($SBOX_DIR/bin/sb2-show realpath $SBOX_LOG_AND_GRAPH_DIR)
 	export SBOX_LOG_AND_GRAPH_DIR
 	export SBOX_COLLECT_ACCT_DATA
 
@@ -1632,12 +1632,12 @@ if [ -n "$SBOX_LOG_AND_GRAPH_DIR" ]; then
 	if [ -n "$SBOX_COLLECT_ACCT_DATA" ]; then
 		# First try to activate it directly
 		touch $SBOX_LOG_AND_GRAPH_DIR/acct-data
-		sb2-show acct_on $SBOX_LOG_AND_GRAPH_DIR/acct-data 2>/dev/null
+		$SBOX_DIR/bin/sb2-show acct_on $SBOX_LOG_AND_GRAPH_DIR/acct-data 2>/dev/null
 		if [ $? != 0 ]; then
 			if [ -z "$SBOX_QUIET" ];  then
 				echo "WARNING: Can't activate process accounting. Retrying with 'sudo', password may be needed."
 			fi
-			sudo sb2-show acct_on $SBOX_LOG_AND_GRAPH_DIR/acct-data 2>/dev/null
+			sudo $SBOX_DIR/bin/sb2-show acct_on $SBOX_LOG_AND_GRAPH_DIR/acct-data 2>/dev/null
 			if [ $? != 0 ]; then
 				if [ -z "$SBOX_QUIET" ];  then
 					echo "WARNING: Failed to activate process accounting. Acct data won't be included in the graphs."

@@ -452,7 +452,7 @@ fi
 
 mkdir -p $HOME/.scratchbox2
 
-if [ -z "$(sb2-config -l)" ]; then
+if [ -z "$($SBOX_DIR/bin/sb2-config -l)" ]; then
 	# force this as default anyway as there are no
 	# other existing targets
 	SB2INIT_SET_AS_DEFAULT=1
@@ -497,7 +497,7 @@ fi
 # finalize the configuration by running programs in the new environment.
 
 if [ $SB2INIT_SET_AS_DEFAULT == 1 ]; then
-	sb2-config -d $TARGET
+	$SBOX_DIR/bin/sb2-config -d $TARGET
 fi
 
 # if the target system is (based on) debian,

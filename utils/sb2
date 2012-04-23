@@ -299,7 +299,7 @@ function load_configuration()
 			exit 1
 		fi
 		if [ -e "$_cputransp" ]; then
-			SBOX_CPUTRANSPARENCY_NATIVE_CMD=$(realpath $_cputransp)
+			SBOX_CPUTRANSPARENCY_NATIVE_CMD=$($SBOX_DIR/bin/sb2-show realpath $_cputransp)
 			export SBOX_NATIVE_HAS_CPUTRANSP=1
 		fi
 	fi

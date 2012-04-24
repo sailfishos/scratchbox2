@@ -1,5 +1,6 @@
 Source: scratchbox2
 Maintainer: Riku Voipio <riku.voipio@iki.fi>
+Uploaders: Jussi Hakala <jussi.hakala@iki.fi>
 Section: utils
 Priority: extra
 Standards-Version: 3.8.0

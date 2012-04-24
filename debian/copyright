@@ -1,6 +1,6 @@
 This package was debianized by Riku Voipio <riku.voipio@iki.fi>
 
-The source may be fetched from git://anongit.freedesktop.org/git/sbox2
+The source may be fetched from git://gitorious.org/scratchbox2/scratchbox2.git
 
 preload library and most of scratchbox 2.0 :
  Copyright (C) 2006 Lauri Leukkunen <lle@rahina.org>

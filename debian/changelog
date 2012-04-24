@@ -1,3 +1,10 @@
+scratchbox2 (2.2.4-1debian1) unstable; urgency=low
+
+  * Update debian packaging for new upstream release
+  * New co-maintainer
+
+ -- Jussi Hakala <jussi.hakala@iki.fi>  Tue, 24 Apr 2012 14:20:51 +0300
+
 scratchbox2 (2.2.4-1) unstable; urgency=low
 
   [ Rafal Krypa and Mike McCormack ]

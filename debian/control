@@ -7,7 +7,7 @@ Build-Depends: debhelper (>=5), autoconf, gcc-multilib [amd64] | gcc-4.1 (<< 4.1
  libc6-dev-i386 [amd64] | ia32-libs (>= 1.19) [amd64]
 XS-Vcs-Git: git://gitorious.org/scratchbox2/scratchbox2.git
 XS-Vcs-Browser: http://maemo.gitorious.org/scratchbox2/scratchbox2/trees/master
-Homepage: http://www.freedesktop.org/wiki/Software/sbox2
+Homepage: http://maemo.gitorious.org/scratchbox2
 
 Package: scratchbox2
 Architecture: i386 amd64 powerpc ia64

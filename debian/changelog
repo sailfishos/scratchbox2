@@ -17,6 +17,14 @@ scratchbox2 (2.2.4-1) unstable; urgency=low
 
  -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Sun, 01 Apr 2012 17:49:00 +0300
 
+scratchbox2 (2.2.3-1debian1) unstable; urgency=low
+
+  * Add more recommends
+  * Fix FTBFS wth ld --as-needed, closes: #632103
+  * Fix bashism, closes: #547762
+
+ -- Riku Voipio <riku.voipio@linaro.org>  Tue, 12 Jul 2011 10:41:38 +0300
+
 scratchbox2 (2.2.3-1) unstable; urgency=low
 
   * A maintenance release: Backported 10 patches/fixes

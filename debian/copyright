@@ -12,8 +12,8 @@ later, found on Debian systems in the file /usr/share/common-licenses/LGPL-2.
 sb_alien, libsb_env and utils:
  
  Copyright (C) 2004-2005 Nokia
- Author: Timo Savola <tsavola@movial.fi>
- Author: Toni Timonen <ttimonen@movial.fi>
+ Author: Timo Savola <timo.savola@iki.fi>
+ Author: Toni Timonen <toni.timonen@iki.fi>
  Licensed under GPL
 
 On Debian systems, the complete text of the GPL license can be found in the

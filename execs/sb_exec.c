@@ -1210,6 +1210,42 @@ static void simulate_suid_and_sgid_if_needed(
 	}
 }
 
+static int exec_policy_force_cpu_transparency(const char *exec_policy_name,
+	const char *cputransp_name)
+{
+	ruletree_object_offset_t cmd_offs;
+	const char *namev_in_ruletree[4];
+	const char *cputransp_cmd;
+	exec_policy_handle_t eph;
+	uint32_t exec_flags;
+
+	if (!exec_policy_name)
+		return 0;
+
+	eph = find_exec_policy_handle(exec_policy_name);
+	if (!exec_policy_handle_is_valid(eph))
+		return 0;
+
+	exec_flags = EXEC_POLICY_GET_UINT32(eph, exec_flags);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "exec_policy: %s, exec_flags: %u",
+		exec_policy_name, exec_flags);
+
+	if (!(exec_flags & SB2_EXEC_FLAGS_FORCE_CPU_TRANSPARENCY))
+		return 0;
+
+	/* Check if there is cputransparency set */
+	namev_in_ruletree[0] = "cputransparency";
+	namev_in_ruletree[1] = cputransp_name;
+	namev_in_ruletree[2] = "cmd";
+	namev_in_ruletree[3] = NULL;
+	cmd_offs = ruletree_catalog_vget(namev_in_ruletree);
+	if (!cmd_offs)
+		return 0;
+
+	cputransp_cmd = offset_to_ruletree_string_ptr(cmd_offs, NULL);
+	return (cputransp_cmd && cputransp_cmd[0]);
+}
+
 static int prepare_exec(const char *exec_fn_name,
 	const char *exec_policy_name,
 	const char *orig_file,
@@ -1349,10 +1385,20 @@ static int prepare_exec(const char *exec_fn_name,
 				&mapped_file, &my_file, binaryname,
 				&my_argv, &my_envp);
 #else
-			postprocess_result = exec_postprocess_native_executable(
-				exec_policy_name,
-				&mapped_file, &my_file, binaryname,
-				(const char **)my_argv, &my_new_argv, (const char **)*new_envp, &my_new_envp);
+			if (exec_policy_force_cpu_transparency(exec_policy_name, "target")) {
+				postprocess_result = exec_postprocess_cpu_transparency_executable(
+					exec_policy_name,
+					&mapped_file, &my_file, binaryname,
+					(const char **)my_argv, &my_new_argv,
+					(const char **)*new_envp, &my_new_envp,
+					"target");
+			} else {
+				postprocess_result = exec_postprocess_native_executable(
+					exec_policy_name,
+					&mapped_file, &my_file, binaryname,
+					(const char **)my_argv, &my_new_argv,
+					(const char **)*new_envp, &my_new_envp);
+			}
 			my_envp = (char**)my_new_envp; /* FIXME */
 			my_argv = (char**)my_new_argv; /* FIXME */
 #endif
@@ -1374,67 +1420,53 @@ static int prepare_exec(const char *exec_fn_name,
 				&mapped_file, &my_file, binaryname,
 				&my_argv, &my_envp);
 #else
-			{
-				const char			*namev_in_ruletree[4];
-				const char			*cputransp_cmd = NULL;
-				ruletree_object_offset_t	cmd_offs;
+			if (exec_policy_force_cpu_transparency(exec_policy_name, "native")) {
+				postprocess_result = exec_postprocess_cpu_transparency_executable(
+					exec_policy_name,
+					&mapped_file, &my_file, binaryname,
+					(const char **)my_argv, &my_new_argv,
+					(const char **)*new_envp, &my_new_envp,
+					"native");
+				my_envp = (char**)my_new_envp; /* FIXME */
+				my_argv = (char**)my_new_argv; /* FIXME */
+			} else {
+				const char *allow_static_bin = NULL;
 
-				namev_in_ruletree[0] = "cputransparency";
-				namev_in_ruletree[1] = "native";
-				namev_in_ruletree[2] = "cmd";
-				namev_in_ruletree[3] = NULL;
-				cmd_offs = ruletree_catalog_vget(namev_in_ruletree);
-				if (cmd_offs) {
-					cputransp_cmd = offset_to_ruletree_string_ptr(cmd_offs, NULL);
-				}
-				if (cputransp_cmd && (cputransp_cmd[0] != '\0')) {
-					postprocess_result = exec_postprocess_cpu_transparency_executable(
-						exec_policy_name,
-						&mapped_file, &my_file, binaryname,
-						(const char **)my_argv, &my_new_argv,
-						(const char **)*new_envp, &my_new_envp,
-						"native");
-					my_envp = (char**)my_new_envp; /* FIXME */
-					my_argv = (char**)my_new_argv; /* FIXME */
+				/* don't print warning, if this static binary
+				 * has been allowed (see the wrapper for
+				 * ldconfig - we don't want to see warnings
+				 * every time when someone executes that)
+				*/
+				allow_static_bin = getenv("SBOX_ALLOW_STATIC_BINARY");
+				if (allow_static_bin &&
+				    !strcmp(allow_static_bin, mapped_file)) {
+					/* no warnning, just debug */
+					SB_LOG(SB_LOGLEVEL_DEBUG,
+						"statically linked "
+						"native binary %s (allowed)",
+						mapped_file);
 				} else {
-					const char *allow_static_bin = NULL;
-
-					/* don't print warning, if this static binary
-					 * has been allowed (see the wrapper for
-					 * ldconfig - we don't want to see warnings
-					 * every time when someone executes that)
-					*/
-					allow_static_bin = getenv("SBOX_ALLOW_STATIC_BINARY");
-					if (allow_static_bin &&
-					    !strcmp(allow_static_bin, mapped_file)) {
-						/* no warnning, just debug */
-						SB_LOG(SB_LOGLEVEL_DEBUG,
-							"statically linked "
-							"native binary %s (allowed)",
-							mapped_file);
-					} else {
-						SB_LOG(SB_LOGLEVEL_WARNING,
-							"Executing statically "
-							"linked native binary %s",
-							mapped_file);
-					}
-					/* Add LD_LIBRARY_PATH and LD_PRELOAD.
-					 * the static binary itself does not need
-					 * these, but if it executes another 
-					 * program, then there is at least some
-					 * hope of getting back to SB2. It won't
-					 * be able to start anything that runs
-					 * under CPU transparency, but host-compatible
-					 * binaries may be able to get back..
-					*/
-					postprocess_result = exec_postprocess_host_static_executable(
-						exec_policy_name,
-						&mapped_file, &my_file, binaryname,
-						(const char **)my_argv, &my_new_argv,
-						(const char **)*new_envp, &my_new_envp);
-					my_envp = (char**)my_new_envp; /* FIXME */
-					my_argv = (char**)my_new_argv; /* FIXME */
+					SB_LOG(SB_LOGLEVEL_WARNING,
+						"Executing statically "
+						"linked native binary %s",
+						mapped_file);
 				}
+				/* Add LD_LIBRARY_PATH and LD_PRELOAD.
+				 * the static binary itself does not need
+				 * these, but if it executes another
+				 * program, then there is at least some
+				 * hope of getting back to SB2. It won't
+				 * be able to start anything that runs
+				 * under CPU transparency, but host-compatible
+				 * binaries may be able to get back..
+				*/
+				postprocess_result = exec_postprocess_host_static_executable(
+					exec_policy_name,
+					&mapped_file, &my_file, binaryname,
+					(const char **)my_argv, &my_new_argv,
+					(const char **)*new_envp, &my_new_envp);
+				my_envp = (char**)my_new_envp; /* FIXME */
+				my_argv = (char**)my_new_argv; /* FIXME */
 			}
 #endif
 			if (postprocess_result < 0) {

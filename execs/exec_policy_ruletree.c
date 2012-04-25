@@ -80,6 +80,24 @@ int exec_policy_get_boolean(exec_policy_handle_t eph,
 	return(0);
 }
 
+int exec_policy_get_uint32(exec_policy_handle_t eph,
+	const char *u_name, size_t fldoffs)
+{
+	if (eph.exec_policy_offset) {
+		ruletree_object_offset_t offs;
+		uint32_t *uip;
+
+		offs = ruletree_catalog_find_value_from_catalog(
+			eph.exec_policy_offset, u_name);
+		uip = ruletree_get_pointer_to_uint32(offs);
+		SB_LOG(SB_LOGLEVEL_NOISE,
+			"%s: @%u = *%p = %u",
+			__func__, offs, uip, (uip ? *uip : 0), fldoffs);
+		return(uip ? *uip : 0);
+	}
+	return(0);
+}
+
 ruletree_object_offset_t exec_policy_get_rules(exec_policy_handle_t eph,
         const char *r_name, size_t fldoffs)
 {

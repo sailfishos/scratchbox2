@@ -67,6 +67,8 @@ extern const char *exec_policy_get_string(exec_policy_handle_t eph,
 	const char *s_name, size_t fldoffs);
 extern int exec_policy_get_boolean(exec_policy_handle_t eph,
 	const char *b_name, size_t fldoffs);
+extern int exec_policy_get_uint32(exec_policy_handle_t eph,
+	const char *u_name, size_t fldoffs);
 extern ruletree_object_offset_t exec_policy_get_rules(exec_policy_handle_t eph,
 	const char *r_name, size_t fldoffs);
 
@@ -76,6 +78,10 @@ extern ruletree_object_offset_t exec_policy_get_rules(exec_policy_handle_t eph,
 
 #define EXEC_POLICY_GET_BOOLEAN(eph, fieldname) \
 	exec_policy_get_boolean(eph, #fieldname, \
+		offsetof(struct exec_policy_fields, fieldname))
+
+#define EXEC_POLICY_GET_UINT32(eph, fieldname) \
+	exec_policy_get_uint32(eph, #fieldname, \
 		offsetof(struct exec_policy_fields, fieldname))
 
 #define EXEC_POLICY_GET_RULES(eph, fieldname) \

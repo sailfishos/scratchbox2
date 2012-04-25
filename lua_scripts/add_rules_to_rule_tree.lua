@@ -316,6 +316,9 @@ function add_to_exec_policy(modename_in_ruletree, ep_name, key, t, val)
 	elseif t == "boolean" then
 		ruletree.catalog_vset("exec_policy", modename_in_ruletree, ep_name,
 			key, ruletree.new_boolean(val))
+	elseif t == "number" then
+		ruletree.catalog_vset("exec_policy", modename_in_ruletree, ep_name,
+			key, ruletree.new_uint32(val))
 	else
 		io.stderr:write(string.format(
 			"exec policy loader: unsupported type %s (%s,%s,%s)\n",

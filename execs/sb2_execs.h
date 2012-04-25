@@ -48,6 +48,8 @@ struct exec_policy_fields {
 	char native_app_locale_path;
 	char native_app_gconv_path;
 
+	char exec_flags;
+
 	char script_log_level;
 	char script_log_message;
 	char script_deny_exec;
@@ -60,6 +62,9 @@ typedef struct {
 } exec_policy_handle_t;
 
 #define exec_policy_handle_is_valid(eph) ((eph).exec_policy_offset != 0)
+
+/* Use CPU transparency even if binaries are compatible with host */
+#define SB2_EXEC_FLAGS_FORCE_CPU_TRANSPARENCY	1
 
 extern exec_policy_handle_t	find_exec_policy_handle(const char *policyname);
 

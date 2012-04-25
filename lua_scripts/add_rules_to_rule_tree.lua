@@ -303,6 +303,8 @@ local valid_keywords_in_exec_policy = {
 	native_app_locale_path = "string",
 	native_app_gconv_path = "string",
 
+	exec_flags = "number",
+
 	script_log_level = "string",
 	script_log_message = "string",
 	script_set_argv0_to_mapped_interpreter = "boolean",
@@ -393,6 +395,7 @@ for m_index,m_name in pairs(all_modes) do
 
         -- Reload "constants", just to be sure:
         do_file(session_dir .. "/lua_scripts/rule_constants.lua")
+        do_file(session_dir .. "/lua_scripts/exec_constants.lua")
 
 	-- Main config file:
 	do_file(session_dir .. "/share/scratchbox2/modes/"..modename_in_ruletree.."/config.lua")

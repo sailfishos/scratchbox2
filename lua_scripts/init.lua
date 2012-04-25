@@ -93,6 +93,7 @@ ruletree.catalog_set("config", "sbox_emulate_sb1_bugs",
 -- NOTE: At this point all conf_cputransparency_* variables
 -- are still missing from exec_config.lua. Other variables
 -- (conf_tools_*, conf_target_*, host_*) are there.
+do_file(session_dir .. "/lua_scripts/exec_constants.lua")
 do_file(session_dir .. "/exec_config.lua")
 
 -- Add exec config parameters to ruletree:

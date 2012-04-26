@@ -1,3 +1,10 @@
+scratchbox2 (2.3.55-1) unstable; urgency=low
+
+  * Added document: Scratchbox 2 Internals and Architecture
+    (a .pdf file in the docs subdirectory) 
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 26 Apr 2012 16:41:00 +0300
+
 scratchbox2 (2.3.54-1) unstable; urgency=low
 
   * A fix to emulate+toolchain mode [from Mika Westerberg]

@@ -15,6 +15,9 @@ exec_policy_selection = {
 		-- Rule isn't active if tools_root is not set.
 		{prefix = tools_root, exec_policy_name = "Tools"},
 
+		-- scratchbox2 binaries are expected from Host
+		{dir = sbox_dir .. "/bin", exec_policy_name = "Host"},
+
                 -- the home directory is expected to contain target binaries:
                 {dir = sbox_user_home_dir, exec_policy_name = "Target"},
 

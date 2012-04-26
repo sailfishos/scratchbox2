@@ -44,7 +44,7 @@ install: build
 binary-arch: install
 	dh_testdir -a
 	dh_testroot -a
-	dh_installdocs -a README
+	dh_installdocs -a README docs/SB2_internals_1st_ed_20120425.pdf
 	dh_installchangelogs -a
 	dh_strip -a
 	dh_compress -a

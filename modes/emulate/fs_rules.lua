@@ -140,6 +140,14 @@ emulate_mode_rules_dev = {
 		-- FIXME: This rule should have "protection = eaccess_if_not_owner_or_root",
 		-- but that kind of protection is not yet supported.
 
+		-- ==== Blacklisted targets: ====
+		-- Some real device nodes (and other objects in /dev)
+		-- should never be accessible from the scratchbox'ed session.
+		-- Redirect to a session-specific directory.
+		{path = "/dev/initctl",
+	         map_to = session_dir, protection = readonly_fs_if_not_root },
+		-- ==== End of Blacklist ====
+
 		-- We can't change times or attributes of host's devices,
 		-- but must pretend to be able to do so. Redirect the path
 		-- to an existing, dummy location.
@@ -149,6 +157,18 @@ emulate_mode_rules_dev = {
 
 		-- The directory itself.
 		{path = "/dev", use_orig_path = true},
+
+		-- If a selected device node needs to be opened with
+		-- O_CREAT set, use the real device (e.g. "echo >/dev/null"
+		-- does that)
+		{path = "/dev/console",
+		 func_class = FUNC_CLASS_CREAT, use_orig_path = true},
+		{path = "/dev/null", 
+		 func_class = FUNC_CLASS_CREAT, use_orig_path = true},
+		{prefix = "/dev/tty", 
+		 func_class = FUNC_CLASS_CREAT, use_orig_path = true},
+		{prefix = "/dev/fb", 
+		 func_class = FUNC_CLASS_CREAT, use_orig_path = true},
 
 		-- mknod is simulated. Redirect to a directory where
 		-- mknod can create the node.

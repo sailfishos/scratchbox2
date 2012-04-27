@@ -1,3 +1,14 @@
+scratchbox2 (2.3.56-1) unstable; urgency=low
+
+  * Various fixes and enhancements for host-compatible
+    targets (i.e. when compiling for intel targets on
+    an intel host) [from Mika Westerberg]
+  * "emulate" mode: Fixes to /dev mapping rules (e.g.
+    "echo >/dev/null" works again with "sb2 -e", and
+    not only when "sb2 -eR" is used) [Lauri Aarnio]
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Fri, 27 Apr 2012 18:25:00 +0300
+
 scratchbox2 (2.3.55-1) unstable; urgency=low
 
   * Added document: Scratchbox 2 Internals and Architecture

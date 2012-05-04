@@ -158,8 +158,15 @@ static const struct target_info target_table[] = {
 	{ "sh",		EM_SH, 		ELFDATA2LSB,	1 },
 };
 
-static int elf_hdr_match(const char *region, uint16_t match, int ei_data);
-static enum binary_type inspect_elf_binary(const char *);
+enum binary_type {
+	BIN_NONE,
+	BIN_UNKNOWN,
+	BIN_INVALID,
+	BIN_HOST_STATIC,
+	BIN_HOST_DYNAMIC,
+	BIN_TARGET,
+	BIN_HASHBANG,
+};
 
 static int prepare_exec(const char *exec_fn_name,
 	const char *exec_policy_name,
@@ -182,16 +189,6 @@ static uint16_t byte_swap(uint16_t a)
 	*r = *t;
 	return b;
 }
-
-enum binary_type {
-	BIN_NONE, 
-	BIN_UNKNOWN,
-	BIN_INVALID,
-	BIN_HOST_STATIC,
-	BIN_HOST_DYNAMIC,
-	BIN_TARGET,
-	BIN_HASHBANG,
-};
 
 #if 0
 static int is_subdir(const char *root, const char *subdir)

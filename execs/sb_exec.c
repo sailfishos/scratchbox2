@@ -168,6 +168,12 @@ enum binary_type {
 	BIN_HASHBANG,
 };
 
+struct binary_info {
+	int mode;
+	uid_t uid;
+	gid_t gid;
+};
+
 static int prepare_exec(const char *exec_fn_name,
 	const char *exec_policy_name,
 	const char *orig_file, int file_has_been_mapped,
@@ -339,9 +345,7 @@ static enum binary_type inspect_elf_binary(const char *region)
 
 static enum binary_type inspect_binary(const char *filename,
 	int check_x_permission,
-	int *modep,
-	uid_t *uidp,
-	gid_t *gidp)
+	struct binary_info *info)
 {
 	static const char *target_cpu = NULL;
 	enum binary_type retval;
@@ -431,9 +435,12 @@ static enum binary_type inspect_binary(const char *filename,
 			"%s: fstat failed => out", __func__);
 		goto _out_close;
 	}
-	if (modep) *modep = status.st_mode;
-	if (uidp) *uidp = status.st_uid;
-	if (gidp) *gidp = status.st_gid;
+
+	if (info) {
+		info->mode = status.st_mode;
+		info->uid = status.st_uid;
+		info->gid = status.st_gid;
+	}
 
 	if (!S_ISREG(status.st_mode) && !S_ISLNK(status.st_mode)) {
 		SB_LOG(SB_LOGLEVEL_DEBUG,
@@ -1169,17 +1176,15 @@ static void change_environment_variable(
 static void simulate_suid_and_sgid_if_needed(
 	const char *filename,
 	char **my_envp,
-	int file_mode,
-	uid_t file_uid,
-	gid_t file_gid,
+	const struct binary_info *info,
 	int host_compatible_binary)
 {
-	if (file_mode & (S_ISUID | S_ISGID)) {
+	if (info->mode & (S_ISUID | S_ISGID)) {
 		/* SUID and/or SGID, replace vperms in environment */
 		char *new_vperm_str;
 
 		new_vperm_str = vperm_export_ids_as_string_for_exec("",
-			file_mode, file_uid, file_gid, NULL);
+			info->mode, info->uid, info->gid, NULL);
 		change_environment_variable(my_envp, "SBOX_VPERM_IDS=", new_vperm_str);
 
 		SB_LOG(SB_LOGLEVEL_DEBUG,
@@ -1190,13 +1195,13 @@ static void simulate_suid_and_sgid_if_needed(
 		 * FIXME. those should be started with
 		 * direct ld.so startup method.  */
 		if (host_compatible_binary) {
-			if ((file_mode & S_ISUID)) {
+			if ((info->mode & S_ISUID)) {
 				SB_LOG(SB_LOGLEVEL_WARNING,
 					"SUID bit set for '%s' (SB2 may be disabled)",
 					filename);
 			}
 
-			if ((file_mode & S_ISGID)) {
+			if ((info->mode & S_ISGID)) {
 				SB_LOG(SB_LOGLEVEL_WARNING,
 					"SGID bit set for '%s' (SB2 may be disabled)",
 					filename);
@@ -1261,11 +1266,9 @@ static int prepare_exec(const char *exec_fn_name,
 	char *binaryname, *tmp, *mapped_file;
 	int err = 0;
 	enum binary_type type;
+	struct binary_info info;
 	int postprocess_result = 0;
 	int ret = 0; /* 0: ok to exec, ret<0: exec fails */
-	int file_mode;
-	uid_t file_uid;
-	gid_t file_gid;
 	PROCESSCLOCK(clk1)
 	PROCESSCLOCK(clk4)
 
@@ -1343,8 +1346,8 @@ static int prepare_exec(const char *exec_fn_name,
 		"__SB2_REAL_BINARYNAME=", mapped_file);
 
 	/* inspect the completely mangled filename */
-	type = inspect_binary(mapped_file, 1/*check_x_permission*/,
-		&file_mode, &file_uid, &file_gid);
+	memset(&info, 0, sizeof(info));
+	type = inspect_binary(mapped_file, 1/*check_x_permission*/, &info);
 	if (typep) *typep = type;
 
 	if (!exec_policy_name) {
@@ -1405,8 +1408,7 @@ static int prepare_exec(const char *exec_fn_name,
 				ret = -1;
 			} else {
 				simulate_suid_and_sgid_if_needed(mapped_file, my_envp,
-					file_mode, file_uid, file_gid,
-					1/*host_compatible_binary*/);
+					&info, 1/*host_compatible_binary*/);
 			}
 			break;
 
@@ -1473,8 +1475,7 @@ static int prepare_exec(const char *exec_fn_name,
 				/* the static binary won't get SUID simulation,
 				 * but if it executes something else.. */
 				simulate_suid_and_sgid_if_needed(mapped_file, my_envp,
-					file_mode, file_uid, file_gid,
-					1/*host_compatible_binary*/);
+					&info, 1/*host_compatible_binary*/);
 			}
 			break;
 
@@ -1503,8 +1504,7 @@ static int prepare_exec(const char *exec_fn_name,
 				ret = -1;
 			} else {
 				simulate_suid_and_sgid_if_needed(mapped_file, my_envp,
-					file_mode, file_uid, file_gid,
-					0/*not host_compatible_binary*/);
+					&info, 0/*not host_compatible_binary*/);
 			}
 			break;
 
@@ -1656,7 +1656,7 @@ int sb2show__execve_mods__(
 char *sb2show__binary_type__(const char *filename)
 {
 	enum binary_type type = inspect_binary(filename,
-		 0/*check_x_permission*/, NULL, NULL, NULL);
+		 0/*check_x_permission*/, NULL);
 	char *result = NULL;
 
 	switch (type) {

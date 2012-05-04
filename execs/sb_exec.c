@@ -172,6 +172,8 @@ struct binary_info {
 	int mode;
 	uid_t uid;
 	gid_t gid;
+	uint16_t machine;
+	uint8_t data;
 };
 
 static int prepare_exec(const char *exec_fn_name,
@@ -293,7 +295,8 @@ static int elf_hdr_match(const char *region, uint16_t match, int ei_data)
 	return 0;
 }
 
-static enum binary_type inspect_elf_binary(const char *region)
+static enum binary_type inspect_elf_binary(const char *region,
+	struct binary_info *info)
 {
 	assert(region != NULL);
 
@@ -314,6 +317,11 @@ static enum binary_type inspect_elf_binary(const char *region)
 		size_t ph_entsize = eh->e_phentsize;
 		int i;
 
+		if (info) {
+			info->machine = eh->e_machine;
+			info->data = eh->e_ident[EI_DATA];
+		}
+
 		for (i = 0; i < eh->e_phnum; i++) {
 			ph = (Elf32_Phdr *)
 			    (region + eh->e_phoff + (i * ph_entsize));
@@ -329,6 +337,11 @@ static enum binary_type inspect_elf_binary(const char *region)
 		Elf64_Phdr *ph;
 		size_t ph_entsize = eh->e_phentsize;
 		int i;
+
+		if (info) {
+			info->machine = eh->e_machine;
+			info->data = eh->e_ident[EI_DATA];
+		}
 
 		for (i = 0; i < eh->e_phnum; i++) {
 			ph = (Elf64_Phdr *)
@@ -463,7 +476,7 @@ static enum binary_type inspect_binary(const char *filename,
 		goto _out_close;
 	}
 
-	retval = inspect_elf_binary(region);
+	retval = inspect_elf_binary(region, info);
 	switch (retval) {
 	case BIN_HASHBANG:
 		SB_LOG(SB_LOGLEVEL_DEBUG,
@@ -523,6 +536,8 @@ static enum binary_type inspect_binary(const char *filename,
 				ei_data = ELFDATA2LSB;
 		}
 
+		info->machine = ti->machine;
+		info->data = ei_data;
 		break;
 	}
 
@@ -1212,16 +1227,55 @@ static void simulate_suid_and_sgid_if_needed(
 	}
 }
 
-static int exec_policy_force_cpu_transparency(const char *exec_policy_name,
-	const char *cputransp_name)
+/* Checks whether the binary can run on a given CPU architecture. The CPU
+ * architecture is given as a string 'arch'. To be able to distinguish
+ * between big-endian and little-endian architectures, in case both are
+ * supported, we presume they are have 'el' or 'eb' suffix.
+*/
+static int binary_can_run_on(const struct binary_info *info, const char *arch)
 {
-	ruletree_object_offset_t cmd_offs;
+	switch (info->machine) {
+	case EM_386:
+		return !strcmp(arch, "i386") || !strcmp(arch, "x86_64");
+	case EM_X86_64:
+		return !strcmp(arch, "x86_64");
+	case EM_IA_64:
+		return !strcmp(arch, "ia64");
+	case EM_PPC:
+		return !strcmp(arch, "ppc");
+	case EM_ARM:
+		if (info->data == ELFDATA2LSB)
+			return !strcmp(arch, "armel");
+		if (info->data == ELFDATA2MSB)
+			return !strcmp(arch, "armeb");
+		break;
+	case EM_MIPS:
+		if (info->data == ELFDATA2LSB)
+			return !strcmp(arch, "mipsel");
+		if (info->data == ELFDATA2MSB)
+			return !strcmp(arch, "mipseb");
+		break;
+	case EM_SH:
+		if (info->data == ELFDATA2LSB)
+			return !strcmp(arch, "shel");
+		if (info->data == ELFDATA2MSB)
+			return !strcmp(arch, "sheb");
+		break;
+	}
+
+	return 0;
+}
+
+static int exec_policy_force_cpu_transparency(const char *exec_policy_name,
+	const char *cputransp_name, const struct binary_info *info)
+{
+	ruletree_object_offset_t offs;
 	const char *namev_in_ruletree[4];
 	const char *cputransp_cmd;
 	exec_policy_handle_t eph;
 	uint32_t exec_flags;
 
-	if (!exec_policy_name)
+	if (!exec_policy_name || !cputransp_name || !info)
 		return 0;
 
 	eph = find_exec_policy_handle(exec_policy_name);
@@ -1240,12 +1294,38 @@ static int exec_policy_force_cpu_transparency(const char *exec_policy_name,
 	namev_in_ruletree[1] = cputransp_name;
 	namev_in_ruletree[2] = "cmd";
 	namev_in_ruletree[3] = NULL;
-	cmd_offs = ruletree_catalog_vget(namev_in_ruletree);
-	if (!cmd_offs)
+	offs = ruletree_catalog_vget(namev_in_ruletree);
+	if (!offs)
 		return 0;
 
-	cputransp_cmd = offset_to_ruletree_string_ptr(cmd_offs, NULL);
-	return (cputransp_cmd && cputransp_cmd[0]);
+	cputransp_cmd = offset_to_ruletree_string_ptr(offs, NULL);
+	if (cputransp_cmd && cputransp_cmd[0]) {
+		/* Now we know that the CPU transparency is set but we are
+		 * not there yet. It is possible that the CPU transparency
+		 * doesn't support the CPU architecture of the host. Thus
+		 * we perform one more check here.
+		*/
+		const char *cputransp_arch;
+
+		namev_in_ruletree[0] = "cputransparency";
+		namev_in_ruletree[1] = cputransp_name;
+		namev_in_ruletree[2] = "arch";
+		namev_in_ruletree[3] = NULL;
+		offs = ruletree_catalog_vget(namev_in_ruletree);
+		if (!offs)
+			return 0;
+
+		cputransp_arch = offset_to_ruletree_string_ptr(offs, NULL);
+		if (!cputransp_arch)
+			return 0;
+
+		if (binary_can_run_on(info, cputransp_arch)) {
+			SB_LOG(SB_LOGLEVEL_DEBUG, "forcing CPU transparency");
+			return 1;
+		}
+	}
+
+	return 0;
 }
 
 static int prepare_exec(const char *exec_fn_name,
@@ -1385,7 +1465,7 @@ static int prepare_exec(const char *exec_fn_name,
 				&mapped_file, &my_file, binaryname,
 				&my_argv, &my_envp);
 #else
-			if (exec_policy_force_cpu_transparency(exec_policy_name, "target")) {
+			if (exec_policy_force_cpu_transparency(exec_policy_name, "target", &info)) {
 				postprocess_result = exec_postprocess_cpu_transparency_executable(
 					exec_policy_name,
 					&mapped_file, &my_file, binaryname,
@@ -1419,7 +1499,7 @@ static int prepare_exec(const char *exec_fn_name,
 				&mapped_file, &my_file, binaryname,
 				&my_argv, &my_envp);
 #else
-			if (exec_policy_force_cpu_transparency(exec_policy_name, "native")) {
+			if (exec_policy_force_cpu_transparency(exec_policy_name, "native", &info)) {
 				postprocess_result = exec_postprocess_cpu_transparency_executable(
 					exec_policy_name,
 					&mapped_file, &my_file, binaryname,

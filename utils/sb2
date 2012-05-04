@@ -705,6 +705,47 @@ function check_qemu_features()
 	# we don't test $? here, qemu -h returns with a non-zero
 	# argument anyway
 
+	#
+	# Detect CPU architecture of qemu. Note that we have following
+	# mapping based on qemu supported target list:
+	#
+	#       qemu	   	scratchbox2
+	#	---------------------------
+	# 	i386 		i386
+	#	x86_64		x86_64
+	#	ppc		ppc
+	#	arm		armel
+	#	armeb		armeb
+	#	mips		mipseb
+	#	mipsel		mipsel
+	#	sh4		shel
+	#	sh4eb		sheb
+	#
+	# This is needed to distinguish between little-endian and
+	# big-endian architectures where both are supported
+	#
+	test_output=$(awk '/^Linux CPU/ { print gensub(".* (\\w+) emulation\\)", "\\1", 1); }' \
+		      $SBOX_SESSION_DIR/qemu_help)
+	if [ -n "$test_output" ]; then
+		case "$test_output" in
+		arm)
+			sbox_cputransparency_arch="armel"
+			;;
+		mips)
+			sbox_cputransparency_arch="mipsel"
+			;;
+		sh4)
+			sbox_cputransparency_arch="shel"
+			;;
+		sh4eb)
+			sbox_cputransparency_arch="sheb"
+			;;
+		*)
+			sbox_cputransparency_arch="$test_output"
+			;;
+		esac
+	fi
+
 	test_output=`grep '^-0' $SBOX_SESSION_DIR/qemu_help`
 	if [ -n "$test_output" ]; then
 		# -0 is supported
@@ -1206,6 +1247,11 @@ function add_cputransparency_settings_to_exec_config_file()
 	conf_cputransparency_qemu_argv="nil"
 	conf_cputransparency_qemu_env="nil"
 
+	# Currently we only support detection of CPU architecture for qemu.
+	# For others (e.g sbrsh) we could possibly rely on SBOX_CPU or
+	# allow user to specify the supported arch at sb2-init time.
+	sbox_cputransparency_arch=""
+
 	case "$sbox_cputransparency_cmd" in
 	*qemu*)	check_qemu_features $sbox_cputransparency_method
 		;;
@@ -1214,6 +1260,7 @@ function add_cputransparency_settings_to_exec_config_file()
 	cat <<END >>$SBOX_SESSION_DIR/cputransp_config.lua
 $conf = {
 	cmd="$sbox_cputransparency_cmd",
+	arch="$sbox_cputransparency_arch",
 	has_argv0_flag=$conf_cputransparency_has_argv0_flag,
 	qemu_has_env_control_flags=$conf_cputransparency_qemu_has_env_control_flags,
 	qemu_has_libattr_hack_flag=$conf_cputransparency_qemu_has_libattr_hack_flag,

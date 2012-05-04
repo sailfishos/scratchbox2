@@ -17,6 +17,7 @@ print("--- init2 ---")
 
 local valid_keywords_for_cpu_transparency_rule = {
 	cmd = "string",
+	arch = "string",
 	has_argv0_flag = "boolean",
 	qemu_has_env_control_flags = "boolean",
 	qemu_has_libattr_hack_flag = "boolean",

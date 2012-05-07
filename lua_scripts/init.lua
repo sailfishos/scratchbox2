@@ -36,8 +36,19 @@ function do_file(filename)
 			.. err .. "\n")
 		-- "error()" never returns
 	else
-		f() -- execute the loaded chunk
+		return f() -- execute the loaded chunk
 	end
+end
+
+function import_from_fs_rule_library(libname)
+	local libpath = session_dir.."/rule_lib/fs_rules/"..libname..".lua"
+	local fs_rules
+	fs_rule_lib_interface_version = nil
+	fs_rules = do_file(libpath)
+	if fs_rule_lib_interface_version == "105" then
+		return fs_rules
+	end
+	error("\nIncorrect fs_rule_lib_interface_version while loading FS rule library "..libname.."\n")
 end
 
 -- A dummy sb2_procfs_mapper function is needed for the rules,

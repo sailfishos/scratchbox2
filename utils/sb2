@@ -1401,6 +1401,8 @@ function initialize_new_sb2_session()
 	# FIXME: This should link only selected modes, not all:
 	ln -s $SBOX_DIR/share/scratchbox2/modes/* $SBOX_SESSION_DIR/modes
 
+	ln -s $SBOX_DIR/share/scratchbox2/rule_lib $SBOX_SESSION_DIR
+
 	if [ -n "$SBOX_WRITE_SESSION_INFO_TO_FILE" ]; then
 		cat >$SBOX_WRITE_SESSION_INFO_TO_FILE <<END
 # SB2 SessionInfo:

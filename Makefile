@@ -152,7 +152,12 @@ install-noarch: regular
 	done)
 	# "accel" == "devel" mode in 2.3.x:
 	$(Q)ln -sf accel $(prefix)/share/scratchbox2/modes/devel
-
+	# Rule libraries
+	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/rule_lib
+	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/rule_lib/fs_rules
+	$(Q)(set -e; for f in $(SRCDIR)/rule_lib/fs_rules/*; do \
+		install -c -m 644 $$f $(prefix)/share/scratchbox2/rule_lib/fs_rules; \
+	done)
 	# "scripts" and "wrappers" are visible to the user in some 
 	# mapping modes, "lib" is for sb2's internal use
 	$(Q)install -d -m 755 $(prefix)/share/scratchbox2/lib

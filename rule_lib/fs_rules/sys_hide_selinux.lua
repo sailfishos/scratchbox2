@@ -17,6 +17,14 @@ fs_rule_lib_interface_version = "105"
 
 rules_sys = {
 
+	-- don't try to set timestamps on real files in /sys,
+	-- redirect to a private location
+	-- (some rpm tools fail if the call fails)
+	{path = "/sys",
+	 func_class = FUNC_CLASS_SET_TIMES,
+	 set_path = session_dir.."/dummy_file", protection = readonly_fs_if_not_root },
+
+	-- Hide selinux
 	{dir = "/sys/fs/selinux", map_to = target_root},
 
 	-- The default: Use real /sys

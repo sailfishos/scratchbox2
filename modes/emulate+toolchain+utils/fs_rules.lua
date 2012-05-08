@@ -242,21 +242,6 @@ emulate_mode_rules_var = {
 		protection = readonly_fs_if_not_root}
 }
 
-emulate_mode_rules_dev = {
-		-- FIXME: This rule should have "protection = eaccess_if_not_owner_or_root",
-		-- but that kind of protection is not yet supported.
-
-		-- We can't change times or attributes of host's devices,
-		-- but must pretend to be able to do so. Redirect the path
-		-- to an existing, dummy location.
-		{dir = "/dev",
-		 func_class = FUNC_CLASS_SET_TIMES,
-	         set_path = session_dir.."/dummy_file", protection = readonly_fs_if_not_root },
-
-		-- Default: Use real devices.
-		{dir = "/dev", use_orig_path = true},
-}
-
 -- /scratchbox or /targets
 -- Note that when you add/remove these, check
 -- also that the special cases for dpkg match these.
@@ -324,11 +309,12 @@ emulate_mode_rules = {
 		-- 
 		{prefix = "/tmp", replace_by = tmp_dir_dest},
 
-		{dir = "/dev", rules = emulate_mode_rules_dev},
+		{dir = "/dev", rules = import_from_fs_rule_library("dev")},
 
 		{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
 		 virtual_path = true},
-		{prefix = "/sys", use_orig_path = true},
+
+		{dir = "/sys", rules = import_from_fs_rule_library("sys_hide_selinux")},
 
 		{prefix = sbox_dir .. "/share/scratchbox2",
 		 use_orig_path = true},

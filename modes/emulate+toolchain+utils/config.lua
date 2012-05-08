@@ -15,6 +15,9 @@ exec_policy_selection = {
                 -- the toolchain, if not from Tools:
                 {dir = sbox_target_toolchain_dir, exec_policy_name = "Toolchain"},
 
+		-- scratchbox2 binaries are expected from Host
+		{dir = sbox_dir .. "/bin", exec_policy_name = "Host"},
+
                 -- the home directory is expected to contain target binaries:
                 {dir = sbox_user_home_dir, exec_policy_name = "Target"},
 

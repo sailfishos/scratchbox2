@@ -1,3 +1,16 @@
+scratchbox2 (2.3.57-1) unstable; urgency=low
+
+  * More enhancements to exec functionalty [from Mika Westerberg]
+  * Added support for FS rule libraries [Lauri Aarnio]
+  * "emulate" mode now imports rules for /dev and /sys
+    from the rule library
+  * A new rule for /sys/fs/selinux is supposed to hide selinux from
+    the target side (in emulate mode), and that way should fix the
+    problems caused by a active selinux on the host side.
+  * libsb2.so is not linked with -lm anymore
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Tue, 08 May 2012 20:16:00 +0300
+
 scratchbox2 (2.3.56-1) unstable; urgency=low
 
   * Various fixes and enhancements for host-compatible

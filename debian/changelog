@@ -1,3 +1,11 @@
+scratchbox2 (2.3.58-1) unstable; urgency=low
+
+  * Bugfix: Fixed handling of target-specific LD_PRELOAD
+    and LD_LIBRARY_PATH (those can now be set by e.g.
+    "sb2-config setenv LD_LIBRARY_PATH ...")
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 16 May 2012 18:24:00 +0300
+
 scratchbox2 (2.3.57-1) unstable; urgency=low
 
   * More enhancements to exec functionalty [from Mika Westerberg]

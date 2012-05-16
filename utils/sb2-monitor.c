@@ -250,6 +250,8 @@ static void catch_all_signals(void)
 static void read_env_vars_from_dir(const char *envdir)
 {
 	DIR	*ed;
+	const char *ld_preload = "LD_PRELOAD";
+	const char *ld_lib_path = "LD_LIBRARY_PATH";
 
 	DEBUG_MSG("read_env_vars_from_dir(%s)\n", envdir);
 	
@@ -270,6 +272,7 @@ static void read_env_vars_from_dir(const char *envdir)
 				/* asprintf failed */
 				continue;
 			}
+
 			DEBUG_MSG("open(%s)\n", fullfilename);
 			fl = fopen(fullfilename, "r");
 			if (fl) {
@@ -280,8 +283,27 @@ static void read_env_vars_from_dir(const char *envdir)
 				if (len < sizeof(varbuf)) {
 					if(len > 0) {
 						varbuf[len-1] = '\0'; /* replace \n */
-						DEBUG_MSG("set '%s'\n", varbuf);
-						putenv(strdup(varbuf));
+
+						/* LD_PRELOAD and LD_LIBRARY_PATH need
+						 * special treatment: user's version
+						 * must be prefixed so that it won't
+						 * conflict with SB2's requirements for
+						 * these variables.
+						*/
+						if (!strcmp(ent->d_name, ld_preload) ||
+						    !strcmp(ent->d_name, ld_lib_path)) {
+							char *prefixed_var = NULL;
+
+							if (asprintf(&prefixed_var, "__SB2_%s",
+								varbuf) >= 0) {
+								DEBUG_MSG("set prefixed '%s'\n",
+									prefixed_var);
+								putenv(prefixed_var);
+							} /* else asprintf failed - forget it */
+						} else {
+							DEBUG_MSG("set '%s'\n", varbuf);
+							putenv(strdup(varbuf));
+						}
 					} else {
 						DEBUG_MSG("unset '%s'\n", ent->d_name);
 						unsetenv(ent->d_name);
@@ -386,6 +408,10 @@ int main(int argc, char *argv[])
 		/* child remains in the original process group.. */
 		DEBUG_MSG("child started\n");
 
+		if (envdir) {
+			read_env_vars_from_dir(envdir);
+		}
+
 		/* set LD_PRELOAD, so that the binary started by execvp()
 		 * will be running in sb2'ed environment (depending on
 		 * the mapping mode & rules, it might not be possible
@@ -426,10 +452,6 @@ int main(int argc, char *argv[])
 		} else {
 			DEBUG_MSG("child: WARNING: "
 				"no '-L lib' option => LD_PRELOAD not set\n");
-		}
-
-		if (envdir) {
-			read_env_vars_from_dir(envdir);
 		}
 
 		while (argv[optind] && strchr(argv[optind], '=')) {

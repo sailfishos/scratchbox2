@@ -1,3 +1,9 @@
+scratchbox2 (2.3.59-1) unstable; urgency=low
+
+  * merge debian packaging from master
+
+ -- Jussi Hakala <jussi.hakala@iki.fi>  Thu, 24 May 2012 23:08:07 +0300
+
 scratchbox2 (2.3.58-1) unstable; urgency=low
 
   * Bugfix: Fixed handling of target-specific LD_PRELOAD

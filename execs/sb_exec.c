@@ -325,9 +325,13 @@ static enum binary_type inspect_elf_binary(const char *region,
 		for (i = 0; i < eh->e_phnum; i++) {
 			ph = (Elf32_Phdr *)
 			    (region + eh->e_phoff + (i * ph_entsize));
-			if (ph->p_type == PT_INTERP)
+			if (ph->p_type == PT_INTERP) {
+				SB_LOG(SB_LOGLEVEL_DEBUG, "%s: 32-bit ELF, PT_INTERP='%s'",
+					__func__, region + ph->p_offset);
 				return (BIN_HOST_DYNAMIC);
+			}
 		}
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: 32-bit ELF, static", __func__);
 		return (BIN_HOST_STATIC);
 	}
 #endif
@@ -346,9 +350,13 @@ static enum binary_type inspect_elf_binary(const char *region,
 		for (i = 0; i < eh->e_phnum; i++) {
 			ph = (Elf64_Phdr *)
 			    (region + eh->e_phoff + (i * ph_entsize));
-			if (ph->p_type == PT_INTERP)
+			if (ph->p_type == PT_INTERP) {
+				SB_LOG(SB_LOGLEVEL_DEBUG, "%s: 64-bit ELF, PT_INTERP='%s'",
+					__func__, region + ph->p_offset);
 				return (BIN_HOST_DYNAMIC);
+			}
 		}
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: 64-bit ELF, static", __func__);
 		return (BIN_HOST_STATIC);
 	}
 #endif

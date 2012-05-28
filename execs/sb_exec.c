@@ -490,7 +490,34 @@ static enum binary_type inspect_binary(const char *filename,
 		goto _out_munmap;
 	case BIN_HOST_STATIC:
 	case BIN_HOST_DYNAMIC:
-		/* host binary, lets go out of here */
+		/* host binary. First check if it has capabilities:
+		 * Capabilities are stored to extended attribute
+		 * "security.capability". If it exists, we'll assume that
+		 * the binary has capabilities. Note that all those
+		 * frienly capability-handling routines (cap_get_fd(),
+		 * etc) are in a separate library; I don't want to use
+		 * that because of dependency- and availability issues
+		 * (Ubuntu/debian doesn't have 32-bit versions of that
+		 * for 64-bit systems, etc)
+		*/
+		{
+			ssize_t xattrsiz;
+			char buf[1];
+
+			xattrsiz = fgetxattr(fd, "security.capability", buf,
+				0/*size=0: get size only, not value*/);
+			if (xattrsiz <= 0) {
+				SB_LOG(SB_LOGLEVEL_DEBUG,
+					"%s: no capabilities (%s)",
+					__func__, filename);
+			} else {
+				SB_LOG(SB_LOGLEVEL_DEBUG,
+					"%s: has capabilities (%s)",
+					__func__, filename);
+				info->has_capabilities = 1;
+			}
+		}
+		/* lets go out of here */
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"%s: host binary => out (%s)", __func__,
 			(info->pt_interp ? info->pt_interp: ""));

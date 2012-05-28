@@ -69,6 +69,7 @@ struct binary_info {
 	uint8_t data;
 
 	char *pt_interp;
+	int has_capabilities; /* flag */
 };
 
 #define exec_policy_handle_is_valid(eph) ((eph).exec_policy_offset != 0)

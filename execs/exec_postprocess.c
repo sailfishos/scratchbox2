@@ -435,8 +435,10 @@ int exec_postprocess_native_executable(
 			"%s: No native_app_ld_so", __func__);
 
 		/* (new code. this wasn't present in the Lua version) */
-		if (info->mode & (S_ISUID | S_ISGID)) {
-			/* SUID and/or SGID bit is set.
+		if ((info->mode & (S_ISUID | S_ISGID)) |
+		    (info->has_capabilities)) {
+			/* SUID and/or SGID bit is set or the program has extra
+			 * capabilities.
 			 * Our LD_PRELOAD library will be dropped if the binary
 			 * is started directly => Try to use indirect startup with
 			 * the real interpreter which was read from the binary.

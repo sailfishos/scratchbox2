@@ -53,11 +53,15 @@
  *        to spefify the environment that needs to be used for the file:
  *        This is the place where the "exec policy" rules (determined by step
  *        2 above) will be applied.
- *        There are at least three different cases where additional settings
+ *        There are at least four different cases where additional settings
  *        may need to be applied:
  *         - native binaries that are compiled for the host system can
  *           be started directly (for example, the sb2-show command that
  *           belongs to SB2's utilities)
+ *         - an exception: host's binaries which have SUID, SGID or 
+ *           special capabilities need to be started by invoking the
+ *           dynamic linker explicitly (otherwise this LD_PRELOAD library
+ *           won't be loaded, etc)
  *         - programs from the tools_root collection may need to load
  *           dynamic libraries from a different place (e.g.
  *           "/opt/tools_root/bin/ls" may need to use libraries from
@@ -166,14 +170,6 @@ enum binary_type {
 	BIN_HOST_DYNAMIC,
 	BIN_TARGET,
 	BIN_HASHBANG,
-};
-
-struct binary_info {
-	int mode;
-	uid_t uid;
-	gid_t gid;
-	uint16_t machine;
-	uint8_t data;
 };
 
 static int prepare_exec(const char *exec_fn_name,
@@ -328,6 +324,7 @@ static enum binary_type inspect_elf_binary(const char *region,
 			if (ph->p_type == PT_INTERP) {
 				SB_LOG(SB_LOGLEVEL_DEBUG, "%s: 32-bit ELF, PT_INTERP='%s'",
 					__func__, region + ph->p_offset);
+				info->pt_interp = strdup(region + ph->p_offset);
 				return (BIN_HOST_DYNAMIC);
 			}
 		}
@@ -353,6 +350,7 @@ static enum binary_type inspect_elf_binary(const char *region,
 			if (ph->p_type == PT_INTERP) {
 				SB_LOG(SB_LOGLEVEL_DEBUG, "%s: 64-bit ELF, PT_INTERP='%s'",
 					__func__, region + ph->p_offset);
+				info->pt_interp = strdup(region + ph->p_offset);
 				return (BIN_HOST_DYNAMIC);
 			}
 		}
@@ -494,7 +492,8 @@ static enum binary_type inspect_binary(const char *filename,
 	case BIN_HOST_DYNAMIC:
 		/* host binary, lets go out of here */
 		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"%s: host binary => out", __func__);
+			"%s: host binary => out (%s)", __func__,
+			(info->pt_interp ? info->pt_interp: ""));
 		goto _out_munmap;
 
 	default:
@@ -1484,6 +1483,7 @@ static int prepare_exec(const char *exec_fn_name,
 				postprocess_result = exec_postprocess_native_executable(
 					exec_policy_name,
 					&mapped_file, &my_file, binaryname,
+					&info,
 					(const char **)my_argv, &my_new_argv,
 					(const char **)*new_envp, &my_new_envp);
 			}
@@ -1620,6 +1620,7 @@ static int prepare_exec(const char *exec_fn_name,
 	*new_argv = my_argv;
 	*new_envp = my_envp;
 	STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, orig_file);
+	if (info.pt_interp) free(info.pt_interp);
 	return(ret);
 }
 

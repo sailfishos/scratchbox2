@@ -370,6 +370,7 @@ int exec_postprocess_native_executable(
 	char **mapped_file,
 	char **filename,
 	const char *binary_name,
+	struct binary_info *info,
         const char **orig_argv,
         const char ***set_argv,
 	const char **orig_env,
@@ -432,6 +433,32 @@ int exec_postprocess_native_executable(
 	if (!native_app_ld_so) {
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"%s: No native_app_ld_so", __func__);
+
+		/* (new code. this wasn't present in the Lua version) */
+		if (info->mode & (S_ISUID | S_ISGID)) {
+			/* SUID and/or SGID bit is set.
+			 * Our LD_PRELOAD library will be dropped if the binary
+			 * is started directly => Try to use indirect startup with
+			 * the real interpreter which was read from the binary.
+			 * Unfortunately we don't know if that supports our
+			 * extensions (e.g. the --argv0 flag etc), so we'll have
+			 * to live without those. But it is still better than
+			 * the alternative, loosing LD_PRELOAD..
+			*/
+			if (info->pt_interp) {	
+				char *pt_interp_copy = strdup(info->pt_interp);
+				SB_LOG(SB_LOGLEVEL_DEBUG,
+					"%s: No native_app_ld_so, SUID/SGID binary, "
+					"start with PT_INTERP='%s'",
+					__func__, pt_interp_copy);
+				add_string_to_strv(&new_argv, pt_interp_copy);
+				new_mapped_file = pt_interp_copy;
+			} else {
+				SB_LOG(SB_LOGLEVEL_DEBUG,
+					"%s: No native_app_ld_so, SUID/SGID binary, "
+					"no PT_INTERP", __func__);
+			}
+		}
 	} else {
 		const char *native_app_ld_so_rpath_prefix = NULL;
 

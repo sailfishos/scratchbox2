@@ -61,6 +61,16 @@ typedef struct {
 	ruletree_object_offset_t exec_policy_offset;
 } exec_policy_handle_t;
 
+struct binary_info {
+	int mode;
+	uid_t uid;
+	gid_t gid;
+	uint16_t machine;
+	uint8_t data;
+
+	char *pt_interp;
+};
+
 #define exec_policy_handle_is_valid(eph) ((eph).exec_policy_offset != 0)
 
 /* Use CPU transparency even if binaries are compatible with host */
@@ -109,6 +119,7 @@ extern int exec_postprocess_native_executable(
         char **mapped_file,
         char **filename,
         const char *binary_name,
+	struct binary_info *info,
         const char **orig_argv,
         const char ***set_argv,
 	const char **orig_env,

@@ -1,8 +1,5 @@
 
-# Not needed anymore, because Lua was dropped from libsb2:
-#	$(D)/paths_luaif.o $(D)/pathresolution_lua_engine.o
-
-objs := $(D)/pathresolution_c_engine.o \
+objs := $(D)/pathresolution.o \
 	$(D)/pathlistutils.o $(D)/pathmapping_interf.o \
 	$(D)/paths_ruletree_mapping.o \
 	$(D)/paths_ruletree_maint.o

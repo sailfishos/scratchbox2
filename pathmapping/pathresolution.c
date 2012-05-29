@@ -1,5 +1,5 @@
 /* NOTE: This is included from other files:
- * SB2_PATHRESOLUTION_C_ENGINE or SB2_PATHRESOLUTION_LUA_ENGINE
+ * SB2_PATHRESOLUTION_C_ENGINE
  * must be defined when compiling this file.
 */
 
@@ -54,11 +54,8 @@
  * - Lua has been used for the mapping algorithm itself.
 */
 
-#if defined(SB2_PATHRESOLUTION_C_ENGINE) && defined(SB2_PATHRESOLUTION_LUA_ENGINE)
-#error "either SB2_PATHRESOLUTION_C_ENGINE or SB2_PATHRESOLUTION_LUA_ENGINE must be defined, not both"
-#endif
-#if !defined(SB2_PATHRESOLUTION_C_ENGINE) && !defined(SB2_PATHRESOLUTION_LUA_ENGINE)
-#error "either SB2_PATHRESOLUTION_C_ENGINE or SB2_PATHRESOLUTION_LUA_ENGINE must be defined"
+#if !defined(SB2_PATHRESOLUTION_C_ENGINE)
+#error "SB2_PATHRESOLUTION_C_ENGINE must be defined"
 #endif
 
 #include <unistd.h>
@@ -102,25 +99,6 @@
 
 #include "pathmapping.h" /* get private definitions of this subsystem */
 
-/* FIXME: Temporary hack. We have two versions of following
- * functions, lets rename the c_engine versions:
-*/
-#if 0
-#ifdef SB2_PATHRESOLUTION_C_ENGINE
-#define clean_dotdots_from_path clean_dotdots_from_path__c_engine
-#define remove_dots_from_path_list remove_dots_from_path_list__c_engine
-#define sb_path_resolution sb_path_resolution__c_engine
-#define sb_path_resolution_resolve_symlink sb_path_resolution_resolve_symlink__c_engine
-#endif
-#else
-#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
-#define clean_dotdots_from_path clean_dotdots_from_path__lua_engine
-#define remove_dots_from_path_list remove_dots_from_path_list__lua_engine
-#define sb_path_resolution sb_path_resolution__lua_engine
-#define sb_path_resolution_resolve_symlink sb_path_resolution_resolve_symlink__lua_engine
-#endif
-#endif
-
 /* remove_dots_from_path_list(), "easy" path cleaning:
  * - all dots, i.e. "." as components, can be safely removed,
  *   BUT if the last component is a dot, then the path will be
@@ -129,10 +107,6 @@
  * - doubled slashes ("//") have already been removed, when
  *   the path was split to components.
 */
-#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
-/* the other one (from the Lua engine) is currently the public one*/
-static
-#endif
 void remove_dots_from_path_list(struct path_entry_list *listp)
 {
 	struct path_entry *work = listp->pl_first;
@@ -203,10 +177,6 @@ static ruletree_object_offset_t sb_path_resolution(
  * by accident.
  * Can be used for both virtual paths and host paths.
 */
-#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
-/* the other one (from the Lua engine) is currently the public one*/
-static
-#endif
 void clean_dotdots_from_path(
 	const path_mapping_context_t *ctx,
 	struct path_entry_list *abs_path)
@@ -531,12 +501,7 @@ static ruletree_object_offset_t sb_path_resolution(
 	ctx2.pmc_ruletree_offset = rule_offs;
 	ctx = &ctx2;
 #endif
-#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
-	if (call_lua_function_sbox_get_mapping_requirements(
-		ctx, abs_virtual_clean_source_path_list,
-		&min_path_len_to_check, &call_translate_for_all))
-#endif
-       	    {
+	{
 		/* has requirements:
 		 * skip over path components that we are not supposed to check,
 		 * because otherwise rule recognition & execution could fail.
@@ -587,14 +552,6 @@ static ruletree_object_offset_t sb_path_resolution(
 			resolved_virtual_path_res->mres_fallback_to_lua_mapping_engine =
 				fallback_to_lua;
 		}
-#endif
-#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
-		prefix_mapping_result_host_path = call_lua_function_sbox_translate_path(
-			&ctx_copy, SB_LOGLEVEL_NOISE,
-			clean_virtual_path_prefix_tmp, &prefix_mapping_result_host_path_flags,
-			&resolved_virtual_path_res->mres_allocated_exec_policy_name);
-		resolved_virtual_path_res->mres_exec_policy_name = 
-			resolved_virtual_path_res->mres_allocated_exec_policy_name;
 #endif
 		free(clean_virtual_path_prefix_tmp);
 	}
@@ -720,16 +677,6 @@ static ruletree_object_offset_t sb_path_resolution(
 					resolved_virtual_path_res->mres_fallback_to_lua_mapping_engine =
 						fallback_to_lua;
 				}
-#endif
-#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
-				prefix_mapping_result_host_path =
-					call_lua_function_sbox_translate_path(
-						&ctx_copy, SB_LOGLEVEL_NOISE,
-						virtual_path_prefix_to_map,
-						&prefix_mapping_result_host_path_flags,
-						&resolved_virtual_path_res->mres_allocated_exec_policy_name);
-				resolved_virtual_path_res->mres_exec_policy_name = 
-					resolved_virtual_path_res->mres_allocated_exec_policy_name;
 #endif
 				free (virtual_path_prefix_to_map);
 			} else {
@@ -904,12 +851,6 @@ static ruletree_object_offset_t sb_path_resolution_resolve_symlink(
 	/* recursively call sb_path_resolution() to perform path
 	 * resolution steps for the symlink target.
 	*/
-
-#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
-	/* First, forget the old rule: */
-	drop_rule_from_lua_stack(ctx->pmc_sb2ctx);
-#endif
-
 	/* sb_path_resolution() needs to get clean path, but
 	 * new_abs_virtual_link_dest_path is not necessarily clean.
 	 * it may contain . or .. as a result of symbolic link expansion
@@ -1042,9 +983,6 @@ static int relative_virtual_path_to_abs_path(
 void
 #ifdef SB2_PATHRESOLUTION_C_ENGINE
    sbox_map_path_internal__c_engine
-#endif
-#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
-   sbox_map_path_internal__lua_engine
 #endif
      (
 	struct sb2context *sb2ctx,
@@ -1192,9 +1130,6 @@ void
 			free(tmp_path);
 		}
 
-#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
-		/* sb_path_resolution() leaves the rule to the stack... */
-#endif
 		ctx.pmc_ruletree_offset = sb_path_resolution(&ctx, &resolved_virtual_path_res, 0,
 			&abs_virtual_path_for_rule_selection_list);
 
@@ -1243,13 +1178,6 @@ void
 				goto forget_mapping;
 			}
 #endif
-#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
-			mapping_result = call_lua_function_sbox_translate_path(
-				&ctx, SB_LOGLEVEL_INFO,
-				resolved_virtual_path_res.mres_result_path, &flags,
-				&res->mres_allocated_exec_policy_name);
-			res->mres_exec_policy_name = res->mres_allocated_exec_policy_name;
-#endif
 			if (flags & SB2_MAPPING_RULE_FLAGS_READONLY_FS_IF_NOT_ROOT) {
 				if (vperm_geteuid() == 0) {
 					/* simulated root environment, allow writing */
@@ -1262,11 +1190,6 @@ void
 				res->mres_readonly = (flags & (SB2_MAPPING_RULE_FLAGS_READONLY |
 					SB2_MAPPING_RULE_FLAGS_READONLY_FS_ALWAYS) ? 1 : 0);
 			}
-
-#ifdef SB2_PATHRESOLUTION_LUA_ENGINE
-			/* ...and remove rule from stack */
-			drop_rule_from_lua_stack(ctx.pmc_sb2ctx);
-#endif
 		}
 	forget_mapping:
 		free_mapping_results(&resolved_virtual_path_res);

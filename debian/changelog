@@ -1,3 +1,11 @@
+scratchbox2 (2.3.60) unstable; urgency=low
+
+  * Fixed execution of host binaries which have SUID bit,
+    SGID bit or special capabilities: These are now started
+    indirectly and SUID/SGID privileges are simulated.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Tue, 29 May 2012 11:09:00 +0300
+
 scratchbox2 (2.3.59-1) unstable; urgency=low
 
   * merge debian packaging from master

@@ -451,9 +451,14 @@ int exec_postprocess_native_executable(
 				char *pt_interp_copy = strdup(info->pt_interp);
 				SB_LOG(SB_LOGLEVEL_DEBUG,
 					"%s: No native_app_ld_so, SUID/SGID binary, "
-					"start with PT_INTERP='%s'",
-					__func__, pt_interp_copy);
+					"start with PT_INTERP='%s', argv[0]=´%s´",
+					__func__, pt_interp_copy, *mapped_file);
 				add_string_to_strv(&new_argv, pt_interp_copy);
+
+				/* use full path as argv[0] */
+				add_string_to_strv(&new_argv, *mapped_file);
+				first_argv_element_to_copy = 1; /* in C, argv[0] is the first one */
+
 				new_mapped_file = pt_interp_copy;
 			} else {
 				SB_LOG(SB_LOGLEVEL_DEBUG,

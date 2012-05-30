@@ -246,26 +246,10 @@ static void fwd_map_path(
 			sbox_map_path_internal__c_engine(sb2ctx, binary_name,
 				func_name, virtual_path,
 				dont_resolve_final_symlink, 0, fn_class, res, 0);
-			if (res->mres_fallback_to_lua_mapping_engine &&
-			    (res->mres_fallback_to_lua_mapping_engine[0] == '#')) {
-#if 0
+			if (res->mres_errormsg) {
 				SB_LOG(SB_LOGLEVEL_NOTICE,
-					"C path mapping engine failed (%s), fallback to Lua was forced (%s)",
-					res->mres_fallback_to_lua_mapping_engine, virtual_path);
-				free_mapping_results(res);
-				if (!sb2ctx->lua) sb2context_initialize_lua(sb2ctx);
-				sbox_map_path_internal__lua_engine(sb2ctx, binary_name,
-					func_name, virtual_path,
-					dont_resolve_final_symlink, 0, fn_class, res);
-#else
-				SB_LOG(SB_LOGLEVEL_ERROR,
-					"C path mapping engine tries to force fallback to Lua, won't do that (%s)",
-					res->mres_fallback_to_lua_mapping_engine, virtual_path);
-#endif
-			} else if (res->mres_fallback_to_lua_mapping_engine) {
-				SB_LOG(SB_LOGLEVEL_NOTICE,
-					"C path mapping engine failed (%s), NO fallback to Lua (%s)",
-					res->mres_fallback_to_lua_mapping_engine, virtual_path);
+					"C path mapping engine failed (%s) (%s)",
+					res->mres_errormsg, virtual_path);
 			}
 			break;
 #if 0
@@ -398,14 +382,14 @@ char *custom_map_abstract_path(
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: rule_offs = %u", __func__, rule_offs);
 
 	if (rule_offs) {
-		char   		*fallback_to_lua = NULL;
+		const char 	*errormsg = NULL;
 		const char	*new_exec_policy = NULL;
 		int		flags;
 
 		ctx.pmc_ruletree_offset = rule_offs;
 		mapping_result = ruletree_translate_path(
 			&ctx, SB_LOGLEVEL_DEBUG, virtual_orig_path, &flags,
-			&new_exec_policy, &fallback_to_lua);
+			&new_exec_policy, &errormsg);
 		if (new_exec_policy_p) *new_exec_policy_p = new_exec_policy;
 		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: mapping_result = %s", __func__,
 			(mapping_result ? mapping_result : "NULL"));

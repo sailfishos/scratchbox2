@@ -61,15 +61,9 @@ typedef struct mapping_results_s {
 
 	const char	*mres_error_text; /* NULL if OK */
 
-#if 1
-	/* FIXME: Temporary field:
-	 * "mres_fallback_to_lua_mapping_engine" will be
-	 * set if the C mapping engine failed, because
-	 * some features haven't been implemeted.
-	 * this causes fallback to the Lua mapping engine.
+	/* set if the C mapping engine failed.
 	*/
-	const char	*mres_fallback_to_lua_mapping_engine;
-#endif
+	const char	*mres_errormsg;
 } mapping_results_t;
 
 /* extern void clear_mapping_results_struct(mapping_results_t *res); */

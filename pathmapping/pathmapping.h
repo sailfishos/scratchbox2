@@ -132,10 +132,10 @@ extern char *ruletree_translate_path(
 	const char *abs_clean_virtual_path,
 	int *flagsp,
 	const char **exec_policy_name_ptr,
-	char **fallback_to_lua);
+	const char **errormsgp);
 
 extern ruletree_object_offset_t ruletree_get_rule_list_offs(
-	int use_fwd_rules, char **fallback_to_lua);
+	int use_fwd_rules, const char **errormsgp);
 
 extern ruletree_object_offset_t ruletree_get_mapping_requirements(
 	ruletree_object_offset_t rule_list_offs,

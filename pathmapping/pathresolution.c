@@ -461,7 +461,7 @@ static ruletree_object_offset_t sb_path_resolution(
 		(abs_virtual_clean_source_path_list->pl_flags & PATH_FLAGS_HAS_TRAILING_SLASH);
 
 	{
-		char *fallback_to_lua = NULL;
+		const char *errormsg = NULL;
 #if 0 /* see comment at pathmapping_interf.c/custom_map_path() */
 		ruletree_object_offset_t rule_list_offs = ctx->pmc_rule_list_offset;
 #else
@@ -470,7 +470,7 @@ static ruletree_object_offset_t sb_path_resolution(
 
 		if (!rule_list_offs)
 			rule_list_offs = ruletree_get_rule_list_offs(
-				1/*use_fwd_rules*/, &fallback_to_lua);
+				1/*use_fwd_rules*/, &errormsg);
 
 		if (rule_list_offs) {
 			rule_offs = ruletree_get_mapping_requirements(
@@ -480,8 +480,7 @@ static ruletree_object_offset_t sb_path_resolution(
 		}
 		if (rule_offs == 0) {
 			/* no rule */
-			resolved_virtual_path_res->mres_fallback_to_lua_mapping_engine =
-				fallback_to_lua;
+			resolved_virtual_path_res->mres_errormsg = errormsg;
 			return(0);
 		}
 	}
@@ -518,7 +517,7 @@ static ruletree_object_offset_t sb_path_resolution(
 	{
 		char	*clean_virtual_path_prefix_tmp = NULL;
 		path_mapping_context_t	ctx_copy = *ctx;
-		char *fallback_to_lua = NULL;
+		const char *errormsg = NULL;
 
 		ctx_copy.pmc_binary_name = "PATH_RESOLUTION";
 
@@ -533,10 +532,10 @@ static ruletree_object_offset_t sb_path_resolution(
 			&ctx_copy, SB_LOGLEVEL_NOISE,
 			clean_virtual_path_prefix_tmp, &prefix_mapping_result_host_path_flags,
 			&resolved_virtual_path_res->mres_exec_policy_name,
-			&fallback_to_lua);
-		if (fallback_to_lua) {
-			resolved_virtual_path_res->mres_fallback_to_lua_mapping_engine =
-				fallback_to_lua;
+			&errormsg);
+		if (errormsg) {
+			resolved_virtual_path_res->mres_errormsg =
+				errormsg;
 		}
 		free(clean_virtual_path_prefix_tmp);
 	}
@@ -637,7 +636,7 @@ static ruletree_object_offset_t sb_path_resolution(
 				*/
 				char *virtual_path_prefix_to_map;
 				path_mapping_context_t	ctx_copy = *ctx;
-				char *fallback_to_lua = NULL;
+				const char *errormsg = NULL;
 
 				ctx_copy.pmc_binary_name = "PATH_RESOLUTION/2";
 				if (prefix_mapping_result_host_path) {
@@ -654,10 +653,9 @@ static ruletree_object_offset_t sb_path_resolution(
 						virtual_path_prefix_to_map,
 						&prefix_mapping_result_host_path_flags,
 						&resolved_virtual_path_res->mres_exec_policy_name,
-						&fallback_to_lua);
-				if (fallback_to_lua) {
-					resolved_virtual_path_res->mres_fallback_to_lua_mapping_engine =
-						fallback_to_lua;
+						&errormsg);
+				if (errormsg) {
+					resolved_virtual_path_res->mres_errormsg = errormsg;
 				}
 				free (virtual_path_prefix_to_map);
 			} else {
@@ -1024,8 +1022,8 @@ void sbox_map_path_internal__c_engine(
 
 	/* ensure that rule tree is available */
         if (ruletree_to_memory() < 0) {
-                SB_LOG(SB_LOGLEVEL_DEBUG, "%s: No ruletree, fallback to Lua engine", __func__);
-		res->mres_fallback_to_lua_mapping_engine = "No ruletree";
+                SB_LOG(SB_LOGLEVEL_DEBUG, "%s: No ruletree.", __func__);
+		res->mres_errormsg = "No ruletree";
                 return;
         }
 
@@ -1103,9 +1101,8 @@ void sbox_map_path_internal__c_engine(
 		ctx.pmc_ruletree_offset = sb_path_resolution(&ctx, &resolved_virtual_path_res, 0,
 			&abs_virtual_path_for_rule_selection_list);
 
-		if (resolved_virtual_path_res.mres_fallback_to_lua_mapping_engine) {
-			res->mres_fallback_to_lua_mapping_engine =
-				resolved_virtual_path_res.mres_fallback_to_lua_mapping_engine;
+		if (resolved_virtual_path_res.mres_errormsg) {
+			res->mres_errormsg = resolved_virtual_path_res.mres_errormsg;
 			goto forget_mapping;
 		}
 		if (resolved_virtual_path_res.mres_errno) {
@@ -1126,7 +1123,7 @@ void sbox_map_path_internal__c_engine(
 				"mapping failed; path resolution path failed";
 		} else {
 			int	flags;
-			char	*fallback_to_lua = NULL;
+			const char	*errormsg = NULL;
 
 			SB_LOG(SB_LOGLEVEL_NOISE2,
 				"%s: resolved_virtual_path='%s'",
@@ -1136,10 +1133,9 @@ void sbox_map_path_internal__c_engine(
 				&ctx, SB_LOGLEVEL_INFO,
 				resolved_virtual_path_res.mres_result_path, &flags,
 				&res->mres_exec_policy_name,
-				&fallback_to_lua);
-			if (fallback_to_lua) {
-				res->mres_fallback_to_lua_mapping_engine =
-					fallback_to_lua;
+				&errormsg);
+			if (errormsg) {
+				res->mres_errormsg = errormsg;
 				goto forget_mapping;
 			}
 			if (flags & SB2_MAPPING_RULE_FLAGS_READONLY_FS_IF_NOT_ROOT) {
@@ -1219,13 +1215,13 @@ char *sbox_reverse_path_internal__c_engine(
 	char	*result_virtual_path = NULL;
 	ruletree_object_offset_t	rule_offs = 0;
 	ruletree_object_offset_t	rule_list_offs = 0;
-	char *fallback_to_lua = NULL;
+	const char *errormsg = NULL;
 
 	if (!abs_host_path) return(NULL);
 
 	/* ensure that rule tree is available */
         if (ruletree_to_memory() < 0) {
-                SB_LOG(SB_LOGLEVEL_DEBUG, "%s: No ruletree, fallback to Lua engine", __func__);
+                SB_LOG(SB_LOGLEVEL_DEBUG, "%s: No ruletree.", __func__);
                 return (NULL);
         }
 
@@ -1241,7 +1237,7 @@ char *sbox_reverse_path_internal__c_engine(
 	/* identify the rule.. */
 
 	rule_list_offs = ruletree_get_rule_list_offs(
-		0/*use_fwd_rules*/, &fallback_to_lua);
+		0/*use_fwd_rules*/, &errormsg);
 	if (rule_list_offs) {
 		rule_offs = ruletree_get_mapping_requirements(
 			rule_list_offs, ctx, &abs_host_path_for_rule_selection_list,
@@ -1260,10 +1256,10 @@ char *sbox_reverse_path_internal__c_engine(
 		result_virtual_path = ruletree_translate_path(
 			&ctx2, SB_LOGLEVEL_NOISE,
 			abs_host_path, &result_flags, &exec_policy_name,
-			&fallback_to_lua);
-		if (fallback_to_lua) {
-                	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: C mapping requests fallback to Lua engine (%s)",
-				 __func__, fallback_to_lua);
+			&errormsg);
+		if (errormsg) {
+                	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: C mapping failed (%s)",
+				 __func__, errormsg);
 			if (result_virtual_path) free(result_virtual_path);
 			result_virtual_path = NULL;
 		} else {

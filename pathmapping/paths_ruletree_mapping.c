@@ -224,7 +224,7 @@ static ruletree_object_offset_t ruletree_find_rule(
 }
 
 ruletree_object_offset_t ruletree_get_rule_list_offs(
-	int use_fwd_rules, char **fallback_to_lua) /* flag */
+	int use_fwd_rules, const char **errormsgp)
 {
 	static ruletree_object_offset_t fwd_rule_list_offs = 0;
 	static ruletree_object_offset_t rev_rule_list_offs = 0;
@@ -235,15 +235,13 @@ ruletree_object_offset_t ruletree_get_rule_list_offs(
 		if (!modename)
 			modename = ruletree_catalog_get_string("MODES", "#default");
 		if (!modename) {
-			/* force fallback to Lua */
-			*fallback_to_lua = "# No default modename!";
+			*errormsgp = "No default modename!";
 			return(0);
 		}
 		fwd_rule_list_offs = ruletree_catalog_get("fs_rules", modename);
 		rev_rule_list_offs = ruletree_catalog_get("rev_rules", modename);
 		if (!fwd_rule_list_offs) {
-			/* force fallback to Lua */
-			*fallback_to_lua = "# No rules found from ruletree!";
+			*errormsgp = "No rules found from ruletree!";
 			return(0);
 		}
 		SB_LOG(SB_LOGLEVEL_DEBUG,
@@ -531,7 +529,7 @@ static char *ruletree_execute_conditional_actions(
         const char *abs_clean_virtual_path,
         int *flagsp,
         const char **exec_policy_name_ptr,
-	char **fallback_to_lua,
+	const char **errormsgp,
 	ruletree_fsrule_t	*rule_selector)
 {
 	uint32_t	actions_list_size;
@@ -548,7 +546,7 @@ static char *ruletree_execute_conditional_actions(
 	if (actions_list_size == 0) {
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"ruletree_execute_conditional_actions: action list not found or empty.");
-		*fallback_to_lua = "action list not found or empty.";
+		*errormsgp = "action list not found or empty.";
 		return (NULL);
 	}
 
@@ -633,7 +631,7 @@ static char *ruletree_execute_conditional_actions(
 						"ruletree_execute_conditional_actions: "
 						" unknown condition %d @%d",
 						action_cand_p->rtree_fsr_condition_type, action_offs);
-					goto unimplemented_action_fallback_to_lua;
+					goto unimplemented_action_error;
 				}
 			}
 
@@ -667,7 +665,7 @@ static char *ruletree_execute_conditional_actions(
 
 			default:
 				/* FIXME */
-				goto unimplemented_action_fallback_to_lua;
+				goto unimplemented_action_error;
 			}
 		}
 	}
@@ -677,14 +675,14 @@ static char *ruletree_execute_conditional_actions(
 		"probably caused by an error in the rule file.");
 	/* FIXME. This should probably return the original path (compare with
 	 * Lua code) */
-	*fallback_to_lua = "End of conditional action list";
+	*errormsgp = "End of conditional action list";
 	return (NULL);
 			
-    unimplemented_action_fallback_to_lua:
+    unimplemented_action_error:
 	SB_LOG(SB_LOGLEVEL_ERROR,
 		"Internal error: ruletree_translate_path: Encountered "
 		"an unknown conditional action.");
-	*fallback_to_lua = "unknown conditional action (internal error)";
+	*errormsgp = "unknown conditional action (internal error)";
 	return (NULL);
 }
 
@@ -694,20 +692,20 @@ char *ruletree_translate_path(
         const char *abs_clean_virtual_path,
         int *flagsp,
         const char **exec_policy_name_ptr,
-	char **fallback_to_lua)
+	const char **errormsgp)
 {
 	char	*host_path = NULL;
 	ruletree_fsrule_t *rule;
 	PROCESSCLOCK(clk1)
 
 	START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "ruletree_translate_path");
-	*fallback_to_lua = 0;
+	*errormsgp = NULL;
 
 	if (!ctx->pmc_ruletree_offset) {
 		/* This might happen during initialization phase,
 		 * when rule tree is not yet available */
 		SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_translate_path: No rule tree");
-		*fallback_to_lua = "# No rule tree"; /* first char '#' forces the fallback */
+		*errormsgp = "No rule tree";
 		return(NULL);
 	}
 	rule = offset_to_ruletree_fsrule_ptr(ctx->pmc_ruletree_offset);
@@ -749,7 +747,7 @@ char *ruletree_translate_path(
 	case SB2_RULETREE_FSRULE_ACTION_CONDITIONAL_ACTIONS:
 		host_path = ruletree_execute_conditional_actions(
 			ctx, result_log_level, abs_clean_virtual_path,
-			flagsp, exec_policy_name_ptr, fallback_to_lua,
+			flagsp, exec_policy_name_ptr, errormsgp,
 			rule);
 		break;
 	
@@ -776,7 +774,7 @@ char *ruletree_translate_path(
 		SB_LOG(result_log_level,
 			"Mapping failed: Fallback to Lua mapping ('%s')",
 			abs_clean_virtual_path);
-		*fallback_to_lua = "No result from C mapping";
+		*errormsgp = "No result from C mapping";
 	}
 	STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, host_path);
 	return(host_path);

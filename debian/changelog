@@ -1,3 +1,10 @@
+scratchbox2 (2.3.61) unstable; urgency=low
+
+  * A fix to a bug which was introduced in 2.3.60
+  * Code cleanups (removed dead code etc. from pathmapping subsystem)
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 30 May 2012 10:37:00 +0300
+
 scratchbox2 (2.3.60) unstable; urgency=low
 
   * Fixed execution of host binaries which have SUID bit,

@@ -232,6 +232,7 @@ char *sbox_real_binary_name = NULL;
 char *sbox_orig_binary_name = NULL;
 char *sbox_active_exec_policy_name = NULL;
 char *sbox_mapping_method = NULL; /* optional */
+char *sbox_chroot_path = NULL; /* optional */
 
 int sb2_global_vars_initialized__ = 0;
 
@@ -340,6 +341,10 @@ void sb2_initialize_global_variables(void)
 			cp = getenv("SBOX_MAPPING_METHOD");
 			if (cp) sbox_mapping_method = strdup(cp);
 		}
+		if (!sbox_chroot_path) {
+			cp = getenv("__SB2_CHROOT_PATH");
+			if (cp) sbox_chroot_path = strdup(cp);
+		}
 
 		if (sbox_session_dir) {
 			/* seems that we got it.. */
@@ -368,6 +373,11 @@ void sb2_initialize_global_variables(void)
 			*/
 			revert_to_user_version_of_env_var("LD_PRELOAD", "__SB2_LD_PRELOAD");
 			revert_to_user_version_of_env_var("LD_LIBRARY_PATH", "__SB2_LD_LIBRARY_PATH");
+			if(sbox_chroot_path) {
+				SB_LOG(SB_LOGLEVEL_DEBUG,
+					"%s: Simulating chroot(%s)",
+					__func__, sbox_chroot_path);
+			}
 		}
 	}
 }

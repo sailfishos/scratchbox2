@@ -178,7 +178,8 @@ extern void sbox_map_path_internal__c_engine(
 
 extern char *sbox_reverse_path_internal__c_engine(
         const path_mapping_context_t  *ctx,
-        const char *abs_host_path);
+        const char *abs_host_path,
+	int drop_chroot_prefix); /* flag */
 
 #endif /* __PATHMAPPING_INTERNAL_H */
 

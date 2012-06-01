@@ -29,6 +29,8 @@ new features or improvements of old ones:
 5) Fakeroot has been replaced with an internal, more comprehensive
    solution (see "VIRTUAL PERMISSIONS" in the manual page.)
 
+6) chroot() system call is simulated.
+
 In addition to these, there are smaller improvements here and there.
 For example, rule files have been reorganized, and there are some changes
 in them that had to be made because of other changes.

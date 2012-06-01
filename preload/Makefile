@@ -6,6 +6,7 @@ objs := wrappers.o privatewrappers.o \
 	tmpnamegates.o \
 	vperm_filestatgates.o \
 	vperm_uid_gid_gates.o \
+	chrootgate.o \
 	vperm_statfuncts.o \
 	fdpathdb.o procfs.o mempcpy.o \
 	union_dirs.o \

@@ -437,7 +437,7 @@ char *reverse_map_path(
 
 	case MAPPING_METHOD_C_ENGINE:
 		virtual_path = sbox_reverse_path_internal__c_engine(
-			ctx, abs_host_path);
+			ctx, abs_host_path, 1/*drop_chroot_prefix=true*/);
 		if (!virtual_path) {
 			/* no answer */
 			SB_LOG(SB_LOGLEVEL_DEBUG,

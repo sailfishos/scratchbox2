@@ -346,6 +346,11 @@ GATE: int creat64(const char *pathname, mode_t mode) : \
 	map(pathname) fail_if_readonly(pathname,-1,EROFS) \
 	class(CREAT)
 
+-- chroot() simulation.
+-- Path is not mapped, intentionally.
+GATE: int chroot(const char *path) : \
+	class(CHROOT)
+
 -- dlmopen was introduced in glibc 2.3.4 and not present before that
 #if __GLIBC__ > 2 || (__GLIBC__ == 2 && (__GLIBC_MINOR__ > 3 || (__GLIBC_MINOR__ == 3 && __GLIBC_PATCHLEVEL__ > 3)))
 WRAP: void *dlmopen(Lmid_t nsid, const char *filename, int flag) : map(filename) \

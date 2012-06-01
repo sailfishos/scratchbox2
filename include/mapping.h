@@ -80,6 +80,12 @@ extern void sbox_map_path_at(const char *func_name, int dirfd,
 	const char *path, int dont_resolve_final_symlink,
 	mapping_results_t *res, uint32_t classmask);
 
+extern char *sbox_virtual_path_to_abs_virtual_path(
+        const char *binary_name,
+        const char *func_name,
+        uint32_t fn_class,
+        const char *virtual_orig_path);
+
 extern void sbox_map_path_for_sb2show(const char *binary_name,
 	const char *func_name, const char *path, mapping_results_t *res);
 
@@ -170,6 +176,8 @@ extern char *prep_union_dir(const char *dst_path,
 #define SB2_INTERFACE_CLASS_SYMLINK	0x2000
 #define SB2_INTERFACE_CLASS_CREAT	0x4000
 #define SB2_INTERFACE_CLASS_REMOVE	0x8000	/* unlink*, remove, rmdir */
+
+#define SB2_INTERFACE_CLASS_CHROOT	0x10000	/* chroot() */
 
 /* interface funtion ->  class(es) mapping table, 
  * created by gen-interface.c */

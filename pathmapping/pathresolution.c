@@ -857,23 +857,10 @@ static ruletree_object_offset_t sb_path_resolution_resolve_symlink(
 	return(rule_offs);
 }
 
-/* ========== Mapping & path resolution, internal implementation: ========== */
-
-/* path_list is relative in the beginning;
- * returns -1 ir error,
- * or 0 if OK and path_list has been converted to absolute.
-*/
-static int relative_virtual_path_to_abs_path(
-	const path_mapping_context_t *ctx,
+static int get_and_check_host_cwd(
 	char *host_cwd,
-	size_t host_cwd_size,
-	struct path_entry_list *path_list)
+	size_t host_cwd_size)
 {
-	struct sb2context	*sb2ctx = ctx->pmc_sb2ctx;
-	char *virtual_reversed_cwd = NULL;
-	struct path_entry	*cwd_entries;
-	int			cwd_flags;
-
 	if (!getcwd_nomap_nolog(host_cwd, host_cwd_size)) {
 		/* getcwd() returns NULL if the path is really long.
 		 * In this case the path can not be mapped.
@@ -892,6 +879,30 @@ static int relative_virtual_path_to_abs_path(
 			SB_LOG(SB_LOGLEVEL_ERROR,
 			    "absolute_path failed to get current dir");
 		}
+		return(-1);
+	}
+	SB_LOG(SB_LOGLEVEL_DEBUG, "host cwd=%s", host_cwd);
+	return(0);
+}
+	
+/* ========== Mapping & path resolution, internal implementation: ========== */
+
+/* path_list is relative in the beginning;
+ * returns -1 if error,
+ * or 0 if OK and path_list has been converted to absolute.
+*/
+static int relative_virtual_path_to_abs_path(
+	const path_mapping_context_t *ctx,
+	char *host_cwd,
+	size_t host_cwd_size,
+	struct path_entry_list *path_list)
+{
+	struct sb2context	*sb2ctx = ctx->pmc_sb2ctx;
+	char *virtual_reversed_cwd = NULL;
+	struct path_entry	*cwd_entries;
+	int			cwd_flags;
+
+	if (get_and_check_host_cwd(host_cwd, host_cwd_size) < 0) {
 		return(-1);
 	}
 	SB_LOG(SB_LOGLEVEL_DEBUG,
@@ -919,7 +930,8 @@ static int relative_virtual_path_to_abs_path(
 		} else {
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"relative_virtual_path_to_abs_path: reversing cwd(%s)", host_cwd);
-			virtual_reversed_cwd = reverse_map_path(ctx, host_cwd);
+			virtual_reversed_cwd = sbox_reverse_path_internal__c_engine(
+				ctx, host_cwd, 0/*drop_chroot_prefix=false*/);
 			if (virtual_reversed_cwd == NULL) {
 				/*
 				 * In case reverse path couldn't be resolved
@@ -953,6 +965,138 @@ static int relative_virtual_path_to_abs_path(
 		*abs_virtual_path_buffer_p);
 #endif
 	return(0);
+}
+
+/* a public interface to sbox_relative_virtual_path_to_abs_path.
+ * this is needed for the chroot() implementation.
+ *
+ * FIXME: Unfortunately this duplicates blocks of code from other
+ * functions (e.g. from sbox_map_path_internal__c_engine());
+ * I hate copypasting, but this time I wanted to minimize all
+ * changes to other places...until the chroot() simulation has
+ * been implemented and tested. This can (and should!) be
+ * refactored later. / LTA
+ *
+ * Returns: An allocated buffer containing the absolute virtual path.
+*/
+char *sbox_virtual_path_to_abs_virtual_path(
+	const char *binary_name,
+	const char *func_name,
+	uint32_t fn_class,
+	const char *virtual_orig_path)
+{
+	path_mapping_context_t	ctx;
+	struct path_entry_list	abs_virtual_path_list;
+	char			*result = NULL;
+	char			host_cwd[PATH_MAX + 1];
+
+	clear_path_entry_list(&abs_virtual_path_list);
+
+	clear_path_mapping_context(&ctx);
+	ctx.pmc_binary_name = binary_name;
+	ctx.pmc_func_name = func_name;
+	ctx.pmc_fn_class = fn_class;
+	ctx.pmc_virtual_orig_path = virtual_orig_path;
+	ctx.pmc_dont_resolve_final_symlink = 0;
+	ctx.pmc_sb2ctx = get_sb2context();
+#if 0 /* see comment at pathmapping_interf.c/custom_map_path() */
+	ctx.pmc_rule_list_offset = rule_list_offset;
+#endif
+
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: path=%s",
+		__func__, virtual_orig_path);
+
+	if (!virtual_orig_path || !*virtual_orig_path) {
+		/* an empty path shall always remain empty */
+		result = strdup("");
+		goto out;
+	}
+
+	/* ensure that rule tree is available */
+        if (ruletree_to_memory() < 0) {
+                SB_LOG(SB_LOGLEVEL_DEBUG, "%s: No ruletree.", __func__);
+                result = strdup(virtual_orig_path);
+		goto out;
+        }
+
+	if (getenv("SBOX_DISABLE_MAPPING")) {
+		/* NOTE: Following SB_LOG() call is used by the log
+		 *       postprocessor script "sb2logz". Do not change
+		 *       without making a corresponding change to the script!
+		*/
+		goto use_absolute_host_path_as_result_and_exit;
+	}
+	if (!ctx.pmc_sb2ctx) {
+		/* init in progress? */
+		goto use_absolute_host_path_as_result_and_exit;
+	}
+	if (ctx.pmc_sb2ctx->mapping_disabled) {
+		goto use_absolute_host_path_as_result_and_exit;
+	}
+
+	split_path_to_path_list(virtual_orig_path,
+		&abs_virtual_path_list);
+
+	if (*virtual_orig_path != '/') {
+		/* A relative path. */
+		split_path_to_path_list(virtual_orig_path,
+			&abs_virtual_path_list);
+
+		/* convert to absolute path. */
+		if (relative_virtual_path_to_abs_path(
+			&ctx, host_cwd, sizeof(host_cwd),
+			&abs_virtual_path_list) < 0)
+			goto use_absolute_host_path_as_result_and_exit;
+	} /* else it's an absolute path, it's enough if we
+	   * make sure the path is clean */
+
+	switch (is_clean_path(&abs_virtual_path_list)) {
+	case 0: /* clean */
+		break;
+	case 1: /* . */
+		remove_dots_from_path_list(&abs_virtual_path_list);
+		break;
+	case 2: /* .. */
+		remove_dots_from_path_list(&abs_virtual_path_list);
+		clean_dotdots_from_path(&ctx, &abs_virtual_path_list);
+		break;
+	}
+
+	if (!(abs_virtual_path_list.pl_flags & PATH_FLAGS_ABSOLUTE)) {
+		SB_LOG(SB_LOGLEVEL_ERROR,
+			"%s: conversion to absolute path failed "
+			"(can't handle '%s')", __func__, virtual_orig_path);
+	}
+	result = path_list_to_string(&abs_virtual_path_list);
+	free_path_list(&abs_virtual_path_list);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: result='%s'", __func__, result);
+    out:
+	release_sb2context(ctx.pmc_sb2ctx);
+	return(result);
+
+    use_absolute_host_path_as_result_and_exit:
+	if (get_and_check_host_cwd(host_cwd, sizeof(host_cwd)) < 0) {
+		/* can't return proper result, but must
+		 * return something. */
+		result = strdup(virtual_orig_path);
+	} else {
+		struct path_entry_list	host_cwd_list_list;
+
+		clear_path_entry_list(&host_cwd_list_list);
+		split_path_to_path_list(host_cwd,
+			&host_cwd_list_list);
+		split_path_to_path_list(host_cwd,
+			&abs_virtual_path_list);
+		append_path_entries(host_cwd_list_list.pl_first,
+			abs_virtual_path_list.pl_first);
+		result = path_list_to_string(&abs_virtual_path_list);
+		free_path_list(&host_cwd_list_list);
+	}
+	SB_LOG(SB_LOGLEVEL_DEBUG,
+		"%s: result, based on host path='%s'",
+		__func__, result);
+	release_sb2context(ctx.pmc_sb2ctx);
+	return(result);
 }
 
 /* make sure to use disable_mapping(m); 
@@ -1041,11 +1185,12 @@ void sbox_map_path_internal__c_engine(
 		goto use_orig_path_as_result_and_exit;
 	}
 
-	split_path_to_path_list(virtual_orig_path,
-		&abs_virtual_path_for_rule_selection_list);
-
 	/* Going to map it. The mapping logic must get clean absolute paths: */
 	if (*virtual_orig_path != '/') {
+		/* A relative path. */
+		split_path_to_path_list(virtual_orig_path,
+			&abs_virtual_path_for_rule_selection_list);
+
 		/* convert to absolute path. */
 		if (relative_virtual_path_to_abs_path(
 			&ctx, host_cwd, sizeof(host_cwd),
@@ -1056,6 +1201,28 @@ void sbox_map_path_internal__c_engine(
 		 * at least if the mapped path must be registered to
 		 * the fdpathdb. */
 		res->mres_virtual_cwd = strdup(ctx.pmc_sb2ctx->virtual_reversed_cwd);
+	} else {
+		/* An absolute path */
+		if (sbox_chroot_path) {
+			char *virtual_chrooted_path;
+
+			/* chroot simulation is active. Glue the chroot
+			 * prefix to the path:
+			*/
+			if (asprintf(&virtual_chrooted_path, "%s/%s",
+				sbox_chroot_path, virtual_orig_path) < 0) {
+				SB_LOG(SB_LOGLEVEL_ERROR,
+					"asprintf failed");
+				goto use_orig_path_as_result_and_exit;
+			}
+			split_path_to_path_list(virtual_chrooted_path,
+				&abs_virtual_path_for_rule_selection_list);
+			free(virtual_chrooted_path);
+		} else {
+			/* An absolute path, not chrooted */
+			split_path_to_path_list(virtual_orig_path,
+				&abs_virtual_path_for_rule_selection_list);
+		}
 	}
 
 	switch (is_clean_path(&abs_virtual_path_for_rule_selection_list)) {
@@ -1207,7 +1374,8 @@ void sbox_map_path_internal__c_engine(
 
 char *sbox_reverse_path_internal__c_engine(
         const path_mapping_context_t  *ctx,
-        const char *abs_host_path)
+        const char *abs_host_path,
+	int drop_chroot_prefix) /* flag: drop prefix if inside chroot */
 {
 	int	min_path_len_to_check = 0;
 	int	call_translate_for_all = 0;
@@ -1271,6 +1439,30 @@ char *sbox_reverse_path_internal__c_engine(
 	}
 
 	free_path_list(&abs_host_path_for_rule_selection_list);
+
+	if (drop_chroot_prefix && sbox_chroot_path) {
+		/* try to eliminate chroot prefix from path.
+		 * note that it isn't there always; for example
+		 * chdir does not have to be inside the chroot */
+		int	chroot_path_len = strlen(sbox_chroot_path);
+		if (!strncmp(result_virtual_path, sbox_chroot_path, chroot_path_len)) {
+			if (result_virtual_path[chroot_path_len] == '/') {
+				SB_LOG(SB_LOGLEVEL_DEBUG, "%s: drop chroot prefix '%s'",
+					__func__, sbox_chroot_path);
+				char	*new_result = strdup(result_virtual_path+chroot_path_len);
+				free(result_virtual_path);
+				result_virtual_path = new_result;
+			} else if (result_virtual_path[chroot_path_len] == '\0') {
+				SB_LOG(SB_LOGLEVEL_DEBUG, "%s: drop chroot prefix '%s', result=/",
+					__func__, sbox_chroot_path);
+				free(result_virtual_path);
+				result_virtual_path = strdup("/");
+			} else {
+				SB_LOG(SB_LOGLEVEL_DEBUG, "%s: no chroot prefix in path ('%s')",
+					__func__, result_virtual_path);
+			}
+		}
+	}
 
 	return (result_virtual_path);
 }

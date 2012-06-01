@@ -935,16 +935,17 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 				"restored to %s", sbox_mapping_method);
 	}
 
-	/* allocate new environment. Add 14 extra elements (all may not be
+	/* allocate new environment. Add 15 extra elements (all may not be
 	 * needed always) */
-	my_envp = (char **)calloc(envc + 14, sizeof(char *));
+	my_envp = (char **)calloc(envc + 15, sizeof(char *));
 
 	for (i = 0, p=(char **)envp; *p; p++) {
 		if (strncmp(*p, "__SB2_", strlen("__SB2_")) == 0) {
 			/* __SB2_* are temporary variables that must not
 			 * be relayed to the next executable => skip it.
 			 * Such variables include: __SB2_BINARYNAME,
-			 * __SB2_REAL_BINARYNAME, __SB2_ORIG_BINARYNAME
+			 * __SB2_REAL_BINARYNAME, __SB2_ORIG_BINARYNAME,
+			 * __SB2_CHROOT_PATH
 			*/
 			continue;
 		}
@@ -1116,6 +1117,15 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 	if (user_ld_library_path != NULL) {
 		my_envp[i++] = user_ld_library_path;
 		SB_LOG(SB_LOGLEVEL_NOISE, "Added %s", user_ld_library_path);
+	}
+
+	if (sbox_chroot_path) {
+		/* chroot simulation is active, relay the value */
+		if (asprintf(&new_exec_file_var, "__SB2_CHROOT_PATH=%s", sbox_chroot_path) < 0) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"asprintf failed to create __SB2_CHROOT_PATH");
+		}
+		my_envp[i++] = new_exec_file_var;
 	}
 
 	my_envp[i] = NULL;

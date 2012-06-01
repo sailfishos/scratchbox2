@@ -158,8 +158,12 @@ struct sb2context {
  *     sb_execve_postprocess() is not needed anymore.
  * * 128:
  *     new interface classes SYMLINK and CREAT
+ * * 129:
+ *     chroot() is now simulated, and information about that
+ *     is passed in environment variable when the simulation is
+ *     active + new interface class CHROOT
 */
-#define SB2_LUA_C_INTERFACE_VERSION "128"
+#define SB2_LUA_C_INTERFACE_VERSION "129"
 
 /* This version string is used to check that init.lua offers
  * what sb2d expects, and v.v.
@@ -248,6 +252,8 @@ extern char *sbox_real_binary_name;
 extern char *sbox_orig_binary_name;
 extern char *sbox_active_exec_policy_name;
 extern char *sbox_mapping_method;
+
+extern char *sbox_chroot_path; /* virtual path to the chroot directory. */
 
 extern void check_pthread_library(void);
 

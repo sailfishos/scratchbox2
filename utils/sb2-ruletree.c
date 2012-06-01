@@ -184,6 +184,8 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 		       printf("set_times ");
 		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_REMOVE)
 		       printf("remove ");
+		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_CHROOT)
+		       printf("chroot ");
 		printf(")\n");
 	}
 	

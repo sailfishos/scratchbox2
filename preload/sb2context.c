@@ -108,7 +108,7 @@ static void increment_sb2if_usage_counter(volatile struct sb2context *ptr)
 		 * down anything with additional locks - this function is 
 		 * called frequently. */
 		if (ptr->sb2context_in_use > 0) SB_LOG(SB_LOGLEVEL_DEBUG,
-			"Lua instance already in use! (%d)",
+			"sb2context already in use! (%d)",
 			ptr->sb2context_in_use);
 
 		(ptr->sb2context_in_use)++;
@@ -131,7 +131,7 @@ void release_sb2context(struct sb2context *sb2if)
 
 		i = ptr->sb2context_in_use;
 		if (i > 1) SB_LOG(SB_LOGLEVEL_DEBUG,
-			"Lua instance usage counter was %d", i);
+			"sb2context usage counter was %d", i);
 
 		(ptr->sb2context_in_use)--;
 	}
@@ -139,8 +139,7 @@ void release_sb2context(struct sb2context *sb2if)
 
 /* get access to sb2 context, create the structure 
  * if it didn't exist; in that case, the structure is only
- * cleared (most notably, the Lua system is not initialized
- * by this routine!)
+ * cleared.
  *
  * Remember to call release_sb2context() after the
  * pointer is not needed anymore.
@@ -178,11 +177,11 @@ struct sb2context *get_sb2context(void)
 		if (!ptr) ptr = alloc_sb2context();
 		if (!ptr) {
 			SB_LOG(SB_LOGLEVEL_ERROR,
-				"Failed to get Lua instance"
+				"Failed to get sb2context"
 				" (and the pthreads support is "
 				" disabled!)");
 			fprintf(stderr, "FATAL: sb2 preload library:"
-				" Failed to get Lua instance"
+				" Failed to get sb2context"
 				" (and the pthreads support is disabled!)\n");
 			exit(1);
 		}

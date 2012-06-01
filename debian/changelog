@@ -1,3 +1,12 @@
+scratchbox2 (2.3.62) unstable; urgency=low
+
+  * Initial support for simulating chroot() (ordinary files
+    and directories should be OK, but symlinks are not yet
+    expected to work correctly in the simulated chroot)
+  * Library interface version = 129
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Fri, 01 Jun 2012 21:57:00 +0300
+
 scratchbox2 (2.3.61) unstable; urgency=low
 
   * A fix to a bug which was introduced in 2.3.60

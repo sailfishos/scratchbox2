@@ -737,14 +737,34 @@ static ruletree_object_offset_t sb_path_resolution_resolve_symlink(
 	if (*link_dest == '/') {
 		/* absolute symlink.
 		 * This is easy: just join the symlink
-		 * and rest of path, and further mapping
-		 * operations will take care of the rest.
+		 * and rest of path (+optional chroot prefix),
+		 * and further mapping operations will take 
+		 * care of the rest.
 		*/
 		struct path_entry *symlink_entries = NULL;
 		int flags = 0;
 
 		SB_LOG(SB_LOGLEVEL_NOISE, "absolute symlink");
-		symlink_entries = split_path_to_path_entries(link_dest, &flags);
+
+		if (sbox_chroot_path) {
+			char *virtual_chrooted_path;
+
+			/* chroot simulation is active. Glue the chroot
+			 * prefix to the path:
+			*/
+			if (asprintf(&virtual_chrooted_path, "%s%s",
+				sbox_chroot_path, link_dest) < 0) {
+				SB_LOG(SB_LOGLEVEL_ERROR,
+					"asprintf failed - chroot simulation fails");
+				virtual_chrooted_path = strdup(link_dest);
+			}
+			symlink_entries = split_path_to_path_entries(
+				virtual_chrooted_path, &flags);
+			free(virtual_chrooted_path);
+		} else {
+			/* An absolute path, not chrooted */
+			symlink_entries = split_path_to_path_entries(link_dest, &flags);
+		}
 
 		/* If we aren't resolving last component of path
 		 * then we have to clear out the "trailing slash

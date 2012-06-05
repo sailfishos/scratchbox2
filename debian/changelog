@@ -1,3 +1,18 @@
+scratchbox2 (2.3.63) unstable; urgency=low
+
+  * Implemented resolution of symbolic links inside
+    simulated chroots (absolute symlinks, relative
+    symlinks were mostly ok already in 2.3.62)
+  * obs-rpm-* modes import /dev and /proc rules
+    from the rule library
+  * new experimental mapping modes obs-deb-install
+    and obs-deb-build; these haven't been tested yet
+    and almost certainly will need some tuning.
+  * New flag for rules: force_orig_path_unless_chroot
+  * Library interface version = 130
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Tue, 05 Jun 2012 19:05:00 +0300
+
 scratchbox2 (2.3.62) unstable; urgency=low
 
   * Initial support for simulating chroot() (ordinary files

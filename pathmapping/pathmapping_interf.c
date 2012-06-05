@@ -23,29 +23,6 @@
 
 #include "pathmapping.h" /* get private definitions of this subsystem */
 
-#define MAPPING_METHOD_NOT_SET	 		0
-#define MAPPING_METHOD_C_ENGINE	 		1
-#define MAPPING_METHOD_LUA_ENGINE		2
-#define MAPPING_METHOD_BOTH_ENGINES		3
-#define MAPPING_METHOD_C_ENGINE_WITH_FALLBACKS 	4
-
-static int mapping_method = MAPPING_METHOD_NOT_SET;
-
-static struct sb2context *check_mapping_method(int need_sb2ctx)
-{
-	struct sb2context *sb2ctx = NULL;
-
-	if (mapping_method == MAPPING_METHOD_NOT_SET) {
-			mapping_method = MAPPING_METHOD_C_ENGINE;
-			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"(Using C mapping engine = the default)");
-	}
-	if (need_sb2ctx) {
-			sb2ctx = get_sb2context();
-	}
-	return(sb2ctx);
-}
-
 /* ========== Public interfaces to the mapping & resolution code: ========== */
 
 static void fwd_map_path(
@@ -67,24 +44,16 @@ static void fwd_map_path(
 	} else {
 		PROCESSCLOCK(clk1)
 
-		sb2ctx = check_mapping_method(1);
+		sb2ctx = get_sb2context();
 
 		START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "fwd_map_path");
-		switch (mapping_method) {
-		case MAPPING_METHOD_C_ENGINE:
-			sbox_map_path_internal__c_engine(sb2ctx, binary_name,
-				func_name, virtual_path,
-				dont_resolve_final_symlink, 0, fn_class, res, 0);
-			if (res->mres_errormsg) {
-				SB_LOG(SB_LOGLEVEL_NOTICE,
-					"C path mapping engine failed (%s) (%s)",
-					res->mres_errormsg, virtual_path);
-			}
-			break;
-		default:
-			SB_LOG(SB_LOGLEVEL_ERROR,
-				"%s: Invalid mapping method",
-				__func__);
+		sbox_map_path_internal__c_engine(sb2ctx, binary_name,
+			func_name, virtual_path,
+			dont_resolve_final_symlink, 0, fn_class, res, 0);
+		if (res->mres_errormsg) {
+			SB_LOG(SB_LOGLEVEL_NOTICE,
+				"C path mapping engine failed (%s) (%s)",
+				res->mres_errormsg, virtual_path);
 		}
 		release_sb2context(sb2ctx);
 		STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, virtual_path);
@@ -116,7 +85,7 @@ void custom_map_path(
 	} else {
 		PROCESSCLOCK(clk1)
 
-		sb2ctx = check_mapping_method(1);
+		sb2ctx = get_sb2context();
 
 		START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, __func__);
 
@@ -211,23 +180,13 @@ char *reverse_map_path(
 		return(NULL);
 	}
 
-	check_mapping_method(0);
-
-	switch (mapping_method) {
-	case MAPPING_METHOD_C_ENGINE:
-		virtual_path = sbox_reverse_path_internal__c_engine(
-			ctx, abs_host_path, 1/*drop_chroot_prefix=true*/);
-		if (!virtual_path) {
-			/* no answer */
-			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"No result for path reversing from C engine (%s)",
-					abs_host_path);
-		}
-		break;
-	default:
-		SB_LOG(SB_LOGLEVEL_ERROR,
-			"%s: Invalid mapping method",
-			__func__);
+	virtual_path = sbox_reverse_path_internal__c_engine(
+		ctx, abs_host_path, 1/*drop_chroot_prefix=true*/);
+	if (!virtual_path) {
+		/* no answer */
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"No result for path reversing from C engine (%s)",
+				abs_host_path);
 	}
 	return(virtual_path);
 }
@@ -381,9 +340,6 @@ void	free_mapping_results(mapping_results_t *res)
 	if (res->mres_virtual_cwd) free(res->mres_virtual_cwd);
 	if (res->mres_allocated_exec_policy_name) free(res->mres_allocated_exec_policy_name);
 	/* res->mres_error_text is a constant string, and not freed, ever */
-#if 1
-	/* res->mres_fallback_to_lua_mapping_engine is a constant string, and not freed, ever */
-#endif
 	clear_mapping_results_struct(res);
 }
 

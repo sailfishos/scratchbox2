@@ -267,40 +267,6 @@ emulate_mode_rules_opt = {
 		 protection = readonly_fs_if_not_root}
 }
 
-emulate_mode_rules_dev = {
-		-- FIXME: This rule should have "protection = eaccess_if_not_owner_or_root",
-		-- but that kind of protection is not yet supported.
-
-		-- We can't change times or attributes of host's devices,
-		-- but must pretend to be able to do so. Redirect the path
-		-- to an existing, dummy location.
-		{dir = "/dev",
-		 func_class = FUNC_CLASS_SET_TIMES,
-	         set_path = session_dir.."/dummy_file", protection = readonly_fs_if_not_root },
-
-		-- mknod is simulated. Redirect to a directory where
-		-- mknod can create the node.
-		-- Also, typically, rename() is used to rename nodes created by
-		-- mknod() (and it can't be used to rename real devices anyway)
-		{dir = "/dev",
-		 func_class = FUNC_CLASS_MKNOD + FUNC_CLASS_RENAME,
-	         map_to = session_dir, protection = readonly_fs_if_not_root },
-
-		-- Default: If a node has been created by mknod, and that was
-		-- simulated, use the simulated target.
-		-- Otherwise use real devices.
-		-- However, there are some devices we never want to simulate...
-		{path = "/dev/console", use_orig_path = true},
-		{path = "/dev/null", use_orig_path = true},
-		{prefix = "/dev/tty", use_orig_path = true},
-		{prefix = "/dev/fb", use_orig_path = true},
-		{dir = "/dev", actions = {
-				{ if_exists_then_map_to = session_dir },
-				{ use_orig_path = true }
-			},
-		},
-}
-
 proc_rules = {
 		-- We can't change times or attributes of host's /proc,
 		-- but must pretend to be able to do so. Redirect the path
@@ -348,7 +314,7 @@ emulate_mode_rules = {
 		-- 
 		{dir = "/tmp", replace_by = tmp_dir_dest},
 
-		{dir = "/dev", rules = emulate_mode_rules_dev},
+		{dir = "/dev", rules = import_from_fs_rule_library("dev")},
 
 		{dir = "/proc", rules = proc_rules},
 		{dir = "/sys", rules = sys_rules},

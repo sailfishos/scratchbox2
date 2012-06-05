@@ -594,21 +594,6 @@ emulate_mode_rules_opt = {
 		 protection = readonly_fs_if_not_root}
 }
 
-emulate_mode_rules_dev = {
-		-- FIXME: This rule should have "protection = eaccess_if_not_owner_or_root",
-		-- but that kind of protection is not yet supported.
-
-		-- We can't change times or attributes of host's devices,
-		-- but must pretend to be able to do so. Redirect the path
-		-- to an existing, dummy location.
-		{dir = "/dev",
-		 func_class = FUNC_CLASS_SET_TIMES,
-	         set_path = session_dir.."/dummy_file", protection = readonly_fs_if_not_root },
-
-		-- Default: Use real devices.
-		{dir = "/dev", use_orig_path = true},
-}
-
 proc_rules = {
 		-- Default:
 		{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
@@ -650,7 +635,7 @@ emulate_mode_rules = {
 		-- 
 		{dir = "/tmp", replace_by = tmp_dir_dest},
 
-		{dir = "/dev", rules = emulate_mode_rules_dev},
+		{dir = "/dev", rules = import_from_fs_rule_library("dev")},
 
 		{dir = "/proc", rules = proc_rules},
 		{dir = "/sys", rules = sys_rules},

@@ -226,3 +226,25 @@ replacement for that. It is true replacement; it does not share
 any code with the "fakeroot" utility.
 
 See the manual page for more details.
+
+6. chroot() simulation
+----------------------
+A simple chroot() simulation feature was added to 2.3.62; that
+was followed by a more complete implementation in 2.3.63 which
+also resolves and maps symbolic links to the chroot directory.
+
+Chroot simulation works by attaching an prefix to absolute pathnames
+and then doing path resolution just as if the user had given
+complete paths (except that the prefix is also attached to all
+absolute symlinks found from the FS during path resolution).
+
+This approach has one nasty drawback. It does not match exactly 
+how real chroot system behaves: Here it is possible to escape
+from the simulated chroot directory by e.g. starting the path
+with /../.. etc. This could be fixed by doing some arrangements
+in the path resolution code, but I didn't want to do big changes
+there at this point. That part of code (pathresolution.c) is
+anyway probably the most fragile part of SB2, so I wanted to
+minimize changes to it now when releasing the next stable
+version, 2.4.0, should not be too far anymore.
+

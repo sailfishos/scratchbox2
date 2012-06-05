@@ -135,6 +135,7 @@ extern char *prep_union_dir(const char *dst_path,
 #define SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH		04
 #define SB2_MAPPING_RULE_FLAGS_READONLY_FS_IF_NOT_ROOT	010
 #define SB2_MAPPING_RULE_FLAGS_READONLY_FS_ALWAYS	020
+#define SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH_UNLESS_CHROOT	040
 
 /* list of all known flags: The preload library will log a warning, if 
  * the mapping code (in Lua) returns unknown flags. This is important
@@ -146,6 +147,7 @@ extern char *prep_union_dir(const char *dst_path,
 	(SB2_MAPPING_RULE_FLAGS_READONLY | \
 	 SB2_MAPPING_RULE_FLAGS_CALL_TRANSLATE_FOR_ALL | \
 	 SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH | \
+	 SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH_UNLESS_CHROOT | \
 	 SB2_MAPPING_RULE_FLAGS_READONLY_FS_IF_NOT_ROOT | \
 	 SB2_MAPPING_RULE_FLAGS_READONLY_FS_ALWAYS)
 

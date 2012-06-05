@@ -115,6 +115,9 @@ function reverse_one_rule_xxxx(output_rules, rule, n, forward_path, modename)
 		elseif (rule.force_orig_path) then
 			new_rule.force_orig_path = true
 			d_path = forward_path
+		elseif (rule.force_orig_path_unless_chroot) then
+			new_rule.force_orig_path_unless_chroot = true
+			d_path = forward_path
 		elseif (rule.actions) then
 			reverse_conditional_actions(output_rules, new_rule.name,
 				rule, n, forward_path, modename)
@@ -278,6 +281,9 @@ function print_rules(ofile, rules)
 		end
 		if (rule.force_orig_path) then
 			ofile:write("\t force_orig_path=true,\n")
+		end
+		if (rule.force_orig_path_unless_chroot) then
+			ofile:write("\t force_orig_path_unless_chroot=true,\n")
 		end
 		if (rule.binary_name) then
 			ofile:write("\t binary_name=\""..rule.binary_name.."\",\n")

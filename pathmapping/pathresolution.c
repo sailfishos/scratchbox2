@@ -550,6 +550,21 @@ static ruletree_object_offset_t sb_path_resolution(
 		char	link_dest[PATH_MAX+1];
 
 		if (prefix_mapping_result_host_path_flags &
+		    SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH_UNLESS_CHROOT) {
+			/* "force_orig_path_unless_chroot" is set when normally symlinks
+			 * must not be followed, but if chroot() simulation
+			 * is active, then symlinks need to be followed. */
+			if (sbox_chroot_path) {
+				SB_LOG(SB_LOGLEVEL_NOISE,
+					"force_orig_path_unless_chroot set and"
+					" simulating chroot => path resolution continues");
+			} else {
+				SB_LOG(SB_LOGLEVEL_NOISE,
+					"force_orig_path_unless_chroot set, not"
+					" simulating chroot => path resolution finished");
+				break;
+			}
+		} else if (prefix_mapping_result_host_path_flags &
 		    SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH) {
 			/* "force_orig_path" is set when symlinks MUST NOT
 			 * be followed. */

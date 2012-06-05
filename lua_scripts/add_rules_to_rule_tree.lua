@@ -14,6 +14,7 @@ local RULE_SELECTOR_DIR = 103
 
 local RULE_ACTION_USE_ORIG_PATH = 201
 local RULE_ACTION_FORCE_ORIG_PATH = 202
+local RULE_ACTION_FORCE_ORIG_PATH_UNLESS_CHROOT = 203
 local RULE_ACTION_MAP_TO = 210
 local RULE_ACTION_REPLACE_BY = 211
 local RULE_ACTION_MAP_TO_VALUE_OF_ENV_VAR = 212
@@ -38,6 +39,7 @@ local RULE_FLAGS_CALL_TRANSLATE_FOR_ALL = 2
 local RULE_FLAGS_FORCE_ORIG_PATH = 4
 local RULE_FLAGS_READONLY_FS_IF_NOT_ROOT = 8
 local RULE_FLAGS_READONLY_FS_ALWAYS = 16
+local RULE_FLAGS_FORCE_ORIG_PATH_UNLESS_CHROOT = 32
 
 -- ================= Mapping rules =================
 
@@ -104,6 +106,8 @@ function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule, modename)
 		action_type = RULE_ACTION_USE_ORIG_PATH
 	elseif (rule.force_orig_path) then
 		action_type = RULE_ACTION_FORCE_ORIG_PATH
+	elseif (rule.force_orig_path_unless_chroot) then
+		action_type = RULE_ACTION_FORCE_ORIG_PATH_UNLESS_CHROOT
 	elseif (rule.map_to) then
 		action_type = RULE_ACTION_MAP_TO
 		action_str = rule.map_to
@@ -206,6 +210,9 @@ function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule, modename)
 
 	if (rule.force_orig_path) then
 		flags = flags + RULE_FLAGS_FORCE_ORIG_PATH
+	end
+	if (rule.force_orig_path_unless_chroot) then
+		flags = flags + RULE_FLAGS_FORCE_ORIG_PATH_UNLESS_CHROOT
 	end
 	if (rule.custom_map_funct or rule.actions) then
 		flags = flags + RULE_FLAGS_CALL_TRANSLATE_FOR_ALL

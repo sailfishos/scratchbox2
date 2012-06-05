@@ -223,6 +223,9 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 	case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH:
 		printf("force_orig_path\n");
 		break;	
+	case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH_UNLESS_CHROOT:
+		printf("force_orig_path_unless_chroot\n");
+		break;	
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY:
 		printf("replace_by '%s'\n",
 			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs, NULL));

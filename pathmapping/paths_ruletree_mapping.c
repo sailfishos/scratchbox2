@@ -435,8 +435,14 @@ static char *execute_std_action(
 
 	case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH:
 		/* flags should already contain SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH,
-		 * but forcing it there won't hurt anyone. */
+		 * but forcing it here won't hurt anyone. */
 		*flagsp |= SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH;
+		return(strdup(abs_clean_virtual_path));
+
+	case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH_UNLESS_CHROOT:
+		/* flags should already contain it,
+		 * but forcing it here won't hurt anyone. */
+		*flagsp |= SB2_MAPPING_RULE_FLAGS_FORCE_ORIG_PATH_UNLESS_CHROOT;
 		return(strdup(abs_clean_virtual_path));
 
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO:
@@ -653,6 +659,7 @@ static char *ruletree_execute_conditional_actions(
 
 			case SB2_RULETREE_FSRULE_ACTION_USE_ORIG_PATH:
 			case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH:
+			case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH_UNLESS_CHROOT:
 			case SB2_RULETREE_FSRULE_ACTION_MAP_TO:
 			case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY:
 			case SB2_RULETREE_FSRULE_ACTION_SET_PATH:
@@ -734,6 +741,7 @@ char *ruletree_translate_path(
 
 	case SB2_RULETREE_FSRULE_ACTION_USE_ORIG_PATH:
 	case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH:
+	case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH_UNLESS_CHROOT:
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO:
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY:
 	case SB2_RULETREE_FSRULE_ACTION_SET_PATH:

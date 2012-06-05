@@ -29,7 +29,9 @@ fs_mapping_rules = {
 		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
 		 protection = readonly_fs_always},
 
-		-- Don't map anything else.
-		{prefix = "/", force_orig_path = true},
+		-- Don't map anything else, except when chroot
+		-- simulation is active: In that case symlinks must
+		-- get path resolution.
+		{prefix = "/", force_orig_path_unless_chroot = true},
 }
 

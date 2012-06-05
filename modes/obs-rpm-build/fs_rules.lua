@@ -450,12 +450,6 @@ emulate_mode_rules_opt = {
 		 protection = readonly_fs_if_not_root}
 }
 
-proc_rules = {
-		-- Default:
-		{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
-		 virtual_path = true},
-}		 
-
 sys_rules = {
 		{dir = "/sys", use_orig_path = true},
 }
@@ -493,7 +487,7 @@ emulate_mode_rules = {
 
 		{dir = "/dev", rules = import_from_fs_rule_library("dev")},
 
-		{dir = "/proc", rules = proc_rules},
+		{dir = "/proc", rules = import_from_fs_rule_library("proc")},
 		{dir = "/sys", rules = sys_rules},
 
 		{dir = sbox_dir .. "/share/scratchbox2",

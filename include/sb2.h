@@ -162,8 +162,10 @@ struct sb2context {
  *     chroot() is now simulated, and information about that
  *     is passed in environment variable when the simulation is
  *     active + new interface class CHROOT
+ * * 130:
+ *     new flag for rules: force_orig_path_unless_chroot
 */
-#define SB2_LUA_C_INTERFACE_VERSION "129"
+#define SB2_LUA_C_INTERFACE_VERSION "130"
 
 /* This version string is used to check that init.lua offers
  * what sb2d expects, and v.v.

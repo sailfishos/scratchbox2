@@ -1,10 +1,18 @@
 /* Test chroot simulation:
- * (inside a session)
+ * (inside a session, use "sb2 -m nomap")
  *    gcc -o Chroottests Chroottests.c
  *    ./Chroottests
  * ..then examine the output.
  * Afterwards,
  *    rm -r ./Chroottest-dir
+ *
+ * Note that this program can be executed also with
+ * other modes than "nomap", but execl() might fail
+ * because ld.so and the libraries are not present
+ * in the chroot (compiling this as a static binary
+ * for an incompatible target might help in that 
+ * case, so that the exec'ed binary will run inside
+ * qemu)
  *
  * (Author: Lauri T. Aarnio)
 */
@@ -98,11 +106,28 @@ int main(int argc, char *argv[])
 	write_file("./d1/a", "a in d1");
 	write_file("./d1/d2/a", "a in d2");
 
+	symlink("./a", "a-rel");
+	symlink("/a", "a-abs");
+	chdir("d1");
+	symlink("./a", "a-rel");
+	symlink("/a", "a-abs");
+	symlink("../a", "a-..");
+	chdir("d2");
+	symlink("./a", "a-rel");
+	symlink("/a", "a-abs");
+	symlink("../a", "a-..");
+	chdir("../..");
+
 	printf("Not yet chrooted:\n");
 	printf("Here file 'a' should contain 'a in workdir':\n");
 	print_file_2("./a","./prf");
+	printf("symlink 'a-rel' -> 'a', should contain 'a in workdir':\n");
+	print_file("a-rel");
+	printf("symlink 'a-abs' -> no such file:\n");
+	print_file("a-abs");
 
-	printf("chdir(/):\n");
+	/* chdir to the virtual root before calling chroot() */
+	printf("\nchdir(/):\n");
 	if (chdir("/") < 0) {
 		printf("Error: chdir(/) failed");
 	} else {
@@ -122,6 +147,10 @@ int main(int argc, char *argv[])
 	print_file_2("/a","/prf");
 	printf("And file 'd2/a' should contain 'a in d2':\n");
 	print_file_2("/d2/a","/prf");
+	printf("symlink '/a-rel' -> 'a', should contain 'a in d1':\n");
+	print_file("/a-rel");
+	printf("symlink 'a-abs' -> '/a', should contain 'a in d1':\n");
+	print_file("/a-abs");
 
 	printf("\nSecond chroot, chroot(/d2):\n");
 	if (chroot("/d2") < 0) {
@@ -131,6 +160,10 @@ int main(int argc, char *argv[])
 	}
 	printf("Here file '/a' should contain 'a in d2':\n");
 	print_file_2("/a","/prf");
+	printf("symlink 'a-rel' -> 'a', should contain 'a in d2':\n");
+	print_file("/a-rel");
+	printf("symlink 'a-abs' -> '/a', should contain 'a in d2':\n");
+	print_file("/a-abs");
 	
 	printf("\nThird chroot, chroot(/d3) (which doesn't exist):\n");
 	if (chroot("/d3") < 0) {
@@ -139,7 +172,7 @@ int main(int argc, char *argv[])
 	} else {
 		printf("Error: chroot(/d3) didn't fail!\n");
 	}
-	printf("\nYet another failing chroot, chroot(/a) (a is a file):\n");
+	printf("\nYet another failing chroot, chroot(/a) ('a' is a file):\n");
 	if (chroot("/a") < 0) {
 		printf("chroot failed, and that is OK\n");
 		perror("errno=");
@@ -147,21 +180,21 @@ int main(int argc, char *argv[])
 		printf("Error: chroot(/a) didn't fail!\n");
 	}
 	
-	printf("chroot(.), should deactivate the effect:\n");
+	printf("\nchroot(.), should deactivate the effect:\n");
 	if (chroot(".") < 0) {
 		printf("Error: chroot(.) failed");
 	} else {
 		printf("chroot OK\n");
 	}
 
-	printf("chdir(orig_workdir)\n");
+	printf("\nchdir(orig_workdir)\n");
 	if (chdir(orig_workdir) < 0) {
 		printf("Error: chdir(orig_workdir) failed");
 	} else {
 		printf("chdir OK\n");
 	}
 
-	printf("Again, file 'a' should contain 'a in workdir':\n");
+	printf("\nfile 'a' should contain 'a in workdir':\n");
 	print_file_2("a","./prf");
 
 	printf("\n2nd time: chroot(./d1):\n");
@@ -171,27 +204,27 @@ int main(int argc, char *argv[])
 		printf("chroot OK\n");
 	}
 
-	printf("Here file '/a' should contain 'a in d1':\n");
+	printf("\nHere file '/a' should contain 'a in d1':\n");
 	print_file_2("/a","/prf");
 
-	printf("Now chroot(.) should take to orig_workdir\n");
+	printf("\nNow chroot(.) should take to orig_workdir\n");
 	if (chroot(".") < 0) {
 		printf("Error: chroot(.) failed");
 	} else {
 		printf("chroot OK\n");
 	}
 
-	printf("Again, file 'a' should contain 'a in workdir':\n");
-	print_file_2("a","./prf");
+	printf("\nAgain, file '/a' should contain 'a in workdir':\n");
+	print_file_2("/a","./prf");
 
-	printf("chdir(/d1/d2)\n");
+	printf("\nchdir(/d1/d2)\n");
 	if (chdir("/d1/d2") < 0) {
 		printf("Error: chdir(/d1/d2) failed");
 	} else {
 		printf("chdir OK\n");
 	}
 
-	printf("Here file 'a' should contain 'a in d2':\n");
+	printf("\nHere file 'a' should contain 'a in d2':\n");
 	print_file_2("a","./prf");
 }
  

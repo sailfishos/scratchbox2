@@ -11,37 +11,6 @@
  *
 */
 
-#if 0
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <dirent.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <errno.h>
-
-#ifdef _GNU_SOURCE
-#undef _GNU_SOURCE
-#include <string.h>
-#include <libgen.h>
-#define _GNU_SOURCE
-#else
-#include <string.h>
-#include <libgen.h>
-#endif
-
-#include <limits.h>
-#include <sys/param.h>
-#include <sys/file.h>
-#include <assert.h>
-#include <pthread.h>
-
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
-#endif
-
 #include <mapping.h>
 #include <sb2.h>
 #include "libsb2.h"
@@ -67,135 +36,15 @@ static struct sb2context *check_mapping_method(int need_sb2ctx)
 	struct sb2context *sb2ctx = NULL;
 
 	if (mapping_method == MAPPING_METHOD_NOT_SET) {
-#if 0
-		if (sbox_mapping_method) {
-			if (!strcmp(sbox_mapping_method,"c") ||
-			    !strcmp(sbox_mapping_method,"C")) {
-				mapping_method = MAPPING_METHOD_C_ENGINE;
-				SB_LOG(SB_LOGLEVEL_DEBUG,
-					"Selected 'C' mapping method");
-			} else if (!strcmp(sbox_mapping_method,"c2") ||
-			    !strcmp(sbox_mapping_method,"C2")) {
-				mapping_method = MAPPING_METHOD_C_ENGINE_WITH_FALLBACKS;
-				SB_LOG(SB_LOGLEVEL_DEBUG,
-					"Selected 'C' mapping method");
-			} else if (!strcmp(sbox_mapping_method,"Lua") ||
-			   	   !strcmp(sbox_mapping_method,"lua")) {
-				mapping_method = MAPPING_METHOD_LUA_ENGINE;
-				SB_LOG(SB_LOGLEVEL_DEBUG,
-					"Selected 'Lua' mapping method");
-			} else {
-				/* default to both */
-				mapping_method = MAPPING_METHOD_BOTH_ENGINES;
-				if (strcmp(sbox_mapping_method,"Both") &&
-			   	    strcmp(sbox_mapping_method,"both")) {
-					SB_LOG(SB_LOGLEVEL_ERROR,
-						"Incorrect mapping method (SBOX_MAPPING_METHOD "
-						"should contain 'C','Lua' or 'Both'). "
-						"Activated both mapping methods");
-				}
-			}
-#if 0
-
-	/* Disabled now - although all exec-related code is not yet in C,
-	 * native binaries don't need Lua code anymore.
-	*/
-
-			switch (mapping_method) {
-			case MAPPING_METHOD_C_ENGINE:
-			case MAPPING_METHOD_C_ENGINE_WITH_FALLBACKS:
-				/* A performance optimization for certain binaries:
-				 * the shells and "make" do a lot of execs, and as
-				 * long as the exec code is still written in Lua,
-				 * it is better to load it right away.
-				 * (there is a similar performance optimization in
-				 * main.lua for these programs)
-				 * FIXME: Disable this once the exec logic has been 
-				 *        implemented in C.
-				*/
-				if (sbox_binary_name) {
-					if (!strcmp(sbox_binary_name, "sh") ||
-					    !strcmp(sbox_binary_name, "bash") ||
-					    !strcmp(sbox_binary_name, "make") ||
-					    !strcmp(sbox_binary_name, "gmake") ||
-					    !strcmp(sbox_binary_name, "xargs") ||
-					    !strcmp(sbox_binary_name, "gcc") ||
-					    !strcmp(sbox_binary_name, "find")) {
-						SB_LOG(SB_LOGLEVEL_DEBUG,
-							"opt.perf: binary name '%s' => init lua",
-							sbox_binary_name);
-						sb2ctx = get_sb2context_lua();
-						if (!need_sb2ctx) {
-							release_sb2context(sb2ctx);
-							sb2ctx = NULL;
-						}
-					}
-				}
-			}
-#endif
-		} else {
-			/* default to both */
-#endif
 			mapping_method = MAPPING_METHOD_C_ENGINE;
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"(Using C mapping engine = the default)");
-#if 0
-		}
-#endif
 	}
 	if (need_sb2ctx) {
-#if 0
-		switch (mapping_method) {
-		case MAPPING_METHOD_C_ENGINE:
-		case MAPPING_METHOD_C_ENGINE_WITH_FALLBACKS:
-#endif
 			sb2ctx = get_sb2context();
-#if 0
-			break;
-		default: /* ..LUA or ..BOTH */
-			sb2ctx = get_sb2context_lua();
-			break;
-		}
-#endif
 	}
 	return(sb2ctx);
 }
-
-#if 0
-static void compare_results_from_c_and_lua_engines(
-	const char *name,
-	const char *fn_name,
-	const char *c_res,
-	const char *lua_res)
-{
-	if (c_res && lua_res) {
-		if (!strcmp(c_res, lua_res)) {
-			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"%s: ResultCheck: %s same, OK",
-				fn_name, name);
-		} else {
-			SB_LOG(SB_LOGLEVEL_ERROR,
-				"%s: ResultCheck: DIFFERENT %s: C='%s', Lua='%s'",
-				fn_name, name, c_res, lua_res);
-		}
-	} else if (!c_res && !lua_res) {
-		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"%s: ResultCheck: no %s result from C nor Lua",
-			fn_name, name);
-	} else {
-		if (!c_res) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
-				"%s: ResultCheck: no %s result from C (Lua='%s')",
-				fn_name, name, lua_res);
-		}
-		if (!lua_res) {
-			SB_LOG(SB_LOGLEVEL_ERROR,
-				"%s: ResultCheck: no %s result from Lua (C='%s')",
-				fn_name, name, c_res);
-		}
-	}
-}
-#endif
 
 /* ========== Public interfaces to the mapping & resolution code: ========== */
 
@@ -216,32 +65,12 @@ static void fwd_map_path(
 		res->mres_result_buf = res->mres_result_path = NULL;
 		res->mres_readonly = 1;
 	} else {
-#if 0
-		mapping_results_t res2;
-#endif
 		PROCESSCLOCK(clk1)
 
 		sb2ctx = check_mapping_method(1);
 
 		START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "fwd_map_path");
 		switch (mapping_method) {
-#if 0
-		case MAPPING_METHOD_C_ENGINE_WITH_FALLBACKS:
-			sbox_map_path_internal__c_engine(sb2ctx, binary_name,
-				func_name, virtual_path,
-				dont_resolve_final_symlink, 0, fn_class, res, 0);
-			if (res->mres_fallback_to_lua_mapping_engine) {
-				SB_LOG(SB_LOGLEVEL_NOTICE,
-					"C path mapping engine failed (%s), fallback to Lua (%s)",
-					res->mres_fallback_to_lua_mapping_engine, virtual_path);
-				free_mapping_results(res);
-				if (!sb2ctx->lua) sb2context_initialize_lua(sb2ctx);
-				sbox_map_path_internal__lua_engine(sb2ctx, binary_name,
-					func_name, virtual_path,
-					dont_resolve_final_symlink, 0, fn_class, res);
-			}
-			break;
-#endif
 		case MAPPING_METHOD_C_ENGINE:
 			sbox_map_path_internal__c_engine(sb2ctx, binary_name,
 				func_name, virtual_path,
@@ -252,33 +81,6 @@ static void fwd_map_path(
 					res->mres_errormsg, virtual_path);
 			}
 			break;
-#if 0
-		case MAPPING_METHOD_LUA_ENGINE:
-			sbox_map_path_internal__lua_engine(sb2ctx, binary_name, func_name, virtual_path,
-				dont_resolve_final_symlink, 0, fn_class, res);
-			break;
-		case MAPPING_METHOD_BOTH_ENGINES:
-			clear_mapping_results_struct(&res2);
-			sbox_map_path_internal__lua_engine(sb2ctx, binary_name, func_name, virtual_path,
-				dont_resolve_final_symlink, 0, fn_class, res);
-			sbox_map_path_internal__c_engine(sb2ctx, binary_name, func_name, virtual_path,
-				dont_resolve_final_symlink, 0, fn_class, &res2, 0);
-			if (res2.mres_fallback_to_lua_mapping_engine) {
-				SB_LOG(SB_LOGLEVEL_ERROR,
-					"C path mapping engine => fallback to Lua (%s), (%s)",
-					res2.mres_fallback_to_lua_mapping_engine, virtual_path);
-			}
-			compare_results_from_c_and_lua_engines(
-				"result path",
-				__func__, res2.mres_result_path,
-				res->mres_result_path);
-			compare_results_from_c_and_lua_engines(
-				"virtual cwd",
-				__func__, res2.mres_virtual_cwd,
-				res->mres_virtual_cwd);
-			free_mapping_results(&res2);
-			break;
-#endif
 		default:
 			SB_LOG(SB_LOGLEVEL_ERROR,
 				"%s: Invalid mapping method",
@@ -404,9 +206,6 @@ char *reverse_map_path(
 	const char *abs_host_path)
 {
 	char *virtual_path = NULL;
-#if 0
-	char *vp2 = NULL;
-#endif
 
 	if (!abs_host_path || !ctx) {
 		return(NULL);
@@ -415,26 +214,6 @@ char *reverse_map_path(
 	check_mapping_method(0);
 
 	switch (mapping_method) {
-#if 0
-	case MAPPING_METHOD_C_ENGINE_WITH_FALLBACKS:
-		virtual_path = sbox_reverse_path_internal__c_engine(
-			ctx, abs_host_path);
-		if (!virtual_path) {
-			/* no answer from the C engine.
-			 * path reversing is optional, but we don't even
-			 * try to find out if this was caused by missing
-			 * rules etc. or failure in the C reversing engine;
-			 * just go and try again with Lua.
-			*/
-			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"No result for path reversing from C engine, try Lua (%s)",
-					abs_host_path);
-			if (!ctx->pmc_sb2ctx->lua) sb2context_initialize_lua(ctx->pmc_sb2ctx);
-			virtual_path = call_lua_function_sbox_reverse_path(ctx, abs_host_path);
-		}
-		break;
-#endif
-
 	case MAPPING_METHOD_C_ENGINE:
 		virtual_path = sbox_reverse_path_internal__c_engine(
 			ctx, abs_host_path, 1/*drop_chroot_prefix=true*/);
@@ -445,24 +224,6 @@ char *reverse_map_path(
 					abs_host_path);
 		}
 		break;
-
-#if 0
-	case MAPPING_METHOD_LUA_ENGINE:
-		if (!ctx->pmc_sb2ctx->lua) sb2context_initialize_lua(ctx->pmc_sb2ctx);
-		virtual_path = call_lua_function_sbox_reverse_path(ctx, abs_host_path);
-		break;
-
-	case MAPPING_METHOD_BOTH_ENGINES:
-		if (!ctx->pmc_sb2ctx->lua) sb2context_initialize_lua(ctx->pmc_sb2ctx);
-		virtual_path = call_lua_function_sbox_reverse_path(ctx, abs_host_path);
-		vp2 = sbox_reverse_path_internal__c_engine(ctx, abs_host_path);
-		compare_results_from_c_and_lua_engines(
-			"reversed virtual path",
-			__func__, vp2, virtual_path);
-		if (vp2) free(vp2);
-		break;
-#endif
-
 	default:
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"%s: Invalid mapping method",

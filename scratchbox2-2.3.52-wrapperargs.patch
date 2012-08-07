@@ -1,0 +1,30 @@
+From ce81fb6ab533f9280ed3d8a4c74487972e3434c2 Mon Sep 17 00:00:00 2001
+From: Tuukka Tolvanen <tuukka.tolvanen@gmail.com>
+Date: Mon, 6 Aug 2012 23:00:11 +0300
+Subject: [PATCH] pass through arguments with special characters in gdb wrapper
+
+---
+ wrappers/gdb |    3 +--
+ 1 files changed, 1 insertions(+), 2 deletions(-)
+
+diff --git a/wrappers/gdb b/wrappers/gdb
+index 44cae21..0fc1db5 100755
+--- a/wrappers/gdb
++++ b/wrappers/gdb
+@@ -5,7 +5,6 @@
+ #
+ # Licensed under GPL version 2
+ 
+-args="$*"
+ prog="$0"
+ progbase=`basename $0`
+ 
+@@ -81,4 +80,4 @@ if [ "$sbox_mapmode" = "emulate" ]
+ then
+ 	SHELL=/bin/sh
+ fi
+-exec $sbox_target_root/usr/bin/gdb -command $SBOX_SESSION_DIR/gdbinit $args
++exec $sbox_target_root/usr/bin/gdb -command $SBOX_SESSION_DIR/gdbinit "$@"
+-- 
+1.7.2.5
+

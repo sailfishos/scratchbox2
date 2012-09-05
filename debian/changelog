@@ -1,3 +1,12 @@
+scratchbox2 (2.3.90) unstable; urgency=low
+
+  * No changes to the SW; instead, this version can be considered 
+    to be the first release candidate for SB2 version 2.4!
+  * Added source of the arch.document (Scratchbox 2 Internals
+    and Architecture)
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 05 Sep 2012 14:47:00 +0300
+
 scratchbox2 (2.3.63) unstable; urgency=low
 
   * Implemented resolution of symbolic links inside

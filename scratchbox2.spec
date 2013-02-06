@@ -1,7 +1,7 @@
 Summary: 	Scratchbox2 crosscompiling environment
 License: 	LGPL
 Name: 		scratchbox2
-Version: 	2.3.52
+Version: 	2.3.90
 Release: 	0
 Source: 	%{name}-%{version}.tar.gz
 Prefix: 	/usr
@@ -38,4 +38,4 @@ make install prefix=$RPM_BUILD_ROOT/usr
 /usr/share/scratchbox2/*
 
 %doc %attr(0444,root,root) /usr/share/man/man1/*
-
+%doc %attr(0444,root,root) /usr/share/man/man7/*

@@ -1,3 +1,6 @@
+* Wed Feb 02 2013 Carsten Munk <carsten.munk@jollamobile> - 2.3.90
+- Upgrade to 2.3.90
+
 * Tue Aug 07 2012 Tuukka Tolvanen <tuukka.tolvanen@gmail.com> - 2.3.52
 - Add scratchbox2-2.3.52-wrapperargs.patch, fix for MER#481
 

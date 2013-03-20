@@ -1,3 +1,6 @@
+* Wed Mar 20 2013 Juha Kallioinen <juha.kallioinen@jollamobile.com> - 2.3.90
+- Add /usr/bin/localedef acceleration
+
 * Wed Feb 02 2013 Carsten Munk <carsten.munk@jollamobile> - 2.3.90
 - Upgrade to 2.3.90
 

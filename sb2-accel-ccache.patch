@@ -1,0 +1,26 @@
+diff -Naur scratchbox2-2.3.90.old/modes/obs-rpm-build/fs_rules.lua scratchbox2-2.3.90/modes/obs-rpm-build/fs_rules.lua
+--- scratchbox2-2.3.90.old/modes/obs-rpm-build/fs_rules.lua	2013-03-23 12:52:00.604894448 +0000
++++ scratchbox2-2.3.90/modes/obs-rpm-build/fs_rules.lua	2013-03-23 12:52:46.132892831 +0000
+@@ -365,6 +365,9 @@
+ 		{path="/usr/bin/localedef",
+ 		 func_class = FUNC_CLASS_EXEC,
+ 		 actions=accelerated_program_actions},
++		{path="/usr/bin/ccache",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions=accelerated_program_actions},
+ 
+ 		{path = "/usr/bin/sb2-show", use_orig_path = true,
+ 		 protection = readonly_fs_always},
+diff -Naur scratchbox2-2.3.90.old/modes/obs-rpm-build+pp/fs_rules.lua scratchbox2-2.3.90/modes/obs-rpm-build+pp/fs_rules.lua
+--- scratchbox2-2.3.90.old/modes/obs-rpm-build+pp/fs_rules.lua	2013-03-23 12:52:00.604894448 +0000
++++ scratchbox2-2.3.90/modes/obs-rpm-build+pp/fs_rules.lua	2013-03-23 12:52:23.580893631 +0000
+@@ -434,6 +434,9 @@
+ 		{path="/usr/bin/localedef",
+ 		 func_class = FUNC_CLASS_EXEC,
+ 		 actions=accelerated_program_actions},
++		{path="/usr/bin/ccache",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions=accelerated_program_actions},
+ 
+ 		-- perl & python:
+ 		-- 	processing depends on SBOX_REDIRECT_IGNORE,

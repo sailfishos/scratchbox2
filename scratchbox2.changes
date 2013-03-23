@@ -1,3 +1,6 @@
+* Sat Mar 23 2013 Juha Kallioinen <juha.kallioinen@jollamobile.com> - 2.3.90
+- Add support for ccache and acceleration
+
 * Wed Mar 20 2013 Juha Kallioinen <juha.kallioinen@jollamobile.com> - 2.3.90
 - Add /usr/bin/localedef acceleration
 

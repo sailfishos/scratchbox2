@@ -1,3 +1,6 @@
+* Thu Apr 04 2013 Juha Kallioinen <juha.kallioinen@jollamobile.com> - 2.3.90
+- Add /usr/bin/qtchooser and /usr/lib/qt{4|5}/bin/qmake acceleration
+
 * Sat Mar 23 2013 Juha Kallioinen <juha.kallioinen@jollamobile.com> - 2.3.90
 - Add support for ccache and acceleration
 

@@ -2,15 +2,16 @@ Summary: 	Scratchbox2 crosscompiling environment
 License: 	LGPL
 Name: 		scratchbox2
 Version: 	2.3.90
-Release: 	2
+Release: 	3
 Source: 	%{name}-%{version}.tar.gz
 Prefix: 	/usr
 Group: 		Development/Tools
 Patch0:		scratchbox2-2.3.27-usrsrc.patch
 Patch1:		scratchbox2-2.3.52-wrapperargs.patch
-Patch2:		sb2-localedef-accel.patch
-Patch3:		sb2-support-ccache.patch
-Patch4:		sb2-accel-ccache.patch
+Patch2:		0001-accel-localedef.patch
+Patch3:		0002-support-ccache.patch
+Patch4:		0003-accel-ccache.patch
+Patch5:		0004-accel-qtchooser-qmake.patch
 ExclusiveArch:	%{ix86}
 BuildRequires:	make
 Requires:	fakeroot
@@ -25,6 +26,7 @@ Scratchbox2 crosscompiling environment
 %patch2 -p1
 %patch3 -p1
 %patch4 -p1
+%patch5 -p1
 
 %build
 ./autogen.sh

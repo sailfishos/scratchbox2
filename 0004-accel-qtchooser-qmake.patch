@@ -1,0 +1,48 @@
+diff -Naur scratchbox2-2.3.90.old/modes/obs-rpm-build/fs_rules.lua scratchbox2-2.3.90/modes/obs-rpm-build/fs_rules.lua
+--- scratchbox2-2.3.90.old/modes/obs-rpm-build/fs_rules.lua	2013-04-04 22:03:12.394958480 +0300
++++ scratchbox2-2.3.90/modes/obs-rpm-build/fs_rules.lua	2013-04-04 22:04:00.490956704 +0300
+@@ -368,6 +368,9 @@
+ 		{path="/usr/bin/ccache",
+ 		 func_class = FUNC_CLASS_EXEC,
+ 		 actions=accelerated_program_actions},
++		{path="/usr/bin/qtchooser",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions=accelerated_program_actions},
+ 
+ 		{path = "/usr/bin/sb2-show", use_orig_path = true,
+ 		 protection = readonly_fs_always},
+@@ -396,6 +399,10 @@
+                 {path = "/usr/lib/rpm/debugedit", actions=accelerated_program_actions},
+                 {path = "/usr/lib/rpm/javadeps", actions=accelerated_program_actions},
+                 {path = "/usr/lib/rpm/rpmdeps", actions=accelerated_program_actions},
++                {path = "/usr/lib/qt4/bin/qmake", func_class = FUNC_CLASS_EXEC,
++                 actions=accelerated_program_actions},
++                {path = "/usr/lib/qt5/bin/qmake", func_class = FUNC_CLASS_EXEC,
++                 actions=accelerated_program_actions},
+ 
+ 		-- gdb wants to have access to our dynamic linker also,
+ 		-- /usr/lib/libsb2/wrappers/*, etc.
+diff -Naur scratchbox2-2.3.90.old/modes/obs-rpm-build+pp/fs_rules.lua scratchbox2-2.3.90/modes/obs-rpm-build+pp/fs_rules.lua
+--- scratchbox2-2.3.90.old/modes/obs-rpm-build+pp/fs_rules.lua	2013-04-04 22:03:12.394958480 +0300
++++ scratchbox2-2.3.90/modes/obs-rpm-build+pp/fs_rules.lua	2013-04-04 22:11:29.458940148 +0300
+@@ -437,6 +437,9 @@
+ 		{path="/usr/bin/ccache",
+ 		 func_class = FUNC_CLASS_EXEC,
+ 		 actions=accelerated_program_actions},
++		{path="/usr/bin/qtchooser",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions=accelerated_program_actions},
+ 
+ 		-- perl & python:
+ 		-- 	processing depends on SBOX_REDIRECT_IGNORE,
+@@ -530,6 +533,10 @@
+                 {path = "/usr/lib/rpm/debugedit", actions=accelerated_program_actions},
+                 {path = "/usr/lib/rpm/javadeps", actions=accelerated_program_actions},
+                 {path = "/usr/lib/rpm/rpmdeps", actions=accelerated_program_actions},
++                {path = "/usr/lib/qt4/bin/qmake", func_class = FUNC_CLASS_EXEC,
++                 actions=accelerated_program_actions},
++                {path = "/usr/lib/qt5/bin/qmake", func_class = FUNC_CLASS_EXEC,
++                 actions=accelerated_program_actions},
+ 
+ 		-- gdb wants to have access to our dynamic linker also,
+ 		-- /usr/lib/libsb2/wrappers/*, etc.

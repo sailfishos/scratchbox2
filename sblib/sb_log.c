@@ -145,7 +145,7 @@ static void write_to_logfile(const char *msg, int msglen)
 		} else if ((logfd = open_nomap_nolog(sb_log_state.sbl_logfile,
 					O_APPEND | O_RDWR | O_CREAT,
 					S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP
-					| S_IROTH | S_IWOTH)) > 0) {
+					| S_IROTH | S_IWOTH)) >= 0) {
 			int r; /* needed to get around some unnecessary warnings from gcc*/
 			r = write(logfd, msg, msglen);
 			(void)r;

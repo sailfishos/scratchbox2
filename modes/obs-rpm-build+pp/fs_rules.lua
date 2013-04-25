@@ -537,8 +537,6 @@ emulate_mode_rules_usr = {
 
 		{dir = "/usr/share", rules = usr_share_rules},
 
-		{dir = "/usr/src", use_orig_path = true},
-
 		{dir = "/usr", map_to = target_root,
 		protection = readonly_fs_if_not_root}
 }

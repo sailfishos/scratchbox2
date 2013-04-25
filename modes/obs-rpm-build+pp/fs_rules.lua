@@ -437,6 +437,9 @@ emulate_mode_rules_usr_bin = {
 		{path="/usr/bin/ccache",
 		 func_class = FUNC_CLASS_EXEC,
 		 actions=accelerated_program_actions},
+		{path="/usr/bin/qtchooser",
+		 func_class = FUNC_CLASS_EXEC,
+		 actions=accelerated_program_actions},
 
 		-- perl & python:
 		-- 	processing depends on SBOX_REDIRECT_IGNORE,
@@ -530,6 +533,10 @@ emulate_mode_rules_usr = {
                 {path = "/usr/lib/rpm/debugedit", actions=accelerated_program_actions},
                 {path = "/usr/lib/rpm/javadeps", actions=accelerated_program_actions},
                 {path = "/usr/lib/rpm/rpmdeps", actions=accelerated_program_actions},
+                {path = "/usr/lib/qt4/bin/qmake", func_class = FUNC_CLASS_EXEC,
+                 actions=accelerated_program_actions},
+                {path = "/usr/lib/qt5/bin/qmake", func_class = FUNC_CLASS_EXEC,
+                 actions=accelerated_program_actions},
 
 		-- gdb wants to have access to our dynamic linker also,
 		-- /usr/lib/libsb2/wrappers/*, etc.

@@ -1579,7 +1579,7 @@ NUM_MAPMODES=0
 SB2_INTERNAL_MAPMODES=""
 
 SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
-SBOX_WORKDIR=$(readlink -f $PWD)
+SBOX_WORKDIR=$(readlink -f "$PWD")
 SBOX_ROOT_SIMULATION=""
 SBOX_MODE_SPECIFIC_OPTIONS=""
 OPT_CLONE_TARGET_ROOT="n"

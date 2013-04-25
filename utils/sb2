@@ -430,7 +430,11 @@ function sboxify_environment()
 		# /sb2/wrappers and /sb2/scripts contain utilities for
 		# development support, and are available in the
 		# software development modes ("simple" and "devel")
-		export PATH=/sb2/wrappers:/sb2/scripts:$HOME/.scratchbox2/$SBOX_TARGET/bin:$SBOX_DIR/bin:$PATH:/sbin:/usr/sbin:$SBOX_TARGET_ROOT/bin:$SBOX_TARGET_ROOT/usr/bin:$SBOX_TARGET_ROOT/usr/local/bin
+	    TMP_PATH=/sb2/wrappers:/sb2/scripts:$HOME/.scratchbox2/$SBOX_TARGET/bin
+	    if [ ! -z "$CCACHE_TOOLS_PATH" ]; then
+		TMP_PATH=$TMP_PATH:$CCACHE_TOOLS_PATH
+	    fi
+	    export PATH=$TMP_PATH:$SBOX_DIR/bin:$PATH:/sbin:/usr/sbin:$SBOX_TARGET_ROOT/bin:$SBOX_TARGET_ROOT/usr/bin:$SBOX_TARGET_ROOT/usr/local/bin
 	else
 		export PATH=$SBOX_MODE_PATH
 	fi

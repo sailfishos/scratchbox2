@@ -1,0 +1,41 @@
+From 39b57bef35ca60844747d5aed362f365ce81fde5 Mon Sep 17 00:00:00 2001
+From: David Greaves <david@dgreaves.com>
+Date: Thu, 25 Apr 2013 10:38:08 +0000
+Subject: [PATCH] accel-ccache
+
+---
+ modes/obs-rpm-build+pp/fs_rules.lua |    3 +++
+ modes/obs-rpm-build/fs_rules.lua    |    3 +++
+ 2 files changed, 6 insertions(+)
+
+diff --git a/modes/obs-rpm-build+pp/fs_rules.lua b/modes/obs-rpm-build+pp/fs_rules.lua
+index 9dd4f22..565f076 100644
+--- a/modes/obs-rpm-build+pp/fs_rules.lua
++++ b/modes/obs-rpm-build+pp/fs_rules.lua
+@@ -434,6 +434,9 @@ emulate_mode_rules_usr_bin = {
+ 		{path="/usr/bin/localedef",
+ 		 func_class = FUNC_CLASS_EXEC,
+ 		 actions=accelerated_program_actions},
++		{path="/usr/bin/ccache",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions=accelerated_program_actions},
+ 
+ 		-- perl & python:
+ 		-- 	processing depends on SBOX_REDIRECT_IGNORE,
+diff --git a/modes/obs-rpm-build/fs_rules.lua b/modes/obs-rpm-build/fs_rules.lua
+index 3d3374b..ca6af3e 100644
+--- a/modes/obs-rpm-build/fs_rules.lua
++++ b/modes/obs-rpm-build/fs_rules.lua
+@@ -365,6 +365,9 @@ emulate_mode_rules_usr_bin = {
+ 		{path="/usr/bin/localedef",
+ 		 func_class = FUNC_CLASS_EXEC,
+ 		 actions=accelerated_program_actions},
++		{path="/usr/bin/ccache",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions=accelerated_program_actions},
+ 
+ 		{path = "/usr/bin/sb2-show", use_orig_path = true,
+ 		 protection = readonly_fs_always},
+-- 
+1.7.10.3
+

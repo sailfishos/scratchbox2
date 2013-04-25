@@ -1,0 +1,43 @@
+From b7b9be6b471580ea86b6e5c9e4ee892217396d00 Mon Sep 17 00:00:00 2001
+From: David Greaves <david@dgreaves.com>
+Date: Thu, 25 Apr 2013 10:38:08 +0000
+Subject: [PATCH] accel-localedef
+
+---
+ modes/obs-rpm-build+pp/fs_rules.lua |    4 ++++
+ modes/obs-rpm-build/fs_rules.lua    |    4 ++++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/modes/obs-rpm-build+pp/fs_rules.lua b/modes/obs-rpm-build+pp/fs_rules.lua
+index 7c42f15..9dd4f22 100644
+--- a/modes/obs-rpm-build+pp/fs_rules.lua
++++ b/modes/obs-rpm-build+pp/fs_rules.lua
+@@ -431,6 +431,10 @@ emulate_mode_rules_usr_bin = {
+ 		{path="/usr/bin/yes",
+ 		 actions=accelerated_program_actions},
+ 
++		{path="/usr/bin/localedef",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions=accelerated_program_actions},
++
+ 		-- perl & python:
+ 		-- 	processing depends on SBOX_REDIRECT_IGNORE,
+ 		--	SBOX_REDIRECT_FORCE and 
+diff --git a/modes/obs-rpm-build/fs_rules.lua b/modes/obs-rpm-build/fs_rules.lua
+index 4b1e3bc..3d3374b 100644
+--- a/modes/obs-rpm-build/fs_rules.lua
++++ b/modes/obs-rpm-build/fs_rules.lua
+@@ -361,6 +361,10 @@ emulate_mode_rules_usr_bin = {
+ 		 actions=accelerated_program_actions},
+ 		{path="/usr/bin/yes",
+ 		 actions=accelerated_program_actions},
++		 
++		{path="/usr/bin/localedef",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions=accelerated_program_actions},
+ 
+ 		{path = "/usr/bin/sb2-show", use_orig_path = true,
+ 		 protection = readonly_fs_always},
+-- 
+1.7.10.3
+

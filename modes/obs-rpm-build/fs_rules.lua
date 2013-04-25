@@ -397,8 +397,6 @@ emulate_mode_rules_usr = {
 
 		{dir = "/usr/lib/gcc", actions = test_first_tools_then_target_default_is_tools},
 
-		{dir = "/usr/src", use_orig_path = true},
-
 		{dir = "/usr", map_to = target_root,
 		protection = readonly_fs_if_not_root}
 }

@@ -1,8 +1,8 @@
 Summary: 	Scratchbox2 crosscompiling environment
 License: 	LGPL
 Name: 		scratchbox2
-Version: 	2.3.90
-Release: 	3
+Version: 2.3.90
+Release: 4
 Source: 	%{name}-%{version}.tar.gz
 Patch1:	0001-scratchbox2-2.3.27-usrsrc.patch
 Patch2:	0002-scratchbox2-2.3.52-wrapperargs.patch
@@ -10,6 +10,7 @@ Patch3:	0003-accel-localedef.patch
 Patch4:	0004-support-ccache.patch
 Patch5:	0005-accel-ccache.patch
 Patch6:	0006-accel-qtchooser-qmake.patch
+Patch7:	0007-Quote-PWD-variables-that-may-have-spaces-in-them.patch
 Prefix: 	/usr
 Group: 		Development/Tools
 ExclusiveArch:	%{ix86}
@@ -29,6 +30,7 @@ Scratchbox2 crosscompiling environment
 %patch4 -p1
 %patch5 -p1
 %patch6 -p1
+%patch7 -p1
 
 %build
 ./autogen.sh

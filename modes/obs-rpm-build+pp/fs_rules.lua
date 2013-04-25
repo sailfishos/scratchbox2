@@ -434,6 +434,9 @@ emulate_mode_rules_usr_bin = {
 		{path="/usr/bin/localedef",
 		 func_class = FUNC_CLASS_EXEC,
 		 actions=accelerated_program_actions},
+		{path="/usr/bin/ccache",
+		 func_class = FUNC_CLASS_EXEC,
+		 actions=accelerated_program_actions},
 
 		-- perl & python:
 		-- 	processing depends on SBOX_REDIRECT_IGNORE,

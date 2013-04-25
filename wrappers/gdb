@@ -5,7 +5,6 @@
 #
 # Licensed under GPL version 2
 
-args="$*"
 prog="$0"
 progbase=`basename $0`
 
@@ -81,4 +80,4 @@ if [ "$sbox_mapmode" = "emulate" ]
 then
 	SHELL=/bin/sh
 fi
-exec $sbox_target_root/usr/bin/gdb -command $SBOX_SESSION_DIR/gdbinit $args
+exec $sbox_target_root/usr/bin/gdb -command $SBOX_SESSION_DIR/gdbinit "$@"

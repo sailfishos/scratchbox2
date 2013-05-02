@@ -440,6 +440,15 @@ emulate_mode_rules_usr_bin = {
 		{path="/usr/bin/qtchooser",
 		 func_class = FUNC_CLASS_EXEC,
 		 actions=accelerated_program_actions},
+		{path="/usr/bin/cpio",
+		 func_class = FUNC_CLASS_EXEC,
+		 actions=accelerated_program_actions},
+		{path="/usr/bin/zip",
+		 func_class = FUNC_CLASS_EXEC,
+		 actions=accelerated_program_actions},
+		{path="/usr/bin/xz",
+		 func_class = FUNC_CLASS_EXEC,
+		 actions=accelerated_program_actions},
 
 		-- perl & python:
 		-- 	processing depends on SBOX_REDIRECT_IGNORE,

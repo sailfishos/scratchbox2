@@ -367,7 +367,7 @@ case "$ARCH" in
 
 	*)
 		echo "Unsupported target architecture: '$ARCH'"
-		echo "You must add support for it into preload/sb_exec.c"
+		echo "You must add support for it into execs/sb_exec.c"
 		echo "and utils/sb2-init"
 		exit 1
 		;;

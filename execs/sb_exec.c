@@ -160,6 +160,7 @@ static const struct target_info target_table[] = {
 	{ "mips",	EM_MIPS,	ELFDATA2MSB,	1 },
 	{ "ppc",	EM_PPC,		ELFDATA2MSB,	0 },
 	{ "sh",		EM_SH, 		ELFDATA2LSB,	1 },
+	{ "x86_64",	EM_X86_64,	ELFDATA2LSB,	0 },
 };
 
 enum binary_type {

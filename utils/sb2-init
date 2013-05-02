@@ -363,6 +363,7 @@ case "$ARCH" in
 	i586*) ;;
 	i686*) ;;
 	amd64*) ;;
+	x86_64*) ;;
 
 	*)
 		echo "Unsupported target architecture: '$ARCH'"

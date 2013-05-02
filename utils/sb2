@@ -996,7 +996,7 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 		#
 		ld_so_candidate2="`guess_ld_so $libsb2_dirname`"
 		if [ -L $ld_so_candidate2 ]; then
-			ld_so_candidate2=`/bin/readlink -f $ld_so_candidate2`
+			ld_so_candidate2=`readlink -f $ld_so_candidate2`
 			# check also that it has --argv0 support
 			check_ld_so_features $rootdir $ld_so_candidate2
 			if [ "$ld_so_argv_flag_works" == "true" ]; then

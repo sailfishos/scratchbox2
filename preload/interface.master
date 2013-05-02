@@ -281,6 +281,7 @@ GATE: int __lxstat64(int ver, const char *filename, struct stat64 *buf) : \
 -- N.B. 2nd parameter of '__opendir2' is bufsize, at least on 
 -- some implementations
 WRAP: DIR *__opendir2(const char *name, int flags) : map(name) \
+	postprocess(name) \
 	class(OPEN)
 
 GATE: int __xmknod(int ver, const char *path, mode_t mode, dev_t *dev) : \
@@ -533,6 +534,7 @@ WRAP: int nftw(const char *dir, int (*fn)(const char *file, const struct stat *s
 WRAP: int nftw64(const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag, struct FTW *s), int nopenfd, int flags) : map(dir)
 #endif
 WRAP: DIR *opendir(const char *name) : map(name) \
+	postprocess(name) \
         create_nomap_nolog_version \
 	class(OPEN)
 WRAP: long pathconf(const char *path, int name) : map(path)

@@ -295,6 +295,23 @@ extern void openat64_postprocess_pathname(
 	fdpathdb_register_mapping_result(realfnname, ret_fd, res, pathname);
 }
 
+void __opendir2_postprocess_name(
+	const char *realfnname, DIR *ret, mapping_results_t *res,
+	const char *name, int flags)
+{
+	(void)flags;
+	if (ret)
+		fdpathdb_register_mapping_result(realfnname, dirfd(ret), res, name);
+}
+
+void opendir_postprocess_name(
+	const char *realfnname, DIR *ret, mapping_results_t *res,
+	const char *name)
+{
+	if (ret)
+		fdpathdb_register_mapping_result(realfnname, dirfd(ret), res, name);
+}
+
 void dup_postprocess_(const char *realfnname, int ret, int fd)
 {
 	const char	*cp = NULL;

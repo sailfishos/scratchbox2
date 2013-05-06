@@ -678,7 +678,7 @@ static char *ruletree_execute_conditional_actions(
 	}
 	/* end of list is most probably a fatal error in the rule file. */
 	SB_LOG(SB_LOGLEVEL_ERROR,
-		"ruletree_translate_path: End of conditional action list, "
+		"ruletree_execute_conditional_actions: End of conditional action list, "
 		"probably caused by an error in the rule file.");
 	/* FIXME. This should probably return the original path (compare with
 	 * Lua code) */
@@ -687,7 +687,7 @@ static char *ruletree_execute_conditional_actions(
 			
     unimplemented_action_error:
 	SB_LOG(SB_LOGLEVEL_ERROR,
-		"Internal error: ruletree_translate_path: Encountered "
+		"Internal error: ruletree_execute_conditional_actions: Encountered "
 		"an unknown conditional action.");
 	*errormsgp = "unknown conditional action (internal error)";
 	return (NULL);

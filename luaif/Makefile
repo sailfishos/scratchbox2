@@ -9,7 +9,7 @@ $(D)/sblib_luaif.o: preload/exported.h
 
 luaif/libluaif.a: $(objs)
 luaif/libluaif.a: override CFLAGS := $(CFLAGS) -O2 -g -fPIC -Wall -W -I$(SRCDIR)/$(LUASRC) -I$(OBJDIR)/preload -I$(SRCDIR)/preload \
-	-Werror -Wmissing-prototypes -Wstrict-prototypes
+	$(WERROR) -Wmissing-prototypes -Wstrict-prototypes
 luaif/libluaif.a: override LDFLAGS := $(LDFLAGS)
 luaif/libluaif.a: override LIBS := 
 

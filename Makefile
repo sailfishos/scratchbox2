@@ -52,6 +52,11 @@ LIBSB2_SONAME = "libsb2.so.1"
 LLBUILD ?= $(SRCDIR)/llbuild
 PROTOTYPEWARNINGS=-Wmissing-prototypes -Wstrict-prototypes
 
+ifdef E
+WERROR = -Wno-error
+else
+WERROR = -Werror
+endif
 
 # targets variable will be filled by llbuild
 targets = 

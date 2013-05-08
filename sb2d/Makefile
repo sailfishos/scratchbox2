@@ -1,7 +1,7 @@
 # beware of namespace collisions, all subdir makefiles are included
 # into the top-level Makefile
 
-$(D)/sb2d: CFLAGS := $(CFLAGS) -Wall -W -Werror \
+$(D)/sb2d: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
 		$(PROTOTYPEWARNINGS) \
 		-I$(SRCDIR)/include \
 		-I$(SRCDIR)/preload -Ipreload/

@@ -546,6 +546,8 @@ emulate_mode_rules_usr = {
                  actions=accelerated_program_actions},
                 {path = "/usr/lib/qt5/bin/qmake", func_class = FUNC_CLASS_EXEC,
                  actions=accelerated_program_actions},
+                {path = "/usr/include/python2.7/pyconfig.h",
+                 actions=python_lib_test},
 
 		-- gdb wants to have access to our dynamic linker also,
 		-- /usr/lib/libsb2/wrappers/*, etc.

@@ -1,7 +1,7 @@
 # beware of namespace collisions, all subdir makefiles are included
 # into the top-level Makefile
 
-$(D)/sb2-show: CFLAGS := $(CFLAGS) -Wall -W -Werror \
+$(D)/sb2-show: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
 		-I$(SRCDIR)/include
 
@@ -13,7 +13,7 @@ $(D)/sb2-show: $(D)/sb2-show.o
 
 #------------
 # sb2-ruletree, a debugging tool
-$(D)/sb2-ruletree: CFLAGS := $(CFLAGS) -Wall -W -Werror \
+$(D)/sb2-ruletree: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
 		-I$(SRCDIR)/include
 
@@ -25,7 +25,7 @@ $(D)/sb2-ruletree: $(D)/sb2-ruletree.o $(D)/../rule_tree/rule_tree.o
 
 #------------
 # sb2dctl, a tool for communicating with sb2d
-$(D)/sb2dctl: override CFLAGS := $(CFLAGS) -Wall -W -Werror \
+$(D)/sb2dctl: override CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
 		-I$(SRCDIR)/include
 
@@ -41,7 +41,7 @@ $(D)/sb2dctl: sb2d/libsupport.o
 targets := $(targets) $(D)/sb2dctl
 #------------
 
-$(D)/sb2-monitor: CFLAGS := $(CFLAGS) -Wall -W -Werror \
+$(D)/sb2-monitor: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
 		-I$(SRCDIR)/include
 
@@ -50,7 +50,7 @@ $(D)/sb2-monitor: $(D)/sb2-monitor.o
 	$(P)LD
 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
-$(D)/sb2-interp-wrapper: CFLAGS := $(CFLAGS) -Wall -W -Werror \
+$(D)/sb2-interp-wrapper: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
 		-I$(SRCDIR)/include
 

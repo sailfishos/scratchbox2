@@ -1,7 +1,7 @@
 # beware of namespace collisions, all subdir makefiles are included
 # into the top-level Makefile
 
-$(D)/fakeroot: CFLAGS := $(CFLAGS) -Wall -W -Werror \
+$(D)/fakeroot: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
 		-I$(SRCDIR)/include
 

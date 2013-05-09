@@ -1175,6 +1175,9 @@ END
 		if [ -n "$SBOX_CLONED_TARGET_ROOT" ]; then
 			target_basename=`basename $SBOX_CLONED_TARGET_ROOT`
 		else
+			if [ -z $SBOX_TARGET_ROOT ]; then
+			    exit_error "SBOX_TARGET_ROOT empty, valid target not found"
+			fi
 			target_basename=`basename $SBOX_TARGET_ROOT`
 		fi
 

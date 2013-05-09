@@ -207,6 +207,7 @@ typedef struct ruletree_uint32_s {
 #define SB2_RULETREE_FSRULE_CONDITION_IF_REDIRECT_FORCE_IS_ACTIVE 303
 #define SB2_RULETREE_FSRULE_CONDITION_IF_ENV_VAR_IS_NOT_EMPTY 304
 #define SB2_RULETREE_FSRULE_CONDITION_IF_ENV_VAR_IS_EMPTY 305
+#define SB2_RULETREE_FSRULE_CONDITION_IF_EXISTS_IN 306
 
 typedef struct ruletree_net_rule_s {
 	ruletree_object_hdr_t		rtree_net_objhdr;

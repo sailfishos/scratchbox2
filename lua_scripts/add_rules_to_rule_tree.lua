@@ -33,6 +33,7 @@ local RULE_CONDITION_IF_REDIRECT_IGNORE_IS_ACTIVE = 302
 local RULE_CONDITION_IF_REDIRECT_FORCE_IS_ACTIVE = 303
 local RULE_CONDITION_IF_ENV_VAR_IS_NOT_EMPTY = 304
 local RULE_CONDITION_IF_ENV_VAR_IS_EMPTY = 305
+local RULE_CONDITION_IF_EXISTS_IN = 306
 
 -- and these  must match the flag definitions in mapping.h:
 local RULE_FLAGS_READONLY = 1
@@ -154,7 +155,6 @@ function add_one_rule_to_rule_tree(rule, modename)
 		action_type = RULE_ACTION_SUBTREE
 		rule_list_link = get_rule_tree_offset_for_rule_list(rule.rules, modename)
 	elseif (rule.then_actions) then
-		action_type = RULE_ACTION_CONDITIONAL_ACTIONS
 		rule_list_link = get_rule_tree_offset_for_rule_list(rule.then_actions, modename)
 	end
 
@@ -176,6 +176,8 @@ function add_one_rule_to_rule_tree(rule, modename)
 	elseif (rule.if_env_var_is_empty) then
 		condition_type = RULE_CONDITION_IF_ENV_VAR_IS_EMPTY
 		condition_str = rule.if_env_var_is_empty
+	elseif (rule.if_exists_in) then
+		condition_type = RULE_CONDITION_IF_EXISTS_IN
 	end
 
 	-- Selectors. 

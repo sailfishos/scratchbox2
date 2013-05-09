@@ -661,6 +661,17 @@ static char *ruletree_execute_conditional_actions(
 					}
 					break;
 
+                                case SB2_RULETREE_FSRULE_CONDITION_IF_EXISTS_IN:
+                                  if (if_exists_in(action_cand_p, abs_clean_virtual_path,
+                                                   &mapping_result)) {
+                                    /* found, continue rule tree processing */
+                                    continue;
+                                  }
+                                  else {
+                                    /* not found */
+                                  }
+                                  break;
+
 				default:
 					SB_LOG(SB_LOGLEVEL_ERROR,
 						"ruletree_execute_conditional_actions: "
@@ -683,18 +694,6 @@ static char *ruletree_execute_conditional_actions(
 				     rule_selector, abs_clean_virtual_path,
 				     &mapping_result)) {
 					return(mapping_result);
-				}
-				break;
-
-			case SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_IN:
-				if (if_exists_in(action_cand_p, abs_clean_virtual_path,
-                                                 &mapping_result)) {
-                                  /* found, continue rule tree processing */
-                                  continue;
-                                }
-                                else {
-                                  /* not found */
-                                  return(mapping_result);
 				}
 				break;
 

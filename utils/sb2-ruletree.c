@@ -142,6 +142,9 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 		case SB2_RULETREE_FSRULE_CONDITION_IF_ENV_VAR_IS_EMPTY:
 			printf("if_env_var_is_empty '%s'\n", condstr);
 			break;
+		case SB2_RULETREE_FSRULE_CONDITION_IF_EXISTS_IN:
+                        printf("if_exists_in '%s'\n", (condstr?:"<none>"));
+			break;
 		default:
 			printf("ERROR: Unknown condition type %d\n",
 				rule->rtree_fsr_condition_type);

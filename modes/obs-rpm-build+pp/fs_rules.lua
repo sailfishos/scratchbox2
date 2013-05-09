@@ -111,6 +111,13 @@ accelerated_program_actions = {
 	{ map_to = target_root, protection = readonly_fs_always },
 }
 
+-- conditionally accelerated programs:
+-- check if file exists in target_root and only then try to accelerate it
+conditionally_accelerated_program_actions = {
+	{ if_exists_in = target_root, then_actions = accelerated_program_actions, protection = readonly_fs_always },
+	{ map_to = target_root, protection = readonly_fs_always },
+}
+
 -- Path == "/":
 rootdir_rules = {
 		-- Special case for /bin/pwd: Some versions don't use getcwd(),

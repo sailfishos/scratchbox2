@@ -26,6 +26,7 @@ local RULE_ACTION_IF_EXISTS_THEN_MAP_TO = 245
 local RULE_ACTION_IF_EXISTS_THEN_REPLACE_BY = 246
 local RULE_ACTION_PROCFS = 250
 local RULE_ACTION_UNION_DIR = 251
+local RULE_ACTION_IF_EXISTS_IN = 252
 
 local RULE_CONDITION_IF_ACTIVE_EXEC_POLICY_IS = 301
 local RULE_CONDITION_IF_REDIRECT_IGNORE_IS_ACTIVE = 302
@@ -134,6 +135,9 @@ function add_one_rule_to_rule_tree(rule, modename)
 		elseif (rule.if_exists_then_replace_by) then
 			action_type = RULE_ACTION_IF_EXISTS_THEN_REPLACE_BY
 			action_str = rule.if_exists_then_replace_by
+		elseif (rule.if_exists_in) then
+			action_type = RULE_ACTION_IF_EXISTS_IN
+			action_str = rule.if_exists_in
 		else
 			if debug_messages_enabled then
 				print("No action!")
@@ -149,6 +153,9 @@ function add_one_rule_to_rule_tree(rule, modename)
 	elseif (rule.rules) then
 		action_type = RULE_ACTION_SUBTREE
 		rule_list_link = get_rule_tree_offset_for_rule_list(rule.rules, modename)
+	elseif (rule.then_actions) then
+		action_type = RULE_ACTION_CONDITIONAL_ACTIONS
+		rule_list_link = get_rule_tree_offset_for_rule_list(rule.then_actions, modename)
 	end
 
 	-- Aux.conditions. these can be used in conditional actions.

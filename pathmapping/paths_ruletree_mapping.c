@@ -400,6 +400,35 @@ static int if_exists_then_replace_by(
 	return(0);
 }
 
+static int if_exists_in(ruletree_fsrule_t *action,
+                        const char *abs_clean_virtual_path, char **resultp)
+{
+	const char *map_to_target;
+	char *test_path = NULL;
+
+	*resultp = NULL;
+	map_to_target = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs, NULL);
+
+	if (!strcmp(map_to_target, "/")) {
+		test_path = strdup(abs_clean_virtual_path);
+	} else {
+		if (asprintf(&test_path, "%s%s", map_to_target, abs_clean_virtual_path) < 0) {
+			SB_LOG(SB_LOGLEVEL_ERROR, "asprintf failed");
+			return(0);
+		}
+	}
+	if (sb_path_exists(test_path)) {
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"if_exists_in: True '%s' -> proceed to then_actions", test_path);
+                free(test_path);
+                return (1);
+	}
+	SB_LOG(SB_LOGLEVEL_DEBUG,
+		"if_exists_in: False '%s'", test_path);
+	free(test_path);
+	return(0);
+}
+
 static char *execute_map_to(const char *abs_clean_virtual_path,
 	const char *action_name, const char *prefix)
 {
@@ -654,6 +683,18 @@ static char *ruletree_execute_conditional_actions(
 				     rule_selector, abs_clean_virtual_path,
 				     &mapping_result)) {
 					return(mapping_result);
+				}
+				break;
+
+			case SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_IN:
+				if (if_exists_in(action_cand_p, abs_clean_virtual_path,
+                                                 &mapping_result)) {
+                                  /* found, continue rule tree processing */
+                                  continue;
+                                }
+                                else {
+                                  /* not found */
+                                  return(mapping_result);
 				}
 				break;
 

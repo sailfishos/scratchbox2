@@ -86,10 +86,6 @@ python_bin_test = {
 	  map_to = target_root, readonly = true },
 	{ if_active_exec_policy_is = "Tools-python",
 	  map_to = tools, readonly = true },
-	{ if_exists_then_map_to = target_root, readonly = true },
-	{ if_exists_then_map_to = tools_root,
-	  log_level = "warning", log_message = "Mapped to tools_root",
-	  readonly = true },
 	{ map_to = target_root, readonly = true }
 }
 
@@ -114,7 +110,8 @@ accelerated_program_actions = {
 -- conditionally accelerated programs:
 -- check if file exists in target_root and only then try to accelerate it
 conditionally_accelerated_program_actions = {
-	{ if_exists_in = target_root, actions = accelerated_program_actions, protection = readonly_fs_always },
+	{ if_exists_in = target_root, actions = accelerated_program_actions,
+	  protection = readonly_fs_always },
 	{ map_to = target_root, protection = readonly_fs_always },
 }
 

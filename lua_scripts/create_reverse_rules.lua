@@ -138,6 +138,9 @@ function reverse_one_rule_xxxx(output_rules, rule, n, forward_path, modename)
 		elseif (rule.if_exists_then_replace_by) then
 			d_path = rule.if_exists_then_replace_by
 			new_rule.replace_by = forward_path
+		elseif (rule.if_exists_in) then
+			d_path = rule.if_exists_in
+			new_rule.replace_by = forward_path
 		elseif (rule.if_env_var_is_not_empty) then
 			table.insert(new_rule.comments, string.format(
 				"-- WARNING: Skipping 'if_env_var_is_not_empty' rule\t%d\n", n))

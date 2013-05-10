@@ -278,7 +278,7 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 	case SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_IN:
 		printf("if_exists_in '%s'\n",
 			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs, NULL));
-		rule_list_link_label = "then_actions";
+		rule_list_link_label = "actions";
 		break;
 	default:
 		printf("ERROR: Unknown action type %d\n",

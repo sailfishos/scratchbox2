@@ -288,7 +288,7 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 
 	if (rule->rtree_fsr_rule_list_link) {
 		print_indent(indent+1);
-		printf("%s = {\n", rule_list_link_label);
+		printf("%s (%u) = {\n", rule_list_link_label, rule->rtree_fsr_rule_list_link);
 		dump_objectlist(rule->rtree_fsr_rule_list_link, indent + 2);
 		print_indent(indent+1);
 		printf("}\n");

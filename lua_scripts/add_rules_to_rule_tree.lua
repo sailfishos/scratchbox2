@@ -154,8 +154,6 @@ function add_one_rule_to_rule_tree(rule, modename)
 	elseif (rule.rules) then
 		action_type = RULE_ACTION_SUBTREE
 		rule_list_link = get_rule_tree_offset_for_rule_list(rule.rules, modename)
-	elseif (rule.then_actions) then
-		rule_list_link = get_rule_tree_offset_for_rule_list(rule.then_actions, modename)
 	end
 
 	-- Aux.conditions. these can be used in conditional actions.
@@ -178,6 +176,7 @@ function add_one_rule_to_rule_tree(rule, modename)
 		condition_str = rule.if_env_var_is_empty
 	elseif (rule.if_exists_in) then
 		condition_type = RULE_CONDITION_IF_EXISTS_IN
+		condition_str = rule.if_exists_in
 	end
 
 	-- Selectors. 

@@ -418,7 +418,7 @@ static int if_exists_in(ruletree_fsrule_t *action,
 	}
 	if (sb_path_exists(test_path)) {
 		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"if_exists_in: True '%s' -> proceed to then_actions", test_path);
+			"if_exists_in: True '%s' -> proceed to sub actions", test_path);
                 free(test_path);
                 return (1);
 	}
@@ -663,16 +663,16 @@ static char *ruletree_execute_conditional_actions(
                                 case SB2_RULETREE_FSRULE_CONDITION_IF_EXISTS_IN:
                                   if (if_exists_in(action_cand_p, abs_clean_virtual_path)) {
                                     /* found, jump to the new rule tree branch */
-                                    ruletree_object_offset_t then_actions_offset = action_cand_p->rtree_fsr_rule_list_link;
-                                    if (!then_actions_offset) {
-                                      SB_LOG(SB_LOGLEVEL_DEBUG, "if_exists_in: no then_actions found");
+                                    ruletree_object_offset_t sub_actions_offset = action_cand_p->rtree_fsr_rule_list_link;
+                                    if (!sub_actions_offset) {
+                                      SB_LOG(SB_LOGLEVEL_DEBUG, "if_exists_in: no sub actions found");
                                       /* continue with normal rule tree */
                                       continue;
                                     }
                                     else {
-                                      SB_LOG(SB_LOGLEVEL_DEBUG, "if_exists_in: then_actions found (%d)", then_actions_offset);
+                                      SB_LOG(SB_LOGLEVEL_DEBUG, "if_exists_in: sub actions found (%d)", sub_actions_offset);
                                       ruletree_fsrule_t new_rules = *rule_selector;
-                                      new_rules.rtree_fsr_rule_list_link = then_actions_offset;
+                                      new_rules.rtree_fsr_rule_list_link = sub_actions_offset;
                                       return ruletree_execute_conditional_actions(ctx, result_log_level,
                                                                                   abs_clean_virtual_path, flagsp,
                                                                                   exec_policy_name_ptr, errormsgp,

@@ -41,6 +41,10 @@ end
 function reverse_conditional_actions(output_rules, rev_rule_name, rule, n, forward_path, modename)
 	local actions = rule.actions
 
+	if actions == nil then
+	   actions = rule.then_actions
+	end
+
 	local a
         for a = 1, table.maxn(actions) do
 		-- actions are only partial rules; the "selector" is in
@@ -119,6 +123,10 @@ function reverse_one_rule_xxxx(output_rules, rule, n, forward_path, modename)
 			new_rule.force_orig_path_unless_chroot = true
 			d_path = forward_path
 		elseif (rule.actions) then
+			reverse_conditional_actions(output_rules, new_rule.name,
+				rule, n, forward_path, modename)
+			return
+		elseif (rule.then_actions) then
 			reverse_conditional_actions(output_rules, new_rule.name,
 				rule, n, forward_path, modename)
 			return

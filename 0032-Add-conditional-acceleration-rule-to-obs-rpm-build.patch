@@ -1,0 +1,59 @@
+From c6da54b5ebe364c0bf1c646384811ba822d8ec25 Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Sat, 11 May 2013 18:58:21 +0000
+Subject: [PATCH] Add conditional acceleration rule to obs-rpm-build
+
+Also, change actions to then_actions in the
+conditionally_accelerated_program_actions
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ modes/obs-rpm-build+pp/fs_rules.lua |    2 +-
+ modes/obs-rpm-build/fs_rules.lua    |   11 +++++++++++
+ 2 files changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/modes/obs-rpm-build+pp/fs_rules.lua b/modes/obs-rpm-build+pp/fs_rules.lua
+index f94997a..b4b61e8 100644
+--- a/modes/obs-rpm-build+pp/fs_rules.lua
++++ b/modes/obs-rpm-build+pp/fs_rules.lua
+@@ -110,7 +110,7 @@ accelerated_program_actions = {
+ -- conditionally accelerated programs:
+ -- check if file exists in target_root and only then try to accelerate it
+ conditionally_accelerated_program_actions = {
+-	{ if_exists_in = target_root, actions = accelerated_program_actions,
++	{ if_exists_in = target_root, then_actions = accelerated_program_actions,
+ 	  protection = readonly_fs_always },
+ 	{ map_to = target_root, protection = readonly_fs_always },
+ }
+diff --git a/modes/obs-rpm-build/fs_rules.lua b/modes/obs-rpm-build/fs_rules.lua
+index 3485523..fb17dd2 100644
+--- a/modes/obs-rpm-build/fs_rules.lua
++++ b/modes/obs-rpm-build/fs_rules.lua
+@@ -42,6 +42,14 @@ accelerated_program_actions = {
+ 	{ map_to = target_root, protection = readonly_fs_always },
+ }
+ 
++-- conditionally accelerated programs:
++-- check if file exists in target_root and only then try to accelerate it
++conditionally_accelerated_program_actions = {
++	{ if_exists_in = target_root, then_actions = accelerated_program_actions,
++	  protection = readonly_fs_always },
++	{ map_to = target_root, protection = readonly_fs_always },
++}
++
+ -- Path == "/":
+ rootdir_rules = {
+ 		-- Special case for /bin/pwd: Some versions don't use getcwd(),
+@@ -380,6 +388,9 @@ emulate_mode_rules_usr_bin = {
+ 		{path="/usr/bin/xz",
+ 		 func_class = FUNC_CLASS_EXEC,
+ 		 actions=accelerated_program_actions},
++		{path="/usr/bin/doxygen",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions=conditionally_accelerated_program_actions},
+ 
+ 		{path = "/usr/bin/sb2-show", use_orig_path = true,
+ 		 protection = readonly_fs_always},
+-- 
+1.7.10.3
+

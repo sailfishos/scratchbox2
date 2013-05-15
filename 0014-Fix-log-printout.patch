@@ -1,0 +1,35 @@
+From 67ba25b1842f7a36d773cddb8f330bdef9bb996d Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Mon, 6 May 2013 11:13:37 +0000
+Subject: [PATCH] Fix log printout
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ pathmapping/paths_ruletree_mapping.c |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/pathmapping/paths_ruletree_mapping.c b/pathmapping/paths_ruletree_mapping.c
+index 8289a76..4bd970b 100644
+--- a/pathmapping/paths_ruletree_mapping.c
++++ b/pathmapping/paths_ruletree_mapping.c
+@@ -678,7 +678,7 @@ static char *ruletree_execute_conditional_actions(
+ 	}
+ 	/* end of list is most probably a fatal error in the rule file. */
+ 	SB_LOG(SB_LOGLEVEL_ERROR,
+-		"ruletree_translate_path: End of conditional action list, "
++		"ruletree_execute_conditional_actions: End of conditional action list, "
+ 		"probably caused by an error in the rule file.");
+ 	/* FIXME. This should probably return the original path (compare with
+ 	 * Lua code) */
+@@ -687,7 +687,7 @@ static char *ruletree_execute_conditional_actions(
+ 			
+     unimplemented_action_error:
+ 	SB_LOG(SB_LOGLEVEL_ERROR,
+-		"Internal error: ruletree_translate_path: Encountered "
++		"Internal error: ruletree_execute_conditional_actions: Encountered "
+ 		"an unknown conditional action.");
+ 	*errormsgp = "unknown conditional action (internal error)";
+ 	return (NULL);
+-- 
+1.7.10.3
+

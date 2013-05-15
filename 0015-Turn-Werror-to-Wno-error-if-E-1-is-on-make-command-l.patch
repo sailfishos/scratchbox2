@@ -1,0 +1,194 @@
+From 90b2fe1dc71d3a24b49888f42d9a9505bce45f14 Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Wed, 8 May 2013 12:14:10 +0000
+Subject: [PATCH] Turn -Werror to -Wno-error if E=1 is on make command line
+
+Makes development easier when compilation doesn't stop to warnings all
+the time.
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ Makefile             |    5 +++++
+ execs/Makefile       |    2 +-
+ luaif/Makefile       |    2 +-
+ network/Makefile     |    2 +-
+ pathmapping/Makefile |    2 +-
+ rule_tree/Makefile   |    2 +-
+ sb2d/Makefile        |    2 +-
+ sblib/Makefile       |    2 +-
+ utils/Makefile       |   10 +++++-----
+ wrappers/Makefile    |    2 +-
+ 10 files changed, 18 insertions(+), 13 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 632233d..390fdbc 100644
+--- a/Makefile
++++ b/Makefile
+@@ -52,6 +52,11 @@ LIBSB2_SONAME = "libsb2.so.1"
+ LLBUILD ?= $(SRCDIR)/llbuild
+ PROTOTYPEWARNINGS=-Wmissing-prototypes -Wstrict-prototypes
+ 
++ifdef E
++WERROR = -Wno-error
++else
++WERROR = -Werror
++endif
+ 
+ # targets variable will be filled by llbuild
+ targets = 
+diff --git a/execs/Makefile b/execs/Makefile
+index afe4078..253f01d 100644
+--- a/execs/Makefile
++++ b/execs/Makefile
+@@ -11,7 +11,7 @@ $(D)/sb_exec.o: preload/exported.h
+ 
+ execs/libexecs.a: $(objs)
+ execs/libexecs.a: override CFLAGS := $(CFLAGS) -O2 -g -fPIC -Wall -W -I$(SRCDIR)/$(LUASRC) -I$(OBJDIR)/preload -I$(SRCDIR)/preload -I$(SRCDIR)/execs \
+-	-Werror -Wmissing-prototypes -Wstrict-prototypes
++	$(WERROR) -Wmissing-prototypes -Wstrict-prototypes
+ execs/libexecs.a: override LDFLAGS := $(LDFLAGS)
+ execs/libexecs.a: override LIBS := 
+ 
+diff --git a/luaif/Makefile b/luaif/Makefile
+index b1d6065..dd9fa84 100644
+--- a/luaif/Makefile
++++ b/luaif/Makefile
+@@ -9,7 +9,7 @@ $(D)/sblib_luaif.o: preload/exported.h
+ 
+ luaif/libluaif.a: $(objs)
+ luaif/libluaif.a: override CFLAGS := $(CFLAGS) -O2 -g -fPIC -Wall -W -I$(SRCDIR)/$(LUASRC) -I$(OBJDIR)/preload -I$(SRCDIR)/preload \
+-	-Werror -Wmissing-prototypes -Wstrict-prototypes
++	$(WERROR) -Wmissing-prototypes -Wstrict-prototypes
+ luaif/libluaif.a: override LDFLAGS := $(LDFLAGS)
+ luaif/libluaif.a: override LIBS := 
+ 
+diff --git a/network/Makefile b/network/Makefile
+index d9bb138..d578b44 100644
+--- a/network/Makefile
++++ b/network/Makefile
+@@ -3,7 +3,7 @@ objs := $(D)/net_rules.o
+ 
+ network/libsb2net.a: $(objs)
+ network/libsb2net.a: override CFLAGS := $(CFLAGS) -O2 -g -fPIC -Wall -W -I$(SRCDIR)/$(LUASRC) -I$(OBJDIR)/preload -I$(SRCDIR)/preload -I$(SRCDIR)/network \
+-	-Werror -Wmissing-prototypes -Wstrict-prototypes
++	$(WERROR) -Wmissing-prototypes -Wstrict-prototypes
+ network/libsb2net.a: override LDFLAGS := $(LDFLAGS)
+ network/libsb2net.a: override LIBS := 
+ 
+diff --git a/pathmapping/Makefile b/pathmapping/Makefile
+index 245c521..362b4b2 100644
+--- a/pathmapping/Makefile
++++ b/pathmapping/Makefile
+@@ -6,7 +6,7 @@ objs := $(D)/pathresolution.o \
+ 
+ pathmapping/libpaths.a: $(objs)
+ pathmapping/libpaths.a: override CFLAGS := $(CFLAGS) -O2 -g -fPIC -Wall -W -I$(SRCDIR)/$(LUASRC) -I$(OBJDIR)/preload -I$(SRCDIR)/preload -I$(SRCDIR)/pathmapping \
+-	-Werror -Wmissing-prototypes -Wstrict-prototypes
++	$(WERROR) -Wmissing-prototypes -Wstrict-prototypes
+ pathmapping/libpaths.a: override LDFLAGS := $(LDFLAGS)
+ pathmapping/libpaths.a: override LIBS := 
+ 
+diff --git a/rule_tree/Makefile b/rule_tree/Makefile
+index 7512845..826c949 100644
+--- a/rule_tree/Makefile
++++ b/rule_tree/Makefile
+@@ -5,7 +5,7 @@ objs := $(D)/rule_tree.o \
+ 
+ rule_tree/libruletree.a: $(objs)
+ rule_tree/libruletree.a: override CFLAGS := $(CFLAGS) -O2 -g -fPIC -Wall -W -I$(SRCDIR)/$(LUASRC) -I$(OBJDIR)/preload -I$(SRCDIR)/preload \
+-	-Werror -Wmissing-prototypes -Wstrict-prototypes
++	$(WERROR) -Wmissing-prototypes -Wstrict-prototypes
+ rule_tree/libruletree.a: override LDFLAGS := $(LDFLAGS)
+ rule_tree/libruletree.a: override LIBS := 
+ 
+diff --git a/sb2d/Makefile b/sb2d/Makefile
+index e774e9e..8bd273f 100644
+--- a/sb2d/Makefile
++++ b/sb2d/Makefile
+@@ -1,7 +1,7 @@
+ # beware of namespace collisions, all subdir makefiles are included
+ # into the top-level Makefile
+ 
+-$(D)/sb2d: CFLAGS := $(CFLAGS) -Wall -W -Werror \
++$(D)/sb2d: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
+ 		$(PROTOTYPEWARNINGS) \
+ 		-I$(SRCDIR)/include \
+ 		-I$(SRCDIR)/preload -Ipreload/
+diff --git a/sblib/Makefile b/sblib/Makefile
+index 2619fe3..37d8448 100644
+--- a/sblib/Makefile
++++ b/sblib/Makefile
+@@ -8,7 +8,7 @@ $(D)/sb_log.o: preload/exported.h
+ 
+ sblib/libsblib.a: $(objs)
+ sblib/libsblib.a: override CFLAGS := $(CFLAGS) -O2 -g -fPIC -Wall -W -I$(OBJDIR)/preload -I$(SRCDIR)/preload \
+-	-Werror -Wmissing-prototypes -Wstrict-prototypes
++	$(WERROR) -Wmissing-prototypes -Wstrict-prototypes
+ sblib/libsblib.a: override LDFLAGS := $(LDFLAGS)
+ sblib/libsblib.a: override LIBS := 
+ 
+diff --git a/utils/Makefile b/utils/Makefile
+index 2d4ce00..80e0fb9 100644
+--- a/utils/Makefile
++++ b/utils/Makefile
+@@ -1,7 +1,7 @@
+ # beware of namespace collisions, all subdir makefiles are included
+ # into the top-level Makefile
+ 
+-$(D)/sb2-show: CFLAGS := $(CFLAGS) -Wall -W -Werror \
++$(D)/sb2-show: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
+ 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
+ 		-I$(SRCDIR)/include
+ 
+@@ -13,7 +13,7 @@ $(D)/sb2-show: $(D)/sb2-show.o
+ 
+ #------------
+ # sb2-ruletree, a debugging tool
+-$(D)/sb2-ruletree: CFLAGS := $(CFLAGS) -Wall -W -Werror \
++$(D)/sb2-ruletree: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
+ 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
+ 		-I$(SRCDIR)/include
+ 
+@@ -25,7 +25,7 @@ $(D)/sb2-ruletree: $(D)/sb2-ruletree.o $(D)/../rule_tree/rule_tree.o
+ 
+ #------------
+ # sb2dctl, a tool for communicating with sb2d
+-$(D)/sb2dctl: override CFLAGS := $(CFLAGS) -Wall -W -Werror \
++$(D)/sb2dctl: override CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
+ 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
+ 		-I$(SRCDIR)/include
+ 
+@@ -41,7 +41,7 @@ $(D)/sb2dctl: sb2d/libsupport.o
+ targets := $(targets) $(D)/sb2dctl
+ #------------
+ 
+-$(D)/sb2-monitor: CFLAGS := $(CFLAGS) -Wall -W -Werror \
++$(D)/sb2-monitor: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
+ 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
+ 		-I$(SRCDIR)/include
+ 
+@@ -50,7 +50,7 @@ $(D)/sb2-monitor: $(D)/sb2-monitor.o
+ 	$(P)LD
+ 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
+ 
+-$(D)/sb2-interp-wrapper: CFLAGS := $(CFLAGS) -Wall -W -Werror \
++$(D)/sb2-interp-wrapper: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
+ 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
+ 		-I$(SRCDIR)/include
+ 
+diff --git a/wrappers/Makefile b/wrappers/Makefile
+index 5daaf9d..c1e983a 100644
+--- a/wrappers/Makefile
++++ b/wrappers/Makefile
+@@ -1,7 +1,7 @@
+ # beware of namespace collisions, all subdir makefiles are included
+ # into the top-level Makefile
+ 
+-$(D)/fakeroot: CFLAGS := $(CFLAGS) -Wall -W -Werror \
++$(D)/fakeroot: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
+ 		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
+ 		-I$(SRCDIR)/include
+ 
+-- 
+1.7.10.3
+

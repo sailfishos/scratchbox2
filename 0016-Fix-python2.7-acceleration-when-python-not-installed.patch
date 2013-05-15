@@ -1,0 +1,31 @@
+From caa2a583d3857cc66914850b4c57c50777ad7a0b Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Wed, 8 May 2013 12:19:38 +0000
+Subject: [PATCH] Fix python2.7 acceleration when python not installed in
+ target
+
+Python 2.7 requires /usr/include/python2.7/pyconfig.h to run. Makes
+that file accessible in obs-rpm-build+pp mode from target when it's
+only available in tools.
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ modes/obs-rpm-build+pp/fs_rules.lua |    2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/modes/obs-rpm-build+pp/fs_rules.lua b/modes/obs-rpm-build+pp/fs_rules.lua
+index cc4199f..1917b14 100644
+--- a/modes/obs-rpm-build+pp/fs_rules.lua
++++ b/modes/obs-rpm-build+pp/fs_rules.lua
+@@ -546,6 +546,8 @@ emulate_mode_rules_usr = {
+                  actions=accelerated_program_actions},
+                 {path = "/usr/lib/qt5/bin/qmake", func_class = FUNC_CLASS_EXEC,
+                  actions=accelerated_program_actions},
++                {path = "/usr/include/python2.7/pyconfig.h",
++                 actions=python_lib_test},
+ 
+ 		-- gdb wants to have access to our dynamic linker also,
+ 		-- /usr/lib/libsb2/wrappers/*, etc.
+-- 
+1.7.10.3
+

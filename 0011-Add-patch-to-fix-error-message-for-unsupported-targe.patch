@@ -1,0 +1,34 @@
+From 87a0169985aedfa90f1a5bc60832837aa68fb993 Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Thu, 2 May 2013 08:24:29 +0000
+Subject: [PATCH] Add patch to fix error message for unsupported target
+
+This error message now instructs to edit the correct file
+to add support for new target.
+
+The patch has been submited upstream as well, so hopefully it won't be
+needed anymore upon the new version release.
+
+Original patch by: Oleg Girko <ol+mer@infoserver.ru>
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ utils/sb2-init |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/utils/sb2-init b/utils/sb2-init
+index f95b90f..84cdd6d 100755
+--- a/utils/sb2-init
++++ b/utils/sb2-init
+@@ -367,7 +367,7 @@ case "$ARCH" in
+ 
+ 	*)
+ 		echo "Unsupported target architecture: '$ARCH'"
+-		echo "You must add support for it into preload/sb_exec.c"
++		echo "You must add support for it into execs/sb_exec.c"
+ 		echo "and utils/sb2-init"
+ 		exit 1
+ 		;;
+-- 
+1.7.10.3
+

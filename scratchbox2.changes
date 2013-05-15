@@ -1,3 +1,28 @@
+* Sat May 11 2013 Juha Kallioinen <juha.kallioinen@jollamobile.com> - 2.3.90-9
+- Add conditional acceleration rule to obs-rpm-build too
+
+* Sat May 11 2013 Juha Kallioinen <juha.kallioinen@jollamobile.com> - 2.3.90-8
+- Implemented IF_EXISTS_IN type rule logic
+- Changed obs-rpm-build+pp python acceleration rule to only accelerate if requested
+  with export SBOX_REDIRECT_FORCE=/usr/bin/python
+- Added conditional acceleration for doxygen (accel if exists in target and tools)
+
+* Wed May 08 2013 Juha Kallioinen <juha.kallioinen@jollamobile.com> - 2.3.90-7
+- Fix for python2.7 acceleration
+- Makefile supports -Wno-error option
+- Correct some log writings
+
+* Fri May 2013 Juha Kallioinen <juha.kallioinen@jollamobile.com> - 2.3.90-6
+- Remove extra configure call
+
+* Thu May 2013 Juha Kallioinen <juha.kallioinen@jollamobile.com> - 2.3.90-5
+- Add compression utils to accelerated programs [Kallioinen]
+- Add postprocessing for name parameter of opendir() and __opendir2() [Girko]
+- Add patch to fix error message for unsupported target [Girko]
+- Add patch to not assume that readlink is located int /bin [Girko]
+- Add support for x86_64 target [Girko]
+- Accept file descriptor 0 as log fd [Kallioinen]
+
 * Thu Apr 2013 David Greaves <david@dgreaves.com> - 2.3.90-4
 - Quote PWD variables that may have spaces in them
 

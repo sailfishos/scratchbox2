@@ -1,0 +1,29 @@
+From fe896a6d65ca0e6337a8a55963a6195ebb698e95 Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Wed, 17 Apr 2013 12:18:26 +0300
+Subject: [PATCH] Accept file descriptor 0 as log fd
+
+Log would not get written and the file descriptor would not be
+closed if open() returned fd 0.
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ sblib/sb_log.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/sblib/sb_log.c b/sblib/sb_log.c
+index 851265c..3da6d3c 100644
+--- a/sblib/sb_log.c
++++ b/sblib/sb_log.c
+@@ -145,7 +145,7 @@ static void write_to_logfile(const char *msg, int msglen)
+ 		} else if ((logfd = open_nomap_nolog(sb_log_state.sbl_logfile,
+ 					O_APPEND | O_RDWR | O_CREAT,
+ 					S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP
+-					| S_IROTH | S_IWOTH)) > 0) {
++					| S_IROTH | S_IWOTH)) >= 0) {
+ 			int r; /* needed to get around some unnecessary warnings from gcc*/
+ 			r = write(logfd, msg, msglen);
+ 			(void)r;
+-- 
+1.7.10.3
+

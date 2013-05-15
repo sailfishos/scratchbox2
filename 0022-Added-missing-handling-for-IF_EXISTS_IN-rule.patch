@@ -1,0 +1,40 @@
+From 4fce43e89787dc0d8bccba830d93e57c3c42ffd4 Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Thu, 9 May 2013 13:38:24 +0000
+Subject: [PATCH] Added missing handling for IF_EXISTS_IN rule
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ pathmapping/paths_ruletree_maint.c |    1 +
+ utils/sb2-ruletree.c               |    3 +++
+ 2 files changed, 4 insertions(+)
+
+diff --git a/pathmapping/paths_ruletree_maint.c b/pathmapping/paths_ruletree_maint.c
+index 73cae28..ab73dc3 100644
+--- a/pathmapping/paths_ruletree_maint.c
++++ b/pathmapping/paths_ruletree_maint.c
+@@ -123,6 +123,7 @@ ruletree_object_offset_t add_rule_to_ruletree(
+ 	case SB2_RULETREE_FSRULE_CONDITION_IF_REDIRECT_FORCE_IS_ACTIVE:
+ 	case SB2_RULETREE_FSRULE_CONDITION_IF_ENV_VAR_IS_NOT_EMPTY:
+ 	case SB2_RULETREE_FSRULE_CONDITION_IF_ENV_VAR_IS_EMPTY:
++	case SB2_RULETREE_FSRULE_CONDITION_IF_EXISTS_IN:
+ 		/* OK */
+ 		break;
+ 
+diff --git a/utils/sb2-ruletree.c b/utils/sb2-ruletree.c
+index ae10ebe..68d2d8a 100644
+--- a/utils/sb2-ruletree.c
++++ b/utils/sb2-ruletree.c
+@@ -142,6 +142,9 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
+ 		case SB2_RULETREE_FSRULE_CONDITION_IF_ENV_VAR_IS_EMPTY:
+ 			printf("if_env_var_is_empty '%s'\n", condstr);
+ 			break;
++		case SB2_RULETREE_FSRULE_CONDITION_IF_EXISTS_IN:
++                        printf("if_exists_in '%s'\n", (condstr?:"<none>"));
++			break;
+ 		default:
+ 			printf("ERROR: Unknown condition type %d\n",
+ 				rule->rtree_fsr_condition_type);
+-- 
+1.7.10.3
+

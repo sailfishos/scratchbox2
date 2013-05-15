@@ -1,0 +1,50 @@
+From 02298371d86e4bbb355562f984e3675b93055b49 Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Thu, 9 May 2013 14:03:56 +0000
+Subject: [PATCH] Invert path found logic
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ pathmapping/paths_ruletree_mapping.c |    8 +++-----
+ 1 file changed, 3 insertions(+), 5 deletions(-)
+
+diff --git a/pathmapping/paths_ruletree_mapping.c b/pathmapping/paths_ruletree_mapping.c
+index e833cab..5b0ef1a 100644
+--- a/pathmapping/paths_ruletree_mapping.c
++++ b/pathmapping/paths_ruletree_mapping.c
+@@ -401,12 +401,11 @@ static int if_exists_then_replace_by(
+ }
+ 
+ static int if_exists_in(ruletree_fsrule_t *action,
+-                        const char *abs_clean_virtual_path, char **resultp)
++                        const char *abs_clean_virtual_path)
+ {
+ 	const char *map_to_target;
+ 	char *test_path = NULL;
+ 
+-	*resultp = NULL;
+ 	map_to_target = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs, NULL);
+ 
+ 	if (!strcmp(map_to_target, "/")) {
+@@ -421,7 +420,7 @@ static int if_exists_in(ruletree_fsrule_t *action,
+ 		SB_LOG(SB_LOGLEVEL_DEBUG,
+ 			"if_exists_in: True '%s' -> proceed to then_actions", test_path);
+                 free(test_path);
+-                return (1);
++                return (0);
+ 	}
+ 	SB_LOG(SB_LOGLEVEL_DEBUG,
+ 		"if_exists_in: False '%s'", test_path);
+@@ -662,8 +661,7 @@ static char *ruletree_execute_conditional_actions(
+ 					break;
+ 
+                                 case SB2_RULETREE_FSRULE_CONDITION_IF_EXISTS_IN:
+-                                  if (if_exists_in(action_cand_p, abs_clean_virtual_path,
+-                                                   &mapping_result)) {
++                                  if (if_exists_in(action_cand_p, abs_clean_virtual_path)) {
+                                     /* found, continue rule tree processing */
+                                     continue;
+                                   }
+-- 
+1.7.10.3
+

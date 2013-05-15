@@ -1,0 +1,103 @@
+From 5bbf47e1b224aca1e36b7319057741f1a54c060d Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Wed, 8 May 2013 14:47:56 +0000
+Subject: [PATCH] Simplify function interfaces
+
+Removed unused "node_type_is_ordinary_rule" parameter from functions.
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ lua_scripts/add_rules_to_rule_tree.lua |   21 +++++++++++----------
+ 1 file changed, 11 insertions(+), 10 deletions(-)
+
+diff --git a/lua_scripts/add_rules_to_rule_tree.lua b/lua_scripts/add_rules_to_rule_tree.lua
+index 8525789..52eaff2 100644
+--- a/lua_scripts/add_rules_to_rule_tree.lua
++++ b/lua_scripts/add_rules_to_rule_tree.lua
+@@ -43,7 +43,7 @@ local RULE_FLAGS_FORCE_ORIG_PATH_UNLESS_CHROOT = 32
+ 
+ -- ================= Mapping rules =================
+ 
+-function get_rule_tree_offset_for_rule_list(rules, node_type_is_ordinary_rule, modename)
++function get_rule_tree_offset_for_rule_list(rules, modename)
+ 	if #rules < 1 then
+ 		if debug_messages_enabled then
+ 			print ("-- NO RULES!")
+@@ -51,7 +51,7 @@ function get_rule_tree_offset_for_rule_list(rules, node_type_is_ordinary_rule, m
+ 		return 0
+ 	elseif rules[1]._rule_tree_offset == nil then
+ 		-- Not yet in the tree, add it.
+-		rules[1]._rule_tree_offset = add_list_of_rules(rules, node_type_is_ordinary_rule, modename)
++		rules[1]._rule_tree_offset = add_list_of_rules(rules, modename)
+ 	else
+ 		if debug_messages_enabled then
+ 			print ("get..Return existing at ", rules[1]._rule_tree_offset)
+@@ -84,7 +84,7 @@ function get_rule_tree_offset_for_union_dir_list(union_dir_list)
+ end
+ 
+ -- Add a rule to the rule tree, return rule offset in the file.
+-function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule, modename)
++function add_one_rule_to_rule_tree(rule, modename)
+ 	local action_type = 0
+ 	local action_str = nil
+ 	local name
+@@ -144,10 +144,11 @@ function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule, modename)
+ 
+ 	if (rule.actions) then
+ 		action_type = RULE_ACTION_CONDITIONAL_ACTIONS
+-		rule_list_link = get_rule_tree_offset_for_rule_list(rule.actions, false, modename)
++--		This call was the only one with node_type_is_ordinary_rule = "false"
++		rule_list_link = get_rule_tree_offset_for_rule_list(rule.actions, modename)
+ 	elseif (rule.rules) then
+ 		action_type = RULE_ACTION_SUBTREE
+-		rule_list_link = get_rule_tree_offset_for_rule_list(rule.rules, true, modename)
++		rule_list_link = get_rule_tree_offset_for_rule_list(rule.rules, modename)
+ 	end
+ 
+ 	-- Aux.conditions. these can be used in conditional actions.
+@@ -260,7 +261,7 @@ function add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule, modename)
+ 	return rule_offs
+ end
+ 
+-function add_list_of_rules(rules, node_type_is_ordinary_rule, modename)
++function add_list_of_rules(rules, modename)
+         local n
+ 
+ 	if debug_messages_enabled then
+@@ -278,7 +279,7 @@ function add_list_of_rules(rules, node_type_is_ordinary_rule, modename)
+ 				local rule = rules[n]
+ 				local new_rule_index
+ 
+-				new_rule_index = add_one_rule_to_rule_tree(rule, node_type_is_ordinary_rule, modename)
++				new_rule_index = add_one_rule_to_rule_tree(rule, modename)
+ 				ruletree.objectlist_set(rule_list_index, n-1, new_rule_index)
+ 			end
+ 			if debug_messages_enabled then
+@@ -336,7 +337,7 @@ function add_to_exec_policy(modename_in_ruletree, ep_name, key, t, val)
+ end
+ 
+ function add_mapping_rules_to_exec_policy(modename_in_ruletree, ep_name, key, val)
+-	local ri = add_list_of_rules(val, true, modename_in_ruletree)
++	local ri = add_list_of_rules(val,  modename_in_ruletree)
+ 	ruletree.catalog_vset("exec_policy", modename_in_ruletree, ep_name,
+ 		key, ri)
+ end
+@@ -423,13 +424,13 @@ for m_index,m_name in pairs(all_modes) do
+ 	end
+ 
+ 	local ri
+-	ri = add_list_of_rules(fs_mapping_rules, true, m_name) -- add ordinary (forward) rules
++	ri = add_list_of_rules(fs_mapping_rules, m_name) -- add ordinary (forward) rules
+ 	if debug_messages_enabled then
+ 		print("-- Added ruleset fwd rules")
+ 	end
+ 	ruletree.catalog_set("fs_rules", modename_in_ruletree, ri)
+ 
+-	ri = add_list_of_rules(reverse_fs_mapping_rules, true, "reverse "..m_name) -- add reverse  rules
++	ri = add_list_of_rules(reverse_fs_mapping_rules, "reverse "..m_name) -- add reverse  rules
+ 	if debug_messages_enabled then
+ 		print("-- Added ruleset rev.rules")
+ 	end
+-- 
+1.7.10.3
+

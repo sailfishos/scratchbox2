@@ -1,0 +1,73 @@
+From d60d46adcdc49589c0af8af453b157e4b500ad01 Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Thu, 2 May 2013 09:00:12 +0000
+Subject: [PATCH] Add postprocessing for name parameter of opendir() and
+ __opendir2()
+
+This postprocessing is needed to add mapping between directory name
+and directory descriptor to fdpathdb. This is necessary in common
+scenario when directory is listed with readdir(), and files inside it
+are being open with openat().
+
+The patch has been submited upstream as well, so hopefully it won't be
+needed anymore upon the new version release.
+
+Original patch by: Oleg Girko <ol+mer@infoserver.ru>
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ preload/fdpathdb.c       |   17 +++++++++++++++++
+ preload/interface.master |    2 ++
+ 2 files changed, 19 insertions(+)
+
+diff --git a/preload/fdpathdb.c b/preload/fdpathdb.c
+index 00e34c5..8babd7f 100644
+--- a/preload/fdpathdb.c
++++ b/preload/fdpathdb.c
+@@ -295,6 +295,23 @@ extern void openat64_postprocess_pathname(
+ 	fdpathdb_register_mapping_result(realfnname, ret_fd, res, pathname);
+ }
+ 
++void __opendir2_postprocess_name(
++	const char *realfnname, DIR *ret, mapping_results_t *res,
++	const char *name, int flags)
++{
++	(void)flags;
++	if (ret)
++		fdpathdb_register_mapping_result(realfnname, dirfd(ret), res, name);
++}
++
++void opendir_postprocess_name(
++	const char *realfnname, DIR *ret, mapping_results_t *res,
++	const char *name)
++{
++	if (ret)
++		fdpathdb_register_mapping_result(realfnname, dirfd(ret), res, name);
++}
++
+ void dup_postprocess_(const char *realfnname, int ret, int fd)
+ {
+ 	const char	*cp = NULL;
+diff --git a/preload/interface.master b/preload/interface.master
+index fb0f0f9..314a8cc 100644
+--- a/preload/interface.master
++++ b/preload/interface.master
+@@ -281,6 +281,7 @@ GATE: int __lxstat64(int ver, const char *filename, struct stat64 *buf) : \
+ -- N.B. 2nd parameter of '__opendir2' is bufsize, at least on 
+ -- some implementations
+ WRAP: DIR *__opendir2(const char *name, int flags) : map(name) \
++	postprocess(name) \
+ 	class(OPEN)
+ 
+ GATE: int __xmknod(int ver, const char *path, mode_t mode, dev_t *dev) : \
+@@ -533,6 +534,7 @@ WRAP: int nftw(const char *dir, int (*fn)(const char *file, const struct stat *s
+ WRAP: int nftw64(const char *dir, int (*fn)(const char *file, const struct stat64 *sb, int flag, struct FTW *s), int nopenfd, int flags) : map(dir)
+ #endif
+ WRAP: DIR *opendir(const char *name) : map(name) \
++	postprocess(name) \
+         create_nomap_nolog_version \
+ 	class(OPEN)
+ WRAP: long pathconf(const char *path, int name) : map(path)
+-- 
+1.7.10.3
+

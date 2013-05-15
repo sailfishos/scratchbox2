@@ -1,0 +1,29 @@
+From 57135049399fbf1e42865a9e8bda7748ac9bd6cd Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Fri, 10 May 2013 15:59:06 +0000
+Subject: [PATCH] Add conditional acceleration for doxygen
+
+Only accelerate doxygen if it can be found from the target root
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ modes/obs-rpm-build+pp/fs_rules.lua |    3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/modes/obs-rpm-build+pp/fs_rules.lua b/modes/obs-rpm-build+pp/fs_rules.lua
+index 306182e..f94997a 100644
+--- a/modes/obs-rpm-build+pp/fs_rules.lua
++++ b/modes/obs-rpm-build+pp/fs_rules.lua
+@@ -453,6 +453,9 @@ emulate_mode_rules_usr_bin = {
+ 		{path="/usr/bin/xz",
+ 		 func_class = FUNC_CLASS_EXEC,
+ 		 actions=accelerated_program_actions},
++		{path="/usr/bin/doxygen",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions=conditionally_accelerated_program_actions},
+ 
+ 		-- perl & python:
+ 		-- 	processing depends on SBOX_REDIRECT_IGNORE,
+-- 
+1.7.10.3
+

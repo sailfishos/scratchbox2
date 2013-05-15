@@ -1,0 +1,134 @@
+From 8e0e734fe6c244f5d0f12eff43e7dbf7e0990bed Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Thu, 9 May 2013 11:57:25 +0000
+Subject: [PATCH] Add handling for IF_EXISTS_IN conditional rule
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ lua_scripts/add_rules_to_rule_tree.lua |    7 ++++++
+ pathmapping/paths_ruletree_maint.c     |    1 +
+ pathmapping/paths_ruletree_mapping.c   |   41 ++++++++++++++++++++++++++++++++
+ utils/sb2-ruletree.c                   |    4 ++++
+ 4 files changed, 53 insertions(+)
+
+diff --git a/lua_scripts/add_rules_to_rule_tree.lua b/lua_scripts/add_rules_to_rule_tree.lua
+index 52eaff2..d1864bc 100644
+--- a/lua_scripts/add_rules_to_rule_tree.lua
++++ b/lua_scripts/add_rules_to_rule_tree.lua
+@@ -26,6 +26,7 @@ local RULE_ACTION_IF_EXISTS_THEN_MAP_TO = 245
+ local RULE_ACTION_IF_EXISTS_THEN_REPLACE_BY = 246
+ local RULE_ACTION_PROCFS = 250
+ local RULE_ACTION_UNION_DIR = 251
++local RULE_ACTION_IF_EXISTS_IN = 252
+ 
+ local RULE_CONDITION_IF_ACTIVE_EXEC_POLICY_IS = 301
+ local RULE_CONDITION_IF_REDIRECT_IGNORE_IS_ACTIVE = 302
+@@ -134,6 +135,9 @@ function add_one_rule_to_rule_tree(rule, modename)
+ 		elseif (rule.if_exists_then_replace_by) then
+ 			action_type = RULE_ACTION_IF_EXISTS_THEN_REPLACE_BY
+ 			action_str = rule.if_exists_then_replace_by
++		elseif (rule.if_exists_in) then
++			action_type = RULE_ACTION_IF_EXISTS_IN
++			action_str = rule.if_exists_in
+ 		else
+ 			if debug_messages_enabled then
+ 				print("No action!")
+@@ -149,6 +153,9 @@ function add_one_rule_to_rule_tree(rule, modename)
+ 	elseif (rule.rules) then
+ 		action_type = RULE_ACTION_SUBTREE
+ 		rule_list_link = get_rule_tree_offset_for_rule_list(rule.rules, modename)
++	elseif (rule.then_actions) then
++		action_type = RULE_ACTION_CONDITIONAL_ACTIONS
++		rule_list_link = get_rule_tree_offset_for_rule_list(rule.then_actions, modename)
+ 	end
+ 
+ 	-- Aux.conditions. these can be used in conditional actions.
+diff --git a/pathmapping/paths_ruletree_maint.c b/pathmapping/paths_ruletree_maint.c
+index b65cb84..73cae28 100644
+--- a/pathmapping/paths_ruletree_maint.c
++++ b/pathmapping/paths_ruletree_maint.c
+@@ -105,6 +105,7 @@ ruletree_object_offset_t add_rule_to_ruletree(
+ 	case SB2_RULETREE_FSRULE_ACTION_SUBTREE:
+ 	case SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_THEN_MAP_TO:
+ 	case SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_THEN_REPLACE_BY:
++        case SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_IN:
+ 		/* OK */
+ 		break;
+ 
+diff --git a/pathmapping/paths_ruletree_mapping.c b/pathmapping/paths_ruletree_mapping.c
+index 4bd970b..1f2d170 100644
+--- a/pathmapping/paths_ruletree_mapping.c
++++ b/pathmapping/paths_ruletree_mapping.c
+@@ -400,6 +400,35 @@ static int if_exists_then_replace_by(
+ 	return(0);
+ }
+ 
++static int if_exists_in(ruletree_fsrule_t *action,
++                        const char *abs_clean_virtual_path, char **resultp)
++{
++	const char *map_to_target;
++	char *test_path = NULL;
++
++	*resultp = NULL;
++	map_to_target = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs, NULL);
++
++	if (!strcmp(map_to_target, "/")) {
++		test_path = strdup(abs_clean_virtual_path);
++	} else {
++		if (asprintf(&test_path, "%s%s", map_to_target, abs_clean_virtual_path) < 0) {
++			SB_LOG(SB_LOGLEVEL_ERROR, "asprintf failed");
++			return(0);
++		}
++	}
++	if (sb_path_exists(test_path)) {
++		SB_LOG(SB_LOGLEVEL_DEBUG,
++			"if_exists_in: True '%s' -> proceed to then_actions", test_path);
++                free(test_path);
++                return (1);
++	}
++	SB_LOG(SB_LOGLEVEL_DEBUG,
++		"if_exists_in: False '%s'", test_path);
++	free(test_path);
++	return(0);
++}
++
+ static char *execute_map_to(const char *abs_clean_virtual_path,
+ 	const char *action_name, const char *prefix)
+ {
+@@ -657,6 +686,18 @@ static char *ruletree_execute_conditional_actions(
+ 				}
+ 				break;
+ 
++			case SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_IN:
++				if (if_exists_in(action_cand_p, abs_clean_virtual_path,
++                                                 &mapping_result)) {
++                                  /* found, continue rule tree processing */
++                                  continue;
++                                }
++                                else {
++                                  /* not found */
++                                  return(mapping_result);
++				}
++				break;
++
+ 			case SB2_RULETREE_FSRULE_ACTION_USE_ORIG_PATH:
+ 			case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH:
+ 			case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH_UNLESS_CHROOT:
+diff --git a/utils/sb2-ruletree.c b/utils/sb2-ruletree.c
+index a75dc5d..ae10ebe 100644
+--- a/utils/sb2-ruletree.c
++++ b/utils/sb2-ruletree.c
+@@ -272,6 +272,10 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
+ 		printf("if_exists_then_replace_by '%s'\n",
+ 			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs, NULL));
+ 		break;
++	case SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_IN:
++		printf("if_exists_in '%s'\n",
++			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs, NULL));
++		break;
+ 	default:
+ 		printf("ERROR: Unknown action type %d\n",
+ 			rule->rtree_fsr_action_type);
+-- 
+1.7.10.3
+

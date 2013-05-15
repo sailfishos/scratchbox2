@@ -1,0 +1,43 @@
+From 0e11d6143774a2d670383482925e58eeee8858da Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Thu, 2 May 2013 08:18:17 +0000
+Subject: [PATCH] Add support for x86_64 target.
+
+The patch has been submited upstream as well, so hopefully it won't be
+needed anymore upon the new version release.
+
+Original patch by: Oleg Girko <ol+mer@infoserver.ru>
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ execs/sb_exec.c |    1 +
+ utils/sb2-init  |    1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/execs/sb_exec.c b/execs/sb_exec.c
+index be05776..21c6328 100644
+--- a/execs/sb_exec.c
++++ b/execs/sb_exec.c
+@@ -160,6 +160,7 @@ static const struct target_info target_table[] = {
+ 	{ "mips",	EM_MIPS,	ELFDATA2MSB,	1 },
+ 	{ "ppc",	EM_PPC,		ELFDATA2MSB,	0 },
+ 	{ "sh",		EM_SH, 		ELFDATA2LSB,	1 },
++	{ "x86_64",	EM_X86_64,	ELFDATA2LSB,	0 },
+ };
+ 
+ enum binary_type {
+diff --git a/utils/sb2-init b/utils/sb2-init
+index fd66c20..f95b90f 100755
+--- a/utils/sb2-init
++++ b/utils/sb2-init
+@@ -363,6 +363,7 @@ case "$ARCH" in
+ 	i586*) ;;
+ 	i686*) ;;
+ 	amd64*) ;;
++	x86_64*) ;;
+ 
+ 	*)
+ 		echo "Unsupported target architecture: '$ARCH'"
+-- 
+1.7.10.3
+

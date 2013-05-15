@@ -1,0 +1,26 @@
+From 472bd0982f852e5a766c0eb0296b5e7586b882c7 Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Fri, 10 May 2013 12:58:30 +0000
+Subject: [PATCH] Print out action tree offset
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ utils/sb2-ruletree.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/utils/sb2-ruletree.c b/utils/sb2-ruletree.c
+index 88d9cd6..b2322db 100644
+--- a/utils/sb2-ruletree.c
++++ b/utils/sb2-ruletree.c
+@@ -288,7 +288,7 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
+ 
+ 	if (rule->rtree_fsr_rule_list_link) {
+ 		print_indent(indent+1);
+-		printf("%s = {\n", rule_list_link_label);
++		printf("%s (%u) = {\n", rule_list_link_label, rule->rtree_fsr_rule_list_link);
+ 		dump_objectlist(rule->rtree_fsr_rule_list_link, indent + 2);
+ 		print_indent(indent+1);
+ 		printf("}\n");
+-- 
+1.7.10.3
+

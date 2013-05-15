@@ -1,0 +1,34 @@
+From cad92d53c9c2e42553b28def1bfb111d3467c0e6 Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Thu, 2 May 2013 08:21:43 +0000
+Subject: [PATCH] Add patch to not assume that readlink is located int /bin
+
+On modern systems readlink can be in /usr/bin, so it's better to rely
+on $PATH to find it.
+
+The patch has been submited upstream as well, so hopefully it won't be
+needed anymore upon the new version release.
+
+Original patch by: Oleg Girko <ol+mer@infoserver.ru>
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ utils/sb2 |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/utils/sb2 b/utils/sb2
+index ec99bad..b2db500 100755
+--- a/utils/sb2
++++ b/utils/sb2
+@@ -996,7 +996,7 @@ function write_libsb2_and_ld_so_state_to_exec_config()
+ 		#
+ 		ld_so_candidate2="`guess_ld_so $libsb2_dirname`"
+ 		if [ -L $ld_so_candidate2 ]; then
+-			ld_so_candidate2=`/bin/readlink -f $ld_so_candidate2`
++			ld_so_candidate2=`readlink -f $ld_so_candidate2`
+ 			# check also that it has --argv0 support
+ 			check_ld_so_features $rootdir $ld_so_candidate2
+ 			if [ "$ld_so_argv_flag_works" == "true" ]; then
+-- 
+1.7.10.3
+

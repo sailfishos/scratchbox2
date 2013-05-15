@@ -1,0 +1,116 @@
+From 4de90a424ff60ec8f6b10f6623d34e9c85a7b02f Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Fri, 10 May 2013 14:54:21 +0000
+Subject: [PATCH] Add reverse mapping for IF_EXISTS_IN rules
+
+Also rename then_actions to actions to utilize already existing code
+paths.
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ lua_scripts/add_rules_to_rule_tree.lua |    3 +--
+ lua_scripts/create_reverse_rules.lua   |    3 +++
+ modes/obs-rpm-build+pp/fs_rules.lua    |    2 +-
+ pathmapping/paths_ruletree_mapping.c   |   12 ++++++------
+ utils/sb2-ruletree.c                   |    2 +-
+ 5 files changed, 12 insertions(+), 10 deletions(-)
+
+diff --git a/lua_scripts/add_rules_to_rule_tree.lua b/lua_scripts/add_rules_to_rule_tree.lua
+index b22476a..e706699 100644
+--- a/lua_scripts/add_rules_to_rule_tree.lua
++++ b/lua_scripts/add_rules_to_rule_tree.lua
+@@ -154,8 +154,6 @@ function add_one_rule_to_rule_tree(rule, modename)
+ 	elseif (rule.rules) then
+ 		action_type = RULE_ACTION_SUBTREE
+ 		rule_list_link = get_rule_tree_offset_for_rule_list(rule.rules, modename)
+-	elseif (rule.then_actions) then
+-		rule_list_link = get_rule_tree_offset_for_rule_list(rule.then_actions, modename)
+ 	end
+ 
+ 	-- Aux.conditions. these can be used in conditional actions.
+@@ -178,6 +176,7 @@ function add_one_rule_to_rule_tree(rule, modename)
+ 		condition_str = rule.if_env_var_is_empty
+ 	elseif (rule.if_exists_in) then
+ 		condition_type = RULE_CONDITION_IF_EXISTS_IN
++		condition_str = rule.if_exists_in
+ 	end
+ 
+ 	-- Selectors. 
+diff --git a/lua_scripts/create_reverse_rules.lua b/lua_scripts/create_reverse_rules.lua
+index 559b62a..afcda03 100644
+--- a/lua_scripts/create_reverse_rules.lua
++++ b/lua_scripts/create_reverse_rules.lua
+@@ -138,6 +138,9 @@ function reverse_one_rule_xxxx(output_rules, rule, n, forward_path, modename)
+ 		elseif (rule.if_exists_then_replace_by) then
+ 			d_path = rule.if_exists_then_replace_by
+ 			new_rule.replace_by = forward_path
++		elseif (rule.if_exists_in) then
++			d_path = rule.if_exists_in
++			new_rule.replace_by = forward_path
+ 		elseif (rule.if_env_var_is_not_empty) then
+ 			table.insert(new_rule.comments, string.format(
+ 				"-- WARNING: Skipping 'if_env_var_is_not_empty' rule\t%d\n", n))
+diff --git a/modes/obs-rpm-build+pp/fs_rules.lua b/modes/obs-rpm-build+pp/fs_rules.lua
+index 73e7e36..d5bae0c 100644
+--- a/modes/obs-rpm-build+pp/fs_rules.lua
++++ b/modes/obs-rpm-build+pp/fs_rules.lua
+@@ -114,7 +114,7 @@ accelerated_program_actions = {
+ -- conditionally accelerated programs:
+ -- check if file exists in target_root and only then try to accelerate it
+ conditionally_accelerated_program_actions = {
+-	{ if_exists_in = target_root, then_actions = accelerated_program_actions, protection = readonly_fs_always },
++	{ if_exists_in = target_root, actions = accelerated_program_actions, protection = readonly_fs_always },
+ 	{ map_to = target_root, protection = readonly_fs_always },
+ }
+ 
+diff --git a/pathmapping/paths_ruletree_mapping.c b/pathmapping/paths_ruletree_mapping.c
+index 24e41ae..c23d99d 100644
+--- a/pathmapping/paths_ruletree_mapping.c
++++ b/pathmapping/paths_ruletree_mapping.c
+@@ -418,7 +418,7 @@ static int if_exists_in(ruletree_fsrule_t *action,
+ 	}
+ 	if (sb_path_exists(test_path)) {
+ 		SB_LOG(SB_LOGLEVEL_DEBUG,
+-			"if_exists_in: True '%s' -> proceed to then_actions", test_path);
++			"if_exists_in: True '%s' -> proceed to sub actions", test_path);
+                 free(test_path);
+                 return (1);
+ 	}
+@@ -663,16 +663,16 @@ static char *ruletree_execute_conditional_actions(
+                                 case SB2_RULETREE_FSRULE_CONDITION_IF_EXISTS_IN:
+                                   if (if_exists_in(action_cand_p, abs_clean_virtual_path)) {
+                                     /* found, jump to the new rule tree branch */
+-                                    ruletree_object_offset_t then_actions_offset = action_cand_p->rtree_fsr_rule_list_link;
+-                                    if (!then_actions_offset) {
+-                                      SB_LOG(SB_LOGLEVEL_DEBUG, "if_exists_in: no then_actions found");
++                                    ruletree_object_offset_t sub_actions_offset = action_cand_p->rtree_fsr_rule_list_link;
++                                    if (!sub_actions_offset) {
++                                      SB_LOG(SB_LOGLEVEL_DEBUG, "if_exists_in: no sub actions found");
+                                       /* continue with normal rule tree */
+                                       continue;
+                                     }
+                                     else {
+-                                      SB_LOG(SB_LOGLEVEL_DEBUG, "if_exists_in: then_actions found (%d)", then_actions_offset);
++                                      SB_LOG(SB_LOGLEVEL_DEBUG, "if_exists_in: sub actions found (%d)", sub_actions_offset);
+                                       ruletree_fsrule_t new_rules = *rule_selector;
+-                                      new_rules.rtree_fsr_rule_list_link = then_actions_offset;
++                                      new_rules.rtree_fsr_rule_list_link = sub_actions_offset;
+                                       return ruletree_execute_conditional_actions(ctx, result_log_level,
+                                                                                   abs_clean_virtual_path, flagsp,
+                                                                                   exec_policy_name_ptr, errormsgp,
+diff --git a/utils/sb2-ruletree.c b/utils/sb2-ruletree.c
+index b2322db..2e8a561 100644
+--- a/utils/sb2-ruletree.c
++++ b/utils/sb2-ruletree.c
+@@ -278,7 +278,7 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
+ 	case SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_IN:
+ 		printf("if_exists_in '%s'\n",
+ 			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs, NULL));
+-		rule_list_link_label = "then_actions";
++		rule_list_link_label = "actions";
+ 		break;
+ 	default:
+ 		printf("ERROR: Unknown action type %d\n",
+-- 
+1.7.10.3
+

@@ -1,3 +1,7 @@
+* Fri May 17 2013 Juha Kallioinen <juha.kallioinen@jollamobile.com> - 2.3.90-10
+- Fix realpath() call
+- Add /usr/lib/qt[45]/bin/moc and uic to obs-rpm-build(+pp) modes
+
 * Sat May 11 2013 Juha Kallioinen <juha.kallioinen@jollamobile.com> - 2.3.90-9
 - Add conditional acceleration rule to obs-rpm-build too
 

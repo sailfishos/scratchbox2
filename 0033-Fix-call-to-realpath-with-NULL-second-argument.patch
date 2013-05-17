@@ -1,0 +1,49 @@
+From fb41fb0df3096f1601469f31ec4b991099667cf1 Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Fri, 17 May 2013 16:12:21 +0000
+Subject: [PATCH] Fix call to realpath with NULL second argument
+
+If realpath() was called with a NULL second argument, it would fail in
+an sb2 session. This is because when sb2 resolves the real realpath()
+symbol with dlsym, it receives a pointer to __old_realpath(), which
+does not allow NULL there.
+
+Now sb2's realpath_gate malloc's a buffer if the 2nd argument is NULL,
+which is what realpath() would do in this case.
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ preload/miscgates.c |   16 ++++++++++++++--
+ 1 file changed, 14 insertions(+), 2 deletions(-)
+
+diff --git a/preload/miscgates.c b/preload/miscgates.c
+index 8d11ef6..36f34cf 100644
+--- a/preload/miscgates.c
++++ b/preload/miscgates.c
+@@ -252,9 +252,21 @@ char *realpath_gate(
+ {
+ 	char *sbox_path = NULL;
+ 	char *rp;
+-	
++	char *rpath = resolved;
++
++        if (resolved == NULL) {
++          /* The real_realpath_ptr may point to __old_realpath, which
++           *  does not allow a NULL resolved ptr. __old_realpath only
++           *  checks if resolved is NULL and fails or calls
++           *  __realpath, which allows NULL resolved and in that case
++           *  will malloc it. This way we'll just call malloc a bit
++           *  earlier.
++           */
++          rpath = malloc(PATH_MAX);
++        }
++
+ 	errno = *result_errno_ptr; /* restore to orig.value */
+-	if ((rp = (*real_realpath_ptr)(mapped_name->mres_result_path,resolved)) == NULL) {
++	if ((rp = (*real_realpath_ptr)(mapped_name->mres_result_path,rpath)) == NULL) {
+ 		*result_errno_ptr = errno;
+ 		return NULL;
+ 	}
+-- 
+1.7.10.3
+

@@ -1,0 +1,58 @@
+From 04b67973515cb0a4cef8c5f6901dc6db24d8f860 Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Fri, 17 May 2013 16:19:43 +0000
+Subject: [PATCH] Add qt4/qt5 moc and uic to accelerated binaries
+
+Added the binaries in obs-rpm-build and obs-rpm-build+pp modes.
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ modes/obs-rpm-build+pp/fs_rules.lua |    8 ++++++++
+ modes/obs-rpm-build/fs_rules.lua    |    8 ++++++++
+ 2 files changed, 16 insertions(+)
+
+diff --git a/modes/obs-rpm-build+pp/fs_rules.lua b/modes/obs-rpm-build+pp/fs_rules.lua
+index b4b61e8..fc1303e 100644
+--- a/modes/obs-rpm-build+pp/fs_rules.lua
++++ b/modes/obs-rpm-build+pp/fs_rules.lua
+@@ -551,8 +551,16 @@ emulate_mode_rules_usr = {
+                 {path = "/usr/lib/rpm/rpmdeps", actions=accelerated_program_actions},
+                 {path = "/usr/lib/qt4/bin/qmake", func_class = FUNC_CLASS_EXEC,
+                  actions=accelerated_program_actions},
++                {path = "/usr/lib/qt4/bin/moc", func_class = FUNC_CLASS_EXEC,
++                 actions=accelerated_program_actions},
++                {path = "/usr/lib/qt4/bin/uic", func_class = FUNC_CLASS_EXEC,
++                 actions=accelerated_program_actions},
+                 {path = "/usr/lib/qt5/bin/qmake", func_class = FUNC_CLASS_EXEC,
+                  actions=accelerated_program_actions},
++                {path = "/usr/lib/qt5/bin/moc", func_class = FUNC_CLASS_EXEC,
++                 actions=accelerated_program_actions},
++                {path = "/usr/lib/qt5/bin/uic", func_class = FUNC_CLASS_EXEC,
++                 actions=accelerated_program_actions},
+                 {path = "/usr/include/python2.7/pyconfig.h",
+                  actions=python_lib_test},
+ 
+diff --git a/modes/obs-rpm-build/fs_rules.lua b/modes/obs-rpm-build/fs_rules.lua
+index fb17dd2..61d6768 100644
+--- a/modes/obs-rpm-build/fs_rules.lua
++++ b/modes/obs-rpm-build/fs_rules.lua
+@@ -421,8 +421,16 @@ emulate_mode_rules_usr = {
+                 {path = "/usr/lib/rpm/rpmdeps", actions=accelerated_program_actions},
+                 {path = "/usr/lib/qt4/bin/qmake", func_class = FUNC_CLASS_EXEC,
+                  actions=accelerated_program_actions},
++                {path = "/usr/lib/qt4/bin/moc", func_class = FUNC_CLASS_EXEC,
++                 actions=accelerated_program_actions},
++                {path = "/usr/lib/qt4/bin/uic", func_class = FUNC_CLASS_EXEC,
++                 actions=accelerated_program_actions},
+                 {path = "/usr/lib/qt5/bin/qmake", func_class = FUNC_CLASS_EXEC,
+                  actions=accelerated_program_actions},
++                {path = "/usr/lib/qt5/bin/moc", func_class = FUNC_CLASS_EXEC,
++                 actions=accelerated_program_actions},
++                {path = "/usr/lib/qt5/bin/uic", func_class = FUNC_CLASS_EXEC,
++                 actions=accelerated_program_actions},
+ 
+ 		-- gdb wants to have access to our dynamic linker also,
+ 		-- /usr/lib/libsb2/wrappers/*, etc.
+-- 
+1.7.10.3
+

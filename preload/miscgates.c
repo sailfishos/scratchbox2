@@ -252,9 +252,21 @@ char *realpath_gate(
 {
 	char *sbox_path = NULL;
 	char *rp;
-	
+	char *rpath = resolved;
+
+        if (resolved == NULL) {
+          /* The real_realpath_ptr may point to __old_realpath, which
+           *  does not allow a NULL resolved ptr. __old_realpath only
+           *  checks if resolved is NULL and fails or calls
+           *  __realpath, which allows NULL resolved and in that case
+           *  will malloc it. This way we'll just call malloc a bit
+           *  earlier.
+           */
+          rpath = malloc(PATH_MAX);
+        }
+
 	errno = *result_errno_ptr; /* restore to orig.value */
-	if ((rp = (*real_realpath_ptr)(mapped_name->mres_result_path,resolved)) == NULL) {
+	if ((rp = (*real_realpath_ptr)(mapped_name->mres_result_path,rpath)) == NULL) {
 		*result_errno_ptr = errno;
 		return NULL;
 	}

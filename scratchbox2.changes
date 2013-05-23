@@ -1,3 +1,6 @@
+* Wed May 22 2013 Juha Kallioinen <juha.kallioinen@jollamobile.com> - 2.3.90-11
+- Split rpm packaging to separate scratchbox2 and libsb2 packages
+
 * Fri May 17 2013 Juha Kallioinen <juha.kallioinen@jollamobile.com> - 2.3.90-10
 - Fix realpath() call
 - Add /usr/lib/qt[45]/bin/moc and uic to obs-rpm-build(+pp) modes

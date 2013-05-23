@@ -2,7 +2,7 @@ Summary: 	Scratchbox2 crosscompiling environment
 License: 	LGPL
 Name: 		scratchbox2
 Version: 2.3.90
-Release: 10
+Release: 11
 Source: 	%{name}-%{version}.tar.gz
 Patch1:	0001-scratchbox2-2.3.27-usrsrc.patch
 Patch2:	0002-scratchbox2-2.3.52-wrapperargs.patch
@@ -43,14 +43,22 @@ Group: 		Development/Tools
 ExclusiveArch:	%{ix86}
 BuildRequires:	make
 Requires:	fakeroot
+Requires:	libsb2 = %{version}-%{release}
 
 %description
 Scratchbox2 crosscompiling environment
 
+%package -n libsb2
+Summary: Scratchbox2 preload library
+Group:   Development/Tools
+
+%description -n libsb2
+Scratchbox2 preload library.
+
 %prep
 # Adjusting %%setup since git-pkg unpacks to src/
 # %%setup -q -n src
-%setup      -q      -n src     
+%setup  -q  -n src 
 %patch1 -p1
 %patch2 -p1
 %patch3 -p1
@@ -97,11 +105,13 @@ make install prefix=$RPM_BUILD_ROOT/usr
 %files
 %defattr(-,root,root)
 /usr/bin/sb2*
-/usr/lib/libsb2/*
-%ifarch x86_64
-/usr/lib32/libsb2/*
-%endif
 /usr/share/scratchbox2/*
-
 %doc %attr(0444,root,root) /usr/share/man/man1/*
 %doc %attr(0444,root,root) /usr/share/man/man7/*
+
+%files -n libsb2
+%defattr(-,root,root)
+/usr/lib/libsb2/*
+%ifarch x86_64
+ /usr/lib32/libsb2/*
+%endif

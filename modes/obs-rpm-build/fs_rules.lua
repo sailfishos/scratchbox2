@@ -391,6 +391,9 @@ emulate_mode_rules_usr_bin = {
 		{path="/usr/bin/doxygen",
 		 func_class = FUNC_CLASS_EXEC,
 		 actions=conditionally_accelerated_program_actions},
+		{path="/usr/bin/cmake",
+		 func_class = FUNC_CLASS_EXEC,
+		 actions=accelerated_program_actions},
 
 		{path = "/usr/bin/sb2-show", use_orig_path = true,
 		 protection = readonly_fs_always},

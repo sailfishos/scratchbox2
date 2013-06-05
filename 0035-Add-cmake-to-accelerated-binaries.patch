@@ -1,0 +1,42 @@
+From c0ef8d9e1993b8b203790a84afd324811f77e1d5 Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Tue, 4 Jun 2013 13:56:08 +0000
+Subject: [PATCH] Add cmake to accelerated binaries
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ modes/obs-rpm-build+pp/fs_rules.lua |    3 +++
+ modes/obs-rpm-build/fs_rules.lua    |    3 +++
+ 2 files changed, 6 insertions(+)
+
+diff --git a/modes/obs-rpm-build+pp/fs_rules.lua b/modes/obs-rpm-build+pp/fs_rules.lua
+index fc1303e..53d0f0b 100644
+--- a/modes/obs-rpm-build+pp/fs_rules.lua
++++ b/modes/obs-rpm-build+pp/fs_rules.lua
+@@ -456,6 +456,9 @@ emulate_mode_rules_usr_bin = {
+ 		{path="/usr/bin/doxygen",
+ 		 func_class = FUNC_CLASS_EXEC,
+ 		 actions=conditionally_accelerated_program_actions},
++		{path="/usr/bin/cmake",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions=accelerated_program_actions},
+ 
+ 		-- perl & python:
+ 		-- 	processing depends on SBOX_REDIRECT_IGNORE,
+diff --git a/modes/obs-rpm-build/fs_rules.lua b/modes/obs-rpm-build/fs_rules.lua
+index 61d6768..9a901ed 100644
+--- a/modes/obs-rpm-build/fs_rules.lua
++++ b/modes/obs-rpm-build/fs_rules.lua
+@@ -391,6 +391,9 @@ emulate_mode_rules_usr_bin = {
+ 		{path="/usr/bin/doxygen",
+ 		 func_class = FUNC_CLASS_EXEC,
+ 		 actions=conditionally_accelerated_program_actions},
++		{path="/usr/bin/cmake",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions=accelerated_program_actions},
+ 
+ 		{path = "/usr/bin/sb2-show", use_orig_path = true,
+ 		 protection = readonly_fs_always},
+-- 
+1.7.10.3
+

@@ -2,7 +2,7 @@ Summary: 	Scratchbox2 crosscompiling environment
 License: 	LGPL
 Name: 		scratchbox2
 Version: 2.3.90
-Release: 11
+Release: 12
 Source: 	%{name}-%{version}.tar.gz
 Patch1:	0001-scratchbox2-2.3.27-usrsrc.patch
 Patch2:	0002-scratchbox2-2.3.52-wrapperargs.patch
@@ -38,6 +38,7 @@ Patch31:	0031-Fix-IF_EXISTS_IN-rule-to-require-then_actions.patch
 Patch32:	0032-Add-conditional-acceleration-rule-to-obs-rpm-build.patch
 Patch33:	0033-Fix-call-to-realpath-with-NULL-second-argument.patch
 Patch34:	0034-Add-qt4-qt5-moc-and-uic-to-accelerated-binaries.patch
+Patch35:	0035-Add-cmake-to-accelerated-binaries.patch
 Prefix: 	/usr
 Group: 		Development/Tools
 ExclusiveArch:	%{ix86}
@@ -58,7 +59,7 @@ Scratchbox2 preload library.
 %prep
 # Adjusting %%setup since git-pkg unpacks to src/
 # %%setup -q -n src
-%setup  -q  -n src 
+%setup   -q   -n src  
 %patch1 -p1
 %patch2 -p1
 %patch3 -p1
@@ -93,6 +94,7 @@ Scratchbox2 preload library.
 %patch32 -p1
 %patch33 -p1
 %patch34 -p1
+%patch35 -p1
 
 %build
 ./autogen.sh

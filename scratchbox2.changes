@@ -1,3 +1,6 @@
+* Tue Jun 04 2013 Juha Kallioinen <juha.kallioinen@jollamobile.com> - 2.3.90-12
+- Add cmake to accelerated binaries
+
 * Wed May 22 2013 Juha Kallioinen <juha.kallioinen@jollamobile.com> - 2.3.90-11
 - Split rpm packaging to separate scratchbox2 and libsb2 packages
 

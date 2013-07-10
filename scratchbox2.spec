@@ -2,7 +2,7 @@ Summary: 	Scratchbox2 crosscompiling environment
 License: 	LGPL
 Name: 		scratchbox2
 Version: 2.3.90
-Release: 12
+Release: 13
 Source: 	%{name}-%{version}.tar.gz
 Patch1:	0001-scratchbox2-2.3.27-usrsrc.patch
 Patch2:	0002-scratchbox2-2.3.52-wrapperargs.patch
@@ -39,6 +39,7 @@ Patch32:	0032-Add-conditional-acceleration-rule-to-obs-rpm-build.patch
 Patch33:	0033-Fix-call-to-realpath-with-NULL-second-argument.patch
 Patch34:	0034-Add-qt4-qt5-moc-and-uic-to-accelerated-binaries.patch
 Patch35:	0035-Add-cmake-to-accelerated-binaries.patch
+Patch36:	0036-Add-bash-completion-for-sb2.patch
 Prefix: 	/usr
 Group: 		Development/Tools
 ExclusiveArch:	%{ix86}
@@ -59,7 +60,7 @@ Scratchbox2 preload library.
 %prep
 # Adjusting %%setup since git-pkg unpacks to src/
 # %%setup -q -n src
-%setup   -q   -n src  
+%setup  -q  -n src 
 %patch1 -p1
 %patch2 -p1
 %patch3 -p1
@@ -95,6 +96,7 @@ Scratchbox2 preload library.
 %patch33 -p1
 %patch34 -p1
 %patch35 -p1
+%patch36 -p1
 
 %build
 ./autogen.sh
@@ -102,18 +104,21 @@ Scratchbox2 preload library.
 make
 
 %install
-make install prefix=$RPM_BUILD_ROOT/usr
+make install prefix=%{buildroot}/usr
+
+install -D -m 644 utils/sb2.bash %{buildroot}/etc/bash_completion.d/sb2.bash
 
 %files
 %defattr(-,root,root)
-/usr/bin/sb2*
-/usr/share/scratchbox2/*
+%{_bindir}/sb2*
+%{_datadir}/scratchbox2/*
+%config %{_sysconfdir}/bash_completion.d/sb2.bash
 %doc %attr(0444,root,root) /usr/share/man/man1/*
 %doc %attr(0444,root,root) /usr/share/man/man7/*
 
 %files -n libsb2
 %defattr(-,root,root)
-/usr/lib/libsb2/*
+%{_libdir}/libsb2/*
 %ifarch x86_64
- /usr/lib32/libsb2/*
+/usr/lib32/libsb2/*
 %endif

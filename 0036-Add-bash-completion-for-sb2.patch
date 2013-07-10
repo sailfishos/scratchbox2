@@ -1,0 +1,62 @@
+From d6fb0e504d3230d3e55cd2ab45d51bab94cae198 Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Tue, 9 Jul 2013 14:19:28 +0000
+Subject: [PATCH 36/36] Add bash completion for sb2
+
+Completes target names for -t, mode names for -m and logging levels
+for -L option.
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ utils/sb2.bash |   39 +++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 39 insertions(+)
+ create mode 100644 utils/sb2.bash
+
+diff --git a/utils/sb2.bash b/utils/sb2.bash
+new file mode 100644
+index 0000000..b044c15
+--- /dev/null
++++ b/utils/sb2.bash
+@@ -0,0 +1,39 @@
++# sb2.bash - bash completion for scratchbox2
++#
++# Copyright (C) 2013 Jolla Ltd.
++# Contact: Juha Kallioinen <juha.kallioinen@jollamobile.com>
++#
++# Licensed under GPL version 2
++
++_sb2()
++{
++    local cur prev opts
++    COMPREPLY=()
++    cur="${COMP_WORDS[COMP_CWORD]}"
++    prev="${COMP_WORDS[COMP_CWORD-1]}"
++    opts="-h -m -L -t"
++
++    case "${prev}" in
++	-t)
++	    local targets=$(sb2-config -l)
++	    COMPREPLY=( $(compgen -W "${targets}" -- ${cur}) )
++	    return 0
++	    ;;
++	-L)
++	    local levels="error warning notice net info debug noise noise2 noise3"
++	    COMPREPLY=( $(compgen -W "${levels}" -- ${cur}) )
++	    return 0
++	    ;;
++	-m) 
++	    local modes=$(find /usr/share/scratchbox2/modes -maxdepth 1 -type d -printf '%f\n')
++	    COMPREPLY=( $(compgen -W "${modes}" -- ${cur}) )
++	    return 0
++	    ;;
++	*)
++	    ;;
++    esac
++
++    COMPREPLY=( $(compgen -W "${opts}" -- ${cur}))
++    return 0
++} &&
++complete -F _sb2 sb2
+-- 
+1.7.10.3
+

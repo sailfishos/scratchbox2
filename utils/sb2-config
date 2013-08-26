@@ -9,7 +9,7 @@ if [ $(basename $my_path) != $(basename $0) ]; then
 		my_path=$(which $my_path)
 	fi
 fi
-
+ 
 function log_config_action()
 {
 	mkdir -p $SBOX_CONFIG_DIR
@@ -25,7 +25,8 @@ Usage:
 	sb2-config [OPTION]... [COMMAND [PARAMS]]
 
 Options:
-    -l                list scratchbox2 targets
+    -l                list all scratchbox2 targets
+    -f                list accessible (found) scratchbox2 targets
     -d TARGETNAME     set default scratchbox2 target
     -t TARGETNAME     set scratchbox2 target to configure
     -h                print this help
@@ -54,6 +55,8 @@ function version()
 
 function list_targets()
 {
+	local all_targets=$1
+
 	if [ ! -d $HOME/.scratchbox2 ]; then
 		echo "$HOME/.scratchbox2 missing, create some targets with sb2-init!" >&2
 		exit 1
@@ -68,7 +71,16 @@ function list_targets()
 		echo "No targets found, create some with sb2-init!" >&2
 		exit 1
 	fi
-	for f in $list; do echo $(basename $(dirname $f)); done
+	for f in $list; do
+	    if [ $all_targets -ge 1 ]; then
+		echo $(basename $(dirname $f))
+	    else
+		. $f
+		if [ -d "$SBOX_TARGET_ROOT" ]; then
+		    echo $(basename $(dirname $f))
+		fi
+	    fi
+	done
 }
 
 function show_config_log()
@@ -178,7 +190,7 @@ if [ $# == 0 ]; then
 	usage
 fi
 
-while getopts d:hlL:vt: foo
+while getopts d:fhlL:vt: foo
 do
 	case $foo in
 	(d) DEFAULT_TARGET=$OPTARG
@@ -186,7 +198,8 @@ do
 	    WRITE_CONFIG=1
 	    ;;
 	(h) usage ;;
-	(l) list_targets ;;
+	(l) list_targets 1;;
+	(f) list_targets 0;;
 	(L) show_config_log $OPTARG ;; # Deprecated! use command 'showlog' instead
 	(t) targetname=$OPTARG ;;
 	(v) version ;;

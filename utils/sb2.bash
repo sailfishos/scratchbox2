@@ -15,7 +15,7 @@ _sb2()
 
     case "${prev}" in
 	-t)
-	    local targets=$(sb2-config -l)
+	    local targets=$(sb2-config -f)
 	    COMPREPLY=( $(compgen -W "${targets}" -- ${cur}) )
 	    return 0
 	    ;;

@@ -564,6 +564,8 @@ emulate_mode_rules_usr = {
                  actions=accelerated_program_actions},
                 {path = "/usr/lib/qt5/bin/uic", func_class = FUNC_CLASS_EXEC,
                  actions=accelerated_program_actions},
+                {path = "/usr/lib/qt5/bin/qdoc", func_class = FUNC_CLASS_EXEC,
+                 actions=accelerated_program_actions},
                 {path = "/usr/include/python2.7/pyconfig.h",
                  actions=python_lib_test},
 

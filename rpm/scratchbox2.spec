@@ -1,13 +1,15 @@
 Summary: 	Scratchbox2 crosscompiling environment
 License: 	LGPL
+URL:		https://github.com/mer-packages/scratchbox2
 Name: 		scratchbox2
-Version: 2.3.90
-Release: 14
+Version:	2.3.90
+Release:	14
 Source: 	%{name}-%{version}.tar.gz
 Prefix: 	/usr
 Group: 		Development/Tools
 ExclusiveArch:	%{ix86}
 BuildRequires:	make
+BuildRequires:	autoconf
 Requires:	fakeroot
 Requires:	libsb2 = %{version}-%{release}
 

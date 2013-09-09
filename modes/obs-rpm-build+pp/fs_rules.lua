@@ -715,6 +715,16 @@ local tools_rules = {
 		{prefix = "/", rules = emulate_mode_rules},
 }
 
+-- allow user to extend these rules with a ~/.sbrules file
+import_from_fs_rule_library("user_rules")
+
+-- Define /parentroot as being outside like /home, this is a Mer SDK
+-- path convention
+use_outside_path("/parentroot")
+
+-- Now run ~/.sbrules
+run_user_sbrules()
+
 if (tools_root ~= nil) and (tools_root ~= "/") then
         -- Tools root is set.
 	fs_mapping_rules = tools_rules

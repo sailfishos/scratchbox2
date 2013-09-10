@@ -46,29 +46,25 @@ def sb2-prepare
 end
 
 document sb2-prepare
-Prepares target process to being debugged
+Prepares the target process for being debugged.
 
-Run this command before starting the target program.
+If you are attaching to an already running process or examining a core
+dump, this step is not necessary.
+
+Run this command before starting the target program. It will set a
+breakpoint which is used to stop the target before its main() gets
+called. After the breakpoint is hit, you are able to set further
+breakpoints and do normal debugging actions.
+
 Example:
 (sb2-emulate-gdb) sb2-prepare
 (sb2-emulate-gdb) run
 ...
-and now gdb stops and you are able to set further breakpoints etc.
+and now gdb will stop and you are able to set further breakpoints etc.
 end
 
 set prompt (sb2-$sbox_mapmode-gdb) 
-echo \n
-echo ===========================================================\n
-echo Welcome to scratchbox2 enabled gdb!\n\n
-echo Before starting target program you should run command\n
-echo 'sb2-prepare' that sets breakpoint which is used\n
-echo to stop target before its main() gets called.  After\n
-echo the breakpoint is hit, you are able to set further
-echo breakpoints and do normal debugging actions.\n
-echo \n
-echo If you are attaching to already running process or\n
-echo examining a core dump, this step is not necessary.\n
-echo ===========================================================\n\n
+echo \ngdb: read 'help sb2-prepare' before running programs.\n
 EOF
 
 #

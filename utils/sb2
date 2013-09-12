@@ -219,6 +219,11 @@ function load_configuration()
 
 	saved_LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 	. ~/.scratchbox2/$SBOX_TARGET/sb2.config
+
+	if [ ! -d "$SBOX_TARGET_ROOT" ]; then
+	    exit_error "Cannot access target root '$SBOX_TARGET_ROOT', aborting."
+	fi
+
 	LD_LIBRARY_PATH=$saved_LD_LIBRARY_PATH
 
 	# resolve possible symlinks in SBOX_TARGET_ROOT and SBOX_TOOLS_ROOT

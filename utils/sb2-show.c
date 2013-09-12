@@ -184,7 +184,7 @@ static void usage_exit(const char *progname, const char *errmsg, int exitstatus,
 	}
 
 	fprintf(stderr, "\n"
-	    "'%s' must be executed inside sb2 sandbox (see the 'sb2'"
+	    "'%s' must be executed inside sb2 sandbox (see the 'sb2' "
 	    "command)\n", progname);
 
 	exit(exitstatus);

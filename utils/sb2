@@ -241,6 +241,13 @@ function load_configuration()
 		SBOX_TOOLS_ROOT=`readlink -f $SBOX_TOOLS_ROOT`
 	fi
 
+	# now that we know SBOX_TOOLS_ROOT, we can create the required
+	# link for the /var/run symlink. it might already be there if
+	# this is a restored session
+	if [ ! -L "$SBOX_SESSION_DIR/run" ]; then
+	    ln -s $SBOX_TARGET_ROOT/run $SBOX_SESSION_DIR/run
+	fi
+
 	# older sb2.config files had values for the Debian
 	# variables; unset them (this is necessary only if
 	# the target still has an old-format sb2.config)
@@ -1405,8 +1412,12 @@ function initialize_new_sb2_session()
 	# conflicts with SB2's symlink resolution algorithm,
 	# because e.g. "emulate" mode has a separate rule for
 	# /var/run. But yet another symlink in the session
-	# directory helps:
-	ln -s $SBOX_TARGET_ROOT/run $SBOX_SESSION_DIR/run
+	# directory helps...
+	#
+	# Alas! at this time we don't yet know SBOX_TARGET_ROOT, so
+	# this symlink can earliest be created at load_configuration()
+	#
+	# ln -s $SBOX_TARGET_ROOT/run $SBOX_SESSION_DIR/run
 
 	# ruletree ipc client sockets.
 	mkdir $SBOX_SESSION_DIR/sock

@@ -1,11 +1,11 @@
-From 350acccf2aa68c4c534162ce1a237df7741ce1cc Mon Sep 17 00:00:00 2001
+From feb9fbb4d0defa2f3d635b8d5f170fca79fbd6bd Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Thu, 9 May 2013 14:03:21 +0000
 Subject: [PATCH] Improve ruletree printout
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- utils/sb2-ruletree.c |    1 +
+ utils/sb2-ruletree.c | 1 +
  1 file changed, 1 insertion(+)
 
 diff --git a/utils/sb2-ruletree.c b/utils/sb2-ruletree.c
@@ -21,5 +21,5 @@ index 68d2d8a..88d9cd6 100644
  	default:
  		printf("ERROR: Unknown action type %d\n",
 -- 
-1.7.10.3
+1.8.3-rc3
 

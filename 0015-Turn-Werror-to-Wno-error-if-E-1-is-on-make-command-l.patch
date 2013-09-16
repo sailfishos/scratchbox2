@@ -1,4 +1,4 @@
-From 90b2fe1dc71d3a24b49888f42d9a9505bce45f14 Mon Sep 17 00:00:00 2001
+From 068f247ea8b0033a3853a6e70cee61ceb35a71bd Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Wed, 8 May 2013 12:14:10 +0000
 Subject: [PATCH] Turn -Werror to -Wno-error if E=1 is on make command line
@@ -8,16 +8,16 @@ the time.
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- Makefile             |    5 +++++
- execs/Makefile       |    2 +-
- luaif/Makefile       |    2 +-
- network/Makefile     |    2 +-
- pathmapping/Makefile |    2 +-
- rule_tree/Makefile   |    2 +-
- sb2d/Makefile        |    2 +-
- sblib/Makefile       |    2 +-
- utils/Makefile       |   10 +++++-----
- wrappers/Makefile    |    2 +-
+ Makefile             |  5 +++++
+ execs/Makefile       |  2 +-
+ luaif/Makefile       |  2 +-
+ network/Makefile     |  2 +-
+ pathmapping/Makefile |  2 +-
+ rule_tree/Makefile   |  2 +-
+ sb2d/Makefile        |  2 +-
+ sblib/Makefile       |  2 +-
+ utils/Makefile       | 10 +++++-----
+ wrappers/Makefile    |  2 +-
  10 files changed, 18 insertions(+), 13 deletions(-)
 
 diff --git a/Makefile b/Makefile
@@ -190,5 +190,5 @@ index 5daaf9d..c1e983a 100644
  		-I$(SRCDIR)/include
  
 -- 
-1.7.10.3
+1.8.3-rc3
 

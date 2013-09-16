@@ -1,0 +1,40 @@
+From 805d62cbf45ab921d81fddedb05ada5d7adced3b Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Tue, 3 Sep 2013 17:26:08 +0300
+Subject: [PATCH] Add qdoc to accelerated binaries
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ modes/obs-rpm-build+pp/fs_rules.lua | 2 ++
+ modes/obs-rpm-build/fs_rules.lua    | 2 ++
+ 2 files changed, 4 insertions(+)
+
+diff --git a/modes/obs-rpm-build+pp/fs_rules.lua b/modes/obs-rpm-build+pp/fs_rules.lua
+index 53d0f0b..07b96b6 100644
+--- a/modes/obs-rpm-build+pp/fs_rules.lua
++++ b/modes/obs-rpm-build+pp/fs_rules.lua
+@@ -564,6 +564,8 @@ emulate_mode_rules_usr = {
+                  actions=accelerated_program_actions},
+                 {path = "/usr/lib/qt5/bin/uic", func_class = FUNC_CLASS_EXEC,
+                  actions=accelerated_program_actions},
++                {path = "/usr/lib/qt5/bin/qdoc", func_class = FUNC_CLASS_EXEC,
++                 actions=accelerated_program_actions},
+                 {path = "/usr/include/python2.7/pyconfig.h",
+                  actions=python_lib_test},
+ 
+diff --git a/modes/obs-rpm-build/fs_rules.lua b/modes/obs-rpm-build/fs_rules.lua
+index 9a901ed..919b9b8 100644
+--- a/modes/obs-rpm-build/fs_rules.lua
++++ b/modes/obs-rpm-build/fs_rules.lua
+@@ -434,6 +434,8 @@ emulate_mode_rules_usr = {
+                  actions=accelerated_program_actions},
+                 {path = "/usr/lib/qt5/bin/uic", func_class = FUNC_CLASS_EXEC,
+                  actions=accelerated_program_actions},
++                {path = "/usr/lib/qt5/bin/qdoc", func_class = FUNC_CLASS_EXEC,
++                 actions=accelerated_program_actions},
+ 
+ 		-- gdb wants to have access to our dynamic linker also,
+ 		-- /usr/lib/libsb2/wrappers/*, etc.
+-- 
+1.8.3-rc3
+

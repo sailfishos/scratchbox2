@@ -1,11 +1,11 @@
-From e5132cebd15f25e7978301298909dcc524f52aa9 Mon Sep 17 00:00:00 2001
+From a716d4c43e8e414cf6cece008b43c2afe0d864bd Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Wed, 8 May 2013 14:47:07 +0000
 Subject: [PATCH] Add IF_EXISTS_IN rule enumeration
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- include/rule_tree.h |    1 +
+ include/rule_tree.h | 1 +
  1 file changed, 1 insertion(+)
 
 diff --git a/include/rule_tree.h b/include/rule_tree.h
@@ -21,5 +21,5 @@ index 14ed836..410340c 100644
  /* auxiliar conditions */ 
  #define SB2_RULETREE_FSRULE_CONDITION_IF_ACTIVE_EXEC_POLICY_IS 301
 -- 
-1.7.10.3
+1.8.3-rc3
 

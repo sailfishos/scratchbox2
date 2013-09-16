@@ -1,11 +1,11 @@
-From 02298371d86e4bbb355562f984e3675b93055b49 Mon Sep 17 00:00:00 2001
+From fbab20e5c019d76b4a3d1365996a0f4c1ade25ae Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Thu, 9 May 2013 14:03:56 +0000
 Subject: [PATCH] Invert path found logic
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- pathmapping/paths_ruletree_mapping.c |    8 +++-----
+ pathmapping/paths_ruletree_mapping.c | 8 +++-----
  1 file changed, 3 insertions(+), 5 deletions(-)
 
 diff --git a/pathmapping/paths_ruletree_mapping.c b/pathmapping/paths_ruletree_mapping.c
@@ -46,5 +46,5 @@ index e833cab..5b0ef1a 100644
                                      continue;
                                    }
 -- 
-1.7.10.3
+1.8.3-rc3
 

@@ -1,0 +1,203 @@
+From c6df6bd15d201f170bb031756b45702b763ca5cb Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Fri, 13 Sep 2013 19:59:06 +0000
+Subject: [PATCH] [modes] Add binaries from Mer sb2 modes to accelerated
+ binaries
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ modes/obs-rpm-build+pp/fs_rules.lua | 46 +++++++++++++++++++++++++++++++++----
+ modes/obs-rpm-build/fs_rules.lua    | 45 ++++++++++++++++++++++++++++++++----
+ modes/obs-rpm-install/fs_rules.lua  | 42 +++++++++++++++++++++++++++++++++
+ 3 files changed, 124 insertions(+), 9 deletions(-)
+
+diff --git a/modes/obs-rpm-build+pp/fs_rules.lua b/modes/obs-rpm-build+pp/fs_rules.lua
+index 1ad644a..8f27407 100644
+--- a/modes/obs-rpm-build+pp/fs_rules.lua
++++ b/modes/obs-rpm-build+pp/fs_rules.lua
+@@ -484,7 +484,39 @@ emulate_mode_rules_usr_bin = {
+ 		{prefix = "/usr/bin/rpm",
+ 		 func_class = FUNC_CLASS_EXEC,
+ 		 actions = accelerated_program_actions},
+-
++		{path = "/usr/bin/zypper",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/deltainfoxml2solv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/dumpsolv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/installcheck",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/mergesolv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/repomdxml2solv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/rpmdb2solv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/rpmmd2solv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/rpms2solv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/testsolv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/updateinfoxml2solv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
+ 		-- end of rpm rules
+ 
+ 		-- some "famous" scripts:
+@@ -548,10 +580,14 @@ usr_share_rules = {
+ 
+ emulate_mode_rules_usr = {
+ 		{name = "/usr/bin branch", dir = "/usr/bin", rules = emulate_mode_rules_usr_bin},
+-                {path = "/usr/lib/rpm/elfdeps", actions=accelerated_program_actions},
+-                {path = "/usr/lib/rpm/debugedit", actions=accelerated_program_actions},
+-                {path = "/usr/lib/rpm/javadeps", actions=accelerated_program_actions},
+-                {path = "/usr/lib/rpm/rpmdeps", actions=accelerated_program_actions},
++                {path = "/usr/lib/rpm/elfdeps", func_class = FUNC_CLASS_EXEC,
++		 actions=accelerated_program_actions},
++                {path = "/usr/lib/rpm/debugedit", func_class = FUNC_CLASS_EXEC,
++		 actions=accelerated_program_actions},
++                {path = "/usr/lib/rpm/javadeps", func_class = FUNC_CLASS_EXEC,
++		 actions=accelerated_program_actions},
++                {path = "/usr/lib/rpm/rpmdeps", func_class = FUNC_CLASS_EXEC,
++		 actions=accelerated_program_actions},
+                 {path = "/usr/lib/qt4/bin/qmake", func_class = FUNC_CLASS_EXEC,
+                  actions=accelerated_program_actions},
+                 {path = "/usr/lib/qt4/bin/moc", func_class = FUNC_CLASS_EXEC,
+diff --git a/modes/obs-rpm-build/fs_rules.lua b/modes/obs-rpm-build/fs_rules.lua
+index 5dd2345..fc371f1 100644
+--- a/modes/obs-rpm-build/fs_rules.lua
++++ b/modes/obs-rpm-build/fs_rules.lua
+@@ -410,6 +410,39 @@ emulate_mode_rules_usr_bin = {
+ 		{prefix = "/usr/bin/rpm",
+ 		 func_class = FUNC_CLASS_EXEC,
+ 		 actions = accelerated_program_actions},
++		{path = "/usr/bin/zypper",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/deltainfoxml2solv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/dumpsolv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/installcheck",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/mergesolv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/repomdxml2solv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/rpmdb2solv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/rpmmd2solv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/rpms2solv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/testsolv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/updateinfoxml2solv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
+ 
+ 		-- end of rpm rules
+ 		{name = "/usr/bin default rule", dir = "/usr/bin", map_to = target_root,
+@@ -418,10 +451,14 @@ emulate_mode_rules_usr_bin = {
+ 
+ emulate_mode_rules_usr = {
+ 		{name = "/usr/bin branch", dir = "/usr/bin", rules = emulate_mode_rules_usr_bin},
+-                {path = "/usr/lib/rpm/elfdeps", actions=accelerated_program_actions},
+-                {path = "/usr/lib/rpm/debugedit", actions=accelerated_program_actions},
+-                {path = "/usr/lib/rpm/javadeps", actions=accelerated_program_actions},
+-                {path = "/usr/lib/rpm/rpmdeps", actions=accelerated_program_actions},
++                {path = "/usr/lib/rpm/elfdeps", func_class = FUNC_CLASS_EXEC,
++		 actions=accelerated_program_actions},
++                {path = "/usr/lib/rpm/debugedit", func_class = FUNC_CLASS_EXEC,
++		 actions=accelerated_program_actions},
++                {path = "/usr/lib/rpm/javadeps", func_class = FUNC_CLASS_EXEC,
++		 actions=accelerated_program_actions},
++                {path = "/usr/lib/rpm/rpmdeps", func_class = FUNC_CLASS_EXEC,
++		 actions=accelerated_program_actions},
+                 {path = "/usr/lib/qt4/bin/qmake", func_class = FUNC_CLASS_EXEC,
+                  actions=accelerated_program_actions},
+                 {path = "/usr/lib/qt4/bin/moc", func_class = FUNC_CLASS_EXEC,
+diff --git a/modes/obs-rpm-install/fs_rules.lua b/modes/obs-rpm-install/fs_rules.lua
+index e143038..1e0d0f0 100644
+--- a/modes/obs-rpm-install/fs_rules.lua
++++ b/modes/obs-rpm-install/fs_rules.lua
+@@ -200,6 +200,39 @@ emulate_mode_rules_usr_bin = {
+ 		{prefix = "/usr/bin/rpm",
+ 		 func_class = FUNC_CLASS_EXEC,
+ 		 actions = accelerated_program_actions},
++		{path = "/usr/bin/zypper",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/deltainfoxml2solv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/dumpsolv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/installcheck",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/mergesolv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/repomdxml2solv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/rpmdb2solv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/rpmmd2solv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/rpms2solv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/testsolv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
++		{path = "/usr/bin/updateinfoxml2solv",
++		 func_class = FUNC_CLASS_EXEC,
++		 actions = accelerated_program_actions},
+ 
+ 		-- end of rpm rules
+ 		{name = "/usr/bin default rule", dir = "/usr/bin", map_to = target_root,
+@@ -214,6 +247,15 @@ emulate_mode_rules_usr = {
+ 		{dir = "/usr/lib/libsb2", use_orig_path = true,
+ 		 protection = readonly_fs_always},
+ 
++                {path = "/usr/lib/rpm/elfdeps", func_class = FUNC_CLASS_EXEC,
++		 actions=accelerated_program_actions},
++                {path = "/usr/lib/rpm/debugedit", func_class = FUNC_CLASS_EXEC,
++		 actions=accelerated_program_actions},
++                {path = "/usr/lib/rpm/javadeps", func_class = FUNC_CLASS_EXEC,
++		 actions=accelerated_program_actions},
++                {path = "/usr/lib/rpm/rpmdeps", func_class = FUNC_CLASS_EXEC,
++		 actions=accelerated_program_actions},
++
+ 		{dir = "/usr", map_to = target_root,
+ 		protection = readonly_fs_if_not_root}
+ }
+-- 
+1.8.3-rc3
+

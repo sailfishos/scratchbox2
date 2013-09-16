@@ -1,11 +1,11 @@
-From b7b9be6b471580ea86b6e5c9e4ee892217396d00 Mon Sep 17 00:00:00 2001
+From 6b4ae73f84c584baa210000f4bdd4e2b92b0b7b9 Mon Sep 17 00:00:00 2001
 From: David Greaves <david@dgreaves.com>
 Date: Thu, 25 Apr 2013 10:38:08 +0000
 Subject: [PATCH] accel-localedef
 
 ---
- modes/obs-rpm-build+pp/fs_rules.lua |    4 ++++
- modes/obs-rpm-build/fs_rules.lua    |    4 ++++
+ modes/obs-rpm-build+pp/fs_rules.lua | 4 ++++
+ modes/obs-rpm-build/fs_rules.lua    | 4 ++++
  2 files changed, 8 insertions(+)
 
 diff --git a/modes/obs-rpm-build+pp/fs_rules.lua b/modes/obs-rpm-build+pp/fs_rules.lua
@@ -39,5 +39,5 @@ index 4b1e3bc..3d3374b 100644
  		{path = "/usr/bin/sb2-show", use_orig_path = true,
  		 protection = readonly_fs_always},
 -- 
-1.7.10.3
+1.8.3-rc3
 

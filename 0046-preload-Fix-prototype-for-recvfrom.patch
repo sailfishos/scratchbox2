@@ -1,0 +1,48 @@
+From 44d41074981d417be03600227b249d06710ec2f7 Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Sat, 21 Sep 2013 02:11:26 +0300
+Subject: [PATCH] [preload] Fix prototype for recvfrom
+
+gcc 4.8 started failing on recvfrom prototype definition.
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ preload/interface.master | 4 ++--
+ utils/sb2dctl.c          | 2 +-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/preload/interface.master b/preload/interface.master
+index 314a8cc..29d8f6b 100644
+--- a/preload/interface.master
++++ b/preload/interface.master
+@@ -685,12 +685,12 @@ GATE: ssize_t sendto(int s, const void *buf, size_t len, int flags, \
+ 	create_nomap_nolog_version
+ 
+ GATE: ssize_t recvfrom(int s, void *buf, size_t len, int flags, \
+-	struct sockaddr *from, socklen_t *fromlen) : \
++	__SOCKADDR_ARG from, socklen_t *fromlen) : \
+ 	create_nomap_nolog_version
+ 
+ GATE: ssize_t __recvfrom_chk(int s, void *__restrict buf, size_t __n, \
+ 	size_t __buflen, int flags, \
+-	struct sockaddr *from, socklen_t *__restrict fromlen)
++	__SOCKADDR_ARG from, socklen_t *__restrict fromlen)
+ GATE: int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
+ GATE: int accept4(int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags)
+ GATE: int getpeername(int s, struct sockaddr *name, socklen_t *namelen)
+diff --git a/utils/sb2dctl.c b/utils/sb2dctl.c
+index 4965c92..96cee44 100644
+--- a/utils/sb2dctl.c
++++ b/utils/sb2dctl.c
+@@ -161,7 +161,7 @@ ssize_t sendto_nomap_nolog(int s, const void *buf, size_t len, int flags, const
+ 	return(sendto(s, buf, len, flags, to, tolen));
+ }
+ 
+-ssize_t recvfrom_nomap_nolog(int s, void *buf, size_t len, int flags, struct sockaddr *from, socklen_t *fromlen)
++ssize_t recvfrom_nomap_nolog(int s, void *buf, size_t len, int flags, __SOCKADDR_ARG from, socklen_t *fromlen)
+ {
+ 	return(recvfrom(s, buf, len, flags, from, fromlen));
+ }
+-- 
+1.8.3-rc3
+

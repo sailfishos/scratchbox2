@@ -1,4 +1,4 @@
-From c6da54b5ebe364c0bf1c646384811ba822d8ec25 Mon Sep 17 00:00:00 2001
+From 791d69850b04a2476d4cc5ac0e063541f156a28d Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Sat, 11 May 2013 18:58:21 +0000
 Subject: [PATCH] Add conditional acceleration rule to obs-rpm-build
@@ -8,8 +8,8 @@ conditionally_accelerated_program_actions
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- modes/obs-rpm-build+pp/fs_rules.lua |    2 +-
- modes/obs-rpm-build/fs_rules.lua    |   11 +++++++++++
+ modes/obs-rpm-build+pp/fs_rules.lua |  2 +-
+ modes/obs-rpm-build/fs_rules.lua    | 11 +++++++++++
  2 files changed, 12 insertions(+), 1 deletion(-)
 
 diff --git a/modes/obs-rpm-build+pp/fs_rules.lua b/modes/obs-rpm-build+pp/fs_rules.lua
@@ -55,5 +55,5 @@ index 3485523..fb17dd2 100644
  		{path = "/usr/bin/sb2-show", use_orig_path = true,
  		 protection = readonly_fs_always},
 -- 
-1.7.10.3
+1.8.3-rc3
 

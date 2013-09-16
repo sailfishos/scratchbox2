@@ -1,14 +1,14 @@
-From 8e0e734fe6c244f5d0f12eff43e7dbf7e0990bed Mon Sep 17 00:00:00 2001
+From 706ad980e6713c591fb0da39c7b898aedc23d2c5 Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Thu, 9 May 2013 11:57:25 +0000
 Subject: [PATCH] Add handling for IF_EXISTS_IN conditional rule
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- lua_scripts/add_rules_to_rule_tree.lua |    7 ++++++
- pathmapping/paths_ruletree_maint.c     |    1 +
- pathmapping/paths_ruletree_mapping.c   |   41 ++++++++++++++++++++++++++++++++
- utils/sb2-ruletree.c                   |    4 ++++
+ lua_scripts/add_rules_to_rule_tree.lua |  7 ++++++
+ pathmapping/paths_ruletree_maint.c     |  1 +
+ pathmapping/paths_ruletree_mapping.c   | 41 ++++++++++++++++++++++++++++++++++
+ utils/sb2-ruletree.c                   |  4 ++++
  4 files changed, 53 insertions(+)
 
 diff --git a/lua_scripts/add_rules_to_rule_tree.lua b/lua_scripts/add_rules_to_rule_tree.lua
@@ -130,5 +130,5 @@ index a75dc5d..ae10ebe 100644
  		printf("ERROR: Unknown action type %d\n",
  			rule->rtree_fsr_action_type);
 -- 
-1.7.10.3
+1.8.3-rc3
 

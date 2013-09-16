@@ -1,13 +1,13 @@
-From 0f185fc7fa0ac90fb6d1dd66b5fc6796f77ee890 Mon Sep 17 00:00:00 2001
+From 42c0c5ab551fda381e59b8eb8d7eaf4ec79b93c6 Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Thu, 9 May 2013 13:27:31 +0000
 Subject: [PATCH] Fix IF_EXISTS_IN condition handling
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- include/rule_tree.h                    |    1 +
- lua_scripts/add_rules_to_rule_tree.lua |    4 +++-
- pathmapping/paths_ruletree_mapping.c   |   23 +++++++++++------------
+ include/rule_tree.h                    |  1 +
+ lua_scripts/add_rules_to_rule_tree.lua |  4 +++-
+ pathmapping/paths_ruletree_mapping.c   | 23 +++++++++++------------
  3 files changed, 15 insertions(+), 13 deletions(-)
 
 diff --git a/include/rule_tree.h b/include/rule_tree.h
@@ -93,5 +93,5 @@ index 1f2d170..e833cab 100644
  			case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH:
  			case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH_UNLESS_CHROOT:
 -- 
-1.7.10.3
+1.8.3-rc3
 

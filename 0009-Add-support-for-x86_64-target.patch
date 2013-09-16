@@ -1,4 +1,4 @@
-From 0e11d6143774a2d670383482925e58eeee8858da Mon Sep 17 00:00:00 2001
+From 4fa6e196bc64486c459840e5a46e23f000cedf08 Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Thu, 2 May 2013 08:18:17 +0000
 Subject: [PATCH] Add support for x86_64 target.
@@ -10,8 +10,8 @@ Original patch by: Oleg Girko <ol+mer@infoserver.ru>
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- execs/sb_exec.c |    1 +
- utils/sb2-init  |    1 +
+ execs/sb_exec.c | 1 +
+ utils/sb2-init  | 1 +
  2 files changed, 2 insertions(+)
 
 diff --git a/execs/sb_exec.c b/execs/sb_exec.c
@@ -39,5 +39,5 @@ index fd66c20..f95b90f 100755
  	*)
  		echo "Unsupported target architecture: '$ARCH'"
 -- 
-1.7.10.3
+1.8.3-rc3
 

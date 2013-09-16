@@ -1,0 +1,114 @@
+From a49c5b5780ace8e3076340d7895f617247b6b1dd Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Mon, 9 Sep 2013 15:52:53 +0000
+Subject: [PATCH] [modes] Add user extendable rules to obs-rpm-* modes
+
+This functionality is inherited from Mer project sdk-build modes.
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ modes/obs-rpm-build+pp/fs_rules.lua | 10 ++++++++++
+ modes/obs-rpm-build/fs_rules.lua    | 10 ++++++++++
+ modes/obs-rpm-install/fs_rules.lua  | 10 ++++++++++
+ rule_lib/fs_rules/user_rules.lua    | 26 ++++++++++++++++++++++++++
+ 4 files changed, 56 insertions(+)
+ create mode 100644 rule_lib/fs_rules/user_rules.lua
+
+diff --git a/modes/obs-rpm-build+pp/fs_rules.lua b/modes/obs-rpm-build+pp/fs_rules.lua
+index 07b96b6..1ad644a 100644
+--- a/modes/obs-rpm-build+pp/fs_rules.lua
++++ b/modes/obs-rpm-build+pp/fs_rules.lua
+@@ -715,6 +715,16 @@ local tools_rules = {
+ 		{prefix = "/", rules = emulate_mode_rules},
+ }
+ 
++-- allow user to extend these rules with a ~/.sbrules file
++import_from_fs_rule_library("user_rules")
++
++-- Define /parentroot as being outside like /home, this is a Mer SDK
++-- path convention
++use_outside_path("/parentroot")
++
++-- Now run ~/.sbrules
++run_user_sbrules()
++
+ if (tools_root ~= nil) and (tools_root ~= "/") then
+         -- Tools root is set.
+ 	fs_mapping_rules = tools_rules
+diff --git a/modes/obs-rpm-build/fs_rules.lua b/modes/obs-rpm-build/fs_rules.lua
+index 919b9b8..5dd2345 100644
+--- a/modes/obs-rpm-build/fs_rules.lua
++++ b/modes/obs-rpm-build/fs_rules.lua
+@@ -573,6 +573,16 @@ local tools_rules = {
+ 		{prefix = "/", rules = emulate_mode_rules},
+ }
+ 
++-- allow user to extend these rules with a ~/.sbrules file
++import_from_fs_rule_library("user_rules")
++
++-- Define /parentroot as being outside like /home, this is a Mer SDK
++-- path convention
++use_outside_path("/parentroot")
++
++-- Now run ~/.sbrules
++run_user_sbrules()
++
+ if (tools_root ~= nil) and (tools_root ~= "/") then
+         -- Tools root is set.
+ 	fs_mapping_rules = tools_rules
+diff --git a/modes/obs-rpm-install/fs_rules.lua b/modes/obs-rpm-install/fs_rules.lua
+index b30f61a..e143038 100644
+--- a/modes/obs-rpm-install/fs_rules.lua
++++ b/modes/obs-rpm-install/fs_rules.lua
+@@ -344,6 +344,16 @@ local tools_rules = {
+ 		{prefix = "/", rules = emulate_mode_rules},
+ }
+ 
++-- allow user to extend these rules with a ~/.sbrules file
++import_from_fs_rule_library("user_rules")
++
++-- Define /parentroot as being outside like /home, this is a Mer SDK
++-- path convention
++use_outside_path("/parentroot")
++
++-- Now run ~/.sbrules
++run_user_sbrules()
++
+ if (tools_root ~= nil) and (tools_root ~= "/") then
+         -- Tools root is set.
+ 	fs_mapping_rules = tools_rules
+diff --git a/rule_lib/fs_rules/user_rules.lua b/rule_lib/fs_rules/user_rules.lua
+new file mode 100644
+index 0000000..1ba1162
+--- /dev/null
++++ b/rule_lib/fs_rules/user_rules.lua
+@@ -0,0 +1,26 @@
++-- Rule file interface version, mandatory.
++--
++fs_rule_lib_interface_version = "105"
++----------------------------------
++
++-- http://stackoverflow.com/a/4991602/337649
++function user_file_readable(name)
++   local f=io.open(name,"r")
++   if f~=nil then io.close(f) return true else return false end
++end
++
++function use_outside_path(path)
++  table.insert(  emulate_mode_rules, 1,
++    {dir = path, rules = { {dir = path, use_orig_path = true}, }, })
++end
++
++-- Allow user-defined rules to "overlay" what we've defined here.
++-- What is in ~/.sbrules gets executed as if its contents were in this file, on this line.
++function run_user_sbrules()
++   -- We could call .sbrules via pcall to trap errors but that just hides them from the user
++   -- pcall(dofile, home .. '/.sbrules')
++   local sbrules = sbox_user_home_dir .. '/.sbrules'
++   if user_file_readable(sbrules) then
++      do_file(sbrules)
++   end
++end
+-- 
+1.8.3-rc3
+

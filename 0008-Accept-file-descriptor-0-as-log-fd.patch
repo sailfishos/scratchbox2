@@ -1,4 +1,4 @@
-From fe896a6d65ca0e6337a8a55963a6195ebb698e95 Mon Sep 17 00:00:00 2001
+From e9ba262b87e109fe74380e1e49d5a0d4366a06b0 Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Wed, 17 Apr 2013 12:18:26 +0300
 Subject: [PATCH] Accept file descriptor 0 as log fd
@@ -8,7 +8,7 @@ closed if open() returned fd 0.
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- sblib/sb_log.c |    2 +-
+ sblib/sb_log.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/sblib/sb_log.c b/sblib/sb_log.c
@@ -25,5 +25,5 @@ index 851265c..3da6d3c 100644
  			r = write(logfd, msg, msglen);
  			(void)r;
 -- 
-1.7.10.3
+1.8.3-rc3
 

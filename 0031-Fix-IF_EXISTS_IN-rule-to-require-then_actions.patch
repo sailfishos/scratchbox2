@@ -1,4 +1,4 @@
-From 957653d7d480435a6c8b9e9b81d712623d7d7a0e Mon Sep 17 00:00:00 2001
+From bada1ec80721e2797bd610e6d951349e77e22775 Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Sat, 11 May 2013 18:31:01 +0000
 Subject: [PATCH] Fix IF_EXISTS_IN rule to require then_actions
@@ -8,10 +8,10 @@ from 4de90a4.
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- lua_scripts/add_rules_to_rule_tree.lua |    2 ++
- lua_scripts/create_reverse_rules.lua   |    8 ++++++++
- pathmapping/paths_ruletree_mapping.c   |   12 ++++++------
- utils/sb2-ruletree.c                   |    2 +-
+ lua_scripts/add_rules_to_rule_tree.lua |  2 ++
+ lua_scripts/create_reverse_rules.lua   |  8 ++++++++
+ pathmapping/paths_ruletree_mapping.c   | 12 ++++++------
+ utils/sb2-ruletree.c                   |  2 +-
  4 files changed, 17 insertions(+), 7 deletions(-)
 
 diff --git a/lua_scripts/add_rules_to_rule_tree.lua b/lua_scripts/add_rules_to_rule_tree.lua
@@ -102,5 +102,5 @@ index 2e8a561..b2322db 100644
  	default:
  		printf("ERROR: Unknown action type %d\n",
 -- 
-1.7.10.3
+1.8.3-rc3
 

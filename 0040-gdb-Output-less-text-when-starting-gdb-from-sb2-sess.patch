@@ -1,0 +1,58 @@
+From 4baa4aad9d8bcb6969d3aa18f646bcf176188275 Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Tue, 10 Sep 2013 13:24:19 +0000
+Subject: [PATCH] [gdb] Output less text when starting gdb from sb2 session
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ wrappers/gdb | 26 +++++++++++---------------
+ 1 file changed, 11 insertions(+), 15 deletions(-)
+
+diff --git a/wrappers/gdb b/wrappers/gdb
+index 0fc1db5..07880c9 100755
+--- a/wrappers/gdb
++++ b/wrappers/gdb
+@@ -46,29 +46,25 @@ def sb2-prepare
+ end
+ 
+ document sb2-prepare
+-Prepares target process to being debugged
++Prepares the target process for being debugged.
++
++If you are attaching to an already running process or examining a core
++dump, this step is not necessary.
++
++Run this command before starting the target program. It will set a
++breakpoint which is used to stop the target before its main() gets
++called. After the breakpoint is hit, you are able to set further
++breakpoints and do normal debugging actions.
+ 
+-Run this command before starting the target program.
+ Example:
+ (sb2-emulate-gdb) sb2-prepare
+ (sb2-emulate-gdb) run
+ ...
+-and now gdb stops and you are able to set further breakpoints etc.
++and now gdb will stop and you are able to set further breakpoints etc.
+ end
+ 
+ set prompt (sb2-$sbox_mapmode-gdb) 
+-echo \n
+-echo ===========================================================\n
+-echo Welcome to scratchbox2 enabled gdb!\n\n
+-echo Before starting target program you should run command\n
+-echo 'sb2-prepare' that sets breakpoint which is used\n
+-echo to stop target before its main() gets called.  After\n
+-echo the breakpoint is hit, you are able to set further
+-echo breakpoints and do normal debugging actions.\n
+-echo \n
+-echo If you are attaching to already running process or\n
+-echo examining a core dump, this step is not necessary.\n
+-echo ===========================================================\n\n
++echo \ngdb: read 'help sb2-prepare' before running programs.\n
+ EOF
+ 
+ #
+-- 
+1.8.3-rc3
+

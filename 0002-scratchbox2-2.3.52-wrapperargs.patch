@@ -1,10 +1,10 @@
-From d8365c9e0be41a423fc1688b14fe2635dd1384f0 Mon Sep 17 00:00:00 2001
+From fe9dfbd7b6502ee99d713c3343a6ce204dfb5d12 Mon Sep 17 00:00:00 2001
 From: David Greaves <david@dgreaves.com>
 Date: Thu, 25 Apr 2013 10:38:08 +0000
 Subject: [PATCH] scratchbox2-2.3.52-wrapperargs
 
 ---
- wrappers/gdb |    3 +--
+ wrappers/gdb | 3 +--
  1 file changed, 1 insertion(+), 2 deletions(-)
 
 diff --git a/wrappers/gdb b/wrappers/gdb
@@ -26,5 +26,5 @@ index 44cae21..0fc1db5 100755
 -exec $sbox_target_root/usr/bin/gdb -command $SBOX_SESSION_DIR/gdbinit $args
 +exec $sbox_target_root/usr/bin/gdb -command $SBOX_SESSION_DIR/gdbinit "$@"
 -- 
-1.7.10.3
+1.8.3-rc3
 

@@ -1,4 +1,4 @@
-From cad92d53c9c2e42553b28def1bfb111d3467c0e6 Mon Sep 17 00:00:00 2001
+From 6ac346c41b3b56e7f31ed208f42dc893b87e4501 Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Thu, 2 May 2013 08:21:43 +0000
 Subject: [PATCH] Add patch to not assume that readlink is located int /bin
@@ -13,7 +13,7 @@ Original patch by: Oleg Girko <ol+mer@infoserver.ru>
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- utils/sb2 |    2 +-
+ utils/sb2 | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/utils/sb2 b/utils/sb2
@@ -30,5 +30,5 @@ index ec99bad..b2db500 100755
  			check_ld_so_features $rootdir $ld_so_candidate2
  			if [ "$ld_so_argv_flag_works" == "true" ]; then
 -- 
-1.7.10.3
+1.8.3-rc3
 

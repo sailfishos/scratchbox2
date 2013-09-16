@@ -1,4 +1,4 @@
-From d60d46adcdc49589c0af8af453b157e4b500ad01 Mon Sep 17 00:00:00 2001
+From f4df1344e3146609cb4450d9da705d4f784497b7 Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Thu, 2 May 2013 09:00:12 +0000
 Subject: [PATCH] Add postprocessing for name parameter of opendir() and
@@ -16,8 +16,8 @@ Original patch by: Oleg Girko <ol+mer@infoserver.ru>
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- preload/fdpathdb.c       |   17 +++++++++++++++++
- preload/interface.master |    2 ++
+ preload/fdpathdb.c       | 17 +++++++++++++++++
+ preload/interface.master |  2 ++
  2 files changed, 19 insertions(+)
 
 diff --git a/preload/fdpathdb.c b/preload/fdpathdb.c
@@ -69,5 +69,5 @@ index fb0f0f9..314a8cc 100644
  	class(OPEN)
  WRAP: long pathconf(const char *path, int name) : map(path)
 -- 
-1.7.10.3
+1.8.3-rc3
 

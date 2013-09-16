@@ -1,11 +1,11 @@
-From c27f1b73cdcb1abef381f6fe69f490f7d73ab971 Mon Sep 17 00:00:00 2001
+From fd947566b61526c2a0e6536d6c77bfd05e3d9d83 Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Thu, 9 May 2013 11:58:11 +0000
 Subject: [PATCH] Add an example of a conditionally accelerated rule
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- modes/obs-rpm-build+pp/fs_rules.lua |    7 +++++++
+ modes/obs-rpm-build+pp/fs_rules.lua | 7 +++++++
  1 file changed, 7 insertions(+)
 
 diff --git a/modes/obs-rpm-build+pp/fs_rules.lua b/modes/obs-rpm-build+pp/fs_rules.lua
@@ -27,5 +27,5 @@ index 1917b14..73e7e36 100644
  rootdir_rules = {
  		-- Special case for /bin/pwd: Some versions don't use getcwd(),
 -- 
-1.7.10.3
+1.8.3-rc3
 

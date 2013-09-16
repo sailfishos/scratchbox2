@@ -1,4 +1,4 @@
-From fb41fb0df3096f1601469f31ec4b991099667cf1 Mon Sep 17 00:00:00 2001
+From 6af46835ff34c9178d2a54f45a9c92d37a880654 Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Fri, 17 May 2013 16:12:21 +0000
 Subject: [PATCH] Fix call to realpath with NULL second argument
@@ -13,7 +13,7 @@ which is what realpath() would do in this case.
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- preload/miscgates.c |   16 ++++++++++++++--
+ preload/miscgates.c | 16 ++++++++++++++--
  1 file changed, 14 insertions(+), 2 deletions(-)
 
 diff --git a/preload/miscgates.c b/preload/miscgates.c
@@ -45,5 +45,5 @@ index 8d11ef6..36f34cf 100644
  		return NULL;
  	}
 -- 
-1.7.10.3
+1.8.3-rc3
 

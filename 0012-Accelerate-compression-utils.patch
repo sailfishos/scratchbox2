@@ -1,4 +1,4 @@
-From ae4bd7c53b6442f6c1db0b36e6c4fab5258bc1d5 Mon Sep 17 00:00:00 2001
+From 8592e11ac76a742515685dd093cf96c614d21216 Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Thu, 2 May 2013 08:30:23 +0000
 Subject: [PATCH] Accelerate compression utils
@@ -7,8 +7,8 @@ Add /usr/bin/cpio, xz, zip to accelerated programs
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- modes/obs-rpm-build+pp/fs_rules.lua |    9 +++++++++
- modes/obs-rpm-build/fs_rules.lua    |    9 +++++++++
+ modes/obs-rpm-build+pp/fs_rules.lua | 9 +++++++++
+ modes/obs-rpm-build/fs_rules.lua    | 9 +++++++++
  2 files changed, 18 insertions(+)
 
 diff --git a/modes/obs-rpm-build+pp/fs_rules.lua b/modes/obs-rpm-build+pp/fs_rules.lua
@@ -52,5 +52,5 @@ index 3d75a1f..3485523 100644
  		{path = "/usr/bin/sb2-show", use_orig_path = true,
  		 protection = readonly_fs_always},
 -- 
-1.7.10.3
+1.8.3-rc3
 

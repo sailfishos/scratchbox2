@@ -1,4 +1,4 @@
-From 4de90a424ff60ec8f6b10f6623d34e9c85a7b02f Mon Sep 17 00:00:00 2001
+From 3c91eb8bce2fd9a4067fd7e16113e022a52c836e Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Fri, 10 May 2013 14:54:21 +0000
 Subject: [PATCH] Add reverse mapping for IF_EXISTS_IN rules
@@ -8,11 +8,11 @@ paths.
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- lua_scripts/add_rules_to_rule_tree.lua |    3 +--
- lua_scripts/create_reverse_rules.lua   |    3 +++
- modes/obs-rpm-build+pp/fs_rules.lua    |    2 +-
- pathmapping/paths_ruletree_mapping.c   |   12 ++++++------
- utils/sb2-ruletree.c                   |    2 +-
+ lua_scripts/add_rules_to_rule_tree.lua |  3 +--
+ lua_scripts/create_reverse_rules.lua   |  3 +++
+ modes/obs-rpm-build+pp/fs_rules.lua    |  2 +-
+ pathmapping/paths_ruletree_mapping.c   | 12 ++++++------
+ utils/sb2-ruletree.c                   |  2 +-
  5 files changed, 12 insertions(+), 10 deletions(-)
 
 diff --git a/lua_scripts/add_rules_to_rule_tree.lua b/lua_scripts/add_rules_to_rule_tree.lua
@@ -112,5 +112,5 @@ index b2322db..2e8a561 100644
  	default:
  		printf("ERROR: Unknown action type %d\n",
 -- 
-1.7.10.3
+1.8.3-rc3
 

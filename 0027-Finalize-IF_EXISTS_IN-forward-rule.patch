@@ -1,11 +1,11 @@
-From c8a15205c3502bfe3c108c5e50e59ec28a3e6e34 Mon Sep 17 00:00:00 2001
+From a77423f00b03fa5e62ab7ff6e8907d41438b8f8f Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Fri, 10 May 2013 13:55:23 +0000
 Subject: [PATCH] Finalize IF_EXISTS_IN forward rule
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- pathmapping/paths_ruletree_mapping.c |   25 +++++++++++++++++++------
+ pathmapping/paths_ruletree_mapping.c | 25 +++++++++++++++++++------
  1 file changed, 19 insertions(+), 6 deletions(-)
 
 diff --git a/pathmapping/paths_ruletree_mapping.c b/pathmapping/paths_ruletree_mapping.c
@@ -53,5 +53,5 @@ index 5b0ef1a..24e41ae 100644
  
  				default:
 -- 
-1.7.10.3
+1.8.3-rc3
 

@@ -1,4 +1,4 @@
-From 5bbf47e1b224aca1e36b7319057741f1a54c060d Mon Sep 17 00:00:00 2001
+From e98412335083699f2271166882d8014b5a471cb0 Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Wed, 8 May 2013 14:47:56 +0000
 Subject: [PATCH] Simplify function interfaces
@@ -7,7 +7,7 @@ Removed unused "node_type_is_ordinary_rule" parameter from functions.
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- lua_scripts/add_rules_to_rule_tree.lua |   21 +++++++++++----------
+ lua_scripts/add_rules_to_rule_tree.lua | 21 +++++++++++----------
  1 file changed, 11 insertions(+), 10 deletions(-)
 
 diff --git a/lua_scripts/add_rules_to_rule_tree.lua b/lua_scripts/add_rules_to_rule_tree.lua
@@ -99,5 +99,5 @@ index 8525789..52eaff2 100644
  		print("-- Added ruleset rev.rules")
  	end
 -- 
-1.7.10.3
+1.8.3-rc3
 

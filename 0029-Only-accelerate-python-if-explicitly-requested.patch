@@ -1,4 +1,4 @@
-From 93177ca7e886179af6ecf189927e0436ec8c258b Mon Sep 17 00:00:00 2001
+From 0f46b817645f5a0b03a781957f05fe62bcf24e00 Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Fri, 10 May 2013 15:57:18 +0000
 Subject: [PATCH] Only accelerate python if explicitly requested
@@ -7,7 +7,7 @@ Python accel requires export SBOX_REDIRECT_FORCE=/usr/bin/python
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- modes/obs-rpm-build+pp/fs_rules.lua |    7 ++-----
+ modes/obs-rpm-build+pp/fs_rules.lua | 7 ++-----
  1 file changed, 2 insertions(+), 5 deletions(-)
 
 diff --git a/modes/obs-rpm-build+pp/fs_rules.lua b/modes/obs-rpm-build+pp/fs_rules.lua
@@ -36,5 +36,5 @@ index d5bae0c..306182e 100644
  }
  
 -- 
-1.7.10.3
+1.8.3-rc3
 

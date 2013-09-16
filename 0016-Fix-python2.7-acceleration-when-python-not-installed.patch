@@ -1,4 +1,4 @@
-From caa2a583d3857cc66914850b4c57c50777ad7a0b Mon Sep 17 00:00:00 2001
+From 54a08057e19cef5c160a08790a7c12bda6481a26 Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Wed, 8 May 2013 12:19:38 +0000
 Subject: [PATCH] Fix python2.7 acceleration when python not installed in
@@ -10,7 +10,7 @@ only available in tools.
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- modes/obs-rpm-build+pp/fs_rules.lua |    2 ++
+ modes/obs-rpm-build+pp/fs_rules.lua | 2 ++
  1 file changed, 2 insertions(+)
 
 diff --git a/modes/obs-rpm-build+pp/fs_rules.lua b/modes/obs-rpm-build+pp/fs_rules.lua
@@ -27,5 +27,5 @@ index cc4199f..1917b14 100644
  		-- gdb wants to have access to our dynamic linker also,
  		-- /usr/lib/libsb2/wrappers/*, etc.
 -- 
-1.7.10.3
+1.8.3-rc3
 

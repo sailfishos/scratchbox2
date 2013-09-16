@@ -1,0 +1,62 @@
+From 7ed14ec8f691307ead5e0c95a241e6361befdd77 Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Fri, 13 Sep 2013 12:01:14 +0000
+Subject: [PATCH] [sb2] Better clean up after sb2 error
+
+If sb2 script exits with an error the sb2 session directory under /tmp
+is now deleted unless the new option -N is given.
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ utils/sb2 | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/utils/sb2 b/utils/sb2
+index b2153cd..2002739 100755
+--- a/utils/sb2
++++ b/utils/sb2
+@@ -78,6 +78,8 @@ Options:
+                  (This may require special permissions, because acct(2)
+                  system call is used) 
+     -q           quiet; don't print debugging details to stdout etc.
++    -N           Do not delete the session dir even if sb2 script fails to
++                 enter the session
+     -x OPTIONS   specify additional options for "sb2d"
+ 
+ Examples:
+@@ -92,6 +94,13 @@ EOF
+ function exit_error()
+ {
+ 	echo "sb2: Error: $@"
++	if [ ! -z "$SBOX_SESSION_DIR" ]; then
++	    if [ -z "$OPT_DONT_DELETE_SESSION" ]; then
++		rm -rf $SBOX_SESSION_DIR
++	    else
++		echo "sb2: Session directory not deleted ($SBOX_SESSION_DIR)"
++	    fi
++	fi
+ 	exit 1
+ }
+ 
+@@ -1602,8 +1611,9 @@ SBOX_QUIET=""
+ VPERM_UIDGID_FOR_UNKNOWN_FILES=""
+ VPERM_ROOT_PRIVILEGE_FLAG=""
+ SB2D_OPTIONS=""
++OPT_DONT_DELETE_SESSION=""
+ 
+-while getopts vdht:em:n:s:L:Q:M:ZrRU:pS:J:D:P:W:O:cC:T:uf:gG:B:b:qx: foo
++while getopts vdht:em:n:s:L:Q:M:ZrRU:pS:J:D:P:W:O:cC:T:uf:gG:B:b:qx:N foo
+ do
+ 	case $foo in
+ 	(v) show_version; exit 0;;
+@@ -1642,6 +1652,7 @@ do
+ 	(B) SBOX_LOG_AND_GRAPH_DIR="$OPTARG"; SBOX_COLLECT_ACCT_DATA="y" ;;
+ 	(q) export SBOX_QUIET="q";;
+ 	(x) SB2D_OPTIONS="$SB2D_OPTIONS $OPTARG" ;;
++	(N) OPT_DONT_DELETE_SESSION="y" ;;
+ 	(*) show_usage_and_exit ;;
+ 	esac
+ done
+-- 
+1.8.3-rc3
+

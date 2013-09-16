@@ -1,12 +1,12 @@
-From 4fce43e89787dc0d8bccba830d93e57c3c42ffd4 Mon Sep 17 00:00:00 2001
+From e42b3409403d419a1e163da2642aa7489949377d Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Thu, 9 May 2013 13:38:24 +0000
 Subject: [PATCH] Added missing handling for IF_EXISTS_IN rule
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- pathmapping/paths_ruletree_maint.c |    1 +
- utils/sb2-ruletree.c               |    3 +++
+ pathmapping/paths_ruletree_maint.c | 1 +
+ utils/sb2-ruletree.c               | 3 +++
  2 files changed, 4 insertions(+)
 
 diff --git a/pathmapping/paths_ruletree_maint.c b/pathmapping/paths_ruletree_maint.c
@@ -36,5 +36,5 @@ index ae10ebe..68d2d8a 100644
  			printf("ERROR: Unknown condition type %d\n",
  				rule->rtree_fsr_condition_type);
 -- 
-1.7.10.3
+1.8.3-rc3
 

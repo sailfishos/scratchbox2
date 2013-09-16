@@ -1,11 +1,11 @@
-From dd7610645fa1a0b80aa1c81f02993c024f72f957 Mon Sep 17 00:00:00 2001
+From 40db4c90db2f466a1db15e015ae86eff4e04e18f Mon Sep 17 00:00:00 2001
 From: David Greaves <david@dgreaves.com>
 Date: Thu, 25 Apr 2013 10:38:08 +0000
 Subject: [PATCH] scratchbox2-2.3.27-usrsrc
 
 ---
- modes/obs-rpm-build+pp/fs_rules.lua |    2 --
- modes/obs-rpm-build/fs_rules.lua    |    2 --
+ modes/obs-rpm-build+pp/fs_rules.lua | 2 --
+ modes/obs-rpm-build/fs_rules.lua    | 2 --
  2 files changed, 4 deletions(-)
 
 diff --git a/modes/obs-rpm-build+pp/fs_rules.lua b/modes/obs-rpm-build+pp/fs_rules.lua
@@ -35,5 +35,5 @@ index 359333d..4b1e3bc 100644
  		protection = readonly_fs_if_not_root}
  }
 -- 
-1.7.10.3
+1.8.3-rc3
 

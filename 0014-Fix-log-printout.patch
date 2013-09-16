@@ -1,11 +1,11 @@
-From 67ba25b1842f7a36d773cddb8f330bdef9bb996d Mon Sep 17 00:00:00 2001
+From fcb41149d471d7fc2c386b3b0f3e13a64e0247ae Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Mon, 6 May 2013 11:13:37 +0000
 Subject: [PATCH] Fix log printout
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- pathmapping/paths_ruletree_mapping.c |    4 ++--
+ pathmapping/paths_ruletree_mapping.c | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/pathmapping/paths_ruletree_mapping.c b/pathmapping/paths_ruletree_mapping.c
@@ -31,5 +31,5 @@ index 8289a76..4bd970b 100644
  	*errormsgp = "unknown conditional action (internal error)";
  	return (NULL);
 -- 
-1.7.10.3
+1.8.3-rc3
 

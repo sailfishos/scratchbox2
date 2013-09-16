@@ -2,8 +2,9 @@ Summary: 	Scratchbox2 crosscompiling environment
 License: 	LGPL
 Name: 		scratchbox2
 Version: 2.3.90
-Release: 13
+Release: 15
 Source: 	%{name}-%{version}.tar.gz
+URL: https://github.com/mer-packages/scratchbox2
 Patch1:	0001-scratchbox2-2.3.27-usrsrc.patch
 Patch2:	0002-scratchbox2-2.3.52-wrapperargs.patch
 Patch3:	0003-accel-localedef.patch
@@ -40,6 +41,17 @@ Patch33:	0033-Fix-call-to-realpath-with-NULL-second-argument.patch
 Patch34:	0034-Add-qt4-qt5-moc-and-uic-to-accelerated-binaries.patch
 Patch35:	0035-Add-cmake-to-accelerated-binaries.patch
 Patch36:	0036-Add-bash-completion-for-sb2.patch
+Patch37:	0037-Add-f-option-to-sb2-config.patch
+Patch38:	0038-Add-qdoc-to-accelerated-binaries.patch
+Patch39:	0039-modes-Add-user-extendable-rules-to-obs-rpm-modes.patch
+Patch40:	0040-gdb-Output-less-text-when-starting-gdb-from-sb2-sess.patch
+Patch41:	0041-sb2-Exit-if-target-root-is-not-accessible.patch
+Patch42:	0042-sb2-Better-clean-up-after-sb2-error.patch
+Patch43:	0043-sb2-Bash-completion-for-modes-considers-symlinks-too.patch
+Patch44:	0044-sb2-Delay-creation-of-run-symlink-creation-for-var-r.patch
+Patch45:	0045-modes-Add-binaries-from-Mer-sb2-modes-to-accelerated.patch
+Patch46:	0046-preload-Fix-prototype-for-recvfrom.patch
+
 Prefix: 	/usr
 Group: 		Development/Tools
 ExclusiveArch:	%{ix86}
@@ -58,9 +70,7 @@ Group:   Development/Tools
 Scratchbox2 preload library.
 
 %prep
-# Adjusting %%setup since git-pkg unpacks to src/
-# %%setup -q -n src
-%setup  -q  -n src 
+%setup  -q -n src
 %patch1 -p1
 %patch2 -p1
 %patch3 -p1
@@ -97,6 +107,16 @@ Scratchbox2 preload library.
 %patch34 -p1
 %patch35 -p1
 %patch36 -p1
+%patch37 -p1
+%patch38 -p1
+%patch39 -p1
+%patch40 -p1
+%patch41 -p1
+%patch42 -p1
+%patch43 -p1
+%patch44 -p1
+%patch45 -p1
+%patch46 -p1
 
 %build
 ./autogen.sh

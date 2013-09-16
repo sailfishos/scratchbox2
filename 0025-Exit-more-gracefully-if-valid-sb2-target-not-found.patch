@@ -1,11 +1,11 @@
-From 61936eacce799f6dcac73588cc2dcc24dd81ee22 Mon Sep 17 00:00:00 2001
+From 13898df21b28961a310c9e39d64dc795cc1c5b88 Mon Sep 17 00:00:00 2001
 From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 Date: Thu, 9 May 2013 20:20:28 +0000
 Subject: [PATCH] Exit more gracefully if valid sb2 target not found
 
 Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 ---
- utils/sb2 |    3 +++
+ utils/sb2 | 3 +++
  1 file changed, 3 insertions(+)
 
 diff --git a/utils/sb2 b/utils/sb2
@@ -23,5 +23,5 @@ index b2db500..acf54af 100755
  		fi
  
 -- 
-1.7.10.3
+1.8.3-rc3
 

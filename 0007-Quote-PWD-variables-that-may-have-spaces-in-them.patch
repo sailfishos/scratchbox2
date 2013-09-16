@@ -1,12 +1,12 @@
-From f7d0d7395eb8c831966a22a7bff75aad1aa09e9d Mon Sep 17 00:00:00 2001
+From fbf27f9d762514e2abf0212e7ca367e24f07afbc Mon Sep 17 00:00:00 2001
 From: David Greaves <david@dgreaves.com>
 Date: Thu, 25 Apr 2013 14:50:25 +0100
 Subject: [PATCH] Quote PWD variables that may have spaces in them
 
 Signed-off-by: David Greaves <david.greaves@jollamobile.com>
 ---
- utils/sb2                     |    2 +-
- utils/sb2-parse-sb2-init-args |    2 +-
+ utils/sb2                     | 2 +-
+ utils/sb2-parse-sb2-init-args | 2 +-
  2 files changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/utils/sb2 b/utils/sb2
@@ -36,5 +36,5 @@ index 0f3ca57..2f11370 100755
  
  # SB2INIT_INIT_* variables are used to record who initialized, and when and
 -- 
-1.7.10.3
+1.8.3-rc3
 

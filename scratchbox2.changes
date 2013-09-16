@@ -1,3 +1,14 @@
+* Sat Sep 21 2013 Juha Kallioinen <juha.kallioinen@jollamobile.com> - 2.3.90-15
+- Fix recvfrom function prototype for preloading
+
+* Mon Sep 16 2013 Juha Kallioinen <juha.kallioinen@jollamobile.com> - 2.3.90-14
+- Add sb2-config -f option to list only accessible targets
+- Add more accelerated binaries to obs-rpm* modes
+- Better sb2 error handling
+- Fix /var/run related symlink problem
+- Improve sb2 bash completion
+- Make gdb less spammy when starting it under sb2
+
 * Wed Jul 10 2013 Juha Kallioinen <juha.kallioinen@jollamobile.com> - 2.3.90-13
 - Add bash completion for sb2
 

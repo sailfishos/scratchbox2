@@ -1,0 +1,28 @@
+From ce190a85d4c9d776d1f73646aa6bc48fd0b2509f Mon Sep 17 00:00:00 2001
+From: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+Date: Fri, 13 Sep 2013 18:38:54 +0000
+Subject: [PATCH] [sb2] Bash completion for modes considers symlinks too
+
+Signed-off-by: Juha Kallioinen <juha.kallioinen@jollamobile.com>
+---
+ utils/sb2.bash | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/utils/sb2.bash b/utils/sb2.bash
+index 21d1930..55baac7 100644
+--- a/utils/sb2.bash
++++ b/utils/sb2.bash
+@@ -24,8 +24,8 @@ _sb2()
+ 	    COMPREPLY=( $(compgen -W "${levels}" -- ${cur}) )
+ 	    return 0
+ 	    ;;
+-	-m) 
+-	    local modes=$(find /usr/share/scratchbox2/modes -maxdepth 1 -type d -printf '%f\n')
++	-m)
++	    local modes=$(find /usr/share/scratchbox2/modes -maxdepth 1 -type d -printf '%f\n' -o -type l -printf '%f\n')
+ 	    COMPREPLY=( $(compgen -W "${modes}" -- ${cur}) )
+ 	    return 0
+ 	    ;;
+-- 
+1.8.3-rc3
+

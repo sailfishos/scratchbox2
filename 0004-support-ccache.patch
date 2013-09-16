@@ -1,10 +1,10 @@
-From 8f31c7903590731ccfea5e1d81a7cafa52ec8ad6 Mon Sep 17 00:00:00 2001
+From 85ad6d1e20df704cb4d77f7b66a2e0c510dc250a Mon Sep 17 00:00:00 2001
 From: David Greaves <david@dgreaves.com>
 Date: Thu, 25 Apr 2013 10:38:08 +0000
 Subject: [PATCH] support-ccache
 
 ---
- utils/sb2 |    6 +++++-
+ utils/sb2 | 6 +++++-
  1 file changed, 5 insertions(+), 1 deletion(-)
 
 diff --git a/utils/sb2 b/utils/sb2
@@ -25,5 +25,5 @@ index 87b65b4..5b0f5b0 100755
  		export PATH=$SBOX_MODE_PATH
  	fi
 -- 
-1.7.10.3
+1.8.3-rc3
 

@@ -161,7 +161,7 @@ ssize_t sendto_nomap_nolog(int s, const void *buf, size_t len, int flags, const 
 	return(sendto(s, buf, len, flags, to, tolen));
 }
 
-ssize_t recvfrom_nomap_nolog(int s, void *buf, size_t len, int flags, struct sockaddr *from, socklen_t *fromlen)
+ssize_t recvfrom_nomap_nolog(int s, void *buf, size_t len, int flags, __SOCKADDR_ARG from, socklen_t *fromlen)
 {
 	return(recvfrom(s, buf, len, flags, from, fromlen));
 }

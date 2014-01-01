@@ -121,10 +121,10 @@ Scratchbox2 preload library.
 %build
 ./autogen.sh
 ./configure; touch .configure
-make
+make regular
 
 %install
-make install prefix=%{buildroot}/usr
+make do-install prefix=%{buildroot}/usr
 
 install -D -m 644 utils/sb2.bash %{buildroot}/etc/bash_completion.d/sb2.bash
 

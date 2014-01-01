@@ -54,7 +54,7 @@ Patch46:	0046-preload-Fix-prototype-for-recvfrom.patch
 
 Prefix: 	/usr
 Group: 		Development/Tools
-ExclusiveArch:	%{ix86}
+ExclusiveArch:	%{ix86} x86_64
 BuildRequires:	make
 Requires:	fakeroot
 Requires:	libsb2 = %{version}-%{release}
@@ -139,6 +139,3 @@ install -D -m 644 utils/sb2.bash %{buildroot}/etc/bash_completion.d/sb2.bash
 %files -n libsb2
 %defattr(-,root,root)
 %{_libdir}/libsb2/*
-%ifarch x86_64
-/usr/lib32/libsb2/*
-%endif

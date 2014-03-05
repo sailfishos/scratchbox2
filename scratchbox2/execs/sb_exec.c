@@ -148,6 +148,10 @@
 # error Unsupported host CPU architecture
 #endif
 
+#ifndef EM_AARCH64 
+#define EM_AARCH64	183 
+#endif 
+
 struct target_info {
 	char name[8];
 	uint16_t machine;
@@ -161,6 +165,7 @@ static const struct target_info target_table[] = {
 	{ "ppc",	EM_PPC,		ELFDATA2MSB,	0 },
 	{ "sh",		EM_SH, 		ELFDATA2LSB,	1 },
 	{ "x86_64",	EM_X86_64,	ELFDATA2LSB,	0 },
+        { "aarch64",    EM_AARCH64,     ELFDATA2LSB,    1 },
 };
 
 enum binary_type {
@@ -1284,6 +1289,8 @@ static int binary_can_run_on(const struct binary_info *info, const char *arch)
 		return !strcmp(arch, "i386") || !strcmp(arch, "x86_64");
 	case EM_X86_64:
 		return !strcmp(arch, "x86_64");
+        case EM_AARCH64:
+                return !strcmp(arch, "aarch64");
 	case EM_IA_64:
 		return !strcmp(arch, "ia64");
 	case EM_PPC:

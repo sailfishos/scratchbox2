@@ -364,7 +364,7 @@ case "$ARCH" in
 	i686*) ;;
 	amd64*) ;;
 	x86_64*) ;;
-
+        aarch64*) ;;
 	*)
 		echo "Unsupported target architecture: '$ARCH'"
 		echo "You must add support for it into execs/sb_exec.c"

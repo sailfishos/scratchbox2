@@ -22,6 +22,14 @@ rules_dev = {
 	 map_to = session_dir, protection = readonly_fs_if_not_root },
 	-- ==== End of Blacklist ====
 
+	{name = "rule lib: /dev/shm (stat)",
+	 path = "/dev/shm",
+	 func_class = FUNC_CLASS_STAT, use_orig_path = true},
+
+	{name = "rule lib: /dev/shm/*",
+	 dir = "/dev/shm",
+	 replace_by = session_dir .. "/tmp"},
+
 	-- We can't change times or attributes of host's devices,
 	-- but must pretend to be able to do so. Redirect the path
 	-- to an existing, dummy location.

@@ -175,6 +175,17 @@ void clean_dotdots_from_path(
 {
 	struct path_entry *work;
 	int	path_has_nontrivial_dotdots = 0;
+	path_mapping_context_t ctx2;
+
+	/* Don't propagate pmc_dont_resolve_final_symlink flag
+	 * to further recursive path resolution:
+	 * we need to resolve final symlink before ".." component.
+	 */
+	if (ctx->pmc_dont_resolve_final_symlink) {
+		ctx2 = *ctx;
+		ctx2.pmc_dont_resolve_final_symlink = 0;
+		ctx = &ctx2;
+	}
 
 	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE)) {
 		char *tmp_path_buf = path_list_to_string(abs_path);

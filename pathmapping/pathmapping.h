@@ -86,6 +86,7 @@ typedef struct path_mapping_context_s {
 	uint32_t		pmc_fn_class;
 	const char		*pmc_virtual_orig_path;
 	int			pmc_dont_resolve_final_symlink;
+	int			pmc_file_must_exist;
 	struct sb2context	*pmc_sb2ctx;
 
 	/* for paths_ruletree_mapping.c: */

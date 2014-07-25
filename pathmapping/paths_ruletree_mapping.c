@@ -826,6 +826,12 @@ char *ruletree_translate_path(
 		} else {
 			char *new_host_path = clean_and_log_fs_mapping_result(ctx,
 				abs_clean_virtual_path, result_log_level, host_path, *flagsp);
+			if (new_host_path == NULL) {
+				SB_LOG(result_log_level,
+					"Mapping failed ('%s')",
+					abs_clean_virtual_path);
+				*errormsgp = "Mapping failed";
+			}
 			free(host_path);
 			host_path = new_host_path;
 		}

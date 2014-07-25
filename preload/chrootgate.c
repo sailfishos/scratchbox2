@@ -62,12 +62,19 @@ int chroot_gate(int *result_errno_ptr,
 		/* sbox_virtual_path_to_abs_virtual_path() will clean it */
 		new_chroot_path = sbox_virtual_path_to_abs_virtual_path(
 			sbox_binary_name, realfnname, SB2_INTERFACE_CLASS_CHROOT,
-			path2);
+			path2, result_errno_ptr);
 	} else {
 		/* "path" is relative to CWD. */
 		new_chroot_path = sbox_virtual_path_to_abs_virtual_path(
 			sbox_binary_name, realfnname, SB2_INTERFACE_CLASS_CHROOT,
+			path, result_errno_ptr);
+	}
+
+	if (new_chroot_path == NULL) {
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"chroot: unable to make virtual path absolute: %s",
 			path);
+		goto free_mapping_results_and_return_minus1;
 	}
 
 	if (!strcmp(new_chroot_path, "/")) {

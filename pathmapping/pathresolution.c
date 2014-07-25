@@ -180,12 +180,12 @@ int clean_dotdots_from_path(
 	/* Don't propagate pmc_dont_resolve_final_symlink flag
 	 * to further recursive path resolution:
 	 * we need to resolve final symlink before ".." component.
+	 * Also, path before ".." must be an existing directory.
 	 */
-	if (ctx->pmc_dont_resolve_final_symlink) {
-		ctx2 = *ctx;
-		ctx2.pmc_dont_resolve_final_symlink = 0;
-		ctx = &ctx2;
-	}
+	ctx2 = *ctx;
+	ctx2.pmc_dont_resolve_final_symlink = 0;
+	ctx2.pmc_file_must_exist = 1;
+	ctx = &ctx2;
 
 	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE)) {
 		char *tmp_path_buf = path_list_to_string(abs_path);
@@ -634,8 +634,26 @@ static ruletree_object_offset_t sb_path_resolution(
 				link_dest[link_len] = '\0';
 				virtual_path_work_ptr->pe_link_dest = strdup(link_dest);
 				virtual_path_work_ptr->pe_flags |= PATH_FLAGS_IS_SYMLINK;
-			} else {
+			} else if (errno == EINVAL) {
+				/* was not a symlink */
 				virtual_path_work_ptr->pe_flags |= PATH_FLAGS_NOT_SYMLINK;
+			} else if (errno == ENOENT &&
+			    !ctx->pmc_file_must_exist &&
+			    (virtual_path_work_ptr->pe_next == NULL)) {
+				/* this is last component,
+				 * and it's not required to exist.
+				*/
+				SB_LOG(SB_LOGLEVEL_NOISE2,
+					"Last component doesn't exist [%d] '%s'",
+					component_index, virtual_path_work_ptr->pe_path_component);
+			} else {
+				/* any other errno valus is error */
+				resolved_virtual_path_res->mres_errno = errno;
+				SB_LOG(SB_LOGLEVEL_NOISE,
+					"Path resolution failed, errno=%d",
+					resolved_virtual_path_res->mres_errno);
+				free(prefix_mapping_result_host_path);
+				return(0);
 			}
 		}
 

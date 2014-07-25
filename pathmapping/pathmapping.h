@@ -151,7 +151,7 @@ extern ruletree_object_offset_t ruletree_get_mapping_requirements(
 extern void remove_dots_from_path_list(struct path_entry_list *listp);
 
 /* "complex" path cleaning (may call path resolution recursively): */
-extern void clean_dotdots_from_path(
+extern int clean_dotdots_from_path(
 	const path_mapping_context_t *ctx,
 	struct path_entry_list *abs_path);
 

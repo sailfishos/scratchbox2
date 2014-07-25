@@ -84,7 +84,8 @@ extern char *sbox_virtual_path_to_abs_virtual_path(
         const char *binary_name,
         const char *func_name,
         uint32_t fn_class,
-        const char *virtual_orig_path);
+        const char *virtual_orig_path,
+        int *res_errno);
 
 extern void sbox_map_path_for_sb2show(const char *binary_name,
 	const char *func_name, const char *path, mapping_results_t *res);

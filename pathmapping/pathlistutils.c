@@ -400,7 +400,12 @@ char *clean_and_log_fs_mapping_result(
 		 * recursive calls to sb_path_resolution.
 		*/
 		remove_dots_from_path_list(&list);
-		clean_dotdots_from_path(ctx, &list);
+		if (clean_dotdots_from_path(ctx, &list)) {
+			SB_LOG(result_log_level, "fail: %s '%s'",
+				ctx->pmc_func_name, abs_clean_virtual_path);
+			free_path_list(&list);
+			return(NULL);
+		}
 		break;
 	}
 	cleaned_host_path = path_list_to_string(&list);

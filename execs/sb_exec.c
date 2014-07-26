@@ -1675,8 +1675,10 @@ static int prepare_exec(const char *exec_fn_name,
 	*new_file = mapped_file;
 	*new_argv = my_argv;
 	*new_envp = my_envp;
+	err = errno;
 	STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, orig_file);
 	if (info.pt_interp) free(info.pt_interp);
+	errno = err;
 	return(ret);
 }
 
@@ -1723,15 +1725,17 @@ int do_exec(int *result_errno_ptr,
 			&type, &new_file, &new_argv, &new_envp);
 
 		if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
+			int saved_errno = errno;
 			/* find out and log if preprocessing did something */
 			compare_and_log_strvec_changes("argv", orig_argv, new_argv);
 			compare_and_log_strvec_changes("envp", my_envp_copy, new_envp);
+			errno = saved_errno;
 		}
 
 		if (r < 0) {
+			*result_errno_ptr = errno;
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"EXEC denied by prepare_exec(), %s", orig_file);
-			*result_errno_ptr = errno;
 			STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "Exec denied");
 			return(r); /* exec denied */
 		}

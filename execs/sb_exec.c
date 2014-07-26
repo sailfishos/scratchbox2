@@ -1462,6 +1462,17 @@ static int prepare_exec(const char *exec_fn_name,
 		exec_policy_name = (mapping_result.mres_exec_policy_name ?
 			strdup(mapping_result.mres_exec_policy_name) : NULL);
 		STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk3, mapped_file);
+
+		if (mapping_result.mres_errno) {
+			int saved_errno = mapping_result.mres_errno;
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"Mapping failed (%s) => errno=%d",
+				my_file, mapping_result.mres_errno);
+			free_mapping_results(&mapping_result);
+			errno = saved_errno;
+			ret = -1;
+			goto out;
+		}
 			
 		free_mapping_results(&mapping_result);
 

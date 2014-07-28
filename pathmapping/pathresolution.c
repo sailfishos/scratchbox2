@@ -1041,7 +1041,7 @@ static int relative_virtual_path_to_abs_path(
 	set_flags_in_path_entries(cwd_entries, PATH_FLAGS_NOT_SYMLINK);
 	path_list->pl_first = append_path_entries(
 		cwd_entries, path_list->pl_first);
-	path_list->pl_flags |= cwd_flags;
+	path_list->pl_flags |= cwd_flags & ~PATH_FLAGS_HAS_TRAILING_SLASH;
 #if 0	
 	SB_LOG(SB_LOGLEVEL_DEBUG,
 		"relative_virtual_path_to_abs_path: abs.path is '%s'",

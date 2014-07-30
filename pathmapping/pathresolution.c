@@ -84,6 +84,7 @@
 #include "libsb2.h"
 #include "exported.h"
 #include "sb2_vperm.h"
+#include "sb2_stat.h"
 
 #ifdef EXTREME_DEBUGGING
 #include <execinfo.h>
@@ -185,6 +186,7 @@ int clean_dotdots_from_path(
 	ctx2 = *ctx;
 	ctx2.pmc_dont_resolve_final_symlink = 0;
 	ctx2.pmc_file_must_exist = 1;
+	ctx2.pmc_must_be_directory = 1;
 	ctx = &ctx2;
 
 	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE)) {
@@ -636,6 +638,26 @@ static ruletree_object_offset_t sb_path_resolution(
 				virtual_path_work_ptr->pe_flags |= PATH_FLAGS_IS_SYMLINK;
 			} else if (errno == EINVAL) {
 				/* was not a symlink */
+				if (ctx->pmc_must_be_directory &&
+				    virtual_path_work_ptr->pe_next == NULL) {
+					/* must be a directory, check it */
+					struct stat statbuf;
+					if (real_stat(prefix_mapping_result_host_path, &statbuf) < 0) {
+						resolved_virtual_path_res->mres_errno = errno;
+						SB_LOG(SB_LOGLEVEL_NOISE,
+							"Path resolution failed, unable to stat directory, errno=%d",
+							resolved_virtual_path_res->mres_errno);
+						free(prefix_mapping_result_host_path);
+						return(0);
+					}
+					if (!S_ISDIR(statbuf.st_mode)) {
+						resolved_virtual_path_res->mres_errno = ENOTDIR;
+						SB_LOG(SB_LOGLEVEL_NOISE,
+							"Path resolution failed, last component is not a directory");
+						free(prefix_mapping_result_host_path);
+						return(0);
+					}
+				}
 				virtual_path_work_ptr->pe_flags |= PATH_FLAGS_NOT_SYMLINK;
 			} else if (errno == ENOENT &&
 			    !ctx->pmc_file_must_exist &&

@@ -668,6 +668,14 @@ static ruletree_object_offset_t sb_path_resolution(
 				SB_LOG(SB_LOGLEVEL_NOISE2,
 					"Last component doesn't exist [%d] '%s'",
 					component_index, virtual_path_work_ptr->pe_path_component);
+			} else if (errno == ENOENT &&
+			    ctx->pmc_allow_nonexistent) {
+				/* this is not last component,
+				 * but it's still not required to exist.
+				*/
+				SB_LOG(SB_LOGLEVEL_NOISE3,
+					"Component doesn't exist [%d] '%s'",
+					component_index, virtual_path_work_ptr->pe_path_component);
 			} else {
 				/* any other errno valus is error */
 				resolved_virtual_path_res->mres_errno = errno;
@@ -1244,6 +1252,7 @@ void sbox_map_path_internal__c_engine(
 	ctx.pmc_virtual_orig_path = virtual_orig_path;
 	ctx.pmc_dont_resolve_final_symlink =
 		flags & SBOX_MAP_PATH_DONT_RESOLVE_FINAL_SYMLINK;
+	ctx.pmc_allow_nonexistent = flags & SBOX_MAP_PATH_ALLOW_NONEXISTENT;
 	ctx.pmc_sb2ctx = sb2ctx;
 #if 0 /* see comment at pathmapping_interf.c/custom_map_path() */
 	ctx.pmc_rule_list_offset = rule_list_offset;

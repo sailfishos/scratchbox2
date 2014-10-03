@@ -1224,7 +1224,7 @@ void sbox_map_path_internal__c_engine(
 	const char *binary_name,
 	const char *func_name,
 	const char *virtual_orig_path,
-	int dont_resolve_final_symlink,
+	uint32_t flags,
 	int process_path_for_exec,
 	uint32_t fn_class,
 	mapping_results_t *res,
@@ -1242,7 +1242,8 @@ void sbox_map_path_internal__c_engine(
 	ctx.pmc_func_name = func_name;
 	ctx.pmc_fn_class = fn_class;
 	ctx.pmc_virtual_orig_path = virtual_orig_path;
-	ctx.pmc_dont_resolve_final_symlink = dont_resolve_final_symlink;
+	ctx.pmc_dont_resolve_final_symlink =
+		flags & SBOX_MAP_PATH_DONT_RESOLVE_FINAL_SYMLINK;
 	ctx.pmc_sb2ctx = sb2ctx;
 #if 0 /* see comment at pathmapping_interf.c/custom_map_path() */
 	ctx.pmc_rule_list_offset = rule_list_offset;

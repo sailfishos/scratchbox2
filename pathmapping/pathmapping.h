@@ -162,7 +162,7 @@ extern void sbox_map_path_internal__lua_engine(
 	const char *binary_name,
 	const char *func_name,
 	const char *virtual_orig_path,
-	int dont_resolve_final_symlink,
+	uint32_t flags,
 	int process_path_for_exec,
 	uint32_t fn_class,
 	mapping_results_t *res);
@@ -172,7 +172,7 @@ extern void sbox_map_path_internal__c_engine(
 	const char *binary_name,
 	const char *func_name,
 	const char *virtual_orig_path,
-	int dont_resolve_final_symlink,
+	uint32_t flags,
 	int process_path_for_exec,
 	uint32_t fn_class,
 	mapping_results_t *res,

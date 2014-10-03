@@ -63,7 +63,7 @@ FTS * fts_open_gate(
 		clear_mapping_results_struct(&res);
 		path = *p;
 		sbox_map_path(realfnname, path,
-			0/*dont_resolve_final_symlink*/, &res,
+			0/*flags*/, &res,
 			SB2_INTERFACE_CLASS_FTSOPEN);
 		if (res.mres_result_path) {
 			/* Mapped OK */
@@ -354,7 +354,7 @@ static char *check_and_prepare_glob_pattern(
 	*/
 	if (*pattern == '/') { /* if absolute path in pattern.. */
 		mapped__pattern = sbox_map_path(realfnname, pattern,
-			NULL/*RO-flag*/, 0/*dont_resolve_final_symlink*/,
+			NULL/*RO-flag*/, 0/*flags*/,
 			SB2_INTERFACE_CLASS_GLOB);
 		if (!strcmp(mapped__pattern, pattern)) {
 			/* no change */

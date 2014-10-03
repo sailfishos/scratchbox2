@@ -485,6 +485,14 @@ sub class_list_to_expr {
 	return ('('.join(' | ',@class_arr).')');
 }
 
+sub expr_to_flagexpr {
+	my $expr = shift;
+	my $flag = shift;
+	return "0" if ($expr eq "0");
+	return $flag if $expr eq "1";
+	return "($expr ? $flag : 0)";
+}
+
 # Process the modifier section coming from the original input line.
 # This returns undef if failed, or a structure containing code fragments
 # and other information for the actual code generation phase.
@@ -563,7 +571,8 @@ sub process_wrap_or_gate_modifiers {
 			my $param_to_be_mapped = $1;
 
 			my $new_name = "mapped__".$param_to_be_mapped;
-			my $no_symlink_resolve = $mods->{'dont_resolve_final_symlink'};
+			my $no_symlink_resolve =
+				expr_to_flagexpr($mods->{'dont_resolve_final_symlink'}, "SBOX_MAP_PATH_DONT_RESOLVE_FINAL_SYMLINK");
 
 			$mods->{'mapped_params_by_orig_name'}->{$param_to_be_mapped} = "res_$new_name.mres_result_path";
 			$mods->{'mapping_results_by_orig_name'}->{$param_to_be_mapped} = "res_$new_name";
@@ -615,7 +624,8 @@ sub process_wrap_or_gate_modifiers {
 
 			my $new_name = "mapped__".$param_to_be_mapped;
 			my $ro_flag = $param_to_be_mapped."_is_readonly";
-			my $no_symlink_resolve = $mods->{'dont_resolve_final_symlink'};
+			my $no_symlink_resolve =
+				expr_to_flagexpr($mods->{'dont_resolve_final_symlink'}, "SBOX_MAP_PATH_DONT_RESOLVE_FINAL_SYMLINK");
 
 			$mods->{'mapped_params_by_orig_name'}->{$param_to_be_mapped} = "res_$new_name.mres_result_path";
 			$mods->{'mapping_results_by_orig_name'}->{$param_to_be_mapped} = "res_$new_name";

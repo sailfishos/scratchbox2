@@ -84,7 +84,7 @@ static void map_sockaddr_un(
 	clear_mapping_results_struct(&res);
 	/* FIXME: implement if(pathname_is_readonly!=0)... */
 	sbox_map_path(realfnname, orig_serv_addr_un->sun_path,
-		0/*dont_resolve_final_symlink*/, &res, SB2_INTERFACE_CLASS_SOCKADDR);
+		0/*flags*/, &res, SB2_INTERFACE_CLASS_SOCKADDR);
 	if (res.mres_result_path == NULL) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"%s: Failed to map AF_UNIX address '%s'",

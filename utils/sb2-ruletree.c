@@ -189,6 +189,8 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 		       printf("remove ");
 		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_CHROOT)
 		       printf("chroot ");
+		if (rule->rtree_fsr_func_class & SB2_INTERFACE_CLASS_DLOPEN)
+		       printf("dlopen ");
 		printf(")\n");
 	}
 	

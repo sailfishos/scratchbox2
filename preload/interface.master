@@ -358,7 +358,7 @@ WRAP: void *dlmopen(Lmid_t nsid, const char *filename, int flag) : map(filename)
 	class(OPEN)
 #endif
 WRAP: void *dlopen(const char *filename, int flag) : map(filename) \
-	class(OPEN)
+    class(OPEN,DLOPEN)
 
 GATE: int euidaccess(const char *pathname, int mode) : \
 	map(pathname) \

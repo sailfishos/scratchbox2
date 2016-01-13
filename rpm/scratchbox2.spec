@@ -1,6 +1,6 @@
 Summary: 	Scratchbox2 crosscompiling environment
 License: 	LGPL
-URL:		https://github.com/mer-packages/scratchbox2
+URL:		https://git.merproject.org/mer-core/scratchbox2
 Name: 		scratchbox2
 Version:	2.3.90
 Release:	14

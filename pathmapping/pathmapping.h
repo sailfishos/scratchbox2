@@ -86,6 +86,9 @@ typedef struct path_mapping_context_s {
 	uint32_t		pmc_fn_class;
 	const char		*pmc_virtual_orig_path;
 	int			pmc_dont_resolve_final_symlink;
+	int			pmc_file_must_exist;
+	int			pmc_must_be_directory;
+	int			pmc_allow_nonexistent;
 	struct sb2context	*pmc_sb2ctx;
 
 	/* for paths_ruletree_mapping.c: */
@@ -151,7 +154,7 @@ extern ruletree_object_offset_t ruletree_get_mapping_requirements(
 extern void remove_dots_from_path_list(struct path_entry_list *listp);
 
 /* "complex" path cleaning (may call path resolution recursively): */
-extern void clean_dotdots_from_path(
+extern int clean_dotdots_from_path(
 	const path_mapping_context_t *ctx,
 	struct path_entry_list *abs_path);
 
@@ -160,7 +163,7 @@ extern void sbox_map_path_internal__lua_engine(
 	const char *binary_name,
 	const char *func_name,
 	const char *virtual_orig_path,
-	int dont_resolve_final_symlink,
+	uint32_t flags,
 	int process_path_for_exec,
 	uint32_t fn_class,
 	mapping_results_t *res);
@@ -170,7 +173,7 @@ extern void sbox_map_path_internal__c_engine(
 	const char *binary_name,
 	const char *func_name,
 	const char *virtual_orig_path,
-	int dont_resolve_final_symlink,
+	uint32_t flags,
 	int process_path_for_exec,
 	uint32_t fn_class,
 	mapping_results_t *res,

@@ -73,18 +73,22 @@ extern void free_mapping_results(mapping_results_t *res);
 
 extern void force_path_to_mapping_result(mapping_results_t *res, const char *path);
 
+#define SBOX_MAP_PATH_DONT_RESOLVE_FINAL_SYMLINK 0x01
+#define SBOX_MAP_PATH_ALLOW_NONEXISTENT          0x02
+
 extern void sbox_map_path(const char *func_name, const char *path,
-	int dont_resolve_final_symlink, mapping_results_t *res, uint32_t classmask);
+	uint32_t flags, mapping_results_t *res, uint32_t classmask);
 
 extern void sbox_map_path_at(const char *func_name, int dirfd,
-	const char *path, int dont_resolve_final_symlink,
+	const char *path, uint32_t flags,
 	mapping_results_t *res, uint32_t classmask);
 
 extern char *sbox_virtual_path_to_abs_virtual_path(
         const char *binary_name,
         const char *func_name,
         uint32_t fn_class,
-        const char *virtual_orig_path);
+        const char *virtual_orig_path,
+        int *res_errno);
 
 extern void sbox_map_path_for_sb2show(const char *binary_name,
 	const char *func_name, const char *path, mapping_results_t *res);
@@ -94,7 +98,7 @@ extern void sbox_map_path_for_exec(const char *func_name, const char *path,
 
 extern void custom_map_path(const char *binary_name,
 	const char *func_name, const char *virtual_path,
-	int dont_resolve_final_symlink, uint32_t fn_class,
+	uint32_t flags, uint32_t fn_class,
 	mapping_results_t *res, ruletree_object_offset_t rule_list_offset);
 
 extern char *custom_map_abstract_path(

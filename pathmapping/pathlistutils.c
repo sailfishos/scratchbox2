@@ -188,23 +188,24 @@ struct path_entry *split_path_to_path_entries(
 	}
 
 	do {
+		int	len;
+
 		next_slash = strchr(start, '/');
+		if (next_slash) {
+			len = next_slash - start;
+		} else {
+			/* no more slashes */
+			len = strlen(start);
+		}
 
 		/* ignore empty strings resulting from // */
-		if (next_slash != start) {
+		if (len == 0) {
+			/* but notice if there is trailing slash */
+			if (!next_slash)
+				flags |= PATH_FLAGS_HAS_TRAILING_SLASH;
+		} else {
 			struct path_entry *new;
-			int	len;
 
-			if (next_slash) {
-				len = next_slash - start;
-				if (!next_slash[1]) {
-					flags |= PATH_FLAGS_HAS_TRAILING_SLASH;
-					next_slash = NULL;
-				}
-			} else {
-				/* no more slashes */
-				len = strlen(start);
-			}
 			new = malloc(sizeof(struct path_entry) + len);
 			if(!first) first = new;
 			if (!new) abort();
@@ -400,7 +401,12 @@ char *clean_and_log_fs_mapping_result(
 		 * recursive calls to sb_path_resolution.
 		*/
 		remove_dots_from_path_list(&list);
-		clean_dotdots_from_path(ctx, &list);
+		if (clean_dotdots_from_path(ctx, &list)) {
+			SB_LOG(result_log_level, "fail: %s '%s'",
+				ctx->pmc_func_name, abs_clean_virtual_path);
+			free_path_list(&list);
+			return(NULL);
+		}
 		break;
 	}
 	cleaned_host_path = path_list_to_string(&list);

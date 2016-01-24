@@ -84,6 +84,7 @@
 #include "libsb2.h"
 #include "exported.h"
 #include "sb2_vperm.h"
+#include "sb2_stat.h"
 
 #ifdef EXTREME_DEBUGGING
 #include <execinfo.h>
@@ -169,12 +170,24 @@ static ruletree_object_offset_t sb_path_resolution(
  * by accident.
  * Can be used for both virtual paths and host paths.
 */
-void clean_dotdots_from_path(
+int clean_dotdots_from_path(
 	const path_mapping_context_t *ctx,
 	struct path_entry_list *abs_path)
 {
 	struct path_entry *work;
 	int	path_has_nontrivial_dotdots = 0;
+	path_mapping_context_t ctx2;
+
+	/* Don't propagate pmc_dont_resolve_final_symlink flag
+	 * to further recursive path resolution:
+	 * we need to resolve final symlink before ".." component.
+	 * Also, path before ".." must be an existing directory.
+	 */
+	ctx2 = *ctx;
+	ctx2.pmc_dont_resolve_final_symlink = 0;
+	ctx2.pmc_file_must_exist = 1;
+	ctx2.pmc_must_be_directory = 1;
+	ctx = &ctx2;
 
 	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE)) {
 		char *tmp_path_buf = path_list_to_string(abs_path);
@@ -315,6 +328,16 @@ void clean_dotdots_from_path(
 			}
 			free_path_list(&abs_path_to_parent);
 
+			if (resolved_parent_location.mres_errno) {
+				int err = resolved_parent_location.mres_errno;
+				SB_LOG(SB_LOGLEVEL_NOISE,
+					"clean_dotdots_from_path: <3>:errno=%d",
+					err);
+				free(orig_path_to_parent);
+				free_mapping_results(&resolved_parent_location);
+				return(err);
+			}
+
 			/* mres_result_buf contains an absolute path,
 			 * unless the result was longer than PATH_MAX */
 			if (strcmp(orig_path_to_parent,
@@ -355,8 +378,7 @@ void clean_dotdots_from_path(
 				free_mapping_results(&resolved_parent_location);
 
 				/* restart from the beginning of the new path: */
-				clean_dotdots_from_path(ctx, abs_path);
-				return;
+				return(clean_dotdots_from_path(ctx, abs_path));
 			} 
 
 			SB_LOG(SB_LOGLEVEL_NOISE,
@@ -384,6 +406,7 @@ void clean_dotdots_from_path(
 			"clean_dotdots_from_path: result->'%s'", tmp_path_buf);
 		free(tmp_path_buf);
 	}
+	return(0);
 }
 
 /* ========== ========== */
@@ -613,8 +636,54 @@ static ruletree_object_offset_t sb_path_resolution(
 				link_dest[link_len] = '\0';
 				virtual_path_work_ptr->pe_link_dest = strdup(link_dest);
 				virtual_path_work_ptr->pe_flags |= PATH_FLAGS_IS_SYMLINK;
-			} else {
+			} else if (errno == EINVAL) {
+				/* was not a symlink */
+				if (ctx->pmc_must_be_directory &&
+				    virtual_path_work_ptr->pe_next == NULL) {
+					/* must be a directory, check it */
+					struct stat statbuf;
+					if (real_stat(prefix_mapping_result_host_path, &statbuf) < 0) {
+						resolved_virtual_path_res->mres_errno = errno;
+						SB_LOG(SB_LOGLEVEL_NOISE,
+							"Path resolution failed, unable to stat directory, errno=%d",
+							resolved_virtual_path_res->mres_errno);
+						free(prefix_mapping_result_host_path);
+						return(0);
+					}
+					if (!S_ISDIR(statbuf.st_mode)) {
+						resolved_virtual_path_res->mres_errno = ENOTDIR;
+						SB_LOG(SB_LOGLEVEL_NOISE,
+							"Path resolution failed, last component is not a directory");
+						free(prefix_mapping_result_host_path);
+						return(0);
+					}
+				}
 				virtual_path_work_ptr->pe_flags |= PATH_FLAGS_NOT_SYMLINK;
+			} else if (errno == ENOENT &&
+			    !ctx->pmc_file_must_exist &&
+			    (virtual_path_work_ptr->pe_next == NULL)) {
+				/* this is last component,
+				 * and it's not required to exist.
+				*/
+				SB_LOG(SB_LOGLEVEL_NOISE2,
+					"Last component doesn't exist [%d] '%s'",
+					component_index, virtual_path_work_ptr->pe_path_component);
+			} else if (errno == ENOENT &&
+			    ctx->pmc_allow_nonexistent) {
+				/* this is not last component,
+				 * but it's still not required to exist.
+				*/
+				SB_LOG(SB_LOGLEVEL_NOISE3,
+					"Component doesn't exist [%d] '%s'",
+					component_index, virtual_path_work_ptr->pe_path_component);
+			} else {
+				/* any other errno valus is error */
+				resolved_virtual_path_res->mres_errno = errno;
+				SB_LOG(SB_LOGLEVEL_NOISE,
+					"Path resolution failed, errno=%d",
+					resolved_virtual_path_res->mres_errno);
+				free(prefix_mapping_result_host_path);
+				return(0);
 			}
 		}
 
@@ -731,6 +800,7 @@ static ruletree_object_offset_t sb_path_resolution_resolve_symlink(
 	ruletree_object_offset_t	rule_offs;
 	struct path_entry *rest_of_virtual_path = NULL;
 	struct path_entry_list new_abs_virtual_link_dest_path_list;
+	int err;
 
 	new_abs_virtual_link_dest_path_list.pl_first = NULL;
 
@@ -877,7 +947,15 @@ static ruletree_object_offset_t sb_path_resolution_resolve_symlink(
 		break;
 	case 2: /* .. */
 		remove_dots_from_path_list(&new_abs_virtual_link_dest_path_list);
-		clean_dotdots_from_path(ctx, &new_abs_virtual_link_dest_path_list);
+		err = clean_dotdots_from_path(ctx, &new_abs_virtual_link_dest_path_list);
+		if (err) {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"unable to clean \"..\" from path, errno=%d",
+				err);
+			free_path_list(&new_abs_virtual_link_dest_path_list);
+			resolved_virtual_path_res->mres_errno = err;
+			return(0);
+		}
 		break;
 	}
 
@@ -993,7 +1071,7 @@ static int relative_virtual_path_to_abs_path(
 	set_flags_in_path_entries(cwd_entries, PATH_FLAGS_NOT_SYMLINK);
 	path_list->pl_first = append_path_entries(
 		cwd_entries, path_list->pl_first);
-	path_list->pl_flags |= cwd_flags;
+	path_list->pl_flags |= cwd_flags & ~PATH_FLAGS_HAS_TRAILING_SLASH;
 #if 0	
 	SB_LOG(SB_LOGLEVEL_DEBUG,
 		"relative_virtual_path_to_abs_path: abs.path is '%s'",
@@ -1018,12 +1096,14 @@ char *sbox_virtual_path_to_abs_virtual_path(
 	const char *binary_name,
 	const char *func_name,
 	uint32_t fn_class,
-	const char *virtual_orig_path)
+	const char *virtual_orig_path,
+	int *res_errno)
 {
 	path_mapping_context_t	ctx;
 	struct path_entry_list	abs_virtual_path_list;
 	char			*result = NULL;
 	char			host_cwd[PATH_MAX + 1];
+	int			err;
 
 	clear_path_entry_list(&abs_virtual_path_list);
 
@@ -1093,7 +1173,16 @@ char *sbox_virtual_path_to_abs_virtual_path(
 		break;
 	case 2: /* .. */
 		remove_dots_from_path_list(&abs_virtual_path_list);
-		clean_dotdots_from_path(&ctx, &abs_virtual_path_list);
+		err = clean_dotdots_from_path(&ctx, &abs_virtual_path_list);
+		if (err) {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"unable to clean \"..\" from path, errno=%d",
+				err);
+			free_path_list(&abs_virtual_path_list);
+			*res_errno = err;
+			result = NULL;
+			goto out;
+		}
 		break;
 	}
 
@@ -1143,7 +1232,7 @@ void sbox_map_path_internal__c_engine(
 	const char *binary_name,
 	const char *func_name,
 	const char *virtual_orig_path,
-	int dont_resolve_final_symlink,
+	uint32_t flags,
 	int process_path_for_exec,
 	uint32_t fn_class,
 	mapping_results_t *res,
@@ -1153,6 +1242,7 @@ void sbox_map_path_internal__c_engine(
 	path_mapping_context_t	ctx;
 	char host_cwd[PATH_MAX + 1]; /* used only if virtual_orig_path is relative */
 	struct path_entry_list	abs_virtual_path_for_rule_selection_list;
+	int err;
 
 	clear_path_entry_list(&abs_virtual_path_for_rule_selection_list);
 	clear_path_mapping_context(&ctx);
@@ -1160,7 +1250,9 @@ void sbox_map_path_internal__c_engine(
 	ctx.pmc_func_name = func_name;
 	ctx.pmc_fn_class = fn_class;
 	ctx.pmc_virtual_orig_path = virtual_orig_path;
-	ctx.pmc_dont_resolve_final_symlink = dont_resolve_final_symlink;
+	ctx.pmc_dont_resolve_final_symlink =
+		flags & SBOX_MAP_PATH_DONT_RESOLVE_FINAL_SYMLINK;
+	ctx.pmc_allow_nonexistent = flags & SBOX_MAP_PATH_ALLOW_NONEXISTENT;
 	ctx.pmc_sb2ctx = sb2ctx;
 #if 0 /* see comment at pathmapping_interf.c/custom_map_path() */
 	ctx.pmc_rule_list_offset = rule_list_offset;
@@ -1268,7 +1360,14 @@ void sbox_map_path_internal__c_engine(
 		break;
 	case 2: /* .. */
 		remove_dots_from_path_list(&abs_virtual_path_for_rule_selection_list);
-		clean_dotdots_from_path(&ctx, &abs_virtual_path_for_rule_selection_list);
+		err = clean_dotdots_from_path(&ctx, &abs_virtual_path_for_rule_selection_list);
+		if (err) {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"unable to clean \"..\" from path, errno=%d",
+				err);
+			res->mres_errno = err;
+			return;
+		}
 		break;
 	}
 

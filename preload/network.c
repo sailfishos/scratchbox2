@@ -52,12 +52,13 @@ typedef struct {
 	char	mapped_printable_dst_addr[200];
 } mapped_sockaddr_t;
 
-static void map_sockaddr_un(
+static int map_sockaddr_un(
 	const char *realfnname,
 	const struct sockaddr_un *orig_serv_addr_un,
 	mapped_sockaddr_t *output_addr)
 {
 	mapping_results_t	res;
+	int result = 0;
 
 	if (!*orig_serv_addr_un->sun_path) {
 		/* an "abstract" local domain socket.
@@ -71,7 +72,7 @@ static void map_sockaddr_un(
 		snprintf(output_addr->mapped_printable_dst_addr,
 			sizeof(output_addr->mapped_printable_dst_addr),
 			"<abstract AF_UNIX address>");
-		return;
+		return(0);
 	}
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: checking AF_UNIX addr '%s'",
@@ -84,8 +85,14 @@ static void map_sockaddr_un(
 	clear_mapping_results_struct(&res);
 	/* FIXME: implement if(pathname_is_readonly!=0)... */
 	sbox_map_path(realfnname, orig_serv_addr_un->sun_path,
-		0/*dont_resolve_final_symlink*/, &res, SB2_INTERFACE_CLASS_SOCKADDR);
-	if (res.mres_result_path == NULL) {
+		0/*flags*/, &res, SB2_INTERFACE_CLASS_SOCKADDR);
+	if (res.mres_errno != 0) {
+		result = res.mres_errno;
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+			"%s: Failed to map AF_UNIX address '%s': errno=%d",
+			realfnname, orig_serv_addr_un->sun_path, result);
+	} else if (res.mres_result_path == NULL) {
+		result = EINVAL;
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"%s: Failed to map AF_UNIX address '%s'",
 			realfnname, orig_serv_addr_un->sun_path);
@@ -96,6 +103,7 @@ static void map_sockaddr_un(
 		output_addr->mapped_sockaddr_un = *orig_serv_addr_un;
 		if (sizeof(output_addr->mapped_sockaddr_un.sun_path) <=
 		    strlen(res.mres_result_path)) {
+			result = ENAMETOOLONG;
 			SB_LOG(SB_LOGLEVEL_ERROR,
 				"%s: Mapped AF_UNIX address (%s) is too long",
 				realfnname, res.mres_result_path);
@@ -114,6 +122,7 @@ static void map_sockaddr_un(
 		}
 	}
 	free_mapping_results(&res);
+	return(result);
 }
 
 /* returns 0 if success, errno code if failed */
@@ -358,9 +367,18 @@ static int map_sockaddr(
 		case AF_UNIX:
 			output_addr->mapped_addrlen = input_addrlen;
 
-			map_sockaddr_un(realfnname,
+			inet_mapping_result = map_sockaddr_un(realfnname,
 				(const struct sockaddr_un*)input_addr,
 				output_addr);
+			if (inet_mapping_result != 0) {
+				/* return error */
+				*result_errno_ptr = inet_mapping_result;
+				SB_LOG(SB_LOGLEVEL_NETWORK,
+					"%s: denied (%s), errno=%d",
+					realfnname, output_addr->orig_printable_dst_addr,
+					inet_mapping_result);
+				return(MAP_SOCKADDR_OPERATION_DENIED);
+			}
 			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: orig addr.len=%d, mapped_addrlen=%d",
 				__func__, input_addrlen, output_addr->mapped_addrlen);
 			return (MAP_SOCKADDR_MAPPED);

@@ -29,7 +29,7 @@ static void fwd_map_path(
 	const char *binary_name,
 	const char *func_name,
 	const char *virtual_path,
-	int dont_resolve_final_symlink,
+	uint32_t flags,
 	int exec_mode,
 	uint32_t fn_class,
 	mapping_results_t *res)
@@ -49,7 +49,7 @@ static void fwd_map_path(
 		START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "fwd_map_path");
 		sbox_map_path_internal__c_engine(sb2ctx, binary_name,
 			func_name, virtual_path,
-			dont_resolve_final_symlink, 0, fn_class, res, 0);
+			flags, 0, fn_class, res, 0);
 		if (res->mres_errormsg) {
 			SB_LOG(SB_LOGLEVEL_NOTICE,
 				"C path mapping engine failed (%s) (%s)",
@@ -70,7 +70,7 @@ void custom_map_path(
 	const char *binary_name,
 	const char *func_name,
 	const char *virtual_path,
-	int dont_resolve_final_symlink,
+	uint32_t flags,
 	uint32_t fn_class,
 	mapping_results_t *res,
 	ruletree_object_offset_t rule_list_offset)
@@ -91,7 +91,7 @@ void custom_map_path(
 
 		sbox_map_path_internal__c_engine(sb2ctx, binary_name,
 			func_name, virtual_path,
-			dont_resolve_final_symlink, 0, fn_class, res, rule_list_offset);
+			flags, 0, fn_class, res, rule_list_offset);
 
 		if (res->mres_fallback_to_lua_mapping_engine &&
 		    (res->mres_fallback_to_lua_mapping_engine[0] == '#')) {
@@ -217,20 +217,20 @@ void sbox_map_path_for_sb2show(
 	}
 
 	fwd_map_path(binary_name, func_name, virtual_path,
-		0/*dont_resolve_final_symlink*/, 0/*exec_mode*/, fn_class, res);
+		0/*flags*/, 0/*exec_mode*/, fn_class, res);
 }
 
 void sbox_map_path(
 	const char *func_name,
 	const char *virtual_path,
-	int dont_resolve_final_symlink,
+	uint32_t flags,
 	mapping_results_t *res,
 	uint32_t classmask)
 {
 	fwd_map_path(
 		(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
 		func_name, virtual_path,
-		dont_resolve_final_symlink, 0/*exec_mode*/, classmask, res);
+		flags, 0/*exec_mode*/, classmask, res);
 }
 
 
@@ -238,7 +238,7 @@ void sbox_map_path_at(
 	const char *func_name,
 	int dirfd,
 	const char *virtual_path,
-	int dont_resolve_final_symlink,
+	uint32_t flags,
 	mapping_results_t *res,
 	uint32_t classmask)
 {
@@ -259,7 +259,7 @@ void sbox_map_path_at(
 		fwd_map_path(
 			(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
 			func_name, virtual_path,
-			dont_resolve_final_symlink, 0/*exec_mode*/, classmask, res);
+			flags, 0/*exec_mode*/, classmask, res);
 		return;
 	}
 
@@ -281,7 +281,7 @@ void sbox_map_path_at(
 		fwd_map_path(
 			(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
 			func_name,
-			virtual_abs_path_at_fd, dont_resolve_final_symlink, 0/*exec_mode*/, classmask, res);
+			virtual_abs_path_at_fd, flags, 0/*exec_mode*/, classmask, res);
 		free(virtual_abs_path_at_fd);
 
 		return;
@@ -307,7 +307,7 @@ void sbox_map_path_for_exec(
 	fwd_map_path(
 		(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
 		func_name,
-		virtual_path, 0/*dont_resolve_final_symlink*/, 1/*exec mode*/, 
+		virtual_path, 0/*flags*/, 1/*exec mode*/,
 		SB2_INTERFACE_CLASS_EXEC, res);
 }
 

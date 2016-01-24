@@ -63,6 +63,14 @@
 #     NOTE: THIS MUST BE USED BEFORE THE map() OR map_at() MODIFIERS!
 #   - "resolve_final_symlink" is the opposite of "dont_resolve_final_symlink"
 #     (and it is on by default)
+#   - "allow_nonexistent" is used to prefix "map" modifiers where the
+#     whole pathname (not just the last component) is allowed to refer
+#     to nonexistent file in nonexistent directory.
+#     NOTE: THIS MUST BE USED BEFORE THE map() OR map_at() MODIFIERS!
+#   - "allow_nonexistent_if(condition)" conditionally
+#     allows the pathname to refer to nonexistent file in nonexistent directory
+#     (see "allow_nonexistent")
+#     NOTE: THIS MUST BE USED BEFORE THE map() OR map_at() MODIFIERS!
 #   - "postprocess(varname)" can be used to call  postprocessor functions for
 #     mapped variables.
 #   - "return(expr)" can be used to alter the return value.
@@ -485,6 +493,30 @@ sub class_list_to_expr {
 	return ('('.join(' | ',@class_arr).')');
 }
 
+sub expr_to_flagexpr {
+	my $expr = shift;
+	my $flag = shift;
+	return "0" if ($expr eq "0");
+	return $flag if $expr eq "1";
+	return "($expr ? $flag : 0)";
+}
+
+sub flagexpr_join {
+	my $result = "0";
+	foreach my $flagexpr (@_) {
+		if ($flagexpr eq "0") {
+			# zero flag, leave result as is
+		} elsif ($result eq "0") {
+			# zero result, replace with flag
+			$result = $flagexpr;
+		} else {
+			# non-zero result and flag, join with |
+			$result .= " | $flagexpr";
+		}
+	}
+	return $result;
+}
+
 # Process the modifier section coming from the original input line.
 # This returns undef if failed, or a structure containing code fragments
 # and other information for the actual code generation phase.
@@ -513,6 +545,7 @@ sub process_wrap_or_gate_modifiers {
 		'mapped_params_by_orig_name' => {},
 		'mapping_results_by_orig_name' => {},
 		'dont_resolve_final_symlink' => 0,
+		'allow_nonexistent' => 0,
 
 		'postprocess_vars' => [],
 		'return_expr' => undef,
@@ -563,7 +596,11 @@ sub process_wrap_or_gate_modifiers {
 			my $param_to_be_mapped = $1;
 
 			my $new_name = "mapped__".$param_to_be_mapped;
-			my $no_symlink_resolve = $mods->{'dont_resolve_final_symlink'};
+			my $no_symlink_resolve =
+				expr_to_flagexpr($mods->{'dont_resolve_final_symlink'}, "SBOX_MAP_PATH_DONT_RESOLVE_FINAL_SYMLINK");
+			my $allow_nonexistent =
+				expr_to_flagexpr($mods->{'allow_nonexistent'}, "SBOX_MAP_PATH_ALLOW_NONEXISTENT");
+			my $flags = flagexpr_join($no_symlink_resolve, $allow_nonexistent);
 
 			$mods->{'mapped_params_by_orig_name'}->{$param_to_be_mapped} = "res_$new_name.mres_result_path";
 			$mods->{'mapping_results_by_orig_name'}->{$param_to_be_mapped} = "res_$new_name";
@@ -574,7 +611,7 @@ sub process_wrap_or_gate_modifiers {
 				"\tclear_mapping_results_struct(&res_$new_name);\n".
 				"\tsbox_map_path(__func__, ".
 					"$param_to_be_mapped, ".
-					"$no_symlink_resolve, ".
+					"$flags, ".
 					"&res_$new_name, classmask);\n".
 				"\tif (res_$new_name.mres_errno) {\n".
 				"\t\tSB_LOG(SB_LOGLEVEL_DEBUG, \"mapping failed, errno %d\",".
@@ -615,7 +652,11 @@ sub process_wrap_or_gate_modifiers {
 
 			my $new_name = "mapped__".$param_to_be_mapped;
 			my $ro_flag = $param_to_be_mapped."_is_readonly";
-			my $no_symlink_resolve = $mods->{'dont_resolve_final_symlink'};
+			my $no_symlink_resolve =
+				expr_to_flagexpr($mods->{'dont_resolve_final_symlink'}, "SBOX_MAP_PATH_DONT_RESOLVE_FINAL_SYMLINK");
+			my $allow_nonexistent =
+				expr_to_flagexpr($mods->{'allow_nonexistent'}, "SBOX_MAP_PATH_ALLOW_NONEXISTENT");
+			my $flags = flagexpr_join($no_symlink_resolve, $allow_nonexistent);
 
 			$mods->{'mapped_params_by_orig_name'}->{$param_to_be_mapped} = "res_$new_name.mres_result_path";
 			$mods->{'mapping_results_by_orig_name'}->{$param_to_be_mapped} = "res_$new_name";
@@ -626,7 +667,7 @@ sub process_wrap_or_gate_modifiers {
 				"\tsbox_map_path_at(__func__, ".
 					"$fd_param, ".
 					"$param_to_be_mapped, ".
-					"$no_symlink_resolve, ".
+					"$flags, ".
 					"&res_$new_name, classmask);\n".
 				"\tif (res_$new_name.mres_errno) {\n".
 				"\t\terrno = res_$new_name.mres_errno;\n".
@@ -682,6 +723,11 @@ sub process_wrap_or_gate_modifiers {
 		} elsif($modifiers[$i] =~ m/^dont_resolve_final_symlink_if\((.*)\)$/) {
 			my $condition = $1;
 			$mods->{'dont_resolve_final_symlink'} = "($condition)";
+		} elsif($modifiers[$i] eq 'allow_nonexistent') {
+			$mods->{'allow_nonexistent'} = 1;
+		} elsif($modifiers[$i] =~ m/^allow_nonexistent_if\((.*)\)$/) {
+			my $condition = $1;
+			$mods->{'allow_nonexistent'} = "($condition)";
 		} elsif(($modifiers[$i] =~ m/^optional_arg_is_create_mode\((.*)\)$/) &&
 			($fn->{'has_varargs'})) {
 			my $va_list_condition = $1;

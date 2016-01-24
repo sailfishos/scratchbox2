@@ -37,7 +37,9 @@ char *bindtextdomain_gate(int *result_errno_ptr,
 	clear_mapping_results_struct(&res);
 
 	if (dirname != NULL) { 
-		sbox_map_path(realfn_name, dirname, 0, &res, SB2_INTERFACE_CLASS_L10N);
+		sbox_map_path(realfn_name, dirname,
+		     SBOX_MAP_PATH_ALLOW_NONEXISTENT, &res,
+		     SB2_INTERFACE_CLASS_L10N);
 		assert(res.mres_result_path != NULL);
 
 		mapped_dirname = res.mres_result_path;

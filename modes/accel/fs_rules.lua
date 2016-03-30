@@ -282,6 +282,27 @@ devel_mode_rules_usr_lib = {
 		-- wrappers etc.
 		{dir = "/usr/lib/libsb2", force_orig_path = true},
 
+		-- If a program from tools loads plugins,
+		-- they should be dlopened from tools as well.
+		-- However, libdir in tools can be different than one in target.
+		{dir = "/usr/lib", func_class = FUNC_CLASS_DLOPEN,
+		 actions = {
+		  {if_active_exec_policy_is = "Tools",
+		   if_exists_then_replace_by = tools .. "/usr/lib64",
+		   protection = readonly_fs_always},
+		  {if_active_exec_policy_is = "Tools",
+		   if_exists_then_map_to = tools,
+		   protection = readonly_fs_always},
+		   {if_active_exec_policy_is = "Host",
+			if_exists_then_replace_by = tools .. "/usr/lib64",
+			protection = readonly_fs_always},
+		   {if_active_exec_policy_is = "Host",
+			if_exists_then_map_to = tools,
+			protection = readonly_fs_always},
+		  { map_to = target_root, protection = readonly_fs_always },
+		 },
+		},
+
 		{prefix = "/usr/lib",
 		 actions = test_first_target_then_tools_default_is_target},
 

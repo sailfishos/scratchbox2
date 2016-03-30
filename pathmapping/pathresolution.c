@@ -1318,6 +1318,13 @@ void sbox_map_path_internal__c_engine(
 		split_path_to_path_list(virtual_orig_path,
 			&abs_virtual_path_for_rule_selection_list);
 
+		/* Don't resolve dlopen arguments with no path */
+		if (abs_virtual_path_for_rule_selection_list.pl_first
+				&& !abs_virtual_path_for_rule_selection_list.pl_first->pe_next
+				&& (fn_class & SB2_INTERFACE_CLASS_DLOPEN)) {
+			goto use_orig_path_as_result_and_exit;
+		}
+
 		/* convert to absolute path. */
 		if (relative_virtual_path_to_abs_path(
 			&ctx, host_cwd, sizeof(host_cwd),

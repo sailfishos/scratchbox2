@@ -185,6 +185,8 @@ extern char *prep_union_dir(const char *dst_path,
 
 #define SB2_INTERFACE_CLASS_CHROOT	0x10000	/* chroot() */
 
+#define SB2_INTERFACE_CLASS_DLOPEN	0x80000	/* dlopen */
+
 /* interface funtion ->  class(es) mapping table, 
  * created by gen-interface.c */
 typedef struct {

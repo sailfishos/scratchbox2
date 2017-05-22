@@ -387,6 +387,11 @@ emulate_mode_rules = {
 		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
 		 protection = readonly_fs_always},
 
+		-- Many RPMs invoke ldconfig using absolute path in their %post* scripts
+		{path = "/sbin/ldconfig",
+		 replace_by = session_dir .. "/wrappers." .. active_mapmode .. "/ldconfig",
+		 protection = readonly_fs_always},
+
 		-- 
 		{dir = "/tmp", replace_by = tmp_dir_dest},
 

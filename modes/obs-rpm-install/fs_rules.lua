@@ -42,6 +42,32 @@ accelerated_program_actions = {
 	{ map_to = target_root, protection = readonly_fs_always },
 }
 
+-- package management programs:
+-- Use a binary from tools_root if the package version matches the package version in target_root
+function pkg_versions_equal(pkg, root1, root2)
+	local query_template = "rpm --root '%s' -q --queryformat '%%{VERSION}' '%s'"
+	local query1 = string.format(query_template, root1, pkg)
+	local query2 = string.format(query_template, root2, pkg)
+	local rc = os.execute("test `"..query1.."` == `"..query2.."`")
+	return rc == 0
+end
+
+if pkg_versions_equal("rpm", tools, target_root) then
+	rpm_program_actions = accelerated_program_actions
+else
+	rpm_program_actions = {
+		{ map_to = target_root, protection = readonly_fs_always },
+	}
+end
+
+if pkg_versions_equal("zypper", tools, target_root) then
+	zypper_program_actions = accelerated_program_actions
+else
+	zypper_program_actions = {
+		{ map_to = target_root, protection = readonly_fs_always },
+	}
+end
+
 -- Path == "/":
 rootdir_rules = {
 		-- Special case for /bin/pwd: Some versions don't use getcwd(),
@@ -136,7 +162,7 @@ emulate_mode_rules_bin = {
 		-- rpm rules
 		{path = "/bin/rpm",
 		 func_class = FUNC_CLASS_EXEC,
-		 actions = accelerated_program_actions},
+		 actions = rpm_program_actions},
 		-- end of rpm rules
 		
 		{name = "/bin default rule", dir = "/bin", map_to = target_root,
@@ -199,10 +225,10 @@ emulate_mode_rules_usr_bin = {
 		-- rpm rules
 		{prefix = "/usr/bin/rpm",
 		 func_class = FUNC_CLASS_EXEC,
-		 actions = accelerated_program_actions},
+		 actions = rpm_program_actions},
 		{path = "/usr/bin/zypper",
 		 func_class = FUNC_CLASS_EXEC,
-		 actions = accelerated_program_actions},
+		 actions = zypper_program_actions},
 		{path = "/usr/bin/deltainfoxml2solv",
 		 func_class = FUNC_CLASS_EXEC,
 		 actions = accelerated_program_actions},

@@ -45,7 +45,9 @@ accelerated_program_actions = {
 -- package management programs:
 -- Use a binary from tools_root if the package version matches the package version in target_root
 function pkg_versions_equal(pkg, root1, root2)
-	local query_template = "rpm --root '%s' -q --queryformat '%%{VERSION}' '%s'"
+	-- It is crucial to not write single byte on stderr - it would be treated as a sign of
+	-- failure, causing sb2 to exit with error "errors detected during sb2d startup."
+	local query_template = "rpm --root '%s' -q --queryformat '%%{VERSION}' '%s' 2>/dev/null"
 	local query1 = string.format(query_template, root1, pkg)
 	local query2 = string.format(query_template, root2, pkg)
 	local rc = os.execute("v1=$("..query1..") && v2=$("..query2..") && test \"$v1\" == \"$v2\"")

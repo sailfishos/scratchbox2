@@ -48,7 +48,7 @@ function pkg_versions_equal(pkg, root1, root2)
 	local query_template = "rpm --root '%s' -q --queryformat '%%{VERSION}' '%s'"
 	local query1 = string.format(query_template, root1, pkg)
 	local query2 = string.format(query_template, root2, pkg)
-	local rc = os.execute("test `"..query1.."` == `"..query2.."`")
+	local rc = os.execute("v1=$("..query1..") && v2=$("..query2..") && test \"$v1\" == \"$v2\"")
 	return rc == 0
 end
 

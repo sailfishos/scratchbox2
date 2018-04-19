@@ -391,6 +391,7 @@ emulate_mode_rules = {
 
 		-- Many RPMs invoke ldconfig using absolute path in their %post* scripts
 		{path = "/sbin/ldconfig",
+		 func_class = FUNC_CLASS_EXEC + FUNC_CLASS_OPEN,
 		 replace_by = session_dir .. "/wrappers." .. active_mapmode .. "/ldconfig",
 		 protection = readonly_fs_always},
 

@@ -312,7 +312,8 @@ SBOX_EXTRA_CROSS_COMPILER_ARGS="$SBOX_EXTRA_CROSS_COMPILER_ARGS -L@SBOX_TARGET_R
 # test if the cross compiler needs to be silenced about /usr/include
 # usage ("gcc -E -Wno-poison-system-directories" is not a reliable way for
 # testing this; instead check if ld has the related flag)
-txt=`$GCC_FULLPATH -Wl,--help | grep no-poison-system-directories`
+# Ensure its bin directory is in PATH to prevent "unable to find 'ld'" error.
+txt=`PATH="$(dirname $GCC_FULLPATH):$PATH" $GCC_FULLPATH -Wl,--help | grep no-poison-system-directories`
 case "$txt" in
 	(*no-poison-system-directories*)	# option is available
 		SBOX_EXTRA_CROSS_COMPILER_ARGS="$SBOX_EXTRA_CROSS_COMPILER_ARGS -Wno-poison-system-directories"

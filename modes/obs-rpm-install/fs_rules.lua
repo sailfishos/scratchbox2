@@ -62,7 +62,8 @@ else
 	}
 end
 
-if pkg_versions_equal("zypper", tools, target_root) then
+if pkg_versions_equal("zypper", tools, target_root) and
+	pkg_versions_equal("rpm", tools, target_root) then
 	zypper_program_actions = accelerated_program_actions
 else
 	zypper_program_actions = {

@@ -277,13 +277,13 @@ emulate_mode_rules_usr = {
 		 protection = readonly_fs_always},
 
                 {path = "/usr/lib/rpm/elfdeps", func_class = FUNC_CLASS_EXEC,
-		 actions=accelerated_program_actions},
+		 actions=rpm_program_actions},
                 {path = "/usr/lib/rpm/debugedit", func_class = FUNC_CLASS_EXEC,
-		 actions=accelerated_program_actions},
+		 actions=rpm_program_actions},
                 {path = "/usr/lib/rpm/javadeps", func_class = FUNC_CLASS_EXEC,
-		 actions=accelerated_program_actions},
+		 actions=rpm_program_actions},
                 {path = "/usr/lib/rpm/rpmdeps", func_class = FUNC_CLASS_EXEC,
-		 actions=accelerated_program_actions},
+		 actions=rpm_program_actions},
 
 		-- If a program from tools loads plugins,
 		-- they should be dlopened from tools as well.

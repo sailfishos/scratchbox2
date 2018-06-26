@@ -219,9 +219,6 @@ emulate_mode_rules_usr_bin = {
 		 protection = readonly_fs_always},
 
 		-- rpm rules
-		{prefix = "/usr/bin/rpm",
-		 func_class = FUNC_CLASS_EXEC,
-		 actions = rpm_program_actions},
 		{path = "/usr/bin/zypper",
 		 func_class = FUNC_CLASS_EXEC,
 		 actions = rpm_program_actions},
@@ -253,6 +250,9 @@ emulate_mode_rules_usr_bin = {
 		 func_class = FUNC_CLASS_EXEC,
 		 actions = rpm_program_actions},
 		{path = "/usr/bin/updateinfoxml2solv",
+		 func_class = FUNC_CLASS_EXEC,
+		 actions = rpm_program_actions},
+		{prefix = "/usr/bin/rpm",
 		 func_class = FUNC_CLASS_EXEC,
 		 actions = rpm_program_actions},
 

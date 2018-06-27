@@ -43,20 +43,52 @@ accelerated_program_actions = {
 }
 
 -- package management programs:
--- Use a binary from tools_root if the package version matches the package version in target_root
-function pkg_versions_equal(pkg, root1, root2)
-	-- It is crucial to not write single byte on stderr - it would be treated as a sign of
-	-- failure, causing sb2 to exit with error "errors detected during sb2d startup."
-	local query_template = "rpm --root '%s' -q --queryformat '%%{VERSION}' '%s' 2>/dev/null"
-	local query1 = string.format(query_template, root1, pkg)
-	local query2 = string.format(query_template, root2, pkg)
-	local rc = os.execute("v1=$("..query1..") && v2=$("..query2..") && test \"$v1\" == \"$v2\"")
+-- Cannot enable acceleration for RPM related programs if it seems that some of
+-- the PACKAGES were updated in the tools root.
+function can_accelerate_rpm()
+    local test = [=[
+    tools=%q
+    target=%q
+
+    PACKAGES=(rpm libsolv0 zypper)
+
+    # OBS build stores preinstalled packages here
+    PREINSTALL_CACHE=$target/.init_b_cache/rpms
+
+    query_version()
+    {
+        # It is crucial to not write single byte on stderr - it would be treated as a sign of
+        # failure, causing sb2 to exit with error "errors detected during sb2d startup."
+        rpm -q --queryformat "%%{VERSION}" "$@" 2>/dev/null
+    }
+
+    for package in "${PACKAGES[@]}"; do
+        if ! ver_tools=$(query_version --root "$tools" "$package"); then
+            # The package does not seem to be installed in tools root. Enabling acceleration
+            # cannot break anything in this case.
+            continue
+        fi
+
+        if ! ver_target=$(query_version --root "$target" "$package") \
+            && ! ver_target=$(query_version -p "$PREINSTALL_CACHE/$package.rpm"); then
+            # The package does not seem to be installed in build target. An incompatible
+            # version might be installed later - not enabling acceleration.
+            exit 1
+        fi
+
+        if [[ $ver_tools != $ver_target ]]; then
+            exit 1
+        fi
+    done
+
+    exit 0
+    ]=]
+
+	local rc = os.execute(string.format(test, tools, target_root))
 	return rc == 0
 end
 
-if pkg_versions_equal("rpm", tools, target_root) and
-	pkg_versions_equal("libsolv0", tools, target_root) and
-	pkg_versions_equal("zypper", tools, target_root) then
+if can_accelerate_rpm() then
 	rpm_program_actions = accelerated_program_actions
 else
 	rpm_program_actions = {

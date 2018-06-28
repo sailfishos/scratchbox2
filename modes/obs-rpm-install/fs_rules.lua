@@ -54,19 +54,12 @@ function pkg_versions_equal(pkg, root1, root2)
 	return rc == 0
 end
 
-if pkg_versions_equal("rpm", tools, target_root) then
+if pkg_versions_equal("rpm", tools, target_root) and
+	pkg_versions_equal("libsolv0", tools, target_root) and
+	pkg_versions_equal("zypper", tools, target_root) then
 	rpm_program_actions = accelerated_program_actions
 else
 	rpm_program_actions = {
-		{ map_to = target_root, protection = readonly_fs_always },
-	}
-end
-
-if pkg_versions_equal("zypper", tools, target_root) and
-	pkg_versions_equal("rpm", tools, target_root) then
-	zypper_program_actions = accelerated_program_actions
-else
-	zypper_program_actions = {
 		{ map_to = target_root, protection = readonly_fs_always },
 	}
 end
@@ -226,42 +219,42 @@ emulate_mode_rules_usr_bin = {
 		 protection = readonly_fs_always},
 
 		-- rpm rules
+		{path = "/usr/bin/zypper",
+		 func_class = FUNC_CLASS_EXEC,
+		 actions = rpm_program_actions},
+		{path = "/usr/bin/deltainfoxml2solv",
+		 func_class = FUNC_CLASS_EXEC,
+		 actions = rpm_program_actions},
+		{path = "/usr/bin/dumpsolv",
+		 func_class = FUNC_CLASS_EXEC,
+		 actions = rpm_program_actions},
+		{path = "/usr/bin/installcheck",
+		 func_class = FUNC_CLASS_EXEC,
+		 actions = rpm_program_actions},
+		{path = "/usr/bin/mergesolv",
+		 func_class = FUNC_CLASS_EXEC,
+		 actions = rpm_program_actions},
+		{path = "/usr/bin/repomdxml2solv",
+		 func_class = FUNC_CLASS_EXEC,
+		 actions = rpm_program_actions},
+		{path = "/usr/bin/rpmdb2solv",
+		 func_class = FUNC_CLASS_EXEC,
+		 actions = rpm_program_actions},
+		{path = "/usr/bin/rpmmd2solv",
+		 func_class = FUNC_CLASS_EXEC,
+		 actions = rpm_program_actions},
+		{path = "/usr/bin/rpms2solv",
+		 func_class = FUNC_CLASS_EXEC,
+		 actions = rpm_program_actions},
+		{path = "/usr/bin/testsolv",
+		 func_class = FUNC_CLASS_EXEC,
+		 actions = rpm_program_actions},
+		{path = "/usr/bin/updateinfoxml2solv",
+		 func_class = FUNC_CLASS_EXEC,
+		 actions = rpm_program_actions},
 		{prefix = "/usr/bin/rpm",
 		 func_class = FUNC_CLASS_EXEC,
 		 actions = rpm_program_actions},
-		{path = "/usr/bin/zypper",
-		 func_class = FUNC_CLASS_EXEC,
-		 actions = zypper_program_actions},
-		{path = "/usr/bin/deltainfoxml2solv",
-		 func_class = FUNC_CLASS_EXEC,
-		 actions = accelerated_program_actions},
-		{path = "/usr/bin/dumpsolv",
-		 func_class = FUNC_CLASS_EXEC,
-		 actions = accelerated_program_actions},
-		{path = "/usr/bin/installcheck",
-		 func_class = FUNC_CLASS_EXEC,
-		 actions = accelerated_program_actions},
-		{path = "/usr/bin/mergesolv",
-		 func_class = FUNC_CLASS_EXEC,
-		 actions = accelerated_program_actions},
-		{path = "/usr/bin/repomdxml2solv",
-		 func_class = FUNC_CLASS_EXEC,
-		 actions = accelerated_program_actions},
-		{path = "/usr/bin/rpmdb2solv",
-		 func_class = FUNC_CLASS_EXEC,
-		 actions = accelerated_program_actions},
-		{path = "/usr/bin/rpmmd2solv",
-		 func_class = FUNC_CLASS_EXEC,
-		 actions = accelerated_program_actions},
-		{path = "/usr/bin/rpms2solv",
-		 func_class = FUNC_CLASS_EXEC,
-		 actions = accelerated_program_actions},
-		{path = "/usr/bin/testsolv",
-		 func_class = FUNC_CLASS_EXEC,
-		 actions = accelerated_program_actions},
-		{path = "/usr/bin/updateinfoxml2solv",
-		 func_class = FUNC_CLASS_EXEC,
-		 actions = accelerated_program_actions},
 
 		-- end of rpm rules
 		{name = "/usr/bin default rule", dir = "/usr/bin", map_to = target_root,
@@ -277,13 +270,13 @@ emulate_mode_rules_usr = {
 		 protection = readonly_fs_always},
 
                 {path = "/usr/lib/rpm/elfdeps", func_class = FUNC_CLASS_EXEC,
-		 actions=accelerated_program_actions},
+		 actions=rpm_program_actions},
                 {path = "/usr/lib/rpm/debugedit", func_class = FUNC_CLASS_EXEC,
-		 actions=accelerated_program_actions},
+		 actions=rpm_program_actions},
                 {path = "/usr/lib/rpm/javadeps", func_class = FUNC_CLASS_EXEC,
-		 actions=accelerated_program_actions},
+		 actions=rpm_program_actions},
                 {path = "/usr/lib/rpm/rpmdeps", func_class = FUNC_CLASS_EXEC,
-		 actions=accelerated_program_actions},
+		 actions=rpm_program_actions},
 
 		-- If a program from tools loads plugins,
 		-- they should be dlopened from tools as well.

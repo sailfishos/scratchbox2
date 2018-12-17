@@ -17,6 +17,11 @@ rule_lib_proc_rules = {
 	 func_class = FUNC_CLASS_SET_TIMES,
 	 set_path = session_dir.."/dummy_file", protection = readonly_fs_if_not_root },
 
+	-- The links under this directory are not real symbolic links. It is an
+	-- error to use the path that these symlinks resolve to. It is necessay to
+	-- use the original /proc/self/fd/<n> path directly.
+	{dir = "/proc/self/fd", force_orig_path = true},
+
 	-- Default:
 	{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
 	 virtual_path = true},

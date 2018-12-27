@@ -553,7 +553,7 @@ WRAP: ssize_t __readlinkat_chk(int dirfd, const char *__restrict pathname, \
 
 GATE: int remove(const char *pathname) : \
 	class(REMOVE) \
-	map(pathname) fail_if_readonly(pathname,-1,EROFS)
+	dont_resolve_final_symlink map(pathname) fail_if_readonly(pathname,-1,EROFS)
 #ifdef HAVE_REMOVEXATTR
 #ifdef HAVE_LINUX_XATTRS
 WRAP: int removexattr(const char *path, const char *name) : \
@@ -583,7 +583,7 @@ WRAP: int revoke(const char *file) : map(file)
 
 GATE: int rmdir(const char *pathname) : \
 	class(REMOVE) \
-	map(pathname) fail_if_readonly(pathname,-1,EROFS)
+	dont_resolve_final_symlink map(pathname) fail_if_readonly(pathname,-1,EROFS)
 
 #ifdef HAVE_SCANDIR
 #ifdef HAVE_LINUX_SCANDIR

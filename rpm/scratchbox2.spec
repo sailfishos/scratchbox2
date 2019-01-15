@@ -3,7 +3,7 @@ License: 	LGPL
 URL:		https://git.merproject.org/mer-core/scratchbox2
 Name: 		scratchbox2
 Version:	2.3.90
-Release:	14
+Release:	16
 Source: 	%{name}-%{version}.tar.gz
 Prefix: 	/usr
 Group: 		Development/Tools

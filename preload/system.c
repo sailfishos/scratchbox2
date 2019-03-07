@@ -25,18 +25,11 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <bits/libc-lock.h>
-#if 0
-#include <sysdep-cancel.h>
-#endif
 
-#if 1 /* sb2 */
+/* sb2 */
 #include "libsb2.h"
 #include "exported.h"
 
-#if 0
-#define __sigemptyset	sigemptyset
-#endif
 #define __sigaction	sigaction
 #define __sigaddset	sigaddset
 #define __sigprocmask	sigprocmask
@@ -44,7 +37,19 @@
 #define __fork		fork
 #define __execve	execve
 #define __waitpid	waitpid
+
+/* To handle locking the same way as glibc does we would need to include
+ * (now private) libc-lock.h, which would make things difficult. At the same
+ * time it seems scratchbox2 has always been compiled without the
+ * _LIBC_REENTRANT defined here, so we are not really changing any logic
+ * even though the locking related code is removed.
+ * #include <bits/libc-lock.h>
+ */
+#ifdef _LIBC_REENTRANT
+#error _LIBC_REENTRANT related code removed. Check sources for explanation.
 #endif
+
+/* ------------ Start of glibc based code ------------ */
 
 #define	SHELL_PATH	"/bin/sh"	/* Path of the shell.  */
 #define	SHELL_NAME	"sh"		/* Name to give it.  */

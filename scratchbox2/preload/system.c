@@ -32,6 +32,7 @@
 
 #define __sigaction	sigaction
 #define __sigaddset	sigaddset
+#define __sigemptyset	sigemptyset
 #define __sigprocmask	sigprocmask
 #define __set_errno(x)	(errno=(x))
 #define __fork		fork

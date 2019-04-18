@@ -23,6 +23,13 @@ Group:   Development/Tools
 %description -n libsb2
 Scratchbox2 preload library.
 
+%package docs
+Summary: Scratchbox2 docs
+Group:   Development/Tools
+
+%description docs
+Scratchbox2 man pages.
+
 %prep
 %setup
 
@@ -41,6 +48,8 @@ install -D -m 644 utils/sb2.bash %{buildroot}/etc/bash_completion.d/sb2.bash
 %{_bindir}/sb2*
 %{_datadir}/scratchbox2/*
 %config %{_sysconfdir}/bash_completion.d/sb2.bash
+
+%files docs
 %doc %attr(0444,root,root) /usr/share/man/man1/*
 %doc %attr(0444,root,root) /usr/share/man/man7/*
 

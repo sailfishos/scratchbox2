@@ -929,7 +929,8 @@ static int cmd_start(const command_table_t *cmdp,
 			printf("%d: '%s'\n", i, cmd_argv[i+1]);
 	}
 	execvp(cmd_argv[1], cmd_argv+1);
-	return(0);
+	fprintf(stderr,"%s could not be executed: %s\n",cmd_argv[1], strerror(errno));
+	return(1);
 }
 
 const command_table_t commands[] = {

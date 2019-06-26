@@ -2,6 +2,9 @@
 "external_patches" for SB2:
 ===========================
 
+Attention: The patches stored here are the archived patches. The current version
+of glibc used in Sailfish OS contains more recent versions of these patches.
+
 This directory contains patches to external components that are recommended
 to be used in the SB2'ed environment.
 

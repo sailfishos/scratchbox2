@@ -14,7 +14,11 @@ exec_policy_selection = {
 		-- Tools. at least qemu might be used from there.
 		{prefix = tools_prefix .. "/usr/bin/perl",
 		 exec_policy_name = "Tools-perl"},
+		{prefix = tools_prefix .. "/bin/perl",
+		 exec_policy_name = "Tools-perl"},
 		{prefix = tools_prefix .. "/usr/bin/python",
+		 exec_policy_name = "Tools-python"},
+		{prefix = tools_prefix .. "/bin/python",
 		 exec_policy_name = "Tools-python"},
 
                 -- the toolchain, if not from Tools:

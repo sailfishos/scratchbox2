@@ -62,7 +62,12 @@ perl_lib_test = {
 perl_bin_test = {
 	{ if_redirect_ignore_is_active = "/usr/bin/perl",
 	  map_to = target_root, readonly = true },
+	{ if_redirect_ignore_is_active = "/bin/perl",
+	  map_to = target_root, readonly = true },
 	{ if_redirect_force_is_active = "/usr/bin/perl",
+	  map_to = tools, readonly = true,
+	  exec_policy_name = "Tools-perl" },
+	{ if_redirect_force_is_active = "/bin/perl",
 	  map_to = tools, readonly = true,
 	  exec_policy_name = "Tools-perl" },
 	{ if_active_exec_policy_is = "Target",
@@ -79,7 +84,12 @@ perl_bin_test = {
 python_bin_test = {
 	{ if_redirect_ignore_is_active = "/usr/bin/python",
 	  map_to = target_root, readonly = true },
+	{ if_redirect_ignore_is_active = "/bin/python",
+	  map_to = target_root, readonly = true },
 	{ if_redirect_force_is_active = "/usr/bin/python",
+	  map_to = tools, readonly = true,
+	  exec_policy_name = "Tools-python" },
+	{ if_redirect_force_is_active = "/bin/python",
 	  map_to = tools, readonly = true,
 	  exec_policy_name = "Tools-python" },
 	{ if_active_exec_policy_is = "Target",
@@ -471,7 +481,9 @@ emulate_mode_rules_usr_bin = {
 		--	(these are real prefixes, version number may
 		--	be included in the name (/usr/bin/python2.5 etc))
 		{prefix = "/usr/bin/perl", actions = perl_bin_test},
+		{prefix = "/bin/perl", actions = perl_bin_test},
 		{prefix = "/usr/bin/python", actions = python_bin_test},
+		{prefix = "/bin/python", actions = python_bin_test},
 
 		{path = "/usr/bin/sb2-show", use_orig_path = true,
 		 protection = readonly_fs_always},

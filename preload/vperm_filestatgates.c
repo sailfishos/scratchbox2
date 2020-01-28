@@ -29,16 +29,16 @@
 #include "rule_tree.h"
 #include "rule_tree_rpc.h"
 
-static int get_stat_for_fxxat(
+static int get_stat_for_fxxat64(
 	const char *realfnname,
 	int dirfd,
 	const mapping_results_t *mapped_filename,
 	int flags,
-	struct stat *statbuf)
+	struct stat64 *statbuf)
 {
 	int	r;
 
-	r = real_fstatat(dirfd, mapped_filename->mres_result_path, statbuf, flags);
+	r = real_fstatat64(dirfd, mapped_filename->mres_result_path, statbuf, flags);
 	if (r < 0) {
 		int e = errno;
 		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: returns %d, errno=%d",
@@ -50,7 +50,7 @@ static int get_stat_for_fxxat(
 
 static void vperm_clear_all_if_virtualized(
         const char *realfnname,
-	struct stat *statbuf)
+	struct stat64 *statbuf)
 {
 	ruletree_inodestat_handle_t	handle;
 	inodesimu_t			istat_struct;
@@ -160,6 +160,23 @@ int fstat_gate(int *result_errno_ptr,
 	return(res);
 }
 
+int fstat64_gate(int *result_errno_ptr,
+	int (*real_fstat64_ptr)(int fd, struct stat64 *buf),
+        const char *realfnname,
+	int fd,
+	struct stat64 *buf)
+{
+	int res;
+
+	res = (*real_fstat64_ptr)(fd, buf);
+	if (res == 0) {
+		i_virtualize_struct_stat(realfnname, NULL, buf);
+	} else {
+		*result_errno_ptr = errno;
+	}
+	return(res);
+}
+
 int __fxstat_gate(int *result_errno_ptr,
 	int (*real___fxstat_ptr)(int ver, int fd, struct stat *buf),
         const char *realfnname,
@@ -241,7 +258,7 @@ int __fxstatat64_gate(int *result_errno_ptr,
 
 static void vperm_chown(
         const char *realfnname,
-	struct stat *statbuf,
+	struct stat64 *statbuf,
 	uid_t owner,
 	gid_t group)
 {
@@ -284,7 +301,7 @@ int fchownat_gate(int *result_errno_ptr,
 	int flags)
 {
 	int	res;
-	struct stat statbuf;
+	struct stat64 statbuf;
 
 	/* first try the real function */
 	res = (*real_fchownat_ptr)(dirfd, mapped_filename->mres_result_path, owner, group, flags);
@@ -293,7 +310,7 @@ int fchownat_gate(int *result_errno_ptr,
 		/* If this inode has been virtualized, update DB */
 		if (get_vperm_num_active_inodestats() > 0) {
 			/* there are active vperm inodestat nodes */
-			if (get_stat_for_fxxat(realfnname, dirfd, mapped_filename, flags, &statbuf) == 0) {
+			if (get_stat_for_fxxat64(realfnname, dirfd, mapped_filename, flags, &statbuf) == 0) {
 				/* since the real function succeeds, vperm_chown() will now
 				 * release simulated UID and/or GID */
 				vperm_chown(realfnname, &statbuf, owner, group);
@@ -303,7 +320,7 @@ int fchownat_gate(int *result_errno_ptr,
 		int	e = errno;
 
 		if (e == EPERM) {
-			if (get_stat_for_fxxat(realfnname, dirfd, mapped_filename, flags, &statbuf) == 0) {
+			if (get_stat_for_fxxat64(realfnname, dirfd, mapped_filename, flags, &statbuf) == 0) {
 				vperm_chown(realfnname, &statbuf, owner, group);
 				res = 0;
 			} else {
@@ -327,7 +344,7 @@ int chown_gate(int *result_errno_ptr,
 	gid_t group)
 {
 	int	res;
-	struct stat statbuf;
+	struct stat64 statbuf;
 
 	/* first try the real function */
 	res = (*real_chown_ptr)(mapped_filename->mres_result_path, owner, group);
@@ -336,7 +353,7 @@ int chown_gate(int *result_errno_ptr,
 		/* If this inode has been virtualized, update DB */
 		if (get_vperm_num_active_inodestats() > 0) {
 			/* there are active vperm inodestat nodes */
-			if (real_stat(mapped_filename->mres_result_path, &statbuf) == 0) {
+			if (real_stat64(mapped_filename->mres_result_path, &statbuf) == 0) {
 				/* since the real function succeeds, vperm_chown() will now
 				 * release simulated UID and/or GID */
 				vperm_chown(realfnname, &statbuf, owner, group);
@@ -346,7 +363,7 @@ int chown_gate(int *result_errno_ptr,
 		int	e = errno;
 
 		if (e == EPERM) {
-			res = real_stat(mapped_filename->mres_result_path, &statbuf);
+			res = real_stat64(mapped_filename->mres_result_path, &statbuf);
 			if (res == 0) vperm_chown(realfnname, &statbuf, owner, group);
 			else {
 				*result_errno_ptr = EPERM;
@@ -368,7 +385,7 @@ int lchown_gate(int *result_errno_ptr,
 	gid_t group)
 {
 	int	res;
-	struct stat statbuf;
+	struct stat64 statbuf;
 
 	/* first try the real function */
 	res = (*real_lchown_ptr)(mapped_filename->mres_result_path, owner, group);
@@ -377,7 +394,7 @@ int lchown_gate(int *result_errno_ptr,
 		/* If this inode has been virtualized, update DB */
 		if (get_vperm_num_active_inodestats() > 0) {
 			/* there are active vperm inodestat nodes */
-			if (real_lstat(mapped_filename->mres_result_path, &statbuf) == 0) {
+			if (real_lstat64(mapped_filename->mres_result_path, &statbuf) == 0) {
 				/* since the real function succeeds, vperm_chown() will now
 				 * release simulated UID and/or GID */
 				vperm_chown(realfnname, &statbuf, owner, group);
@@ -387,7 +404,7 @@ int lchown_gate(int *result_errno_ptr,
 		int	e = errno;
 
 		if (e == EPERM) {
-			res = real_lstat(mapped_filename->mres_result_path, &statbuf);
+			res = real_lstat64(mapped_filename->mres_result_path, &statbuf);
 			if (res == 0) vperm_chown(realfnname, &statbuf, owner, group);
 			else {
 				res = -1;
@@ -409,7 +426,7 @@ int fchown_gate(int *result_errno_ptr,
 	gid_t group)
 {
 	int	res;
-	struct stat statbuf;
+	struct stat64 statbuf;
 
 	/* first try the real function */
 	res = (*real_fchown_ptr)(fd, owner, group);
@@ -418,7 +435,7 @@ int fchown_gate(int *result_errno_ptr,
 		/* If this inode has been virtualized, update DB */
 		if (get_vperm_num_active_inodestats() > 0) {
 			/* there are active vperm inodestat nodes */
-			if (real_fstat(fd, &statbuf) == 0) {
+			if (real_fstat64(fd, &statbuf) == 0) {
 				/* since the real function succeeds, vperm_chown() will now
 				 * release simulated UID and/or GID */
 				vperm_chown(realfnname, &statbuf, owner, group);
@@ -428,7 +445,7 @@ int fchown_gate(int *result_errno_ptr,
 		int	e = errno;
 
 		if (e == EPERM) {
-			res = real_fstat(fd, &statbuf);
+			res = real_fstat64(fd, &statbuf);
 			if (res == 0) vperm_chown(realfnname, &statbuf, owner, group);
 			else {
 				res = -1;
@@ -447,7 +464,7 @@ int fchown_gate(int *result_errno_ptr,
 /* set/release st_mode virtualization */
 static void vperm_chmod(
         const char *realfnname,
-	struct stat *statbuf,
+	struct stat64 *statbuf,
 	mode_t virt_mode,
 	mode_t suid_sgid_bits)
 {
@@ -470,7 +487,7 @@ static void vperm_chmod(
 
 static int vperm_chmod_if_simulated_device(
         const char *realfnname,
-	struct stat *statbuf,
+	struct stat64 *statbuf,
 	mode_t mode,
 	mode_t suid_sgid_bits)
 {
@@ -496,12 +513,12 @@ static int vperm_stat_for_chmod(
 	int fd,
 	const mapping_results_t *mapped_filename,
 	int flags,
-	struct stat *buf)
+	struct stat64 *buf)
 {
 	if (mapped_filename) {
-		return (get_stat_for_fxxat(realfnname, fd, mapped_filename, flags, buf));
+		return (get_stat_for_fxxat64(realfnname, fd, mapped_filename, flags, buf));
 	}
-	return (real_fstat(fd, buf));
+	return (real_fstat64(fd, buf));
 }
 
 static void vperm_chmod_prepare(
@@ -509,7 +526,7 @@ static void vperm_chmod_prepare(
 	int	fd,
 	const mapping_results_t *mapped_filename,
 	int	flags,
-	struct stat *buf,
+	struct stat64 *buf,
 	mode_t	mode,
 	mode_t	suid_sgid_bits,
 	int	*has_stat,
@@ -580,7 +597,7 @@ static int vperm_chmod_done_update_state(
 	mode_t suid_sgid_bits,
 	int forced_owner_rights)
 {
-	struct stat	statbuf;
+	struct stat64	statbuf;
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: %s", __func__, realfnname);
 
@@ -621,7 +638,7 @@ int fchmodat_gate(int *result_errno_ptr,
 	int flags)
 {
 	int		res;
-	struct stat	statbuf;
+	struct stat64	statbuf;
 	mode_t		suid_sgid_bits;
 	int		e;
 	int		forced_owner_rights = 0;
@@ -660,7 +677,7 @@ int fchmod_gate(int *result_errno_ptr,
 	mode_t mode)
 {
 	int		res;
-	struct stat	statbuf;
+	struct stat64	statbuf;
 	mode_t		suid_sgid_bits;
 	int		e;
 	int		forced_owner_rights = 0;
@@ -696,7 +713,7 @@ int chmod_gate(int *result_errno_ptr,
 	mode_t mode)
 {
 	int		res;
-	struct stat	statbuf;
+	struct stat64	statbuf;
 	mode_t		suid_sgid_bits;
 	int		e;
 	int		forced_owner_rights = 0;
@@ -740,7 +757,7 @@ static int vperm_mknod(
 	mode_t mode,
 	dev_t dev)
 {
-	struct stat statbuf;
+	struct stat64 statbuf;
 	int dummy_dev_fd;
 	int res;
 
@@ -774,7 +791,7 @@ static int vperm_mknod(
 		return(-1);
 	} 
 
-	res = real_fstat(dummy_dev_fd, &statbuf);
+	res = real_fstat64(dummy_dev_fd, &statbuf);
 	close_nomap_nolog(dummy_dev_fd);
 	if (res == 0) {
 		ruletree_rpc__vperm_set_dev_node((uint64_t)statbuf.st_dev,
@@ -803,9 +820,9 @@ int __xmknod_gate(int *result_errno_ptr,
 		/* OK, success. */
 		/* If this inode has been virtualized, update DB */
 		if (get_vperm_num_active_inodestats() > 0) {
-			struct stat statbuf;
+			struct stat64 statbuf;
 			/* there are active vperm inodestat nodes */
-			if (real_stat(mapped_filename->mres_result_path, &statbuf) == 0) {
+			if (real_stat64(mapped_filename->mres_result_path, &statbuf) == 0) {
 				/* since the real function succeeds, use the real inode
 				 * directly and release all simulated information */
 				vperm_clear_all_if_virtualized(realfnname, &statbuf);
@@ -844,9 +861,9 @@ int __xmknodat_gate(int *result_errno_ptr,
 		/* OK, success. */
 		/* If this inode has been virtualized, update DB */
 		if (get_vperm_num_active_inodestats() > 0) {
-			struct stat statbuf;
+			struct stat64 statbuf;
 			/* there are active vperm inodestat nodes */
-			if (get_stat_for_fxxat(realfnname, dirfd, mapped_filename, 0, &statbuf) == 0) {
+			if (get_stat_for_fxxat64(realfnname, dirfd, mapped_filename, 0, &statbuf) == 0) {
 				/* since the real function succeeds, use the real inode
 				 * directly and release all simulated information */
 				vperm_clear_all_if_virtualized(realfnname, &statbuf);
@@ -876,13 +893,13 @@ int unlink_gate(int *result_errno_ptr,
 	const mapping_results_t *mapped_filename)
 {
 	int has_stat = 0;
-	struct stat statbuf;
+	struct stat64 statbuf;
 	int res;
 
 	/* If this inode has been virtualized, be prepared to update DB */
 	if (get_vperm_num_active_inodestats() > 0) {
 		/* there are active vperm inodestat nodes */
-		if (real_stat(mapped_filename->mres_result_path, &statbuf) == 0) {
+		if (real_stat64(mapped_filename->mres_result_path, &statbuf) == 0) {
 			has_stat = 1;
 		}
 	}
@@ -907,13 +924,13 @@ int remove_gate(int *result_errno_ptr,
 	const mapping_results_t *mapped_filename)
 {
 	int has_stat = 0;
-	struct stat statbuf;
+	struct stat64 statbuf;
 	int res;
 
 	/* If this inode has been virtualized, be prepared to update DB */
 	if (get_vperm_num_active_inodestats() > 0) {
 		/* there are active vperm inodestat nodes */
-		if (real_stat(mapped_filename->mres_result_path, &statbuf) == 0) {
+		if (real_stat64(mapped_filename->mres_result_path, &statbuf) == 0) {
 			has_stat = 1;
 			/* FIXME. Build handle and check if it is DB, don't use IPC every time */
 		}
@@ -939,13 +956,13 @@ int rmdir_gate(int *result_errno_ptr,
 	const mapping_results_t *mapped_filename)
 {
 	int has_stat = 0;
-	struct stat statbuf;
+	struct stat64 statbuf;
 	int res;
 
 	/* If this inode has been virtualized, be prepared to update DB */
 	if (get_vperm_num_active_inodestats() > 0) {
 		/* there are active vperm inodestat nodes */
-		if (real_stat(mapped_filename->mres_result_path, &statbuf) == 0) {
+		if (real_stat64(mapped_filename->mres_result_path, &statbuf) == 0) {
 			has_stat = 1;
 			/* FIXME. Build handle and check if it is DB, don't use IPC every time */
 		}
@@ -972,13 +989,13 @@ int unlinkat_gate(int *result_errno_ptr,
 	int flags)
 {
 	int has_stat = 0;
-	struct stat statbuf;
+	struct stat64 statbuf;
 	int res;
 
 	/* If this inode has been virtualized, be prepared to update DB */
 	if (get_vperm_num_active_inodestats() > 0) {
 		/* there are active vperm inodestat nodes */
-		if (get_stat_for_fxxat(realfnname, dirfd, mapped_filename, 0, &statbuf) == 0) {
+		if (get_stat_for_fxxat64(realfnname, dirfd, mapped_filename, 0, &statbuf) == 0) {
 			has_stat = 1;
 		}
 	}
@@ -1004,9 +1021,9 @@ static void vperm_set_owner_and_group(
 	const char *realfnname,
 	const mapping_results_t *mapped_pathname)
 {
-	struct stat statbuf;
+	struct stat64 statbuf;
 
-	if (real_fstatat(dirfd, mapped_pathname->mres_result_path, &statbuf, 0) == 0) {
+	if (real_fstatat64(dirfd, mapped_pathname->mres_result_path, &statbuf, 0) == 0) {
 		vperm_chown(realfnname, &statbuf, vperm_geteuid(), vperm_getegid());
 	} else {
 		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: stat failed", realfnname);
@@ -1049,9 +1066,9 @@ static int vperm_mkdir_finalize(
 	int	forced_owner_rights)
 {
 	if (forced_owner_rights) {
-		struct stat statbuf;
+		struct stat64 statbuf;
 
-		if (get_stat_for_fxxat(realfnname, dirfd, mapped_pathname, 0/*flags*/, &statbuf) != 0) {
+		if (get_stat_for_fxxat64(realfnname, dirfd, mapped_pathname, 0/*flags*/, &statbuf) != 0) {
 			/* Strange. real fn worked, but here we can't stat */
 			return(-1);
 		}
@@ -1221,12 +1238,12 @@ static int vperm_do_open(
 	int open_errno = 0;
 	int target_exists_beforehand = 0;
 	int uid_or_gid_is_virtual = 0;
-	struct stat orig_stat;
+	struct stat64 orig_stat;
 
 	/* prepare. */
 	uid_or_gid_is_virtual = vperm_uid_or_gid_virtualization_is_active();
 	if (uid_or_gid_is_virtual) {
-		if (real_fstatat(dirfd, mapped_pathname->mres_result_path, &orig_stat, 0) == 0) {
+		if (real_fstatat64(dirfd, mapped_pathname->mres_result_path, &orig_stat, 0) == 0) {
 			target_exists_beforehand = 1;
 		}
 	}
@@ -1589,13 +1606,13 @@ int rename_gate(int *result_errno_ptr,
 	const mapping_results_t *mapped_newpath)
 {
 	int has_stat = 0;
-	struct stat statbuf;
+	struct stat64 statbuf;
 	int res;
 
 	/* If newpath has been virtualized, be prepared to update DB */
 	if (get_vperm_num_active_inodestats() > 0) {
 		/* there are active vperm inodestat nodes */
-		if (real_lstat(mapped_newpath->mres_result_path, &statbuf) == 0) {
+		if (real_lstat64(mapped_newpath->mres_result_path, &statbuf) == 0) {
 			has_stat = 1;
 		}
 	}
@@ -1628,13 +1645,13 @@ int renameat_gate(int *result_errno_ptr,
 	const mapping_results_t *mapped_newpath)
 {
 	int has_stat = 0;
-	struct stat statbuf;
+	struct stat64 statbuf;
 	int res;
 
 	/* If newpath has been virtualized, be prepared to update DB */
 	if (get_vperm_num_active_inodestats() > 0) {
 		/* there are active vperm inodestat nodes */
-		if (get_stat_for_fxxat(realfnname, newdirfd, mapped_newpath, AT_SYMLINK_NOFOLLOW, &statbuf) == 0) {
+		if (get_stat_for_fxxat64(realfnname, newdirfd, mapped_newpath, AT_SYMLINK_NOFOLLOW, &statbuf) == 0) {
 			has_stat = 1;
 		}
 	}
@@ -1717,14 +1734,14 @@ static int vperm_root_access(
 	int flags)
 {
 	int r;
-	struct stat statbuf;
+	struct stat64 statbuf;
 
 	/* note: If write permission is requested, but mapping results say it is a R/O
 	 * target, this functions is not called at all (the GATE function
 	 * returns EROFS to the caller) => no need to handle EROFS here.
 	*/
 
-	r = get_stat_for_fxxat(realfnname, dirfd, mapped_pathname, flags, &statbuf);
+	r = get_stat_for_fxxat64(realfnname, dirfd, mapped_pathname, flags, &statbuf);
 	if (r) {
 		/* stat failed => fail. */
 		int e = errno;

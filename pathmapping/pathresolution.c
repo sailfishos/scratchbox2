@@ -641,8 +641,8 @@ static ruletree_object_offset_t sb_path_resolution(
 				if (ctx->pmc_must_be_directory &&
 				    virtual_path_work_ptr->pe_next == NULL) {
 					/* must be a directory, check it */
-					struct stat statbuf;
-					if (real_stat(prefix_mapping_result_host_path, &statbuf) < 0) {
+					struct stat64 statbuf;
+					if (real_stat64(prefix_mapping_result_host_path, &statbuf) < 0) {
 						resolved_virtual_path_res->mres_errno = errno;
 						SB_LOG(SB_LOGLEVEL_NOISE,
 							"Path resolution failed, unable to stat directory, errno=%d",

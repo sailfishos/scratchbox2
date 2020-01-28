@@ -35,7 +35,7 @@ int chroot_gate(int *result_errno_ptr,
 {
 	char	*new_chroot_path = NULL;
 	char	*cp = NULL;
-	struct stat	statbuf;
+	struct stat64	statbuf;
 	mapping_results_t mapped_chroot_path;
 
 	(void)real_chroot_ptr; /* won't call the real function ever */
@@ -111,7 +111,7 @@ int chroot_gate(int *result_errno_ptr,
 		/* check if the target exists. */
 		SB_LOG(SB_LOGLEVEL_DEBUG, "chroot: testing '%s'",
 			mapped_chroot_path.mres_result_path);
-		if (real_stat(mapped_chroot_path.mres_result_path, &statbuf) < 0) {
+		if (real_stat64(mapped_chroot_path.mres_result_path, &statbuf) < 0) {
 			SB_LOG(SB_LOGLEVEL_DEBUG, "chroot: failed to stat the destination dir (%s)",
 				mapped_chroot_path.mres_result_path);
 			*result_errno_ptr = ENOENT;

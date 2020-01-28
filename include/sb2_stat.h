@@ -13,9 +13,13 @@
 #include <unistd.h>
 
 extern int real_lstat(const char *path, struct stat *statbuf);
+extern int real_lstat64(const char *path, struct stat64 *statbuf);
 extern int real_stat(const char *path, struct stat *statbuf);
+extern int real_stat64(const char *path, struct stat64 *statbuf);
 extern int real_fstat(int fd, struct stat *statbuf);
+extern int real_fstat64(int fd, struct stat64 *statbuf);
 extern int real_fstatat(int dirfd, const char *path, struct stat *statbuf, int flags);
+extern int real_fstatat64(int dirfd, const char *path, struct stat64 *statbuf, int flags);
 
 extern int i_virtualize_struct_stat(const char *realfnname,
 	struct stat *buf, struct stat64 *buf64);
@@ -30,6 +34,6 @@ extern int sb2_stat64_file(const char *path, struct stat64 *buf, int *result_err
 	int ver,
 	int (*stat64fn_ptr)(const char *filename, struct stat64 *buf));
 
-extern int sb2_fstat(int fd, struct stat *statbuf);
+extern int sb2_fstat64(int fd, struct stat64 *statbuf);
 
 #endif

@@ -375,7 +375,7 @@ static enum binary_type inspect_binary(const char *filename,
 	static const char *target_cpu = NULL;
 	enum binary_type retval;
 	int fd, j;
-	struct stat status;
+	struct stat64 status;
 	char *region;
 	unsigned int ei_data;
 	uint16_t e_machine;
@@ -455,7 +455,7 @@ static enum binary_type inspect_binary(const char *filename,
 
 	retval = BIN_UNKNOWN;
 
-	if (sb2_fstat(fd, &status) < 0) {
+	if (sb2_fstat64(fd, &status) < 0) {
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"%s: fstat failed => out", __func__);
 		goto _out_close;

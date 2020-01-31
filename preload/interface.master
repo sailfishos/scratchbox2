@@ -267,7 +267,8 @@ WRAP: int fcntl64(int fd, int cmd, ...) : \
 GATE: int __fxstat(int ver, int fd, struct stat *buf) : class(STAT) \
 	create_nomap_nolog_version
 
-GATE: int __fxstat64(int ver, int fd, struct stat64 *buf) : class(STAT)
+GATE: int __fxstat64(int ver, int fd, struct stat64 *buf) : class(STAT) \
+	create_nomap_nolog_version
 
 GATE: int __lxstat(int ver, const char *filename, struct stat *buf) : \
 	create_nomap_nolog_version \
@@ -275,6 +276,7 @@ GATE: int __lxstat(int ver, const char *filename, struct stat *buf) : \
 
 #ifdef HAVE___LXSTAT64
 GATE: int __lxstat64(int ver, const char *filename, struct stat64 *buf) : \
+	create_nomap_nolog_version \
 	dont_resolve_final_symlink map(filename) class(STAT)
 #endif
 
@@ -297,7 +299,9 @@ GATE: int __xstat(int ver, const char *filename, struct stat *buf) : \
 	map(filename) class(STAT)
 
 #ifdef HAVE___XSTAT64
-GATE: int __xstat64(int ver, const char *filename, struct stat64 *buf) : map(filename) class(STAT)
+GATE: int __xstat64(int ver, const char *filename, struct stat64 *buf) : \
+	create_nomap_nolog_version \
+    map(filename) class(STAT)
 #endif
 
 #ifdef AT_SYMLINK_NOFOLLOW
@@ -306,6 +310,7 @@ GATE: int __fxstatat(int ver, int dirfd, const char *pathname, struct stat *buf,
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname) class(STAT)
 GATE: int __fxstatat64(int ver, int dirfd, const char *pathname, struct stat64 *buf, int flags) : \
+	create_nomap_nolog_version \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname) class(STAT)
 #endif
@@ -417,6 +422,9 @@ GATE: FILE *freopen64(const char *path, const char *mode, FILE *stream) : \
 GATE: int fstat(int fd, struct stat *buf) : class(STAT) \
 	create_nomap_nolog_version
 
+GATE: int fstat64(int fd, struct stat64 *buf) : class(STAT) \
+	create_nomap_nolog_version
+
 #ifdef AT_SYMLINK_NOFOLLOW
 WRAP: int fstatat(int dirfd, const char *pathname, struct stat *buf, int flags) : \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
@@ -508,6 +516,7 @@ WRAP: int lstat(const char *file_name, struct stat *buf) : \
 
 #ifdef HAVE_LSTAT64
 WRAP: int lstat64(const char *file_name, struct stat64 *buf) : \
+	create_nomap_nolog_version \
 	dont_resolve_final_symlink map(file_name) class(STAT)
 #endif
 

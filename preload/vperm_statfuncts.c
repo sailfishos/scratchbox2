@@ -29,6 +29,18 @@ int real_lstat(const char *path, struct stat *statbuf)
 	return(r);
 }
 
+int real_lstat64(const char *path, struct stat64 *statbuf)
+{
+	int	r;
+
+#ifdef _STAT_VER
+	r = __lxstat64_nomap_nolog(_STAT_VER, path, statbuf);
+#else
+	r = lstat64_nomap_nolog(path, statbuf);
+#endif
+	return(r);
+}
+
 int real_stat(const char *path, struct stat *statbuf)
 {
 	int	r;
@@ -37,6 +49,18 @@ int real_stat(const char *path, struct stat *statbuf)
 	r = __xstat_nomap_nolog(_STAT_VER, path, statbuf);
 #else
 	r = stat_nomap_nolog(path, statbuf);
+#endif
+	return(r);
+}
+
+int real_stat64(const char *path, struct stat64 *statbuf)
+{
+	int	r;
+
+#ifdef _STAT_VER
+	r = __xstat64_nomap_nolog(_STAT_VER, path, statbuf);
+#else
+	r = stat64_nomap_nolog(path, statbuf);
 #endif
 	return(r);
 }
@@ -53,6 +77,18 @@ int real_fstatat(int dirfd, const char *path, struct stat *statbuf, int flags)
 	return(r);
 }
 
+int real_fstatat64(int dirfd, const char *path, struct stat64 *statbuf, int flags)
+{
+	int	r;
+
+#ifdef _STAT_VER
+	r = __fxstatat64_nomap_nolog(_STAT_VER, dirfd, path, statbuf, flags);
+#else
+	r = fstatat64_nomap_nolog(dirfd, path, statbuf, flags);
+#endif
+	return(r);
+}
+
 int real_fstat(int fd, struct stat *statbuf)
 {
 	int	r;
@@ -60,7 +96,19 @@ int real_fstat(int fd, struct stat *statbuf)
 #ifdef _STAT_VER
 	r = __fxstat_nomap_nolog(_STAT_VER, fd, statbuf);
 #else
-	r = fstat_nomap_nolog(_STAT_VER, fd, statbuf);
+	r = fstat_nomap_nolog(fd, statbuf);
+#endif
+	return(r);
+}
+
+int real_fstat64(int fd, struct stat64 *statbuf)
+{
+	int	r;
+
+#ifdef _STAT_VER
+	r = __fxstat64_nomap_nolog(_STAT_VER, fd, statbuf);
+#else
+	r = fstat64_nomap_nolog(fd, statbuf);
 #endif
 	return(r);
 }
@@ -247,12 +295,12 @@ int sb2_stat64_file(const char *path, struct stat64 *buf, int *result_errno_ptr,
 	return(res);
 }
 
-int sb2_fstat(int fd, struct stat *statbuf)
+int sb2_fstat64(int fd, struct stat64 *statbuf)
 {
 	SB_LOG(SB_LOGLEVEL_NOISE, "sb2_fstat(%d)", fd);
-	if (real_fstat(fd, statbuf) < 0) return(-1);
+	if (real_fstat64(fd, statbuf) < 0) return(-1);
 
-	i_virtualize_struct_stat(__func__, statbuf, NULL);
+	i_virtualize_struct_stat(__func__, NULL, statbuf);
 	return(0);
 }
 

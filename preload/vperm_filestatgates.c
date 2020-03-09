@@ -1676,6 +1676,47 @@ int renameat_gate(int *result_errno_ptr,
 	return(res);
 }
 
+int renameat2_gate(int *result_errno_ptr,
+	int (*real_renameat2_ptr)(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, unsigned int flags),
+        const char *realfnname,
+	int olddirfd,
+	const mapping_results_t *mapped_oldpath,
+	int newdirfd,
+	const mapping_results_t *mapped_newpath,
+	unsigned int flags)
+{
+	int has_stat = 0;
+	struct stat64 statbuf;
+	int res;
+
+	/* If newpath has been virtualized, be prepared to update DB */
+	if (get_vperm_num_active_inodestats() > 0) {
+		/* there are active vperm inodestat nodes */
+		if (get_stat_for_fxxat64(realfnname, newdirfd, mapped_newpath, AT_SYMLINK_NOFOLLOW, &statbuf) == 0) {
+			has_stat = 1;
+		}
+	}
+
+	res = (*real_renameat2_ptr)(olddirfd, mapped_oldpath->mres_result_path,
+		newdirfd, mapped_newpath->mres_result_path, flags);
+	if (res == 0) {
+		if (has_stat) {
+			/* FIXME: races are possible here. Might be better if
+			 * sb2d does the operation ? */
+			/* if it was a file, it was removed if there were 1 links.
+			 * but minumum link count for directories is 2.
+			*/
+			if ((statbuf.st_nlink == 1) ||
+			    (S_ISDIR(statbuf.st_mode) && (statbuf.st_nlink == 2))) {
+				vperm_clear_all_if_virtualized(realfnname, &statbuf);
+			}
+		}
+	} else {
+		*result_errno_ptr = errno;
+	}
+	return(res);
+}
+
 /* ======================= fts_*() functions dealing with stat structures ======================= */
 
 #ifdef HAVE_FTS_H

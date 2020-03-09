@@ -587,6 +587,13 @@ GATE: int renameat(int olddirfd, const char *oldpath, int newdirfd, \
 	fail_if_readonly(oldpath,-1,EROFS) \
 	fail_if_readonly(newpath,-1,EROFS) \
 	class(RENAME)
+GATE: int renameat2(int olddirfd, const char *oldpath, int newdirfd, \
+	const char *newpath, unsigned int flags) : \
+	dont_resolve_final_symlink map_at(olddirfd,oldpath) \
+	dont_resolve_final_symlink map_at(newdirfd,newpath) \
+	fail_if_readonly(oldpath,-1,EROFS) \
+	fail_if_readonly(newpath,-1,EROFS) \
+	class(RENAME)
 
 WRAP: int revoke(const char *file) : map(file)
 

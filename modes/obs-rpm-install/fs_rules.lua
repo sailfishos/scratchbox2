@@ -187,12 +187,6 @@ emulate_mode_rules_bin = {
 		 func_class = FUNC_CLASS_EXEC,
 		 actions = accelerated_program_actions},
 
-		-- rpm rules
-		{path = "/bin/rpm",
-		 func_class = FUNC_CLASS_EXEC,
-		 actions = rpm_program_actions},
-		-- end of rpm rules
-		
 		{name = "/bin default rule", dir = "/bin", map_to = target_root,
 		 protection = readonly_fs_if_not_root}
 }
@@ -321,12 +315,31 @@ emulate_mode_rules_usr = {
 		  {if_active_exec_policy_is = "Tools",
 		   if_exists_then_map_to = tools,
 		   protection = readonly_fs_always},
-		   {if_active_exec_policy_is = "Host",
-			if_exists_then_replace_by = tools .. "/usr/lib64",
-			protection = readonly_fs_always},
-		   {if_active_exec_policy_is = "Host",
-			if_exists_then_map_to = tools,
-			protection = readonly_fs_always},
+		  {if_active_exec_policy_is = "Host",
+		   if_exists_then_replace_by = tools .. "/usr/lib64",
+		   protection = readonly_fs_always},
+		  {if_active_exec_policy_is = "Host",
+		   if_exists_then_map_to = tools,
+		   protection = readonly_fs_always},
+		  { map_to = target_root, protection = readonly_fs_always },
+		 },
+		},
+		-- and if the program looks in lib64 and the emulator can't find
+		-- it (because it's 32 bit) then look in /usr/lib...
+		{dir = "/usr/lib64", func_class = FUNC_CLASS_DLOPEN,
+		 actions = {
+		  {if_active_exec_policy_is = "Tools",
+		   if_exists_then_replace_by = tools .. "/usr/lib",
+		   protection = readonly_fs_always},
+		  {if_active_exec_policy_is = "Tools",
+		   if_exists_then_map_to = tools,
+		   protection = readonly_fs_always},
+		  {if_active_exec_policy_is = "Host",
+		   if_exists_then_replace_by = tools .. "/usr/lib",
+		   protection = readonly_fs_always},
+		  {if_active_exec_policy_is = "Host",
+		   if_exists_then_map_to = tools,
+		   protection = readonly_fs_always},
 		  { map_to = target_root, protection = readonly_fs_always },
 		 },
 		},

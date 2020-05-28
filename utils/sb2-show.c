@@ -764,9 +764,9 @@ static int cmd_verify_pathlist_mappings(const command_table_t *cmdp,
 		}
 
 		if (opts->opt_ignore_directories) {
-			struct stat statbuf;
+			struct stat64 statbuf;
 
-			if ((stat(mapped_path, &statbuf) == 0) &&
+			if ((stat64(mapped_path, &statbuf) == 0) &&
 			   S_ISDIR(statbuf.st_mode)) {
 				if (opts->opt_verbose)
 					printf("%s => %s: dir, ignored\n",

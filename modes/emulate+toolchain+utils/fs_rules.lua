@@ -122,7 +122,7 @@ emulate_mode_rules_bin = {
 
 		{path = "/bin/gzip", use_orig_path = true,
 		 protection = readonly_fs_always},
-		{path = "/bin/tar", use_orig_path = true,
+		{path = "/usr/bin/tar", use_orig_path = true,
 		 protection = readonly_fs_always},
 
 		{name = "/bin default rule", dir = "/bin", map_to = target_root,

@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
+ * Copyright (C) 2020 Open Mobile Platform LLC.
  *
  * Licensed under LGPL version 2.1
  */
@@ -11,7 +12,8 @@
  * Brief description of the algorithm follows:
  * 
  * 0. When an application wants to execute another program, it makes a call
- *    to one of execl(), execle(), execlp(), execv(), execve() or execvp().
+ *    to one of execl(), execle(), execlp(), execv(), execve(), execvp() or
+ *    posix_spawn().
  *    That call will be handled by one of the gate functions in 
  *    preload/libsb2.c. Eventually, the gate function will call "do_exec()"
  *    from this file; do_exec() calls prepare_exec() and that is the place
@@ -1762,6 +1764,92 @@ int do_exec(int *result_errno_ptr,
 	*result_errno_ptr = errno;
 	SB_LOG(SB_LOGLEVEL_DEBUG,
 		"EXEC failed (%s), errno=%d", orig_file, *result_errno_ptr);
+	return(result);
+}
+
+int do_posix_spawn(int *result_errno_ptr,
+	const char *exec_fn_name, pid_t *pid, const char *orig_path,
+    const posix_spawn_file_actions_t *file_actions,
+    const posix_spawnattr_t *attrp,
+	char *const *orig_argv, char *const *orig_envp)
+{
+	char *new_path = NULL;
+	char **new_argv = NULL;
+	char **new_envp = NULL;
+	int  result;
+	PROCESSCLOCK(clk1)
+
+	START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "do_posix_spawn");
+	if (getenv("SBOX_DISABLE_MAPPING")) {
+		/* just run it, don't worry, be happy! */
+	} else {
+		int	r;
+		char	**my_envp_copy = NULL; /* used only for debug log */
+		char	*tmp, *binaryname;
+		enum binary_type type;
+
+		tmp = strdup(orig_path);
+		binaryname = strdup(basename(tmp)); /* basename may modify *tmp */
+		free(tmp);
+
+		if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
+			char *buf = strvec_to_string(orig_argv);
+
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"SPAWN/Orig.args: %s : %s", orig_path, buf);
+			free(buf);
+
+			/* create a copy of intended environment for logging,
+			 * before preprocessing */
+			my_envp_copy = prepare_envp_for_do_exec(orig_path,
+				binaryname, orig_envp);
+		}
+
+		new_envp = prepare_envp_for_do_exec(orig_path, binaryname, orig_envp);
+
+		r = prepare_exec(exec_fn_name, NULL/*exec_policy_name: not yet known*/,
+			orig_path, 0, orig_argv, orig_envp,
+			&type, &new_path, &new_argv, &new_envp);
+
+		if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
+			int saved_errno = errno;
+			/* find out and log if preprocessing did something */
+			compare_and_log_strvec_changes("argv", orig_argv, new_argv);
+			compare_and_log_strvec_changes("envp", my_envp_copy, new_envp);
+			errno = saved_errno;
+		}
+
+		if (r < 0) {
+			*result_errno_ptr = errno;
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"EXEC denied by prepare_exec(), %s", orig_path);
+			STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "Exec denied");
+			return(r); /* exec denied */
+		}
+
+		if (check_envp_has_ld_preload_and_ld_library_path(
+			new_envp ? new_envp : orig_envp) == 0) {
+
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"exec(%s) failed, internal configuration error: "
+				"LD_LIBRARY_PATH and/or LD_PRELOAD were not set "
+				"by exec mapping logic", orig_path);
+			*result_errno_ptr = EINVAL;
+			STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "Config error");
+			return(-1);
+		}
+	}
+
+	errno = *result_errno_ptr; /* restore to orig.value */
+	STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, orig_file);
+	result = sb_next_posix_spawn(pid,
+		(new_path ? new_path : orig_path),
+        file_actions, attrp,
+		(new_argv ? new_argv : orig_argv),
+		(new_envp ? new_envp : orig_envp));
+	*result_errno_ptr = errno;
+	SB_LOG(SB_LOGLEVEL_DEBUG,
+		"EXEC failed (%s), errno=%d", orig_path, *result_errno_ptr);
 	return(result);
 }
 

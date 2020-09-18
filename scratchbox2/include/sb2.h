@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
+ * Copyright (C) 2020 Open Mobile Platform LLC.
  *
  * Licensed under LGPL version 2.1, see top level LICENSE file for details.
  */
@@ -27,6 +28,8 @@
 #ifdef DMALLOC
 #include <dmalloc.h>
 #endif
+
+#include <spawn.h>
 
 /* "sb2context" used to be called "lua_instance", but
  * was renamed because it is now used for other purposes,
@@ -188,6 +191,17 @@ extern int sb_next_execve(const char *filename, char *const argv [],
 
 extern int do_exec(int *result_errno_ptr, const char *exec_fn_name, const char *file,
 		char *const *argv, char *const *envp);
+
+extern int sb_next_posix_spawn(pid_t* pid, const char *path,
+        const posix_spawn_file_actions_t *file_actions,
+        const posix_spawnattr_t *attrp, char *const argv [],
+        char *const envp[]);
+
+extern int do_posix_spawn(int *result_errno_ptr,
+        const char *exec_fn_name, pid_t *pid, const char *orig_path,
+        const posix_spawn_file_actions_t *file_actions,
+        const posix_spawnattr_t *attrp,
+        char *const *orig_argv, char *const *orig_envp);
 
 extern time_t get_sb2_timestamp(void);
 

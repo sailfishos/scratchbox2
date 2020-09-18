@@ -3,6 +3,7 @@
  * 		(also contains GATEs for the setrlimit() functions)
  *
  * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
+ * Copyright (C) 2020 Open Mobile Platform LLC.
  * parts contributed by 
  * 	Riku Voipio <riku.voipio@movial.com>
  *	Toni Timonen <toni.timonen@movial.com>
@@ -122,6 +123,75 @@ int sb_next_execve(const char *file, char *const *argv, char *const *envp)
 	SB_LOG(SB_LOGLEVEL_INFO, "EXEC: i_pid=%d file='%s'",
 		sb_log_initial_pid__, file);
 	return next_execve(file, argv, envp);
+}
+
+static int (*next_posix_spawn) (pid_t* pid, const char *path,
+        const posix_spawn_file_actions_t *file_actions,
+        const posix_spawnattr_t *attrp, char *const argv [],
+        char *const envp[]) = NULL;
+
+int sb_next_posix_spawn(pid_t* pid, const char *path,
+        const posix_spawn_file_actions_t *file_actions,
+        const posix_spawnattr_t *attrp, char *const argv [],
+        char *const envp[])
+{
+	if (next_posix_spawn == NULL) {
+		next_posix_spawn = sbox_find_next_symbol(1, "posix_spawn");
+	}
+
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
+		char *buf = strvec_to_string(argv);
+
+		if (buf) {
+			SB_LOG(SB_LOGLEVEL_DEBUG, "EXEC: file:%s argv:%s", path, buf);
+			free(buf);
+		} else {
+			SB_LOG(SB_LOGLEVEL_DEBUG,
+				"EXEC: %s (failed to print argv)", path);
+		}
+	}
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE)) {
+		char *buf = strvec_to_string(envp);
+
+		if (buf) {
+			SB_LOG(SB_LOGLEVEL_NOISE, "EXEC/env: %s", buf);
+			free(buf);
+		} else {
+			SB_LOG(SB_LOGLEVEL_NOISE,
+				"EXEC: (failed to print env)");
+		}
+	}
+
+	switch (restore_stack_before_exec) {
+	case 1:
+		SB_LOG(SB_LOGLEVEL_DEBUG, "EXEC: need to restore stack limit");
+
+		if (setrlimit(RLIMIT_STACK, &stack_limits_for_exec) < 0) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"setrlimit(stack) failed, "
+				"failed to restore limits before exec");
+		}
+		break;
+#ifndef __APPLE__
+	case 64:
+		SB_LOG(SB_LOGLEVEL_DEBUG, "EXEC: need to restore stack limit");
+
+		if (setrlimit64(RLIMIT_STACK, &stack_limits64_for_exec) < 0) {
+			SB_LOG(SB_LOGLEVEL_ERROR,
+				"setrlimit64(stack) failed, "
+				"failed to restore limits before exec");
+		}
+		break;
+#endif
+	}
+
+	/* NOTE: Following SB_LOG() call is used by the log
+	 *       postprocessor script "sb2-logz". Do not change
+	 *       without making a corresponding change to the script!
+	*/
+	SB_LOG(SB_LOGLEVEL_INFO, "EXEC: i_pid=%d path='%s'",
+		sb_log_initial_pid__, path);
+	return next_posix_spawn(pid, path, file_actions, attrp, argv, envp);
 }
 
 
@@ -440,6 +510,25 @@ int execvpe_gate(
 {
 	(void)real_execvpe_ptr;	/* not used */
 	return do_execvep(result_errno_ptr, realfnname, file, argv, envp);
+}
+
+int posix_spawn_gate(
+    int *result_errno_ptr,
+    int (*real_posix_spawn_ptr)(pid_t *pid, const char *path,
+        const posix_spawn_file_actions_t *file_actions,
+        const posix_spawnattr_t *attrp,
+        char *const argv[], char *const envp[]),
+	const char *realfnname,
+    pid_t *pid,
+    const char *path,
+    const posix_spawn_file_actions_t *file_actions,
+    const posix_spawnattr_t *attrp,
+    char *const argv[],
+    char *const envp[])
+{
+	(void)real_posix_spawn_ptr;
+    return do_posix_spawn(result_errno_ptr, realfnname, pid, path,
+        file_actions, attrp, argv, envp);
 }
 
 /* SETRLIMIT_ARG1_TYPE is defined in interface.master */

@@ -3,6 +3,7 @@
 # gen-wrappers.pl -- an interface generator for scratchbox2 preload library
 #
 # Copyright (C) 2007 Lauri T. Aarnio
+# Copyright (C) 2020 Open Mobile Platform LLC.
 #
 #
 # This script is an interface generator for scratchbox 2. Based on
@@ -1018,6 +1019,7 @@ my $export_h_buffer =
 #include <string.h>
 #include <glob.h>
 #include <utime.h>
+#include <spawn.h>
 #ifdef HAVE_FTS_H
 #include <fts.h>
 #endif

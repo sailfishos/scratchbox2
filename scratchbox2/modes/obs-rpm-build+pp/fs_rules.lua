@@ -519,6 +519,9 @@ emulate_mode_rules_usr_bin = {
 		{path = "/usr/bin/updateinfoxml2solv",
 		 func_class = FUNC_CLASS_EXEC,
 		 actions = accelerated_program_actions},
+		-- rpm scripts
+		{path = "/usr/bin/rpmlint",
+		 actions = accelerated_program_actions},
 		-- end of rpm rules
 
 		-- some "famous" scripts:

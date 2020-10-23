@@ -6,7 +6,6 @@ Version:	2.3.90
 Release:	14
 Source: 	%{name}-%{version}.tar.gz
 Prefix: 	/usr
-Group: 		Development/Tools
 ExclusiveArch:	%{ix86}
 BuildRequires:	make
 BuildRequires:	autoconf
@@ -18,14 +17,12 @@ Scratchbox2 crosscompiling environment
 
 %package -n libsb2
 Summary: Scratchbox2 preload library
-Group:   Development/Tools
 
 %description -n libsb2
 Scratchbox2 preload library.
 
 %package docs
 Summary: Scratchbox2 docs
-Group:   Development/Tools
 
 %description docs
 Scratchbox2 man pages.

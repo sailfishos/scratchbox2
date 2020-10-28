@@ -82,12 +82,12 @@ endif
 %.a::
 	$(MKOUTPUTDIR)
 	$(P)ARCHIVE
-	$(Q)$(CC) $(LDFLAGS) -Wl,-r -nostdlib -nodefaultlibs -nostartfiles -o $@ $^
+	$(Q)$(CC) $(LDFLAGS) -r -nostdlib -nodefaultlibs -nostartfiles -o $@ $^
 
 built-in.o:: %.o
 	$(MKOUTPUTDIR)
 	$(P)BUILTIN
-	$(Q)$(CC) -Wl,-r -nostdlib -nodefaultlibs -nostartfiles -o $@ $^
+	$(Q)$(CC) -r -nostdlib -nodefaultlibs -nostartfiles -o $@ $^
 
 %.o:: %.S
 	$(MKOUTPUTDIR)

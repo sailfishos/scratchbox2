@@ -1,12 +1,11 @@
 Summary: 	Scratchbox2 crosscompiling environment
 License: 	LGPL
-URL:		https://git.merproject.org/mer-core/scratchbox2
+URL:	        https://git.sailfishos.org/mer-core/scratchbox2
 Name: 		scratchbox2
 Version:	2.3.90
-Release:	14
+Release:	0
 Source: 	%{name}-%{version}.tar.gz
 Prefix: 	/usr
-Group: 		Development/Tools
 ExclusiveArch:	%{ix86}
 BuildRequires:	make
 BuildRequires:	autoconf
@@ -18,14 +17,12 @@ Scratchbox2 crosscompiling environment
 
 %package -n libsb2
 Summary: Scratchbox2 preload library
-Group:   Development/Tools
 
 %description -n libsb2
 Scratchbox2 preload library.
 
 %package docs
 Summary: Scratchbox2 docs
-Group:   Development/Tools
 
 %description docs
 Scratchbox2 man pages.

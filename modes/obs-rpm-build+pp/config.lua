@@ -23,6 +23,9 @@ exec_policy_selection = {
                 -- the home directory is expected to contain target binaries:
                 {dir = sbox_user_home_dir, exec_policy_name = "Target"},
 
+                -- the workspace directory is expected to contain target binaries:
+                {dir = sbox_user_workspace, exec_policy_name = "Target"},
+
 		{prefix = tools, exec_policy_name = "Tools"},
 
 		-- DEFAULT RULE (must exist):

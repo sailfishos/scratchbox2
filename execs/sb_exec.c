@@ -12,8 +12,8 @@
  * Brief description of the algorithm follows:
  * 
  * 0. When an application wants to execute another program, it makes a call
- *    to one of execl(), execle(), execlp(), execv(), execve(), execvp() or
- *    posix_spawn().
+ *    to one of execl(), execle(), execlp(), execv(), execve(), execvp(),
+ *    posix_spawn() or posix_spawnp().
  *    That call will be handled by one of the gate functions in 
  *    preload/libsb2.c. Eventually, the gate function will call "do_exec()"
  *    from this file; do_exec() calls prepare_exec() and that is the place

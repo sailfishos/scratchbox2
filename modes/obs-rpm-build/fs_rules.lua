@@ -659,6 +659,12 @@ import_from_fs_rule_library("user_rules")
 -- path convention
 use_outside_path("/parentroot")
 
+-- Define sbox_user_workspace as being outside like /home, this is a Mer SDK
+-- path convention. Take care to not override /home rules accidentally as those may overlap
+if sbox_user_workspace ~= "/home" then
+	use_outside_path(sbox_user_workspace)
+end
+
 -- Now run ~/.sbrules
 run_user_sbrules()
 

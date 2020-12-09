@@ -32,6 +32,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <errno.h>
 #include "libsb2.h"
 #include "exported.h"
 
@@ -363,6 +364,69 @@ static char **create_argv_for_script_exec(const char *file, char *const argv[])
 	return(new_argv);
 }
 
+static int search_path(const char *file, char **ret)
+{
+        char *name;
+        char *path;
+        size_t len;
+        size_t pathlen;
+        int got_eacces = 0;
+        int retval = -1;
+
+        char *pathenv = getenv ("PATH");
+        if (pathenv) {
+                path = strdup(pathenv);
+        } else {
+                /* There is no `PATH' in the environment.
+                   The default search path is the current directory
+                   followed by the path `confstr' returns for `_CS_PATH'.  */
+                len = confstr (_CS_PATH, (char *) NULL, 0);
+                path = (char *) malloc (1 + len);
+                path[0] = ':';
+                (void) confstr (_CS_PATH, path + 1, len);
+        }
+
+        len = strlen(file) + 1;
+        pathlen = strlen(path);
+        name = alloca (pathlen + len + 1);
+        /* Copy the file name at the top.  */
+        name = (char *) memcpy (name + pathlen + 1, file, len);
+        /* And add the slash.  */
+        *--name = '/';
+
+        const char *p = path;
+        do {
+                char *startp;
+                const char *old_p = p;
+                p = sb2_strchrnul (old_p, ':');
+
+                if (p == old_p) {
+                        /* Two adjacent colons, or a colon at the beginning or the end
+                           of `PATH' means to search the current directory.  */
+                        startp = (char *) name + 1;
+                } else {
+                        startp = (char *) memcpy (name - (p - old_p), old_p, p - old_p);
+                }
+
+                if (access(startp, X_OK) == 0) {
+                        int startp_len = strlen(startp)+1;
+                        *ret = malloc(startp_len);
+                        memcpy(*ret, startp, startp_len);
+
+                        retval = 0;
+                        goto out;
+                } else {
+                        if (errno == EACCES)
+                                got_eacces = 1;
+                }
+        } while (*p++ != '\0');
+
+        if (got_eacces)
+                errno = EACCES;
+out:
+        free(path);
+        return retval;
+}
 
 static int do_execvep(
 	int *result_errno_ptr,
@@ -388,92 +452,101 @@ static int do_execvep(
 		}
 		return(-1);
 	} else {
-		int got_eacces = 0;
-		const char *p;
-		const char *path;
-		char *name;
-		size_t len;
-		size_t pathlen;
+                char *startp = NULL;
 
-		path = getenv ("PATH");
-		if (path) path = strdup(path);
-		if (path == NULL) {
-			/* There is no `PATH' in the environment.
-			   The default search path is the current directory
-			   followed by the path `confstr' returns for `_CS_PATH'.  */
-			char *new_path;
-			len = confstr (_CS_PATH, (char *) NULL, 0);
-			new_path = (char *) alloca (1 + len);
-			new_path[0] = ':';
-			(void) confstr (_CS_PATH, new_path + 1, len);
-			path = new_path;
-		}
+                if (search_path(file, &startp) != 0) {
+                        /* We tried every element and none of them worked.  */
+                        /* At least one failure was due to permissions, so report that
+                           error.  */
+                        if (errno == EACCES)
+                                *result_errno_ptr = EACCES;
+                        free(startp);
+                        return -1;
+                }
 
-		len = strlen (file) + 1;
-		pathlen = strlen (path);
-		name = alloca (pathlen + len + 1);
-		/* Copy the file name at the top.  */
-		name = (char *) memcpy (name + pathlen + 1, file, len);
-		/* And add the slash.  */
-		*--name = '/';
+                /* Try to execute this name.  If it works, execv will not return.  */
+                execve_gate (result_errno_ptr, NULL, realfnname, startp, argv, envp);
 
-		p = path;
-		do {
-			char *startp;
+                if (*result_errno_ptr == ENOEXEC) {
+                        char **new_argv = create_argv_for_script_exec(
+                                startp, argv);
+                        execve_gate (result_errno_ptr, NULL, realfnname, new_argv[0], new_argv, envp);
+                        free(new_argv);
+                }
 
-			path = p;
-			p = sb2_strchrnul (path, ':');
-
-			if (p == path) {
-				/* Two adjacent colons, or a colon at the beginning or the end
-				   of `PATH' means to search the current directory.  */
-				startp = name + 1;
-			} else {
-				startp = (char *) memcpy (name - (p - path), path, p - path);
-			}
-
-			/* Try to execute this name.  If it works, execv will not return.  */
-			execve_gate (result_errno_ptr, NULL, realfnname, startp, argv, envp);
-
-			if (*result_errno_ptr == ENOEXEC) {
-				char **new_argv = create_argv_for_script_exec(
-					startp, argv);
-				execve_gate (result_errno_ptr, NULL, realfnname, new_argv[0], new_argv, envp);
-				free(new_argv);
-			}
-
-			switch (*result_errno_ptr) {
-				case EACCES:
-					/* Record the we got a `Permission denied' error.  If we end
-					   up finding no executable we can use, we want to diagnose
-					   that we did find one but were denied access.  */
-					got_eacces = 1;
-				case ENOENT:
-				case ESTALE:
-				case ENOTDIR:
-					/* Those errors indicate the file is missing or not executable
-					   by us, in which case we want to just try the next path
-					   directory.  */
-					break;
-
-				default:
-					/* Some other error means we found an executable file, but
-					   something went wrong executing it; return the error to our
-					   caller.  */
-					return -1;
-			}
-		} while (*p++ != '\0');
-
-		/* We tried every element and none of them worked.  */
-		if (got_eacces)
-			/* At least one failure was due to permissions, so report that
-			   error.  */
-			*result_errno_ptr = EACCES;
+                free(startp);
 	}
 
 	/* Return the error from the last attempt (probably ENOENT).  */
 	return -1;
 }
+
+static int do_posix_spawnp(
+    int *result_errno_ptr,
+    const char *realfnname, pid_t *pid, const char *file,
+    const posix_spawn_file_actions_t *file_actions,
+    const posix_spawnattr_t *attrp,
+    char *const *argv, char *const *envp)
+{
+        int result;
+    	if (*file == '\0') {
+		/* We check the simple case first. */
+		*result_errno_ptr = ENOENT;
+		return ENOENT;
+	}
+
+	if (strchr (file, '/') != NULL) {
+                /* Try to execute this name.  If it works, execv will not return.  */
+                result = do_posix_spawn(result_errno_ptr,
+                                        realfnname, pid, file,
+                                        file_actions, attrp,
+                                        argv, envp);
+
+                if (*result_errno_ptr == ENOEXEC) {
+                        char **new_argv = create_argv_for_script_exec(
+                                file, argv);
+                        result = do_posix_spawn(result_errno_ptr,
+                                                realfnname, pid, new_argv[0],
+                                                file_actions, attrp,
+                                                new_argv, envp);
+                        free(new_argv);
+                }
+
+                return(result);
+	} else {
+                char *startp = NULL;
+
+                if (search_path(file, &startp)  != 0) {
+                        /* We tried every element and none of them worked.  */
+                        /* At least one failure was due to permissions,
+                         * so report error.  */
+                        if (errno == EACCES)
+                                *result_errno_ptr = EACCES;
+                        free(startp);
+                        return -1;
+                }
+
+
+                result = do_posix_spawn(result_errno_ptr,
+                                        realfnname, pid, startp,
+                                        file_actions, attrp, argv, envp);
+
+                if (*result_errno_ptr == ENOEXEC) {
+                        char **new_argv = create_argv_for_script_exec(
+                                startp, argv);
+                        result =  do_posix_spawn(result_errno_ptr,
+                                                 realfnname, pid, new_argv[0],
+                                                 file_actions, attrp,
+                                                 new_argv, envp);
+                        free(new_argv);
+                }
+                free(startp);
+	}
+
+	/* Return the error from the last attempt (probably ENOENT).  */
+	return result;
+}
+
 
 int sb_execvep(
 	const char *file,
@@ -528,6 +601,25 @@ int posix_spawn_gate(
 {
 	(void)real_posix_spawn_ptr;
     return do_posix_spawn(result_errno_ptr, realfnname, pid, path,
+        file_actions, attrp, argv, envp);
+}
+
+int posix_spawnp_gate(
+    int *result_errno_ptr,
+    int (*real_posix_spawnp_ptr)(pid_t *pid, const char *file,
+        const posix_spawn_file_actions_t *file_actions,
+        const posix_spawnattr_t *attrp,
+        char *const argv[], char *const envp[]),
+	const char *realfnname,
+    pid_t *pid,
+    const char *file,
+    const posix_spawn_file_actions_t *file_actions,
+    const posix_spawnattr_t *attrp,
+    char *const argv[],
+    char *const envp[])
+{
+	(void)real_posix_spawnp_ptr;
+    return do_posix_spawnp(result_errno_ptr, realfnname, pid, file,
         file_actions, attrp, argv, envp);
 }
 

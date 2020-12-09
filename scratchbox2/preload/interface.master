@@ -115,6 +115,10 @@ GATE: int posix_spawn (pid_t *pid, const char *path, \
                        const posix_spawn_file_actions_t *file_actions, \
                        const posix_spawnattr_t *attrp, \
                        char *const argv[], char *const envp[])
+GATE: int posix_spawnp (pid_t *pid, const char *file, \
+                       const posix_spawn_file_actions_t *file_actions, \
+                       const posix_spawnattr_t *attrp, \
+                       char *const argv[], char *const envp[])
 
 GATE: char * getcwd (char *buf, size_t size) : \
 	returns_string create_nomap_nolog_version

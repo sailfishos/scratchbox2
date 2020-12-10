@@ -73,17 +73,15 @@ function register_gcc_component_path(tmp, gccrule)
 		table.insert(gcc_tools_path_prefixes, x)
 	end
 
-	if gccrule == nil then
-		return
-	end
+	if gccrule ~= nil then
+		if gccrule.cross_gcc_dir ~= nil then
+			table.insert(gcc_tools_path_prefixes, gccrule.cross_gcc_dir)
+		end
 
-	if gccrule.cross_gcc_dir ~= nil then
-		table.insert(gcc_tools_path_prefixes, gccrule.cross_gcc_dir)
-	end
-
-	if gccrule.cross_gcc_progs_path ~= nil then
-		for path in string.gmatch(gccrule.cross_gcc_progs_path,"[^:]+") do
-			table.insert(gcc_tools_path_prefixes, path)
+		if gccrule.cross_gcc_progs_path ~= nil then
+			for path in string.gmatch(gccrule.cross_gcc_progs_path,"[^:]+") do
+				table.insert(gcc_tools_path_prefixes, path)
+			end
 		end
 	end
 

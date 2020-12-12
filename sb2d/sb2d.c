@@ -66,21 +66,39 @@ static void load_and_execute_lua_file(const char *filename)
 
 	switch(luaL_loadfile(sb2d_lua, filename)) {
 	case LUA_ERRFILE:
-		fprintf(stderr, "Error loading %s\n", filename);
-		exit(1);
+                fprintf(stderr, "Error loading %s\n", filename);
+                exit(EXIT_FAILURE);
 	case LUA_ERRSYNTAX:
-		errmsg = lua_tostring(sb2d_lua, -1);
+                errmsg = lua_tostring(sb2d_lua, -1);
 		fprintf(stderr, "Syntax error in %s (%s)\n", filename, 
 			(errmsg?errmsg:""));
-		exit(1);
+		exit(EXIT_FAILURE);
 	case LUA_ERRMEM:
 		fprintf(stderr, "Memory allocation error while "
-				"loading %s\n", filename);
-		exit(1);
-	default:
-		;
+                        "loading %s\n", filename);
+		exit(EXIT_FAILURE);
+	case LUA_OK:
+		break;
+        default:
+                fprintf(stderr, "Unknown LUA error "
+                        "loading %s\n", filename);
+		exit(EXIT_FAILURE);
 	}
-	lua_call(sb2d_lua, 0, 0);
+
+        switch(lua_pcall(sb2d_lua, 0, 0, 0)) {
+        case LUA_ERRRUN:
+                fprintf(stderr, "Runtime-Error loading %s (%s)\n",
+                        filename, lua_tostring(sb2d_lua, -1));
+                exit(EXIT_FAILURE);
+	case LUA_ERRMEM:
+                fprintf(stderr, "Memory allocation error while "
+                        "loading %s (%s) \n",
+                        filename, lua_tostring(sb2d_lua, -1));
+                exit(EXIT_FAILURE);
+        case LUA_OK:
+                return;
+	}
+        exit(1);
 }
 
 /* Lua calls this at panic: */

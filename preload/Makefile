@@ -20,10 +20,10 @@ LIBSB2_LDFLAGS = -Wl,-soname=$(LIBSB2_SONAME) \
 # DO NOT add any libraries that depend on libpthread to
 # LIBSB2_LIBS or LIBS!! see the comments in luaif.c.
 
-LIBSB2_LIBS =
+LIBSB2_LIBS = $(LUA_LIBS)
 SHLIBEXT = so
 else
-LIBSB2_LIBS =
+LIBSB2_LIBS = $(LUA_LIBS)
 SHLIBEXT = dylib
 endif
 

@@ -237,7 +237,7 @@ int lua_sb_readlink(lua_State *l)
 }
 
 /* mappings from c to lua */
-static const luaL_reg reg[] =
+static const luaL_Reg reg[] =
 {
 	{"log",				lua_sb_log},
 	{"path_exists",			lua_sb_path_exists},
@@ -250,10 +250,12 @@ static const luaL_reg reg[] =
 
 int lua_bind_sblib_functions(lua_State *l)
 {
-	luaL_register(l, "sblib", reg);
+        lua_newtable(l);
+	luaL_setfuncs(l, reg, 0);
 	lua_pushliteral(l,"version");
 	lua_pushstring(l, "2.0" );
 	lua_settable(l,-3);
+        lua_setglobal(l, "sblib");
 
 	return 0;
 }

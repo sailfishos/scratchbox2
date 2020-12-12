@@ -8,10 +8,10 @@ objs := $(D)/sblib_luaif.o
 $(D)/sblib_luaif.o: preload/exported.h
 
 luaif/libluaif.a: $(objs)
-luaif/libluaif.a: override CFLAGS := $(CFLAGS) -O2 -g -fPIC -Wall -W -I$(SRCDIR)/$(LUASRC) -I$(OBJDIR)/preload -I$(SRCDIR)/preload \
-	$(WERROR) -Wmissing-prototypes -Wstrict-prototypes
+luaif/libluaif.a: override CFLAGS := $(CFLAGS) -O2 -g -fPIC -Wall -W -I$(OBJDIR)/preload -I$(SRCDIR)/preload \
+	$(WERROR) -Wmissing-prototypes -Wstrict-prototypes $(LUA_CFLAGS)
 luaif/libluaif.a: override LDFLAGS := $(LDFLAGS)
-luaif/libluaif.a: override LIBS := 
+luaif/libluaif.a: override LIBS := $(LUA_LIBS)
 
 
 lua_sources := loadlib.c lstate.c ldebug.c liolib.c llex.c lauxlib.c ldump.c \
@@ -30,5 +30,5 @@ luaif/liblua.a: override CFLAGS := -O2 -Dfopen=fopen_nomap -g -fPIC -Wall -W $(C
 luaif/liblua.a: override LDFLAGS := $(LDFLAGS)
 luaif/liblua.a: override LIBS :=
 
-targets := $(targets) $(D)/libluaif.a $(D)/liblua.a
+targets := $(targets) $(D)/libluaif.a
 

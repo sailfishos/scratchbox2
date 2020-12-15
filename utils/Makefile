@@ -18,7 +18,7 @@ $(D)/sb2-ruletree: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
 		-I$(SRCDIR)/include
 
 $(D)/sb2-ruletree.o: preload/exported.h
-$(D)/sb2-ruletree: $(D)/sb2-ruletree.o $(D)/../rule_tree/rule_tree.o
+$(D)/sb2-ruletree: $(D)/sb2-ruletree.o rule_tree/rule_tree.o
 	$(MKOUTPUTDIR)
 	$(P)LD
 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ldl

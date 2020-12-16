@@ -252,7 +252,7 @@ static ruletree_net_rule_t *find_net_rule(
 		__func__, addr_type, orig_dst_addr, orig_port, net_rule_list_offs);
 
 	/* Lua:
-	 *	  for i = 1, table.maxn(netruletable) do
+	 *	  for i = 1, table.#netruletable do
 	 *	        local rule = netruletable[i]
 	*/
 	for (i = 0; i < rule_list_size; i++) {

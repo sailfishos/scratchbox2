@@ -16,7 +16,7 @@ local reversing_disabled_message = ""
 -- Order of reverse rules is not necessarily the same as order of forward rules
 function test_rev_rule_position(output_rules, d_path)
         local n
-        for n=1,table.maxn(output_rules) do
+        for n=1,#output_rules do
 		local rule = output_rules[n]
 		local cmp_result
 		cmp_result = sblib.test_path_match(d_path,
@@ -46,7 +46,7 @@ function reverse_conditional_actions(output_rules, rev_rule_name, rule, n, forwa
 	end
 
 	local a
-        for a = 1, table.maxn(actions) do
+        for a = 1, #actions do
 		-- actions are only partial rules; the "selector" is in
 		-- "rule", but we must copy it temporarily to action[a],
 		-- otherwise reverse_one_rule_xxxx() won't be able to
@@ -239,7 +239,7 @@ end
 
 function reverse_rules(ofile, output_rules, input_rules, modename)
         local n
-        for n=1,table.maxn(input_rules) do
+        for n=1,#input_rules do
 		local rule = input_rules[n]
 
 		if rule.virtual_path then
@@ -260,13 +260,13 @@ end
 
 function print_rules(ofile, rules)
         local n
-        for n=1,table.maxn(rules) do
+        for n=1,#rules do
 		local rule = rules[n]
 
 		ofile:write(string.format("\t{name=\"%s\",\n", rule.name))
 
 		local k
-		for k=1,table.maxn(rule.comments) do
+		for k=1,#rule.comments do
 			ofile:write(rule.comments[k].."\n")
 		end
 
@@ -322,7 +322,7 @@ function print_rules(ofile, rules)
 		end
 		ofile:write("\t},\n")
 	end
-        ofile:write(string.format("-- Printed\t%d\trules\n",table.maxn(rules)))
+        ofile:write(string.format("-- Printed\t%d\trules\n",#rules))
 end
 
 for m_index,m_name in pairs(all_modes) do

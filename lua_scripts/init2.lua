@@ -39,7 +39,7 @@ function add_to_cputr_config(configsetname, key, t, val)
 			key, ruletree.new_boolean(val))
 	elseif t == "table" then
 		local list_index = ruletree.objectlist_create(#val)
-		for i = 1, table.maxn(val) do
+		for i = 1, #val do
 			local t2 = type(val[i])
 			if t2 == "string" then
 				local new_str_index = ruletree.new_string(val[i])

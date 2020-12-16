@@ -664,7 +664,7 @@ int exec_postprocess_native_executable(
 	 *	if (updated_args == 1) then
 	 *		-- Add components from original argv[]
 	 *		local i
-	 *		for i = first_argv_element_to_copy, table.maxn(argv) do
+	 *		for i = first_argv_element_to_copy, #argv do
 	 *			table.insert(new_argv, argv[i])
 	 *		end
 	 *
@@ -849,7 +849,7 @@ static int exec_postprocess_qemu(
 	 *			table.insert(new_argv, conf_cputransparency.cmd)
 	 *			new_filename = conf_cputransparency.cmd
 	 *		else
-	 *			for i = 1, table.maxn(conf_cputransparency.qemu_argv) do
+	 *			for i = 1, #conf_cputransparency.qemu_argv do
 	 *				table.insert(new_argv, conf_cputransparency.qemu_argv[i])
 	 *			end
 	 *			new_filename = conf_cputransparency.qemu_argv[1]
@@ -884,7 +884,7 @@ static int exec_postprocess_qemu(
 	}
 
 	/*		if conf_cputransparency.qemu_env ~= nil then
-	 *			for i = 1, table.maxn(conf_cputransparency.qemu_env) do
+	 *			for i = 1, #conf_cputransparency.qemu_env do
 	 *				table.insert(new_envp, conf_cputransparency.qemu_env[i])
 	 *			end
 	 *		end

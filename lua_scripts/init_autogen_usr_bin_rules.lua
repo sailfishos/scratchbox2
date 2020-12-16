@@ -29,7 +29,7 @@ function argvmods_to_mapping_rules(rule_file, prefix)
 		if process_now and not rule.argvmods_processed then
 			rule.argvmods_processed = true
 			local k
-			for k=1,table.maxn(rule.path_prefixes) do
+			for k=1,#rule.path_prefixes do
 				if rule.path_prefixes[k] == "/usr/bin/" and
 				   rule.new_filename ~= nil then
 					-- this rule maps "n" from /usr/bin to

@@ -124,7 +124,7 @@ function add_cross_compiler(gccrule, version)
 
 		if require_version == false then
 			-- Compiler tools without version suffix
-			for i = 1, table.maxn(gcc_compilers) do
+			for i = 1, #gcc_compilers do
 				local tmp = {}
 				local compiler_name = gcc_compilers[i]
 				tmp.name = prefix .. compiler_name
@@ -144,7 +144,7 @@ function add_cross_compiler(gccrule, version)
 		end
 
 		-- Compiler tools with version suffix
-		for i = 1, table.maxn(gcc_compilers_with_version) do
+		for i = 1, #gcc_compilers_with_version do
 			local tmp = {}
 			tmp.name = prefix .. gcc_compilers_with_version[i] .. "-" ..
 				gccrule.cross_gcc_shortversion
@@ -157,7 +157,7 @@ function add_cross_compiler(gccrule, version)
 		
 		if require_version == false then
 			-- just map the filename for linkers and tools
-			for i = 1, table.maxn(gcc_linkers) do
+			for i = 1, #gcc_linkers do
 				local tmp = {}
 				tmp.name = prefix .. gcc_linkers[i]
 				tmp.new_filename = gccrule.cross_gcc_dir .. "/" .. gccrule.cross_gcc_subst_prefix .. gcc_linkers[i]
@@ -175,7 +175,7 @@ function add_cross_compiler(gccrule, version)
 				end
 				register_gcc_component_path(tmp, gccrule)
 			end
-			for i = 1, table.maxn(gcc_tools) do
+			for i = 1, #gcc_tools do
 				local tmp = {}
 				tmp.name = prefix .. gcc_tools[i]
 				tmp.new_filename = gccrule.cross_gcc_dir .. "/" .. gccrule.cross_gcc_subst_prefix .. gcc_tools[i]
@@ -188,7 +188,7 @@ end
 if (sbox_host_gcc_prefix_list and sbox_host_gcc_prefix_list ~= "") then
 	-- deal with host-gcc functionality, disables mapping
 	for prefix in string.gmatch(sbox_host_gcc_prefix_list, "[^:]+") do
-		for i = 1, table.maxn(gcc_compilers) do
+		for i = 1, #gcc_compilers do
 			local tmp = {}
 			tmp.name = prefix .. gcc_compilers[i]
 			tmp.new_filename = sbox_host_gcc_dir .. "/" .. sbox_host_gcc_subst_prefix .. gcc_compilers[i]
@@ -209,14 +209,14 @@ if (sbox_host_gcc_prefix_list and sbox_host_gcc_prefix_list ~= "") then
 		end
 
 		-- just map the filename for linkers and tools
-		for i = 1, table.maxn(gcc_linkers) do
+		for i = 1, #gcc_linkers do
 			local tmp = {}
 			tmp.name = prefix .. gcc_linkers[i]
 			tmp.new_filename = sbox_host_gcc_dir .. "/" .. sbox_host_gcc_subst_prefix .. gcc_linkers[i]
 			tmp.disable_mapping = 1
 			register_gcc_component_path(tmp, nil)
 		end
-		for i = 1, table.maxn(gcc_tools) do
+		for i = 1, #gcc_tools do
 			local tmp = {}
 			tmp.name = prefix .. gcc_tools[i]
 			tmp.new_filename = sbox_host_gcc_dir .. "/" .. sbox_host_gcc_subst_prefix .. gcc_tools[i]

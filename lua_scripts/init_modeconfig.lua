@@ -19,8 +19,8 @@ for m_index,m_name in pairs(all_modes) do
 
 	-- Exec policy selection table
 	if exec_policy_selection ~= nil then
-		local epsrule_list_index = ruletree.objectlist_create(table.maxn(exec_policy_selection))
-		for i = 1, table.maxn(exec_policy_selection) do
+		local epsrule_list_index = ruletree.objectlist_create(#exec_policy_selection)
+		for i = 1, #exec_policy_selection do
 			local epsrule = exec_policy_selection[i]
 			local ruletype = 0
 			local selectorstr = 0

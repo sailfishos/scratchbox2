@@ -1535,7 +1535,7 @@ static int prepare_exec(const char *exec_fn_name,
 					exec_policy_name,
 					&mapped_file, &my_file, binaryname,
 					(const char **)my_argv, &my_new_argv,
-					(const char **)*new_envp, &my_new_envp,
+					(const char **)my_envp, &my_new_envp,
 					"target");
 			} else {
 				postprocess_result = exec_postprocess_native_executable(
@@ -1543,7 +1543,7 @@ static int prepare_exec(const char *exec_fn_name,
 					&mapped_file, &my_file, binaryname,
 					&info,
 					(const char **)my_argv, &my_new_argv,
-					(const char **)*new_envp, &my_new_envp);
+					(const char **)my_envp, &my_new_envp);
 			}
 			my_envp = (char**)my_new_envp; /* FIXME */
 			my_argv = (char**)my_new_argv; /* FIXME */
@@ -1570,7 +1570,7 @@ static int prepare_exec(const char *exec_fn_name,
 					exec_policy_name,
 					&mapped_file, &my_file, binaryname,
 					(const char **)my_argv, &my_new_argv,
-					(const char **)*new_envp, &my_new_envp,
+					(const char **)my_envp, &my_new_envp,
 					"native");
 				my_envp = (char**)my_new_envp; /* FIXME */
 				my_argv = (char**)my_new_argv; /* FIXME */
@@ -1609,7 +1609,7 @@ static int prepare_exec(const char *exec_fn_name,
 					exec_policy_name,
 					&mapped_file, &my_file, binaryname,
 					(const char **)my_argv, &my_new_argv,
-					(const char **)*new_envp, &my_new_envp);
+					(const char **)my_envp, &my_new_envp);
 				my_envp = (char**)my_new_envp; /* FIXME */
 				my_argv = (char**)my_new_argv; /* FIXME */
 			}
@@ -1639,7 +1639,7 @@ static int prepare_exec(const char *exec_fn_name,
 			postprocess_result = exec_postprocess_cpu_transparency_executable(
 				exec_policy_name,
 				&mapped_file, &my_file, binaryname,
-				(const char **)my_argv, &my_new_argv, (const char **)*new_envp, &my_new_envp,
+				(const char **)my_argv, &my_new_argv, (const char **)my_envp, &my_new_envp,
 				"target");
 			my_envp = (char**)my_new_envp; /* FIXME */
 			my_argv = (char**)my_new_argv; /* FIXME */

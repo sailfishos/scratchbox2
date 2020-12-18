@@ -44,6 +44,7 @@ define import_dir
 	objects :=
 	objects-y :=
 	D := $(1)
+	$(shell -p mkdir $(1))
 	include $(1)/Makefile
 	dep_files := $$(wildcard $(1)/.*.d)
 	include $(dep_files)
@@ -59,7 +60,6 @@ $(foreach dir,$(subdirs),$(eval $(call import_dir,$(dir))))
 
 all_objects += $(foreach t,$(extra_targets),$($(t)))
 
-MKOUTPUTDIR = @mkdir -p $(dir $@)
 
 ifdef V
 Q = 
@@ -70,42 +70,34 @@ Q = @
 endif
 
 %.dylib:
-	$(MKOUTPUTDIR)
 	$(P)DYLIB
 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -dynamiclib -o $@ $^ $(LIBS)
 
 %.so::
-	$(MKOUTPUTDIR)
 	$(P)SHLIB
 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -shared -o $@ $^ $(LIBS)
 
 %.a::
-	$(MKOUTPUTDIR)
 	$(P)ARCHIVE
 	$(Q)$(CC) $(LDFLAGS) -r -nostdlib -nodefaultlibs -nostartfiles -o $@ $^
 
 built-in.o:: %.o
-	$(MKOUTPUTDIR)
 	$(P)BUILTIN
 	$(Q)$(CC) -r -nostdlib -nodefaultlibs -nostartfiles -o $@ $^
 
 %.o:: %.S
-	$(MKOUTPUTDIR)
 	$(P)AS
 	$(Q)$(CC) $(CFLAGS) -D__ASSEMBLY__ -Wp,-MT,$@ -Wp,-MMD,$(dir $@).$(notdir $@).d -o $@ -c $<
 
 %.o:: %.c
-	$(MKOUTPUTDIR)
 	$(P)CC
 	$(Q)$(CC) $(CFLAGS) -Wp,-MT,$@ -Wp,-MMD,$(dir $@).$(notdir $@).d -o $@ -c $<
 
 %.o:: %.cc
-	$(MKOUTPUTDIR)
 	$(P)CXX
 	$(Q)$(CXX) $(CFLAGS) $(CXXFLAGS) -Wp,-MT,$@ -Wp,-MMD,$(dir $@)/.$(notdir $@).d -o $@ -c $<
 
 %.o:: %.cpp
-	$(MKOUTPUTDIR)
 	$(P)CXX
 	$(Q)$(CXX) $(CFLAGS) $(CXXFLAGS) -Wp,-MT,$@ -Wp,-MMD,$(dir $@)/.$(notdir $@).d -o $@ -c $<
 

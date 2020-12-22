@@ -44,7 +44,7 @@ define import_dir
 	objects :=
 	objects-y :=
 	D := $(1)
-	$(shell -p mkdir $(1))
+	$(shell mkdir -p $(1))
 	include $(1)/Makefile
 	dep_files := $$(wildcard $(1)/.*.d)
 	include $(dep_files)

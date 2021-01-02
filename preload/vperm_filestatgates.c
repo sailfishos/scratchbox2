@@ -1156,36 +1156,30 @@ static int vperm_multiopen(
 {
 	FILE *f = NULL;
 
+        if (log_enabled) {
+                if (open_2_ptr)
+                        SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(path='%s',flags=0x%X)",
+                               __func__, realfnname, pathname, flags);
+                if (open_2va_ptr)
+                        SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(path='%s',flags=0x%X,mode=0%o)",
+                               __func__, realfnname, pathname, flags, modebits);
 
-	if (open_2_ptr) {
-		if (log_enabled) {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(path='%s',flags=0x%X)",
-				__func__, realfnname, pathname, flags);
-		}
+                if (openat_3_ptr)
+                        SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(dirfd=%d,path='%s',flags=0x%X)",
+                               __func__, realfnname, dirfd, pathname, flags);
+                if (open_3va_ptr)
+                        SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(dirfd=%d,path='%s',flags=0x%X,mode=0%o)",
+                               __func__, realfnname, dirfd, pathname, flags, modebits);
+        }
+	if (open_2_ptr)
 		return ((*open_2_ptr)(pathname, flags));
-	}
-	if (open_2va_ptr) {
-		if (log_enabled) {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(path='%s',flags=0x%X,mode=0%o)",
-				__func__, realfnname, pathname, flags, modebits);
-		}
+	if (open_2va_ptr)
 		return ((*open_2va_ptr)(pathname, flags, modebits));
-	}
 
-	if (openat_3_ptr) {
-		if (log_enabled) {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(dirfd=%d,path='%s',flags=0x%X)",
-				__func__, realfnname, dirfd, pathname, flags);
-		}
+	if (openat_3_ptr)
 		return ((*openat_3_ptr)(dirfd, pathname, flags));
-	}
-	if (open_3va_ptr) {
-		if (log_enabled) {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(dirfd=%d,path='%s',flags=0x%X,mode=0%o)",
-				__func__, realfnname, dirfd, pathname, flags, modebits);
-		}
+	if (open_3va_ptr)
 		return ((*open_3va_ptr)(dirfd, pathname, flags, modebits));
-	}
 
 	if (creat_ptr) {
 		if (log_enabled) {

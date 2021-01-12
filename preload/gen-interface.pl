@@ -526,7 +526,38 @@ sub process_wrap_or_gate_modifiers {
 	my $fn = shift;		# structure: parser results
 	my $all_modifiers = shift;
 
-	my @modifiers = split(/\s+/, $all_modifiers);
+        my @modifiers;
+        my $inside_braces;
+        my $build_mod;
+
+        # Split by space and then rebuild each modifier
+        foreach my $mod (split(/\s+/, $all_modifiers))
+        {
+           # First check if we are already rebuilding a modifier that previously started
+           # If not we need to check if a modifier with space is beginning
+           # but ignore one without space (eg. foo(bar))
+           if (!$inside_braces && $mod !~ m/(.*)\((.*)\)$/ && ($mod =~ m/([^\(]+)\)$/|| $mod =~ m/(.*)\(([^)]+)/)) {
+              $build_mod = "$mod ";
+              $inside_braces=1;
+           } else {
+              if ($inside_braces) {
+                 $build_mod .= $mod;
+                 if ($mod =~ m/(.*)\)$/) {
+                    # Modifier with space ends
+                    $inside_braces = 0;
+                    push @modifiers, $build_mod;
+                    undef $build_mod;
+                 } else {
+                    # There has to be space between each word in the middle of the modifier
+                    $build_mod .= " ";
+                 }
+	      } else {
+		 # Just a modifier without space
+		 push @modifiers, $mod;
+	      }
+	   }
+	}
+
 	my $num_modifiers = @modifiers;
 
 	# cache some fn parser results to local vars

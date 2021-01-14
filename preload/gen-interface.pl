@@ -592,7 +592,7 @@ sub process_wrap_or_gate_modifiers {
 
 	my $i;
 	for($i=0; $i < $num_modifiers; $i++) {
-		if($debug) { printf "\Modifier:'%s'\n", $modifiers[$i]; }
+		if($debug) { printf "Modifier:'%s'\n", $modifiers[$i]; }
 		if($modifiers[$i] =~ m/^map\((.*)\)$/) {
 			my $param_to_be_mapped = $1;
 

@@ -1213,7 +1213,6 @@ sub command_wrap_or_gate {
 	# ..and the actual call.
 	my $call_line_prefix = "\t";
 	my $return_statement = ""; # return stmt not needed if fn_type==void
-	my $log_return_val = ""; 
 	if($mods->{'return_expr'}) {
 		$return_statement .= "\tret = ".$mods->{'return_expr'}.";\n";
 	}

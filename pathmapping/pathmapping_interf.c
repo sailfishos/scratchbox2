@@ -249,6 +249,9 @@ void sbox_map_path_at(
 		res->mres_readonly = 1;
 		return;
 	}
+        if (*virtual_path == '\0') {
+		goto end;
+	}
 
 	if ((*virtual_path == '/')
 #ifdef AT_FDCWD
@@ -287,6 +290,7 @@ void sbox_map_path_at(
 		return;
 	}
 
+end:
 	/* name not found. Can't do much here, log a warning and return
 	 * the original relative path. That will work if we are lucky, but
 	 * not always..  */

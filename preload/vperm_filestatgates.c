@@ -1140,11 +1140,11 @@ int mkdirat_gate(int *result_errno_ptr,
 static int vperm_multiopen(
 	int log_enabled,
 	const char *realfnname,
+	int (*open_2_ptr)(const char *pathname, int flags),
 	int (*open_2va_ptr)(const char *pathname, int flags, ...),
+	int (*openat_3_ptr)(int dirfd, const char *pathname, int flags),
 	int (*open_3va_ptr)(int dirfd, const char *pathname, int flags, ...),
 	int (*creat_ptr)(const char *pathname, mode_t mode),
-	int (*open_2_ptr)(const char *pathname, int flags),
-	int (*openat_3_ptr)(int dirfd, const char *pathname, int flags),
 	FILE *(*fopen_ptr)(const char *path, const char *mode),
 	FILE *(*freopen_ptr)(const char *path, const char *mode, FILE *stream),
 	FILE **file_ptr, /* in: stream, out:result if function return FILE */
@@ -1156,20 +1156,31 @@ static int vperm_multiopen(
 {
 	FILE *f = NULL;
 
-	if (open_2va_ptr) {
-		if (log_enabled) {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(path='%s',flags=0x%X,mode=0%o)",
-				__func__, realfnname, pathname, flags, modebits);
-		}
+        if (log_enabled) {
+                if (open_2_ptr)
+                        SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(path='%s',flags=0x%X)",
+                               __func__, realfnname, pathname, flags);
+                if (open_2va_ptr)
+                        SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(path='%s',flags=0x%X,mode=0%o)",
+                               __func__, realfnname, pathname, flags, modebits);
+
+                if (openat_3_ptr)
+                        SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(dirfd=%d,path='%s',flags=0x%X)",
+                               __func__, realfnname, dirfd, pathname, flags);
+                if (open_3va_ptr)
+                        SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(dirfd=%d,path='%s',flags=0x%X,mode=0%o)",
+                               __func__, realfnname, dirfd, pathname, flags, modebits);
+        }
+	if (open_2_ptr)
+		return ((*open_2_ptr)(pathname, flags));
+	if (open_2va_ptr)
 		return ((*open_2va_ptr)(pathname, flags, modebits));
-	}
-	if (open_3va_ptr) {
-		if (log_enabled) {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(dirfd=%d,path='%s',flags=0x%X,mode=0%o)",
-				__func__, realfnname, dirfd, pathname, flags, modebits);
-		}
+
+	if (openat_3_ptr)
+		return ((*openat_3_ptr)(dirfd, pathname, flags));
+	if (open_3va_ptr)
 		return ((*open_3va_ptr)(dirfd, pathname, flags, modebits));
-	}
+
 	if (creat_ptr) {
 		if (log_enabled) {
 			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(path='%s',mode=0%o)",
@@ -1177,20 +1188,7 @@ static int vperm_multiopen(
 		}
 		return ((*creat_ptr)(pathname, modebits));
 	}
-	if (open_2_ptr) {
-		if (log_enabled) {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(path='%s',flags=0x%X)",
-				__func__, realfnname, pathname, flags);
-		}
-		return ((*open_2_ptr)(pathname, flags));
-	}
-	if (openat_3_ptr) {
-		if (log_enabled) {
-			SB_LOG(SB_LOGLEVEL_DEBUG, "%s: fd=%s(dirfd=%d,path='%s',flags=0x%X)",
-				__func__, realfnname, dirfd, pathname, flags);
-		}
-		return ((*openat_3_ptr)(dirfd, pathname, flags));
-	}
+
 	if (fopen_ptr) {
 		assert(file_ptr);
 		if (log_enabled) {
@@ -1211,6 +1209,7 @@ static int vperm_multiopen(
 		*file_ptr = f;
 		return (f ? 0 : -1);
 	}
+
 	SB_LOG(SB_LOGLEVEL_ERROR, "%s: Internal error: 'open' function is missing (%s)",
 		__func__, realfnname);
 	return(-1);
@@ -1250,8 +1249,7 @@ static int vperm_do_open(
 
 	/* try to open it */
 	res_fd = vperm_multiopen(1, realfnname,
-		open_2va_ptr, open_3va_ptr, creat_ptr, 
-		open_2_ptr, openat_3_ptr,
+		open_2_ptr, open_2va_ptr, openat_3_ptr, open_3va_ptr, creat_ptr,
 		fopen_ptr, freopen_ptr, file_ptr, file_mode,
 		dirfd, mapped_pathname->mres_result_path, flags, modebits);
 	open_errno = errno;
@@ -1299,9 +1297,8 @@ static int vperm_do_open(
 							 * try again; if it won't open now,
 							 * we just can't do it. */
 							res_fd = vperm_multiopen(0, realfnname,
-								open_2va_ptr, open_3va_ptr, creat_ptr, 
-								open_2_ptr, openat_3_ptr,
-								fopen_ptr, freopen_ptr, file_ptr, file_mode,
+								open_2_ptr, open_2va_ptr, openat_3_ptr, open_3va_ptr,
+								creat_ptr,  fopen_ptr, freopen_ptr, file_ptr, file_mode,
 								dirfd, mapped_pathname->mres_result_path,
 								flags, modebits);
 							open_errno = errno;

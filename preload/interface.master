@@ -184,23 +184,27 @@ GATE: pid_t waitpid(pid_t pid, int *status, int options)
 #define OPEN_FLAGS_RW_MODE (O_WRONLY|O_RDWR|O_APPEND|O_CREAT|O_TRUNC)
 
 GATE: int __open(const char *pathname, int flags, ...) : \
+        dont_resolve_final_symlink_if(flags&O_NOFOLLOW) \
 	map(pathname) optional_arg_is_create_mode(flags&O_CREAT) \
 	postprocess(pathname) \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
 	class(OPEN) conditionally_class(flags&O_CREAT,CREAT)
 GATE: int __open64(const char *pathname, int flags, ...) : \
+        dont_resolve_final_symlink_if(flags&O_NOFOLLOW) \
 	map(pathname) optional_arg_is_create_mode(flags&O_CREAT) \
 	postprocess(pathname) \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
 	class(OPEN) conditionally_class(flags&O_CREAT,CREAT)
 
 GATE: int open(const char *pathname, int flags, ...) : \
+        dont_resolve_final_symlink_if(flags&O_NOFOLLOW) \
 	map(pathname) optional_arg_is_create_mode(flags&O_CREAT) \
 	postprocess(pathname) \
 	create_nomap_nolog_version \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
 	class(OPEN) conditionally_class(flags&O_CREAT,CREAT)
 GATE: int open64(const char *pathname, int flags, ...) : \
+        dont_resolve_final_symlink_if(flags&O_NOFOLLOW) \
 	map(pathname) optional_arg_is_create_mode(flags&O_CREAT) \
 	postprocess(pathname) \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
@@ -208,11 +212,13 @@ GATE: int open64(const char *pathname, int flags, ...) : \
 
 -- open; variants witout varargs
 GATE: int __open_2(const char *pathname, int flags) : \
+        dont_resolve_final_symlink_if(flags&O_NOFOLLOW) \
 	map(pathname) \
 	postprocess(pathname) \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
 	class(OPEN) conditionally_class(flags&O_CREAT,CREAT)
 GATE: int __open64_2(const char *pathname, int flags) : \
+        dont_resolve_final_symlink_if(flags&O_NOFOLLOW) \
 	map(pathname) \
 	postprocess(pathname) \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
@@ -220,6 +226,7 @@ GATE: int __open64_2(const char *pathname, int flags) : \
 
 -- openat:
 GATE: int openat(int dirfd, const char *pathname, int flags, ...) : \
+        dont_resolve_final_symlink_if(flags&O_NOFOLLOW) \
 	map_at(dirfd,pathname) optional_arg_is_create_mode(flags&O_CREAT) \
 	create_nomap_nolog_version \
 	postprocess(pathname) \
@@ -227,6 +234,7 @@ GATE: int openat(int dirfd, const char *pathname, int flags, ...) : \
 	class(OPEN) conditionally_class(flags&O_CREAT,CREAT)
 
 GATE: int openat64(int dirfd, const char *pathname, int flags, ...) : \
+        dont_resolve_final_symlink_if(flags&O_NOFOLLOW) \
 	map_at(dirfd,pathname) optional_arg_is_create_mode(flags&O_CREAT) \
 	postprocess(pathname) \
 	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
@@ -234,11 +242,13 @@ GATE: int openat64(int dirfd, const char *pathname, int flags, ...) : \
 
 -- openat; variants witout varargs
 GATE: int __openat_2(int dirfd, const char *pathname, int flags) : \
+        dont_resolve_final_symlink_if(flags&O_NOFOLLOW) \
  	map_at(dirfd,pathname) \
  	postprocess(pathname) \
  	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \
 	class(OPEN) conditionally_class(flags&O_CREAT,CREAT)
 GATE: int __openat64_2(int dirfd, const char *pathname, int flags) : \
+        dont_resolve_final_symlink_if(flags&O_NOFOLLOW) \
  	map_at(dirfd,pathname) \
  	postprocess(pathname) \
  	check_and_fail_if_readonly(flags&OPEN_FLAGS_RW_MODE,pathname,-1,EROFS) \

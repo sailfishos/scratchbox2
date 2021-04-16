@@ -447,9 +447,11 @@ GATE: int fstat64(int fd, struct stat64 *buf) : class(STAT) \
 
 #ifdef AT_SYMLINK_NOFOLLOW
 WRAP: int fstatat(int dirfd, const char *pathname, struct stat *buf, int flags) : \
+        create_nomap_nolog_version \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname) class(STAT)
 WRAP: int fstatat64(int dirfd, const char *pathname, struct stat64 *buf, int flags) : \
+        create_nomap_nolog_version \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname) class(STAT)
 #endif
@@ -666,7 +668,8 @@ WRAP: int stat(const char *file_name, struct stat *buf) : \
 	map(file_name) class(STAT)
 
 #ifdef HAVE_STAT64
-WRAP: int stat64(const char *file_name, struct stat64 *buf) : map(file_name) class(STAT)
+WRAP: int stat64(const char *file_name, struct stat64 *buf) : map(file_name) class(STAT) \
+        create_nomap_nolog_version
 #endif
 
 -- symlink and symlinkat:

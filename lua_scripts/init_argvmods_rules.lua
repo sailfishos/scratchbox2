@@ -44,7 +44,7 @@ end
 
 function stringlist_to_ruletree(stringlist)
 	local stringlist_index = ruletree.objectlist_create(#stringlist)
-	for k = 1, table.maxn(stringlist) do
+	for k = 1, #stringlist do
 		local string_index = ruletree.new_string(stringlist[k])
 		ruletree.objectlist_set(stringlist_index, k-1, string_index)
 	end

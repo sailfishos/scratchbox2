@@ -155,12 +155,12 @@ function add_net_rule_chain(net_modename, chain_name, rules)
 	local rule_list_index = 0
 
 	if rules ~= nil then
-		local num_rules = table.maxn(rules)
+		local num_rules = #rules
 
 		if num_rules > 0 then
 			rule_list_index = ruletree.objectlist_create(num_rules)
 
-			for n=1,table.maxn(rules) do
+			for n=1,#rules do
 				local rule = rules[n]
 				local new_rule_index
 
@@ -173,7 +173,7 @@ function add_net_rule_chain(net_modename, chain_name, rules)
 						net_modename, chain_name, n))
 				end
 			end
-			print("-- Added to rule db: ",table.maxn(rules),"rules, idx=", rule_list_index)
+			print("-- Added to rule db: ",#rules,"rules, idx=", rule_list_index)
 		else
 			io.stderr:write(string.format(
 				"empty net rule chain (%s,%s)\n",

@@ -18,9 +18,8 @@ $(D)/sb2d: $(D)/sb2d.o \
 		pathmapping/paths_ruletree_maint.o \
 		execs/exec_ruletree_maint.o \
 		luaif/sblib_luaif.o \
-		luaif/liblua.a
 	$(MKOUTPUTDIR)
 	$(P)LD
-	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lm -ldl
+	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lm -ldl $(LUA_LIBS)
 
 targets := $(targets) $(D)/sb2d

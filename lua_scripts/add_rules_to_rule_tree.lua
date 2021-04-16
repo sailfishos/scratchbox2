@@ -72,14 +72,14 @@ function get_rule_tree_offset_for_union_dir_list(union_dir_list)
 
 	local union_dir_rule_list_index = ruletree.objectlist_create(#union_dir_list)
 
-	for n=1,table.maxn(union_dir_list) do
+	for n=1,#union_dir_list do
 		local component_path = union_dir_list[n]
 		local new_str_index = ruletree.new_string(component_path)
 
 		ruletree.objectlist_set(union_dir_rule_list_index, n-1, new_str_index)
 	end
 	if debug_messages_enabled then
-		print("-- Added union dir to rule db: ",table.maxn(union_dir_list),
+		print("-- Added union dir to rule db: ",#union_dir_list,
 			"rules, idx=", union_dir_rule_list_index)
 	end
 	return union_dir_rule_list_index
@@ -280,12 +280,12 @@ function add_list_of_rules(rules, modename)
 	local rule_list_index = 0
 
 	if rules ~= nil then
-		local num_rules = table.maxn(rules)
+		local num_rules = #rules
 
 		if num_rules > 0 then
 			rule_list_index = ruletree.objectlist_create(num_rules)
 
-			for n=1,table.maxn(rules) do
+			for n=1,#rules do
 				local rule = rules[n]
 				local new_rule_index
 
@@ -293,7 +293,7 @@ function add_list_of_rules(rules, modename)
 				ruletree.objectlist_set(rule_list_index, n-1, new_rule_index)
 			end
 			if debug_messages_enabled then
-				print("-- Added to rule db: ",table.maxn(rules),"rules, idx=", rule_list_index)
+				print("-- Added to rule db: ",#rules,"rules, idx=", rule_list_index)
 			end
 		end
 	end
@@ -354,7 +354,7 @@ end
 
 function add_all_exec_policies(modename_in_ruletree)
         if (all_exec_policies ~= nil) then
-                for i = 1, table.maxn(all_exec_policies) do
+                for i = 1, #all_exec_policies do
                         local ep_name = all_exec_policies[i].name
 			if ep_name then
 				sblib.log("debug", "Adding Exec policy "..ep_name)

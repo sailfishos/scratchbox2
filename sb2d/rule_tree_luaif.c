@@ -493,7 +493,7 @@ static int lua_sb_add_net_rule_to_ruletree(lua_State *l)
 }
 
 /* mappings from c to lua */
-static const luaL_reg reg[] =
+static const luaL_Reg reg[] =
 {
 	{"objectlist_create",		lua_sb_ruletree_objectlist_create_list},
 	{"objectlist_set",		lua_sb_ruletree_objectlist_set_item},
@@ -537,10 +537,12 @@ static const luaL_reg reg[] =
 
 int lua_bind_ruletree_functions(lua_State *l)
 {
-	luaL_register(l, "ruletree", reg);
+        lua_newtable(l);
+	luaL_setfuncs(l, reg, 0);
 	lua_pushliteral(l,"version");
 	lua_pushstring(l, "2.0" );
 	lua_settable(l,-3);
+        lua_setglobal(l,  "ruletree");
 
 	return 0;
 }

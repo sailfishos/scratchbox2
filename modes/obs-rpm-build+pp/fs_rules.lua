@@ -683,6 +683,7 @@ emulate_mode_rules_etc = {
 		-- Perl & Python:
 		{prefix = "/etc/perl", actions = perl_lib_test},
 		{prefix = "/etc/python", actions = python_lib_test},
+		{dir = "/etc/xdg/rpmlint", actions = python_lib_test},
 
 		{dir = "/etc", map_to = target_root,
 		 protection = readonly_fs_if_not_root}

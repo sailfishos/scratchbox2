@@ -28,8 +28,6 @@ rules_dev = {
 
 	{name = "rule lib: /dev/shm/*",
 	 dir = "/dev/shm",
-	 func_class = FUNC_CLASS_STAT + FUNC_CLASS_RENAME + FUNC_CLASS_SYMLINK +
-	              FUNC_CLASS_CREAT + FUNC_CLASS_SET_TIMES + FUNC_CLASS_MKNOD,
 	 replace_by = session_dir .. "/tmp"},
 
 	-- We can't change times or attributes of host's devices,

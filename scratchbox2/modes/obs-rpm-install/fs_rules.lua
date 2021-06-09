@@ -85,7 +85,7 @@ function can_accelerate_rpm()
     ]=]
 
 	local rc = os.execute(string.format(test, tools, target_root))
-	return rc == 0
+	return rc
 end
 
 if can_accelerate_rpm() then

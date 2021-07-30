@@ -1,0 +1,115 @@
+#
+# This file lists all packages which can be used from the host (or
+# tools_root) environment in the "devel" mode.
+#
+# NOTE: Each name must be on a single line, and no whitescape is allowed!
+#-----------
+# Debian build system components:
+cdbs
+dbs
+debhelper
+debianutils
+debmake
+dh-buildinfo
+dpatch
+dpkg
+po-debconf
+quilt
+#-----------
+# generic host tools:
+bc
+binutils
+bison
+byacc
+bzip2
+cpio
+dc
+ed
+file
+flex
+flex-old
+gawk
+gcc
+gcc-3.4
+gcc-4.2
+g++-4.2
+gzip
+m4
+make
+mawk
+pkg-config
+procps
+realpath
+sed
+sharutils
+tar
+# (metapkg:)
+build-essential
+#
+#-----------
+# GNU autotools:
+autoconf
+autoconf2.13
+automake
+automake1.4
+automake1.7
+automake1.8
+automake1.9
+automake1.10
+automaken
+autotools-dev
+libtool
+#
+#-----------
+# GNOME:
+gnome-pkg-tools
+#
+#-----------
+# Documentation tools:
+docbook-dsssl
+docbook-to-man
+docbook-xml
+docbook-xsl
+doxygen
+groff
+gs
+gs-common
+gtk-doc-tools
+jade
+libpaper-utils
+linuxdoc-tools
+netpbm
+psutils
+sgml-base
+sgml-data
+sgmlspl
+sp
+tetex-base
+tetex-bin
+tetex-extra
+texi2html
+texinfo
+xml-core
+xmlto
+#
+#-----------
+# localization:
+defoma
+gettext
+intltool
+#
+#-----------
+# PERL:
+libcompress-zlib-perl
+libdigest-md5-perl
+libhtml-parser-perl
+libhtml-tagset-perl
+libmime-base64-perl
+libnet-perl
+libtimedate-perl
+liburi-perl
+libwww-perl
+libxml-parser-perl
+perl
+perl-base
+#-----------

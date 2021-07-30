@@ -1,0 +1,105 @@
+#
+# Configuration variables for sb2 - specific to the "devel" mapping mode.
+#
+# First argument is "initializing" when this script is included from sb2-init,
+# or "starting" when included from the "sb2" script, or name of the command
+# wrapper which needs mode-specific parameters ("dpkg", "apt-get", etc),
+# and empty otherwise.
+sb2rc_mode="$1"
+
+
+case "$sb2rc_mode" in
+
+	initializing)
+
+		SB2INIT_CROSS_GCC_PREFIX_LIST=$ARCH-linux-:$ARCH-linux-gnueabi-:$ARCH-linux-gnu-
+		if [ "$ARCH" != "$MACHINE_ARCH" ]; then
+			SB2INIT_CROSS_GCC_PREFIX_LIST=$SB2INIT_CROSS_GCC_PREFIX_LIST:$MACHINE_ARCH-linux-:$MACHINE_ARCH-linux-gnueabi-:$MACHINE_ARCH-linux-gnu-
+		fi
+		;;
+
+	starting)
+		# The dpkg-checkbuilddeps wrapper needs to be able to
+		# switch to the "tools" mode; call add_map_mode to
+		# make "tools" available for this session.
+		add_map_mode tools
+		# Also, be prepared to switch to "emulate".
+		# (because then we can later on join the session and use
+		# the mode even when it was not specified when the session
+		# was created.
+		add_map_mode emulate
+		;;
+
+	mode_settings)
+		# If $CREATE_ARGVMODS_USR_BIN_RULES is not empty, some 
+		# mapping rules will be automatically generated for
+		# programs that belong to the toolchain.
+		CREATE_ARGVMODS_USR_BIN_RULES="yes"
+		;;
+
+	wrapper_list)
+		SBOX_WRAPPERS=ALL
+		;;
+
+	sb2-check-pkg-mappings)
+		# This is used by the "sb2-check-pkg-mappings" utility:
+		# N.B. *bin directories needs to be ignored, because there 
+		# are many lib*-dev -packages that want to add some 
+		# configuration tools to /usr/bin, etc
+		# N.B2: /usr/share/zoneinfo/localtime is typically a symlink 
+		# to /etc/localtime and needs to be ignored
+		#
+		# Following files come with package libglib2.0-dev
+		# and we want to ignore those and use the ones
+		# found from rootstrap:
+		#    /usr/share/aclocal/glib-2.0.m4
+		#    /usr/share/aclocal/glib-gettext.m4
+		#
+		# Note: now there are special mapping rules for perl & python,
+		# /usr/lib/perl*, /usr/share/perl*, /usr/lib/python*,
+		# /usr/share/python* and /usr/share/pygobject* can be ignored here,
+		# because the mapping rules select correct versions for
+		# the binaries automatically.
+		#
+		SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST=" \
+			@ignore: \
+			/usr/bin /usr/sbin /sbin /bin \
+			/usr/lib/perl /usr/share/perl \
+			/usr/lib/python /usr/share/python /usr/share/pygobject \
+			/etc \
+			/usr/share/man /usr/share/doc /usr/share/gtk-doc \
+			/usr/share/doc-base \
+			/usr/share/locale \
+			/usr/share/lintian \
+			/usr/share/menu/gdb \
+			/usr/share/i18n \
+			/usr/share/info \
+			/usr/share/sgml \
+			/usr/share/perl5 \
+			/usr/share/gconf \
+			/usr/share/base-passwd \
+			/usr/share/qt4/bin \
+			/usr/share/lintian/overrides/dpkg-dev \
+			/usr/share/zoneinfo/localtime \
+			/usr/share/aclocal/glib-2.0.m4 \
+			/usr/share/aclocal/glib-gettext.m4 \
+			/usr/lib/dpkg \
+			/bin/ps"
+		;;
+
+	dpkg)
+		# This is for the "dpkg" wrapper:
+		SBOX_DPKG_WRAPPER_DENY_INSTALL=yes
+		;;
+
+	apt-get)
+		# and a similar setting for "apt-get" wrapper:
+		SBOX_APT_GET_WRAPPER_DENY_INSTALL=yes
+		;;
+
+	*)
+		# Default.
+		;;
+
+esac
+

@@ -1,0 +1,115 @@
+#!/bin/bash
+#
+# "ldd" wrapper for scratchbox 2, to be used in the "devel"/"accel" modes
+# (this wrapper requires that target tools are available
+# at "/target_root")
+#
+# "ldd" is used to print shared libraries required by a program.
+# Our problem is that it can be used to both host- and target
+# binaries; this wrapper first detects the type of the binary,
+# and then
+#  - runs the "ldd" from /target_root for target binaries
+#  - If host CPU architecture != target CPU architecture,
+#    runs the binary with LD_TRACE_LOADED_OBJECTS=yes if
+#    it is a host binary (there were to be problems running
+#    the real "ldd" from inside sb2, but running ld.so
+#    with that env.variable produces the required result)
+#  - If host CPU architecture == target CPU architecture,
+#    assumes that all binaries belong to the target.
+#    runs the binary with LD_TRACE_LOADED_OBJECTS=yes 
+#    with target's ld.so.
+#
+# FIXME: Command line options only work with target binaries!
+#
+# Copyright (c) 2008 Nokia Corporation.
+# All rights reserved.
+# Author: Lauri T. Aarnio
+#
+# Licensed under GPL version 2
+
+args="$*"
+prog="$0"
+progbase=`basename $0`
+
+function error_not_inside_sb2()
+{
+	echo "SB2: $progbase wrapper: This wrapper can only be used from inside"
+	echo "the scratchbox 2'ed environment"
+	exit 1
+}
+
+# Some dynamic libraries are reported as "host/dynamic", 
+# some as "host/static" by # "sb2-show binarytype".
+# If the target CPU arch. is 
+# ompatible with the host, try to resolve 
+function host_compatible_binary()
+{
+	if [ -z "$conf_target_ld_so" ]; then
+		target_ld_so=`grep '^conf_target_ld_so=' $SBOX_SESSION_DIR/exec_config.lua`
+		eval $target_ld_so
+		target_libpath=`grep '^conf_target_ld_so_library_path=' $SBOX_SESSION_DIR/exec_config.lua`
+		eval $target_libpath
+	fi
+	case "$conf_target_ld_so" in
+	"")	# Failed to read from config file
+		;;
+	nil)	# not set; assume that it belongs to the host.
+		LD_TRACE_LOADED_OBJECTS=yes $1
+		;;
+	*)
+		mapped_file=`$SBOX_SESSION_DIR/bin/sb2-show which $1`
+		LD_TRACE_LOADED_OBJECTS=yes $conf_target_ld_so --library-path $conf_target_ld_so_library_path $mapped_file
+		;;
+	esac
+}
+
+if [ -z "$SBOX_SESSION_DIR" ]
+then
+	error_not_inside_sb2
+fi
+
+. $SBOX_SESSION_DIR/sb2-session.conf
+
+if [ -z "$sbox_mapmode" -o -z "$sbox_dir" ]
+then
+	error_not_inside_sb2
+fi
+
+# read-in mode-specific settings
+if [ -f $SBOX_SESSION_DIR/modes/$sbox_mapmode/sb2rc ]
+then
+	. $SBOX_SESSION_DIR/modes/$sbox_mapmode/sb2rc "$progbase"
+fi
+
+OPTIONS=""
+FILES=""
+NUM_FILES=0
+
+for k in $args
+do
+	case $k in
+	-*) OPTIONS="$OPTIONS $k";;
+	*)  FILES="$FILES $k"
+	    NUM_FILES=`expr $NUM_FILES + 1`;;
+	esac
+done
+
+if [ $NUM_FILES -eq 0 ]
+then
+	exec $sbox_target_root/usr/bin/ldd $OPTIONS
+fi
+
+for f in $FILES
+do
+	if [ $NUM_FILES -gt 1 ]
+	then
+		echo "$f:"
+	fi
+	type=`$SBOX_SESSION_DIR/bin/sb2-show binarytype $f`
+	case "$type" in
+	target*) $sbox_target_root/usr/bin/ldd $OPTIONS $f;;
+	host/*) host_compatible_binary $f;;
+	*) echo "ldd wrapper: Don't know how to handle $f (type=$type)"
+	esac
+done
+

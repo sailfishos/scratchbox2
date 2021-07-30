@@ -1,0 +1,126 @@
+#!/bin/bash
+#
+# This script will be started by sb2-monitor after "everything has been done"
+#
+# Copyright (c) 2008 Nokia Corporation. All rights reserved.
+# Author: Lauri T. Aarnio
+# Licensed under LGPL version 2.1, see top level LICENSE file for details.
+
+# exit_reason is one of
+#   - "exit" = Normal exit, detected by sb2-monitor
+#   - "signal" = signal caused it (detected by sb2-monitor)
+#   - "UNKNOWN" = sb2-monitor couldn't find out why.. (should
+#		  not happen)
+exit_reason=$1
+exit_status=$2
+
+if [ -z "$SBOX_MAPPING_LOGFILE" -o \
+     -z "$exit_reason" -o -z "$exit_status" ]; then
+	echo "ERROR: $0 is an internal tool for sb2, do not use directly"
+	exit 1
+fi
+
+if [ "$exit_reason" == "exit" ]; then
+	# Normal exit
+	ret=$exit_status
+else
+	if [ -z "$SBOX_QUIET" ];  then
+		echo "Exit reason and status: $exit_reason $exit_status"
+	fi
+	ret=1
+fi
+
+# Turn off accounting, if it was enabled in the beginning.
+if [ -n "$SBOX_COLLECT_ACCT_DATA" ]; then
+	# First try to deactivate it directly
+	sb2-show acct_off 2>/dev/null
+	if [ $? != 0 ]; then
+		if [ -z "$SBOX_QUIET" ];  then
+			echo "WARNING: Can't deactivate process accounting. Retrying with 'sudo', password may be needed."
+		fi
+		sudo sb2-show acct_off 2>/dev/null
+		if [ $? != 0 ]; then
+			if [ -z "$SBOX_QUIET" ];  then
+				echo "ERROR: Failed to deactivate process accounting. Please do it manually!"
+			fi
+		fi
+	fi
+fi
+
+if [ -s "$SBOX_MAPPING_LOGFILE" ]; then
+	# Logfile exists and is not empty
+	# add reason and status to the logfile
+	echo "# $* ($ret)" >> $SBOX_MAPPING_LOGFILE
+
+	if [ -n "$SBOX_LOG_AND_GRAPH_DIR" ]; then
+		if [ -z "$SBOX_QUIET" ];  then
+			echo "Post-processing the log and generating graphs to"
+			echo "directory $SBOX_MAPPING_LOGFILE:"
+		fi
+		sb2_logz_acct_opt=""
+		if [ -f $SBOX_LOG_AND_GRAPH_DIR/acct-data ]; then
+			sb2_logz_acct_opt="-A $SBOX_LOG_AND_GRAPH_DIR/acct-data"
+		fi
+		if [ -z "$SBOX_QUIET" ];  then
+			sb2-logz -v $sb2_logz_acct_opt \
+				-P $SBOX_LOG_AND_GRAPH_DIR/processses.dot \
+				-E $SBOX_LOG_AND_GRAPH_DIR/exec.dot \
+				< $SBOX_MAPPING_LOGFILE
+		else
+			sb2-logz -v $sb2_logz_acct_opt \
+				-P $SBOX_LOG_AND_GRAPH_DIR/processses.dot \
+				-E $SBOX_LOG_AND_GRAPH_DIR/exec.dot \
+				< $SBOX_MAPPING_LOGFILE >/dev/null
+		fi
+		path_to_dot=`which dot 2>/dev/null`
+		if [ -z "$path_to_dot" ]; then
+			if [ -z "$SBOX_QUIET" ];  then
+				echo "Warning: 'dot' was not found, can't create .pdf files"
+				echo "         ('graphviz' package is recommended to fix this)"
+			fi
+		else
+			dot -Tpdf $SBOX_LOG_AND_GRAPH_DIR/processses.dot >$SBOX_LOG_AND_GRAPH_DIR/processses.pdf
+			dot -Tpdf $SBOX_LOG_AND_GRAPH_DIR/exec.dot >$SBOX_LOG_AND_GRAPH_DIR/exec.pdf
+		fi
+		if [ -z "$SBOX_QUIET" ];  then
+			echo "Results are now in $SBOX_LOG_AND_GRAPH_DIR":
+			ls -l $SBOX_LOG_AND_GRAPH_DIR
+		fi
+	else
+		case "$SBOX_MAPPING_LOGLEVEL" in
+		(error|warning|net)
+			# Brief log, only error, warning and network-related messages.
+			if [ -z "$SBOX_QUIET" ];  then
+				echo "Messages from sb2:"
+			fi
+			cat $SBOX_MAPPING_LOGFILE
+			;;
+		(*)
+			# Larger log (maybe a debug log)
+			if [ -z "$SBOX_QUIET" ];  then
+				echo "Log summary:"
+				echo
+				sb2-logz -v < $SBOX_MAPPING_LOGFILE
+				echo
+				echo "This log can be analyzed again by"
+				echo "sb2-logz < $SBOX_MAPPING_LOGFILE"
+			fi
+			;;
+		esac
+	fi
+elif [ -f "$SBOX_MAPPING_LOGFILE" ]; then
+	# Log file exists, but is empty
+	rm $SBOX_MAPPING_LOGFILE
+fi
+
+if [ -f $SBOX_SESSION_DIR/.joinable-session ]; then
+	# The session was created with -S flag, don't clean it, but stay quiet
+	echo >/dev/null
+else
+	# cleanup
+	if [ -n "$SBOX_SESSION_DIR" -a -d "$SBOX_SESSION_DIR" ]; then
+		rm -rf $SBOX_SESSION_DIR
+	fi
+fi
+
+exit $ret

@@ -1,0 +1,112 @@
+#!/bin/bash
+# sb2-parse-sb2-init-args:
+#   Parses sb2-init's arguments and prints them out as assignments.
+#   Used from sb2-init and sb2-upgrade-config.
+# Copyright (C) 2009 Nokia Corporation.
+# Licensed under GPL version 2
+
+# Use an array to preserve spaces in original arguments:
+declare -a init_orig_args_array
+init_orig_args_array=("$@")
+
+# make a printable version:
+SB2INIT_INIT_ORIG_ARGS=""
+for arg in "${init_orig_args_array[@]}"; do
+	case "$arg" in
+	(*[[:space:]]*)	pr_arg="'""$arg""'";;
+	(*)		pr_arg="$arg";;
+	esac
+
+	if [ -z "$SB2INIT_INIT_ORIG_ARGS" ]; then
+		SB2INIT_INIT_ORIG_ARGS="$pr_arg"
+	else
+		SB2INIT_INIT_ORIG_ARGS="$SB2INIT_INIT_ORIG_ARGS $pr_arg"
+	fi
+done
+
+
+SB2INIT_REMOTEHOST=
+SB2INIT_LOCALHOST=
+
+SB2INIT_SET_AS_DEFAULT=0
+SB2INIT_WITH_LIBTOOL=1
+SB2INIT_WITH_LOCALES=1
+SB2INIT_SKIP_CHECKS=false
+
+SB2INIT_SBOX_EXTRA_CROSS_COMPILER_ARGS=""
+
+SB2INIT_SHOW_USAGE=0
+SB2INIT_SHOW_VERSION=0
+SB2INIT_ERROR=0
+
+# Parse the same options what sb2-init uses:
+while getopts A:M:c:C:L:r:l:m:p:dhnNst:v foo
+do
+	case $foo in
+	(A) SB2INIT_ARCH=$OPTARG ;;
+	(M) SB2INIT_MACHINE_ARCH=$OPTARG ;;
+	(c) SB2INIT_CPUTRANSP=$OPTARG ;;
+	(p) SB2INIT_CPUTRANSP_NATIVE=$OPTARG ;;
+	(r) SB2INIT_REMOTEHOST=$OPTARG ;;
+	(l) SB2INIT_LOCALHOST=$OPTARG ;;
+	(d) SB2INIT_SET_AS_DEFAULT=1 ;;
+	(h) SB2INIT_SHOW_USAGE=1 ;;
+	(m) SB2INIT_MAPPING_MODE=$OPTARG ;;
+	(n) SB2INIT_WITH_LIBTOOL=0 ;;
+	(N) SB2INIT_WITH_LOCALES=0 ;;
+	(s) SB2INIT_SKIP_CHECKS=true ;;
+	(t) SB2INIT_TOOLS_ROOT=$OPTARG ;;
+	(v) SB2INIT_SHOW_VERSION=1 ;;
+	(C) SB2INIT_SBOX_EXTRA_CROSS_COMPILER_ARGS="$SBOX_EXTRA_CROSS_COMPILER_ARGS $OPTARG " ;;
+	(L) SB2INIT_SBOX_EXTRA_CROSS_LD_ARGS="$SBOX_EXTRA_CROSS_LD_ARGS $OPTARG " ;;
+	(*) SB2INIT_ERROR=1 ;;
+	esac
+done
+shift $(($OPTIND - 1))
+
+SB2INIT_TARGET=$1
+shift
+SB2INIT_COMPILERS=$*
+
+if [ -z "$SB2INIT_TARGET_ROOT" ]; then
+	# use current directory as the target root
+	SB2INIT_TARGET_ROOT=$(readlink -f "$PWD")
+fi
+
+# SB2INIT_INIT_* variables are used to record who initialized, and when and
+# how it was initialized.
+# It is possible to set SBOX_INIT_ID externally (for example, if
+# another program is used to initialize the system)
+SB2INIT_INIT_TIME=`date +%Y-%m-%d_%H:%M:%S`
+if [ -z "$SBOX_INIT_ID" ]; then
+        SBOX_INIT_ID="user '$USER'"
+fi
+
+cat <<END
+SB2INIT_INIT_ORIG_ARGS="$SB2INIT_INIT_ORIG_ARGS"
+SB2INIT_INIT_TIME="$SB2INIT_INIT_TIME"
+SB2INIT_INIT_ID="$SBOX_INIT_ID"
+
+SB2INIT_TARGET_ROOT="$SB2INIT_TARGET_ROOT"
+SB2INIT_ARCH="$SB2INIT_ARCH"
+SB2INIT_MACHINE_ARCH="$SB2INIT_MACHINE_ARCH"
+SB2INIT_CPUTRANSP="$SB2INIT_CPUTRANSP"
+SB2INIT_CPUTRANSP_NATIVE="$SB2INIT_CPUTRANSP_NATIVE"
+SB2INIT_REMOTEHOST="$SB2INIT_REMOTEHOST"
+SB2INIT_LOCALHOST="$SB2INIT_LOCALHOST"
+SB2INIT_SET_AS_DEFAULT="$SB2INIT_SET_AS_DEFAULT"
+SB2INIT_MAPPING_MODE="$SB2INIT_MAPPING_MODE"
+SB2INIT_WITH_LIBTOOL="$SB2INIT_WITH_LIBTOOL"
+SB2INIT_WITH_LOCALES="$SB2INIT_WITH_LOCALES"
+SB2INIT_SKIP_CHECKS="$SB2INIT_SKIP_CHECKS"
+SB2INIT_TOOLS_ROOT="$SB2INIT_TOOLS_ROOT"
+SB2INIT_SBOX_EXTRA_CROSS_COMPILER_ARGS="$SB2INIT_SBOX_EXTRA_CROSS_COMPILER_ARGS"
+SB2INIT_SBOX_EXTRA_CROSS_LD_ARGS="$SB2INIT_SBOX_EXTRA_CROSS_LD_ARGS"
+SB2INIT_TARGET="$SB2INIT_TARGET"
+SB2INIT_COMPILERS="$SB2INIT_COMPILERS"
+
+SB2INIT_SHOW_USAGE="$SB2INIT_SHOW_USAGE"
+SB2INIT_SHOW_VERSION="$SB2INIT_SHOW_VERSION"
+SB2INIT_ERROR="$SB2INIT_ERROR"
+END
+

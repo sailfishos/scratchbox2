@@ -1,0 +1,28 @@
+#
+# Configuration variables for sb2 - specific to the "nomap" mapping mode.
+#
+# First argument is "initializing" when this script is included from sb2-init,
+# or "starting" when included from the "sb2" script, or name of the command
+# wrapper which needs mode-specific parameters ("dpkg", "apt-get", etc),
+# and empty otherwise.
+sb2rc_mode="$1"
+
+
+case "$sb2rc_mode" in
+
+	initializing)
+		;;
+
+	starting)
+		;;
+
+	wrapper_list)
+		SBOX_WRAPPERS="fakeroot"
+		;;
+
+	*)
+		# Default.
+		;;
+
+esac
+

@@ -1,0 +1,266 @@
+#!/bin/bash
+#
+# This script checks which .deb packages can be used from the rootstrap.
+#
+# dpkg-checkbuilddeps uses this to builds a new temporary "status" file of
+# all usable packages.
+#
+# Copyright (c) 2008 Nokia Corporation. All rights reserved.
+# Author: Lauri T. Aarnio
+# Licensed under LGPL version 2.1, see top level LICENSE file for details.
+
+function usage()
+{
+	cat <<EOF
+sb2-check-pkg-mappings - check usability of target's .deb packages
+Usage:
+	sb2-check-pkg-mappings pkg1 [pkg2..]
+	sb2-check-pkg-mappings -a
+	sb2-check-pkg-mappings -u
+	sb2-check-pkg-mappings -f
+
+Options:
+    -a		check all packages and write results to a temporary
+		database, to be used by sb2's dpkg-checkbuilddeps
+    -u          Update: check if the temporary DB is up to date,
+                activate option -a if needed
+    -v          verbose mode: Report package names when checking all,
+		even more verbose when checking named packages
+		(then reports all paths with mapping status)
+    -f          use force: update timestamp of the temporary DB
+                if it exists, but don't check the contents. This may
+                be dangerous and may break your configuration!
+
+When started with list of package names, checks named packages and prints
+results, but does not create or modify the temporary database.
+EOF
+	exit 1
+}
+
+if [ -z "$*" ]; then
+	usage
+fi
+prog="$0"
+progbase=`basename $0`
+
+function error_not_inside_sb2()
+{
+	echo "SB2: $progbase: This program can only be used from inside"
+	echo "the scratchbox 2'ed environment"
+	exit 1
+}
+
+if [ -z "$SBOX_SESSION_DIR" ]; then
+	error_not_inside_sb2
+fi
+
+. $SBOX_SESSION_DIR/sb2-session.conf
+
+check_all_pkgs="no"
+check_if_out_of_date="no"
+update_timestamp_by_force="no"
+status_file=""
+bothreq_file=""
+verbose=""
+
+while getopts auhvf foo
+do
+	case $foo in
+	(a) check_all_pkgs="yes" ;;
+	(u) check_if_out_of_date="yes" ;;
+	(f) update_timestamp_by_force="yes" ;;
+	(h) usage ;;
+	(v) verbose="y" ;;
+	(*) usage ;;
+	esac
+done
+shift $(($OPTIND - 1))
+
+pkgs2check="$*"
+
+SB2_SHOW_VERBOSE_OPTION=""
+if [ -n "$pkgs2check" ]; then
+	# has a list of packages: 
+	# now "-v" means "extra verbose"
+	if [ -n "$verbose" ]; then
+		SB2_SHOW_VERBOSE_OPTION="-v"
+	fi
+	# activate "standard verbose" always.
+	verbose="y"
+fi
+
+# Target's real package db:
+TARGET_DPKG_ADMINDIR_ALL_PKGS=$sbox_target_root/var/lib/dpkg
+
+if [ $check_all_pkgs = "yes" -o "$check_if_out_of_date" = "yes" ]; then
+	if [ ! -d $sbox_temp_dpkg_admin_dir ]; then
+		mkdir $sbox_temp_dpkg_admin_dir
+	fi
+fi
+
+if [ "$update_timestamp_by_force" = "yes" ]; then
+	if [ ! -f $sbox_temp_dpkg_admin_dir/status ]; then
+		echo "FAILED: $sbox_temp_dpkg_admin_dir/status does not exist."
+		exit 1
+	fi
+	touch $sbox_temp_dpkg_admin_dir/status
+	echo "$sbox_temp_dpkg_admin_dir/status pretends to be up-to-date now."
+	exit 0
+fi
+
+if [ "$check_if_out_of_date" = "yes" ]; then
+	# Check that the list of usable packages exists and is up-to-date.
+	# That list is really a temporary package database, which contains only
+	# packages that are usable thru this mapping mode.
+
+	if [ ! -f $sbox_temp_dpkg_admin_dir/status ]; then
+		echo "$sbox_temp_dpkg_admin_dir/status does not exist."
+		echo "going to create it now. This is going to take a while.."
+		echo
+		check_all_pkgs="yes"
+	elif [ $sbox_temp_dpkg_admin_dir/status -ot \
+	       $TARGET_DPKG_ADMINDIR_ALL_PKGS/status ]; then
+		echo "Target's primary package database has been updated =>"
+		echo "$sbox_temp_dpkg_admin_dir/status is out of date."
+		echo "going to update it now. This is going to take a while.."
+		echo
+		check_all_pkgs="yes"
+	elif [ $sbox_temp_dpkg_admin_dir/status -ot \
+	       $sbox_dir/share/scratchbox2/modes/$sbox_mapmode/fs_rules.lua ]; then
+		echo "SB2's mapping rules have been updated =>"
+		echo "$sbox_temp_dpkg_admin_dir/status might be out of date."
+		echo "going to update it now. This is going to take a while.."
+		echo
+		check_all_pkgs="yes"
+	fi
+
+	if [ "$check_all_pkgs" != "yes" ]; then
+		echo "$sbox_temp_dpkg_admin_dir/status is up-to-date."
+		exit 0
+	fi
+fi
+
+tstamp=`/bin/date +%Y%m%d-%H%M`
+
+if [ -z "$pkgs2check" -a "$check_all_pkgs" = "yes" ]; then
+	# check all installed packages
+	echo "Checking visibility of all files installed from all packages to target_root:"
+	pkgs2check=`dpkg --get-selections | grep 'install$' | sed -e 's/install$//'`
+	status_file=STATUS-NEW.$tstamp.$$
+	bothreq_file=BOTH_REQ-NEW.$tstamp.$$
+elif [ "$check_all_pkgs" = "yes" ]; then
+	# -a and package names - illegal
+	usage
+fi
+
+function add_pkg_to_status_file()
+{
+	if [ $check_all_pkgs = "yes" ]; then
+		if [ -f $status_file ]; then
+			echo >>$status_file
+		fi
+		dpkg -s $pkg >>$status_file
+	fi
+}
+
+function remove_temp_files
+{
+	if [ -n "$status_file" -a -f "$status_file" ]; then
+		echo "removing temp file '$status_file'"
+		rm $status_file
+	fi
+	if [ -n "$bothreq_file" -a -f "$bothreq_file" ]; then
+		echo "removing temp file '$bothreq_file'"
+		rm $bothreq_file
+	fi
+}
+trap remove_temp_files EXIT
+
+pkgnum=0
+num_ok=0
+num_failed=0
+num_both_required=0
+
+# Read the mode-specific path ignore list.
+SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST=""
+if [ -f $SBOX_SESSION_DIR/modes/$sbox_mapmode/sb2rc ]; then
+	. $SBOX_SESSION_DIR/modes/$sbox_mapmode/sb2rc "sb2-check-pkg-mappings"
+fi
+
+# for all installed packages..
+for pkg in $pkgs2check; do
+	pkgnum=`expr $pkgnum + 1`
+	if [ -n "$verbose" ]; then
+		echo "=========== $pkgnum. Checking $pkg ==========="
+	fi
+
+	# get list of files installed by this package (dpkg -L),
+	# and feed it to sb2-show to be verified (-D causes directories
+	# to be ignored). Also ignore all files which are installed
+	# to these diretories listed in $SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST.
+	sb2_pkg_chk=`mktemp /tmp/sb2-pkg-chk.XXXXXXXXXX`
+	dpkg -L $pkg >$sb2_pkg_chk
+	if [ $? != 0 ]; then
+		num_failed=`expr $num_failed + 1`
+		if [ -n "$verbose" ]; then
+			echo "	$pkg is not available"
+		else
+			echo -n "!"
+		fi
+	else
+		sed < $sb2_pkg_chk\
+		    -e 's/diverted by .* to: //' \
+		    -e 's/package diverts others to: //' |
+		sb2-show -D verify-pathlist-mappings \
+			$SB2_SHOW_VERBOSE_OPTION \
+			$sbox_target_root $SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST
+		pathlist_mappings_result=$?
+		if [ $pathlist_mappings_result == 0 ]; then
+			# package can be safely used, all mappings are OK:
+			if [ -n "$verbose" ]; then
+				echo "	$pkg = OK"
+			else
+				echo -n "."
+			fi
+			num_ok=`expr $num_ok + 1`
+			add_pkg_to_status_file
+		elif [ $pathlist_mappings_result == 2 ]; then
+			# package can be used, as long as it is installed to 
+			# the target_root AND to the tools
+			if [ -n "$verbose" ]; then
+				echo "	$pkg : required also from tools"
+			else
+				echo -n "."
+			fi
+			num_both_required=`expr $num_both_required + 1`
+			add_pkg_to_status_file
+			if [ $check_all_pkgs = "yes" ]; then
+				echo $pkg >>$bothreq_file
+			fi
+		else
+			num_failed=`expr $num_failed + 1`
+			if [ -n "$verbose" ]; then
+				echo "	$pkg can not be used in this mode ($sbox_mapmode)"
+			else
+				echo -n "#"
+			fi
+		fi
+	fi
+	rm $sb2_pkg_chk
+done
+
+if [ -z "$verbose" ]; then
+	echo
+fi
+echo "Checked $pkgnum packages: Ok=$num_ok, unusable=$num_failed, both required=$num_both_required"
+
+if [ $check_all_pkgs = "yes" ]; then
+	if [ ! -d $sbox_temp_dpkg_admin_dir ]; then
+		mkdir $sbox_temp_dpkg_admin_dir
+	fi
+	mv $status_file $sbox_temp_dpkg_admin_dir/status
+	mv $bothreq_file $sbox_temp_dpkg_admin_dir/both-required
+	if [ -n "$verbose" ]; then
+		echo "Results have been written to $sbox_temp_dpkg_admin_dir/status"
+	fi
+fi

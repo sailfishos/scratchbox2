@@ -1,0 +1,117 @@
+# ll build system
+#
+# Copyright (C) 2006-2007 Lauri Leukkunen <lle@rahina.org>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+# Make sure this file is only included once per make invocation
+ifndef _LL_BUILD_MAKEFILE_INCLUDE
+_LL_BUILD_MAKEFILE_INCLUDE=1
+
+# this is here to enforce a sensible default target
+__kicker_target: all
+
+
+TOPDIR := $(CURDIR)
+
+# a useful function to expand paths
+define O
+$(patsubst %,$(D)/%,$(1))
+endef
+
+
+# import all the subdir Makefiles recursively
+
+define import_dir
+	subdirs := 
+	subdirs-y :=
+	objects :=
+	objects-y :=
+	D := $(1)
+	$(shell mkdir -p $(1))
+	include $(1)/Makefile
+	dep_files := $$(wildcard $(1)/.*.d)
+	include $(dep_files)
+	all_objects := $$(all_objects) $$(patsubst %,$(1)/%,$$(objects))
+	all_objects := $$(all_objects) $$(patsubst %,$(1)/%,$$(objects-y))
+	subdirs := $$(subdirs) $$(subdirs-y)
+	tmp := $$(patsubst %,$(1)/%,$$(subdirs))
+	perkele := $$(foreach dir,$$(tmp),$$(eval $$(call import_dir,$$(dir))))
+endef
+
+$(foreach dir,$(subdirs),$(eval $(call import_dir,$(dir))))
+
+
+all_objects += $(foreach t,$(extra_targets),$($(t)))
+
+
+ifdef V
+Q = 
+P = @printf "" # <- space before hash is important!!!
+else
+P = @printf "[%s] $@\n" # <- space before hash is important!!!
+Q = @
+endif
+
+%.dylib:
+	$(P)DYLIB
+	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -dynamiclib -o $@ $^ $(LIBS)
+
+%.so::
+	$(P)SHLIB
+	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -shared -o $@ $^ $(LIBS)
+
+%.a::
+	$(P)ARCHIVE
+	$(Q)$(CC) $(LDFLAGS) -r -nostdlib -nodefaultlibs -nostartfiles -o $@ $^
+
+built-in.o:: %.o
+	$(P)BUILTIN
+	$(Q)$(CC) -r -nostdlib -nodefaultlibs -nostartfiles -o $@ $^
+
+%.o:: %.S
+	$(P)AS
+	$(Q)$(CC) $(CFLAGS) -D__ASSEMBLY__ -Wp,-MT,$@ -Wp,-MMD,$(dir $@).$(notdir $@).d -o $@ -c $<
+
+%.o:: %.c
+	$(P)CC
+	$(Q)$(CC) $(CFLAGS) -Wp,-MT,$@ -Wp,-MMD,$(dir $@).$(notdir $@).d -o $@ -c $<
+
+%.o:: %.cc
+	$(P)CXX
+	$(Q)$(CXX) $(CFLAGS) $(CXXFLAGS) -Wp,-MT,$@ -Wp,-MMD,$(dir $@)/.$(notdir $@).d -o $@ -c $<
+
+%.o:: %.cpp
+	$(P)CXX
+	$(Q)$(CXX) $(CFLAGS) $(CXXFLAGS) -Wp,-MT,$@ -Wp,-MMD,$(dir $@)/.$(notdir $@).d -o $@ -c $<
+
+%:: %.cc
+
+%:: %.c
+
+%:: %.o
+
+
+define ll_clean
+	$(Q)rm -rf $(CLEAN_FILES)
+	$(Q)find . -name "*.[oasd]" -o -name ".*.d" -o -name "*.*~" -o -name "*~" -o -name "*.lock" | xargs rm -rf
+endef
+
+endif
+

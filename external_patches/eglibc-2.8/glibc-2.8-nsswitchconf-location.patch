@@ -1,0 +1,30 @@
+--- a/nss/nsswitch.c	2009-05-21 00:46:50.000000000 +0300
++++ b/nss/nsswitch.c	2009-12-31 15:21:57.000000000 +0200
+@@ -42,6 +42,8 @@
+ #include "nsswitch.h"
+ #include "../nscd/nscd_proto.h"
+ 
++#include <unistd.h> /* __libc_enable_secure */
++
+ /* When OPTION_EGLIBC_NSSWITCH is disabled, we use fixed tables of
+    databases and services, generated at library build time.  Thus:
+    - We can't reconfigure individual databases, so we don't need a
+@@ -130,8 +132,16 @@
+ #if __OPTION_EGLIBC_NSSWITCH
+   /* Are we initialized yet?  */
+   if (service_table == NULL)
+-    /* Read config file.  */
+-    service_table = nss_parse_file (_PATH_NSSWITCH_CONF);
++    {
++      const char *ext_nss_config_file = NULL;
++      if (__libc_enable_secure == 0)
++	{
++	  ext_nss_config_file = getenv ("NSSWITCH_CONF_PATH");
++	}
++      /* Read config file.  */
++      service_table = nss_parse_file (ext_nss_config_file ?
++		ext_nss_config_file : _PATH_NSSWITCH_CONF);
++    }
+ #endif
+ 
+   /* Test whether configuration data is available.  */

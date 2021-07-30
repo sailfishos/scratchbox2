@@ -1,0 +1,9 @@
+
+*cross_compile:
+0
+
+%rename cpp old_cpp
+
+*cpp:
+-isystem /usr/local/include -isystem /usr/include %(old_cpp)
+

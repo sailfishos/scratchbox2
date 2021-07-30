@@ -1,0 +1,250 @@
+
+Notes about Scratchbox2, development versions 2.3.x:
+====================================================
+Author: Lauri T. Aarnio
+
+Disclaimer:
+	All versions in the 2.3.x are development snapshots.
+	There are new features, but everything may not work as expected.
+	The next stable version will be 2.4.
+
+Overview:
+---------
+2.3 has currently following focus areas, which can be considered either
+new features or improvements of old ones:
+
+1) Union directory support: Two or more directories can be bound together,
+   so that opendir() will see all entries from all component directories.
+
+2) A networking subsystem. It is bit like a firewall - adds rules
+   for controlling IP address operations: What addresses can be connected to,
+   and what addresses the listeners can use.
+
+3) Path mapping logic has been re-implemented in C (originally, it was
+   written in Lua).
+
+4) Exec logic has been re-implemented in C (except support for sbrsh
+   as a CPU transparency method; that one is currently unsupported)
+
+5) Fakeroot has been replaced with an internal, more comprehensive
+   solution (see "VIRTUAL PERMISSIONS" in the manual page.)
+
+6) chroot() system call is simulated.
+
+In addition to these, there are smaller improvements here and there.
+For example, rule files have been reorganized, and there are some changes
+in them that had to be made because of other changes.
+
+Bug reporting: Please send bug reports, improvement ideas (or even
+better, patches) to <scratchbox-devel@lists.scratchbox.org>
+
+
+More detailed description about the main areas follows:
+
+1. Union directories
+--------------------
+
+The algorithm: Union directories are simulated by creating temporary
+directories, which contain names from all component directories.
+opendir() is redirected to open that kind of temp.directory, and the
+result is that readdir() etc will then return all names just as expected.
+This is done for directories that are listed in the rule file, not for
+every directory.
+
+Status: The implementation works, but could be improved. 
+First weakness is that the temporary directory is populated every time
+when opendir() is called, even if it exists already. The second thing
+is that if files are removed from the component directories, the names
+won't be removed from the temp.directory. Together these two mean that
+union directories are fully usable only with read only targets, and even
+there they should not be used for performance-critical location
+(ideally, it would be great if union directories could be used for
+most directories in the development-oriented modes, "accel" and "simple").
+But this feature solved some nasty problems with some tools (pkg-config,
+at least)
+
+The rule syntax is currently too simple: It requires full, real paths
+to the component directories. Supporting at least prefix mapping in the
+rules would make this a lot more generic feature.
+
+2. Networking subsystem
+-----------------------
+
+The networking subsystem is bit like a firewall - adds rules for
+controlling IP address operations: What addresses can be connected to,
+and what addresses the listeners can use. Same kind of rules that are used
+to virtualize your filesystem namespace, but now applied to a slightly
+different domain.
+
+Unlike typical firewalls, that have most focus on protecting you from
+unwanted incoming traffic, the primary motivation for this was to control
+outgoing connections. 
+We have seen that there are really strange, unexpected outgoing connections
+from various places, even while building some OSS packages.
+
+So, now it is possible to execute the builds like
+
+$ sb2 -n offline dpkg-buildpackage
+
+...and the network appears to be offline for all processes that run inside
+the SB2 session (but see "limitations" below).
+
+Or, you can test your software with
+
+$ sb2 -e -n localhost ./yourprogram
+
+...and "yourprogram" will observe that it will be able to connect to
+local addresses only.
+
+Another useful feature is logging: Set level to "net", and SB2 logs
+network-related events. Together with the "nomap" filesystem mapping mode,
+you can also test what ordinary programs (programs that belong to the
+host OS) are doing. For example:
+
+$ sb2 -m nomap -n localhost -L net nc www.nokia.com 80
+
+...and you should see some denied connection attempts to port
+53 (dns), at least.
+
+Standard networking modes include "online" (which is the default, unless
+the new "-n" option is used), "offline", "localhost" and "online_privatenets". 
+I hope that the names are descriptive enough.. These networking modes can be
+freely mixed with the filesystem mapping modes ("emulate", "simple", etc).
+
+It should be quite straightforward to add more rulesets, if needed.
+For example, the "online_privatenets" mode uses rules like
+
+	{address = "10.0.0.0/8", allow = true},
+
+and these should be easy to extend by anyone who have written any firewalling
+rules, I think.
+
+How it works internally:
+
+SB2 attaches to connect(), bind(), sendto() and sendmsg() functions and
+examines socket address structures whenever needed. It isn't a real firewall,
+which would process each IP packet separately.
+
+Other limitations, missing things and bugs:
+
+The implementation is somewhat connection-oriented. For example, receiving
+UDP packets with recvfrom() is still possible regardless of networking mode.
+
+Another limitation (or a feature that would be useful, but doesn't exist) is
+that it doesn't process names, i.e. gethostbyname(), getaddrinfo(), etc could
+be handled by SB2, and then it could make decisions based on names - a somewhat
+higher level than what is possible with raw IP addresses. But that haven't
+been implemented.
+
+
+3. Path mapping logic in C
+--------------------------
+
+General: The path mapping subsystem consists of two main parts: Path resolution
+logic replaces OS's path resolution (SB2 can't rely on OS's path resolution
+due to mapping of symbolic links). It is quite strictly defined (see "man
+path_resolution"). And implemented in C.
+
+The other part, path mapping logic, was implemented in Lua in the early
+days of SB2 development. However, having the Lua interpreter running in
+every process was not really an optimal solution (there are several reasons
+for this, including performance).
+
+So, it was decided to create another implementation of path mapping logic
+in C. Later the other two Lua-based subsystems (exec and networking)
+were also rewritten.
+
+Current status:
+Versions 2.3.5-2.3.49 had two mapping engines: The old one (in Lua)
+and the new one (in C). Starting from 2.3.50, only the new one is
+available.
+
+The algorithms: The old implementation (in Lua) was considered stable,
+and produces correct results (AFAIK). Therefore, the C engine replicates
+same algorithms, even if they are not the most powerful algorithms 
+on this planet. Replacing e.g. the string lookup algorithms would be
+a different story.
+There is one big difference in these two implementations: The old
+thing loaded all rules when a process is started inside a session,
+while the new implementation loads rules  only once when session 
+is created. Some changes had to be done to the rule files (and syntax)
+because of this.
+
+The rule database, "ruletree":
+The C-based implementation collects rules to a binary, memory mapped
+database when a session is created (rules are still expressed as
+Lua data structures). This "ruletree" structure can also be used to 
+store other rules (exec rules, networking rules) in the future.
+Note that the binary structures are position independent; no pointers,
+just offsets there. And the ruletree shall not be modified after it has
+been created (no locks, etc)
+
+Testing and debugging: the ruletree can be dumped with utils/sb2-ruletree. 
+
+Still missing / not implemented:
+1. There are still many "FIXME" comments in the source. Check and fix..
+2. No code reviews have been done. there might be memory leaks, etc.
+3. Free-format "func_name" conditions are not supported, and won't be
+   supported. Instead, a new condition has replaced those (reason: "func_name"
+   is a Lua regexp. It's insane to try to support those in the future.
+   The replacement mechanism, "func_class", is a simple bitmask)
+4. Probably there are also other, undocumented restrictions :-)
+
+4. Exec logic in C
+------------------
+All versions up to 2.3.23 used a combination of C and Lua code
+for converting parameters of the exec calls (execvp(), etc).
+The algorithm is described in sb_exec.c.
+
+Version 2.3.24 re-implemented parts of the exec preprocessing 
+logic partially in C; Version 2.3.25 does it completely in C.
+Exec preprocessing rules (the "argvmods" table) is now in "ruletree".
+There are no alternatives, preprocessing is now always done with
+the new implementation.
+
+Version 2.3.28 got another reimplementation; exec policy selection
+is now written in C.
+
+Starting from 2.3.44, stript interpreter mapping is implemented
+completely in C.
+
+2.3.46 does postprocessing of native binaries in C (for dynamically
+linked binaries; static ones still went to the Lua code. The code
+is currently quite ugly, needs to be cleaned after all postprocessing
+functions have been rewritten in C)
+
+Starting from 2.3.50, all parts of the exec logic are in C.
+
+
+5. The Virtual Permission subsystem, which superseded "fakeroot"
+----------------------------------------------------------------
+Versions up to 2.3.29 used "fakeroot" for simulating superuser
+privileges. However, that tool turned out to be somewhat too fake,
+and having two different LD_PRELOAD libraries was a nightmare
+to maintain, too. So, version 2.3.41 introduced a complete 
+replacement for that. It is true replacement; it does not share
+any code with the "fakeroot" utility.
+
+See the manual page for more details.
+
+6. chroot() simulation
+----------------------
+A simple chroot() simulation feature was added to 2.3.62; that
+was followed by a more complete implementation in 2.3.63 which
+also resolves and maps symbolic links to the chroot directory.
+
+Chroot simulation works by attaching an prefix to absolute pathnames
+and then doing path resolution just as if the user had given
+complete paths (except that the prefix is also attached to all
+absolute symlinks found from the FS during path resolution).
+
+This approach has one nasty drawback. It does not match exactly 
+how real chroot system behaves: Here it is possible to escape
+from the simulated chroot directory by e.g. starting the path
+with /../.. etc. This could be fixed by doing some arrangements
+in the path resolution code, but I didn't want to do big changes
+there at this point. That part of code (pathresolution.c) is
+anyway probably the most fragile part of SB2, so I wanted to
+minimize changes to it now when releasing the next stable
+version, 2.4.0, should not be too far anymore.
+

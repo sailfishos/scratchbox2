@@ -1,0 +1,47 @@
+
+# SB2 spec file template for OpenSUSE
+
+%define	_topdir		@@TOPDIR@@
+
+%define name		scratchbox2
+%define release		1
+%define version 	@@VRS@@
+%define buildroot 	@@BUILDDIR@@
+
+BuildRoot:	%{_tmppath}/%{name}-%{version}-root
+Summary: 	Scratchbox2 crosscompiling environment
+License: 	LGPL
+Name: 			%{name}
+Version: 		%{version}
+Release: 		%{release}
+Source: 		%{name}-%{version}.tar.gz
+Prefix: 		/usr
+Group: 			Development/Tools
+
+BuildRequires:	make
+
+%description
+Scratchbox2 crosscompiling environment
+
+%prep
+%setup -q
+
+%build
+./autogen.sh
+./configure
+make
+
+%install
+make install prefix=$RPM_BUILD_ROOT/usr
+
+%files
+%defattr(-,root,root)
+/usr/bin/sb2*
+/usr/lib/libsb2/*
+%ifarch x86_64
+/usr/lib32/libsb2/*
+%endif
+/usr/share/scratchbox2/*
+
+%doc %attr(0444,root,root) /usr/share/man/man1/*
+

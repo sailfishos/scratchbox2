@@ -1,0 +1,83 @@
+--- a/elf/dl-load.c	2009-12-31 14:51:27.000000000 +0200
++++ b/elf/dl-load.c	2009-12-31 16:08:29.000000000 +0200
+@@ -2163,7 +2163,8 @@
+ 		  /* 'l' is always != NULL for dynamically linked objects.  */
+ 		  l != NULL &&
+ #endif
+-		  __builtin_expect (l->l_flags_1 & DF_1_NODEFLIB, 0))
++		  __builtin_expect (((l->l_flags_1 & DF_1_NODEFLIB) ||
++			GLRO(dl_no_default_dirs)), 0))
+ 		{
+ 		  const char *dirp = system_dirs;
+ 		  unsigned int cnt = 0;
+@@ -2204,7 +2205,8 @@
+       /* Finally, try the default path.  */
+       if (fd == -1
+ 	  && ((l = loader ?: GL(dl_ns)[nsid]._ns_loaded) == NULL
+-	      || __builtin_expect (!(l->l_flags_1 & DF_1_NODEFLIB), 1))
++	      || __builtin_expect (!((l->l_flags_1 & DF_1_NODEFLIB) ||
++		GLRO(dl_no_default_dirs)), 1))
+ 	  && rtld_search_dirs.dirs != (void *) -1)
+ 	fd = open_path (name, namelen, preloaded, &rtld_search_dirs,
+ 			&realname, &fb, l, LA_SER_DEFAULT, &found_other_class);
+@@ -2367,7 +2369,7 @@
+      a way to indicate that in the results for Dl_serinfo.  */
+ 
+   /* Finally, try the default path.  */
+-  if (!(loader->l_flags_1 & DF_1_NODEFLIB))
++  if (!((loader->l_flags_1 & DF_1_NODEFLIB) || GLRO(dl_no_default_dirs)))
+     add_path (&rtld_search_dirs, XXX_default);
+ 
+   if (counting)
+
+--- a/elf/dl-support.c	2009-12-31 14:51:27.000000000 +0200
++++ b/elf/dl-support.c	2009-12-31 16:08:29.000000000 +0200
+@@ -60,6 +60,9 @@
+ /* prefix to be added to all RUNPATHs and RPATHs */
+ const char *_dl_rpath_prefix = NULL;
+ 
++/* flag: don't search default directories if set. */
++int _dl_no_default_dirs = 0;
++
+ /* The map for the object we will profile.  */
+ struct link_map *_dl_profile_map;
+ 
+
+--- a/elf/rtld.c	2009-12-31 14:51:27.000000000 +0200
++++ b/elf/rtld.c	2009-12-31 16:08:29.000000000 +0200
+@@ -960,6 +960,15 @@
+ 	    --_dl_argc;
+ 	    ++INTUSE(_dl_argv);
+ 	  }
++	else if (! strcmp (INTUSE(_dl_argv)[1], "--nodefaultdirs")
++		 && _dl_argc > 2)
++	  {
++	    GLRO(dl_no_default_dirs) = 1;
++
++	    ++_dl_skip_args;
++	    --_dl_argc;
++	    ++INTUSE(_dl_argv);
++	  }
+ 	else if (! strcmp (INTUSE(_dl_argv)[1], "--library-path")
+ 		 && _dl_argc > 2)
+ 	  {
+@@ -1026,6 +1035,7 @@
+   --list                list all dependencies and how they are resolved\n\
+   --verify              verify that given object really is a dynamically linked\n\
+                         object we can handle\n\
++  --nodefaultdirs       Do not search from default directories or cache\n\
+   --library-path PATH   use given PATH instead of content of the environment\n\
+                         variable LD_LIBRARY_PATH\n\
+   --rpath-prefix PREFIX add PREFIX to every RUNPATH and RPATH component\n\
+
+--- a/sysdeps/generic/ldsodefs.h	2009-12-31 14:54:38.000000000 +0200
++++ b/sysdeps/generic/ldsodefs.h	2009-12-31 16:08:29.000000000 +0200
+@@ -671,6 +671,8 @@
+   /* prefix for RPATH + RUNPATH components.  */
+   EXTERN const char *_dl_rpath_prefix;
+ 
++  EXTERN int _dl_no_default_dirs;
++
+ #ifdef SHARED
+ };
+ # define __rtld_global_attribute__

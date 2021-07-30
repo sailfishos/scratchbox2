@@ -1,0 +1,23 @@
+# beware of namespace collisions, all subdir makefiles are included
+# into the top-level Makefile
+objs := libsb2.o libsb_env.o sb_alien.o
+
+# llep prefixes the arguments with $(LLPWD), which holds the "current"
+# directory
+sample: $(call llep,$(objs)
+# depend on an archive from some other subdir
+sample: lua/liblua_bindings.a
+
+# now declare a little library of our own, use $(LLPWD) to avoid hard-coding
+# path names
+
+$(LLPWD)/liba.so: $(call llep,liba.o liba_aux.o)
+	$(llbuild_link_shlib)
+$(LLPWD)/liba.so: CFLAGS := $(CFLAGS) -fPIC -Wall -W -I$(TOPDIR)/lua/lua-5.1.1/src
+$(LLPWD)/liba.so: LDFLAGS := $(LDFLAGS)
+$(LLPWD)/liba.so: LIBS := -ldl -lm -lpthread -lrt 
+
+# tell the toplevel about our target, be sure to append, not overwrite,
+# targets variable's contents, use := to force expansion of $(LLPWD)
+targets := $(targets) $(LLPWD)/liba.so
+

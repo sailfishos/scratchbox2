@@ -1,0 +1,768 @@
+scratchbox2 (2.3.90) unstable; urgency=low
+
+  * No changes to the SW; instead, this version can be considered 
+    to be the first release candidate for SB2 version 2.4!
+  * Added source of the arch.document (Scratchbox 2 Internals
+    and Architecture)
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 05 Sep 2012 14:47:00 +0300
+
+scratchbox2 (2.3.63) unstable; urgency=low
+
+  * Implemented resolution of symbolic links inside
+    simulated chroots (absolute symlinks, relative
+    symlinks were mostly ok already in 2.3.62)
+  * obs-rpm-* modes import /dev and /proc rules
+    from the rule library
+  * new experimental mapping modes obs-deb-install
+    and obs-deb-build; these haven't been tested yet
+    and almost certainly will need some tuning.
+  * New flag for rules: force_orig_path_unless_chroot
+  * Library interface version = 130
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Tue, 05 Jun 2012 19:05:00 +0300
+
+scratchbox2 (2.3.62) unstable; urgency=low
+
+  * Initial support for simulating chroot() (ordinary files
+    and directories should be OK, but symlinks are not yet
+    expected to work correctly in the simulated chroot)
+  * Library interface version = 129
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Fri, 01 Jun 2012 21:57:00 +0300
+
+scratchbox2 (2.3.61) unstable; urgency=low
+
+  * A fix to a bug which was introduced in 2.3.60
+  * Code cleanups (removed dead code etc. from pathmapping subsystem)
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 30 May 2012 10:37:00 +0300
+
+scratchbox2 (2.3.60) unstable; urgency=low
+
+  * Fixed execution of host binaries which have SUID bit,
+    SGID bit or special capabilities: These are now started
+    indirectly and SUID/SGID privileges are simulated.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Tue, 29 May 2012 11:09:00 +0300
+
+scratchbox2 (2.3.59-1) unstable; urgency=low
+
+  * merge debian packaging from master
+
+ -- Jussi Hakala <jussi.hakala@iki.fi>  Thu, 24 May 2012 23:08:07 +0300
+
+scratchbox2 (2.3.58-1) unstable; urgency=low
+
+  * Bugfix: Fixed handling of target-specific LD_PRELOAD
+    and LD_LIBRARY_PATH (those can now be set by e.g.
+    "sb2-config setenv LD_LIBRARY_PATH ...")
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 16 May 2012 18:24:00 +0300
+
+scratchbox2 (2.3.57-1) unstable; urgency=low
+
+  * More enhancements to exec functionalty [from Mika Westerberg]
+  * Added support for FS rule libraries [Lauri Aarnio]
+  * "emulate" mode now imports rules for /dev and /sys
+    from the rule library
+  * A new rule for /sys/fs/selinux is supposed to hide selinux from
+    the target side (in emulate mode), and that way should fix the
+    problems caused by a active selinux on the host side.
+  * libsb2.so is not linked with -lm anymore
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Tue, 08 May 2012 20:16:00 +0300
+
+scratchbox2 (2.3.56-1) unstable; urgency=low
+
+  * Various fixes and enhancements for host-compatible
+    targets (i.e. when compiling for intel targets on
+    an intel host) [from Mika Westerberg]
+  * "emulate" mode: Fixes to /dev mapping rules (e.g.
+    "echo >/dev/null" works again with "sb2 -e", and
+    not only when "sb2 -eR" is used) [Lauri Aarnio]
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Fri, 27 Apr 2012 18:25:00 +0300
+
+scratchbox2 (2.3.55-1) unstable; urgency=low
+
+  * Added document: Scratchbox 2 Internals and Architecture
+    (a .pdf file in the docs subdirectory) 
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 26 Apr 2012 16:41:00 +0300
+
+scratchbox2 (2.3.54-1) unstable; urgency=low
+
+  * A fix to emulate+toolchain mode [from Mika Westerberg]
+  * more /dev fixes for the "emulate" mode
+  * an additional trick for supporting debootrapping (see
+    full comment in the "sb2" script)
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 19 Apr 2012 19:58:00 +0300
+
+scratchbox2 (2.3.53-1) unstable; urgency=low
+
+  * New manual page libsb2_interface(7), generated automatically
+    from interface.master
+  * fixes for /proc and /dev; "emulate" mode now allows simulated 
+    devices to be created under /dev
+  * Library interface version = 128
+  * Improved checking of rules at startup, refuses to start up if
+    there were errors
+  * A change to mapping rule format:
+    Rules which may not have a valid selector ('dir', 'prefix'
+    or 'path' may be nil) need to be marked with 'optional_rule = true'
+    (fs_rules: rule_file_interface_version = "105" now). Failing to
+    do so will generate warnings to sb2d's log. In the future that
+    will be an error which will prevent startup. 
+  * + other small fixes.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 18 Apr 2012 17:25:00 +0300
+
+scratchbox2 (2.3.52-1) unstable; urgency=low
+
+  * Virtual permission subsystem: For the simulated root user,
+    access(), euidaccess(), eaccess() and faccessat() will
+    simulate the checks.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 12 Apr 2012 17:37:00 +0300
+
+scratchbox2 (2.3.51-1) unstable; urgency=low
+
+  * Bugfix to native static binary exec code
+  * sb2-show: Removed command "execluafile" and options -x and -X
+  * Moved some obsolete C and Lua files to unsupported/obsolete
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Tue, 10 Apr 2012 17:57:00 +0300
+
+scratchbox2 (2.3.50-1) unstable; urgency=low
+
+  * No more Lua in libsb2. Lua is now used only in sb2d.
+    The runtime "core" of Scratchbox 2 operates now completely
+    without the Lua interpreter. Lua is used at session setup
+    time from sb2d, but after that, Lua is inactive.
+  * All parts of exec postprocessing are now implemented in C,
+    except one which was disabled: sbrsh is not anymore available
+    as a CPU transparency method.
+  * Qemu is the only supported CPU transparency method currently;
+    regardless of what has been configured with sb2-init, libsb2
+    assumes it is Qemu.
+  * The old Lua-related files are still there, and there is 
+    dead code in the C files, too. Those are now waiting for a
+    bigger cleanup.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 05 Apr 2012 17:51:00 +0300
+
+scratchbox2 (2.3.49-1) unstable; urgency=low
+
+  * Adapted the host-static-binaries-with-Qemu feature [from
+    Rafal Krypa, for the 2.2 version] for 2.3; the code is
+    now there, but haven't been fully tested yet.
+  * A new internal tool, sb2dctl, for sending messages to sb2d
+    (used for intelnal purposes)
+  * Introduced init2.lua, which is executed by sb2d when
+    finilizing session setup. It is used for loading CPU 
+    transparency settings to the rule tree (those
+    variables are now loaded to the rule tree, but not yet
+    used for anything) 
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Sun, 01 Apr 2012 18:28:00 +0300
+
+scratchbox2 (2.3.48-1) unstable; urgency=low
+
+  * Networking subsystem is now implemented in C.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Fri, 23 Mar 2012 19:22:00 +0200
+
+scratchbox2 (2.3.47-1) unstable; urgency=low
+
+  * "intermediate cleanup release": Fixed compiler warnings,
+    rule tree DB header was changed, etc, but no real
+    functional changes.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 21 Mar 2012 14:27:00 +0200
+
+scratchbox2 (2.3.46-1) unstable; urgency=low
+
+  * The rule tree DB is now completely initialized by sb2d
+    (the "sb2" command does not anymore execute any Lua files
+    with "sb2-show execluafile")
+  * Exec code: Postrocessing of dynamically linked native
+    binaries is now implemented in C (old code (Lua 
+    function sb_execve_postprocess_native_executable())
+    is still there, but not used.)
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Tue, 20 Mar 2012 16:48:00 +0200
+
+scratchbox2 (2.3.45-1) unstable; urgency=low
+
+  * Exec code: Script interpreter mapping is now implemented 
+    in C (Lua code was removed), complete exec policies are 
+    added to the role tree db, etc. Also, there are related 
+    changes in other subsystems (pathmapping, etc)
+  * C/Lua interface version = 122
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Fri, 16 Mar 2012 13:51:00 +0200
+
+scratchbox2 (2.3.43-1) unstable; urgency=low
+
+  * Better simulation of root's privileges in open(), fopen(), etc:
+    The simulated root user can now write to write-protected files,
+    and read read-protected files (if file owner == real EUID)
+  * Added wrapper for dup3()
+  * A bugfix to real_fstatat()
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Fri, 09 Mar 2012 13:52:00 +0200
+
+scratchbox2 (2.3.42-1) unstable; urgency=low
+
+  * "C" is now the default mapping strategy
+    (used to be "Both", i.e. mapped with both C and Lua.
+    see "README_2.3_development" for details)
+  * two auto-generated config files are now created by sb2d,
+    instead of creating them expilicitly at "sb2" (argvmods_misc.lua,
+    argvmods_gcc.lua)
+  * Added manual page sb2d.1
+  * sb2 command: New option -x for specifying options for sb2d
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 07 Mar 2012 12:14:00 +0200
+
+scratchbox2 (2.3.41-1) unstable; urgency=low
+
+  * Fakeroot has been eliminated; A built-in virtual permissions
+    ("Vperm") subsystem superseded it. See the manual page for details.
+  * A fix to the "ldd" wrapper [from Florent Viard] (ldd
+    is now wrapped in the "simple" mode, too)
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Mon, 05 Mar 2012 17:34:00 +0200
+
+scratchbox2 (2.3.29-1) unstable; urgency=low
+
+  * Important change to command-line parameter handling:
+    the "sb2" command now prevents re-evaluation of command
+    line parameters which are passed to the commands running
+    inside the session. It also preserves whitespace in such
+    parameters (previously, an extra shell was used there,
+    but that has been eliminated completely now)
+  * Important change to rule file format:
+    func_class (a bitmask) replaced func_name (a regexp)
+    in path mapping rules
+  * C/Lua interface version = 120
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Tue, 14 Feb 2012 18:27:00 +0200
+
+scratchbox2 (2.3.28-1) unstable; urgency=low
+
+  * Exec policy selection is now implemented in C
+  * C/Lua interface version = 99
+  * A simple fix to obs-rpm-build+pp mode
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 08 Feb 2012 16:01:00 +0200
+
+scratchbox2 (2.3.27-1) unstable; urgency=low
+
+  * All modes which use the cross-toolchain support: Redirect /usr/bin/cc
+    to /usr/bin/gcc, if the toolchain does not have "cc" command (this
+    now happens at exec preprocessing stage)
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Tue, 07 Feb 2012 15:40:00 +0200
+
+scratchbox2 (2.3.26-1) unstable; urgency=low
+
+  * An important bugfix to uname() for 64 bit systems
+  * Log format changed (no more pretty timestamps,
+    to avoid possible deadlocks inside glibc)
+  * Fixes to obs-rpm-build* modes
+  * + other minor fixes.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 01 Feb 2012 18:13:00 +0200
+
+scratchbox2 (2.3.25-1) unstable; urgency=low
+
+  * Exec preprocessing is now completely implemented in C.
+    (postprocessing is still in Lua)
+  * C/Lua interface version = 98
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Tue, 31 Jan 2012 10:22:00 +0200
+
+scratchbox2 (2.3.24-1) unstable; urgency=low
+
+  * sb2d adds exec preprocssing rules ("argvmods" rules) to
+    the rule tree when a session is created; loading of exec
+    preprocessing rules (Lua) is skipped if it isn't needed
+  * some code reorganizations; exec logic is now in a new
+    subdirectory.
+  * C/Lua interface version = 97
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Sat, 28 Jan 2012 21:51:00 +0200
+
+scratchbox2 (2.3.23-1) unstable; urgency=low
+
+  * Added a daemon, "sb2d" (it doesn't do much yet, just initializes
+    the rule tree..but more will follow)
+  * C pathmapping: Avoid fallbacks to Lua mapping
+  * Slightly more efficient rule tree lookups
+  * Added routines to measure and log time spent in selected 
+    routines ("processclock" feature, disabled by default, can be
+    enabled from main Makefile)
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Sat, 28 Jan 2012 17:01:00 +0200
+
+scratchbox2 (2.3.22-1) unstable; urgency=low
+
+  * Performance improvements to Lua code, including a relatively
+    big change to exec logic initialization: Mapping code is not
+    always loaded (especailly when SBOX_MAPPING_METHOD=C is used)
+  * All modes must now a have a "config.lua" file
+  * Rule file interface version = 102
+  * C/Lua interface version = 96
+  * A bugfix to logger
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 25 Jan 2012 20:02:00 +0200
+
+scratchbox2 (2.3.21-1) unstable; urgency=low
+
+  * Improvements to obs-rpm-build and obs-rpm-build+pp modes [from Carsten Munk]
+  * More simple perf.improvements to C pathmapping engine
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Mon, 23 Jan 2012 15:56:00 +0200
+
+scratchbox2 (2.3.20-1) unstable; urgency=low
+
+  * Fixes and perf.improvements to C pathmapping engine
+  * Improvements to obs-rpm-build mode [from Carsten Munk]
+  * Minor fixes and improvements to mapping modes and various other places.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 18 Jan 2012 16:58:00 +0200
+
+scratchbox2 (2.3.19-1) unstable; urgency=low
+
+  * sb2-init: New option "-L opt" (extra options for ld) [from Carsten Munk]
+  * configuration version is now 20, this forces reconfiguration
+    of the toolchain (because of a bugfix to sb2-config-gcc-toolchain)
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 04 Jan 2012 18:14:00 +0200
+
+scratchbox2 (2.3.18-1) unstable; urgency=low
+
+  * Improvements to logging, new option -P for sb2
+  * fixes and improvements to obs-rpm-install and -build modes
+  * New experimental obs-rpm-build+pp mode: This should 
+    accelerate perl and python scripts from tools_root
+    (new rules are based on rules from the accel mode)
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 29 Dec 2011 20:22:00 +0200
+
+scratchbox2 (2.3.17-1) unstable; urgency=low
+
+  * sb2-show: new command "reverse"
+  * fixes & changes to reverse rule generator
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 28 Dec 2011 13:06:00 +0200
+
+scratchbox2 (2.3.16-1) unstable; urgency=low
+
+  * Added support for 3rd party glob() and glob64() replacements
+    (to be compatible with rpmbuild/librpmbuild)
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 21 Dec 2011 19:27:00 +0200
+
+scratchbox2 (2.3.15-1) unstable; urgency=low
+
+  * Manual page sb2.1 was updated
+  * Changes to obs-rpm-* modes; various fixes and cleanups
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Fri, 16 Dec 2011 12:54:00 +0200
+
+scratchbox2 (2.3.14-1) unstable; urgency=low
+
+  * changes/fixes to mapping modes
+  * preserve env. vars. of "fakeroot"; prevents accidental escape
+    from fakerooted environment (workaround a bug/misfeature in
+    fakeroot)
+  * bugfix to sb2-show
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Tue, 13 Dec 2011 19:10:00 +0200
+
+scratchbox2 (2.3.12-1) unstable; urgency=low
+
+  * Bugfix to networking code (recvfrom works with NULL addr.pointers)
+  * Added wrapper for accept4()
+  * Several changes to "obs-rpm-install" mode
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Fri, 09 Dec 2011 20:14:00 +0200
+
+scratchbox2 (2.3.11-1) unstable; urgency=low
+
+  * Four small fixes
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 08 Dec 2011 15:22:00 +0200
+
+scratchbox2 (2.3.10-1) unstable; urgency=low
+
+  * Some config variables are now available in the rule tree db
+  * new path mapping action type "set_path" was added.
+  * obs-rpm-* modes were updated
+  * C / Lua interface version number is 95 now
+  * Rule file interface version number is 101 now
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Fri, 02 Dec 2011 14:09:00 +0200
+
+scratchbox2 (2.3.9-1) unstable; urgency=low
+
+  * Added initial support for using SB2 as an alternative
+    build engine with the openSUSE build system (OBS)
+  * Added option -q (quiet) to the sb2 command.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Mon, 28 Nov 2011 19:25:00 +0200
+
+scratchbox2 (2.3.8-1) unstable; urgency=low
+
+  * Added essential support for glibc 2.14: Wrappers for
+    new functions (execvpe(), mkostemp(), mkostemp64(),
+    mkostemps() and mkostemps64()) and patches in
+    external_patches
+  * Pathmapping now logs errors if results from C and Lua
+    mapping engines are not same.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 17 Nov 2011 17:55:00 +0200
+
+scratchbox2 (2.3.7-1) unstable; urgency=low
+
+  * Two new options:
+    "sb2 -b dir" and "sb2 -B dir" will write the log and exec-
+    and process graphs to "dir" (the latter also includes process
+    accounting data if possible)
+  * Mode-specific argvmods rules are now possible.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Mon, 14 Nov 2011 15:48:00 +0200
+
+scratchbox2 (2.3.6-1) unstable; urgency=low
+
+  * The new mapping engine, written in C, should be complete now.
+    (No more voluntary fallbacks to Lua mapping). Still,
+    Mapping method can be selected by setting SBOX_MAPPING_METHOD
+    to "C", "Lua" or "Both". Default is "Both".
+  * Initial RPM packaging; see README_rpm_support
+  * new experimental mapping modes emulate+toolchain and
+    emulate+toolchain+utils
+  * bugfixes.
+  * See README_2.3_development for details.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Tue, 08 Nov 2011 17:47:00 +0200
+
+scratchbox2 (2.3.5-3) unstable; urgency=low
+
+  * A new mapping engine, written in C, has been added.
+    It handles most mapping rules, but still fallbacks to
+    Lua mapping in some cases (e.g. union directories,
+    func_name requirements). Mapping method can be
+    selected by setting SBOX_MAPPING_METHOD to "C",
+    "Lua" or "Both". Default is "Both"; different mapping
+    results will be logged as warnings.
+  * See README_2.3_development for details.
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 01 Jun 2011 13:48:00 +0300
+
+scratchbox2 (2.3.4-2) unstable; urgency=low
+
+  * Added wrapper for ftok()
+  * "emulate": new rules for /var/tmp
+  * Added description of the networking modes to the man page (sb2.1)
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Wed, 11 May 2011 18:12:00 +0300
+
+scratchbox2 (2.3.3-2) unstable; urgency=low
+
+  * fixes and patches from Rafal Krypa and Karol Lewandowski
+  * Initial (simple) support for IPv6 address filtering
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 28 Apr 2011 16:19:00 +0300
+
+scratchbox2 (2.3.2-1) unstable; urgency=low
+
+  * Added networking subsystem: Networking mode can be specified
+    with an option (e.g. "sb2 -n offline"), the subsystem filters
+    and rewrites IPv4 addresses if needed. (IPv6 is not yet
+    supported). "Standard" networking modes include "online",
+    "offline", "localhost" and "online_privatenets".
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 14 Apr 2011 17:48:00 +0300
+
+scratchbox2 (2.3.1-1) unstable; urgency=low
+  
+  [ Lauri Aarnio ]
+  * NOTE: this is the first usable test version in the 2.3-development
+    series; this is still alpha-level quality, and even if it seems
+    to work quite well in my test environment, more testing is 
+    still needed.
+  * Highlights of the changes:
+  - "accel" mode replaced "devel" mode. Both names can be used,
+    but they refer to the same thing.
+  - "install" and "maemo_simple" modes were removed; these have not
+    been maintained since 2009, as far as I know. Please let us know
+    if these are still needed for something.
+  - Added proto-level support for union directories; added some
+    rules to the accel/devel mode that will use union directories
+    for aclocal and pkg-config (making an union from selected subdirs
+    from the target- and tools directories).
+  - Mapping modes were reorganized; rule files were split to two
+    parts (separate files for pathmapping- and exec policy rules),
+    and other mode-specific configuration files were moved, too.
+  - There are changes to the mapping rule format; The new one is
+    simpler and makes some planned future enhancements possible.
+    Most notably, the old "chains" layer was eliminated completely
+    from pathmapping rules.
+  - There are some cleanups and code reorganizations in the "engine
+    room" as well. In particular, the pathmapping code (in C) was moved
+    to a new subdirectory and split to modules (one file/module).
+
+ -- Lauri T. Aarnio <lauri.aarnio@iki.fi>  Thu, 31 Mar 2011 15:18:00 +0300
+
+scratchbox2 (2.2.2-2) unstable; urgency=low
+
+  * Added options -g and -G to sb2 (Lauri T. Aarnio)
+  * "devel" and "accel" modes map /var/tmp to a session-specific
+    tmp.dir (Lauri)
+  * Fixed a bug in sb2-monitor (Lauri)
+  * Minor fixes to "README" (Lauri)
+  * Fixed a bug in sb2-config-debian (Karol Lewandowski)
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Tue, 29 Mar 2011 12:27:00 +0300
+
+scratchbox2 (2.2.1-1) unstable; urgency=low
+
+  * Six bugfixes; three from Rafal Krypa and three from Karol Lewandowski
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Fri, 18 Feb 2011 19:52:00 +0200
+
+scratchbox2 (2.2.0-1) unstable; urgency=low
+
+  * scratchbox 2.2 release!
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Fri, 31 Dec 2010 17:00:00 +0200
+
+scratchbox2 (2.2rc3-1) unstable; urgency=low
+
+  * "accel" mode: More rules for /usr/bin/perl, /usr/bin/python and
+    related tools. These are now mapped to tools_root if the tool does
+    not exist in target_root.
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Mon, 23 Dec 2010 12:56:00 +0200
+
+scratchbox2 (2.2rc2-1) unstable; urgency=low
+
+  * Manual pages were updated (by Lauri Aarnio)
+  * new option -f for sb2 (by Rafal Krypa)
+  * made $SSH_AUTH_SOCK available in "emulate" mode (Karol Lewandowski)
+  * bugfixes: session setup (Michael Trimarchi),
+    fix for amd64 targets (Karol Lewandowski)
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Mon, 20 Dec 2010 20:21:00 +0200
+
+scratchbox2 (2.2rc1-1) unstable; urgency=low
+
+  [ Lauri Aarnio ]
+  * One new feature: sb2-logz can create process and exec diagrams
+    (graphs); execute "sb2-logz -h" for details.
+  * external_patches: patches for eglibc2.10 are available now
+    (see external_patches/README)
+  * Fix: Better protection of "errno" in certain situations
+  * Fixes to CPU transparency method handling: Consistency checks,
+    and options can now be passed to the transparency method (e.g. qemu)
+  * Fix to toolchain (gcc) config: Fixed detection of 
+    -Wno-poison-system-directories
+  * other, minor bugfixes were included as well.
+
+  [ Mike McCormack ]
+  * Fix: Added wrappers for mkstemps64() and mkstemps() (this fixes mapping
+    of tmp.files created by mkstemps(); at least some newer versions 
+    of gcc use it)
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Mon, 13 Dec 2010 14:39:00 +0200
+
+scratchbox2 (2.1-1) unstable; urgency=low
+
+  * scratchbox 2.1 release!
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Fri, 18 Jun 2010 15:42:55 +0300
+
+scratchbox2 (2.0-1) unstable; urgency=low
+
+  * scratchbox 2.0 release!
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Wed, 01 Apr 2009 00:17:49 +0300
+
+scratchbox2 (1.99.0.31-2) unstable; urgency=low
+
+  * split libsb2 to a separate package
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Mon, 23 Feb 2009 15:22:26 +0200
+
+scratchbox2 (1.99.0.31-1) unstable; urgency=low
+
+  * New upstream version
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Mon, 23 Feb 2009 14:39:35 +0200
+
+scratchbox2 (1.99.0.27-1) unstable; urgency=low
+
+  * New upstream version
+  * Simplify build rules
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Mon, 20 Oct 2008 20:23:05 +0300
+
+scratchbox2 (1.99.0.24-2) unstable; urgency=low
+
+  * Save the world from masturbating monkeys (closes: #496409)
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Mon, 25 Aug 2008 23:04:49 +0300
+
+scratchbox2 (1.99.0.24-1) unstable; urgency=low
+
+  [ Lauri Aarnio ]
+  * Bugfix: LD_PRELOAD in now set by sb2-monitor, not by the "sb2"
+    script
+  * Updated to use newer libtool version (1.5.26)
+  * Important bugfix to libpthread interface
+  * Fix to fts_open()
+  * Important bugfix: Renaming of symlinks
+  * Refactored sb2's dpkg-checkbuilddeps wrapper.
+  * sb2-monitor now appends libsb2 to an existing LD_PRELOAD variable
+  * sb_decolonize_path() bugfix: slashdot makes sense now
+  * Updates to path mapping code and mapping modes
+  * oops; fixed typos in mapping rules.
+
+  [ Lauri Leukkunen ]
+  * increase version numbers to .24
+  * debian packaging is tedious
+
+  [ Riku Voipio ]
+  * Make multilib target use install target
+  * sb2-show needs libsb2
+  * Update to latest policy (use Homepage: tag)
+  * Depend on "make clean" for cleanup
+  * upload to debian
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Tue, 18 Mar 2008 01:00:34 +0200
+
+scratchbox2 (1.99.0.24) unstable; urgency=low
+  * fill me up
+ -- Lauri Leukkunen <lle@rahina.org>  Fri, 14 Mar 2008 07:48:35 +0200
+
+scratchbox2 (1.99.0.23-1) unstable; urgency=low
+
+  [ Janne J Kataja ]
+  * Bashism detected! Changed shell in utils/dpkg-checkbuilddeps
+
+  [ Lauri Aarnio ]
+  * bugfix: fixed typos in macro names
+  * Added log post-processing tool and improved logging messages.
+  * Introduce SB1 bug emulation mode
+  * Modified interface generator to create SB_LOG calls at returns.
+  * A fix for host-gcc parameter generation
+  * Bugfix: added wrapper for eaccess()
+  * Introduced R/O mapping mode.
+  * Logging enhancements: show changes made to argv+envp
+  * sb2-init improvements
+  * Added "replace_by" action to path mapping engine
+  * Fixed a critical path mapping bug
+  * Minor bugfix (sb2-build-libtool)
+  * Added a SB1 compatibility mapping rule to maemo mode
+  * Print statistics after sb2 finishes (and/or error+warning messages)
+
+  [ Lauri Leukkunen ]
+  * Split configure step from building for multilib
+  * Fix tool distro support
+  * Introduce sb2-show, cleanup some warnings
+  * Make exported.h generated by gen-interface.pl to be a proper header
+    file
+  * Fix -Wno-poison-system-directories check
+  * Implement arguments for CPUTRANSPARENCY_METHOD
+  * replace iswhitespace() with standard isspace()
+  * Optimize mappings by adding simple prefix check
+  * Make rest of the mapping modes work with mapping.lua changes
+  * Separate gcc argv mangling rule generation to argvenvp_gcc.lua
+  * gitignore utils/sb2-show
+  * Simplify path mapping code
+  * sb2-init allows specifying entire cputransparency command
+  * Map /usr/X11R6/lib in maemo mode
+  * Fix multilib compilation
+  * map /usr/X11R6/include to target root in maemo mode
+
+  [ Riku Voipio ]
+  * Add IA64 and powerpc host support
+  * changelog update
+  * Clean up sb2 script and speed up running sb2 script
+  * Add scripts to use the qemu-sbrsh bridge
+  * New upstream version, closes: 468156
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Mon, 03 Mar 2008 11:44:50 +0200
+
+scratchbox2 (1.99.0.22) unstable; urgency=low
+
+  * New upstream version
+  * Fix building on 386, closes: #456352
+  * Fix amd64 multilib install location, closes: #456528
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Tue, 18 Dec 2007 23:27:48 +0200
+
+scratchbox2 (1.99.0.20) unstable; urgency=low
+
+  * New upstream version
+  * Replaced hardcoded gcc/ld wrapper with generic lua-based
+    argument remapper. Tthus stopped using c++, closes: #455127
+  * Tool distro support
+  * sbrsh support
+  * various fixes and cleanups
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Fri, 14 Dec 2007 10:36:33 +0200
+
+scratchbox2 (1.99.0.19) unstable; urgency=low
+
+  * New upstream version
+  * reworked sb2 target setup
+  * improved dpkg-architecture handling
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Thu, 20 Sep 2007 00:03:48 +0300
+
+scratchbox2 (1.99.0.18) unstable; urgency=low
+
+  * New upstream version
+  * endianness fixes, thus add powerpc and ia64 host support
+  * add testsuite for debugging target problems
+  * buggy cache code removed completly
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Thu, 06 Sep 2007 11:06:48 +0300
+
+scratchbox2 (1.99.0.16) unstable; urgency=low
+
+  * New upstream version:
+  - Multilib support to allow using precompiled ia32 crosstoolchains
+    on amd64 hosts
+  - Fix hashbang support in execve() and do_exec()
+  - Fix symlink handling
+  - Add dbs support
+  * Change packagin to use multilib
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Wed, 29 Aug 2007 15:13:36 +0300
+
+scratchbox2 (1.99.0.11) unstable; urgency=low
+
+  * New upstream version, fixes and sb1 cruft killing
+  * Add Homepage and git repos to debian/control
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Thu, 26 Jul 2007 00:17:44 +0300
+
+scratchbox2 (1.99.0.9) unstable; urgency=low
+
+  * New upstream version
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Tue, 10 Jul 2007 11:40:46 +0300
+
+scratchbox2 (1.99.0.5) unstable; urgency=low
+
+  * Initial upload to Debian. Closes: #414737
+
+ -- Riku Voipio <riku.voipio@iki.fi>  Fri, 25 May 2007 21:46:52 +0300
+

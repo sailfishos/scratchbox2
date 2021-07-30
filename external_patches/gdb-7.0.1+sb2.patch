@@ -1,0 +1,69 @@
+diff -urN gdb-7.0.1/gdb/environ.c gdb-7.0.1+sb2/gdb/environ.c
+--- gdb-7.0.1/gdb/environ.c	2009-01-03 07:57:51.000000000 +0200
++++ gdb-7.0.1+sb2/gdb/environ.c	2010-02-09 10:57:34.000000000 +0200
+@@ -84,6 +84,13 @@
+       memcpy (new, e->vector[i], len + 1);
+       e->vector[i] = new;
+     }
++
++  /* Under sb2 -e, every exec("foobar") is replaced with an
++     exec("ld-linux.so.2 foobar").  But we do not want to debug the
++     dynamic linker, so we have to request a second SIGTRAP from libsb2
++     initialization.  See fork-child.c too.  */
++  if (getenv ("SBOX_SESSION_DIR") && *getenv ("SBOX_SESSION_DIR") == '/')
++    set_in_environ (e, "SBOX_SIGTRAP", "");
+ }
+ 
+ /* Return the vector of environment E.
+diff -urN gdb-7.0.1/gdb/fork-child.c gdb-7.0.1+sb2/gdb/fork-child.c
+--- gdb-7.0.1/gdb/fork-child.c	2009-05-21 18:48:41.000000000 +0300
++++ gdb-7.0.1+sb2/gdb/fork-child.c	2010-02-09 10:58:58.000000000 +0200
+@@ -33,6 +33,7 @@
+ #include "command.h" /* for dont_repeat () */
+ #include "gdbcmd.h"
+ #include "solib.h"
++#include "environ.h"
+ 
+ #include <signal.h>
+ 
+@@ -441,6 +442,13 @@
+   if (exec_wrapper)
+     pending_execs++;
+ 
++  /* Under sb2 -e, every exec("foobar") is replaced with an
++     exec("ld-linux.so.2 foobar").  But we do not want to debug the
++     dynamic linker, so we wait for libsb2 to do the second SIGTRAP,
++     and we only stop then.  See environ.c too.  */
++  if (getenv ("SBOX_SESSION_DIR") && *getenv ("SBOX_SESSION_DIR") == '/')
++      pending_execs *= 2;
++
+   while (1)
+     {
+       int resume_signal = TARGET_SIGNAL_0;
+diff -urN gdb-7.0.1/gdb/infrun.c gdb-7.0.1+sb2/gdb/infrun.c
+--- gdb-7.0.1/gdb/infrun.c	2009-09-29 15:09:19.000000000 +0300
++++ gdb-7.0.1+sb2/gdb/infrun.c	2010-02-09 10:59:36.000000000 +0200
+@@ -547,6 +547,23 @@
+ 
+   jit_inferior_created_hook ();
+ 
++  /* If an exec occured in the inferior while we are running under SB2
++     emulation mode, then first the kernel will deliver a SIGTRAP to
++     us, because of execing ld.so, then we wait for one more SIGTRAP
++     from libsb2.  After that, the binary is mapped and reinserting
++     breakpoints are safe. */
++  if (getenv ("SBOX_SESSION_DIR") && *getenv ("SBOX_SESSION_DIR") == '/') {
++    ptid_t resume_ptid;
++    struct target_waitstatus ws;
++
++    if (target_supports_multi_process ())
++      resume_ptid = pid_to_ptid (ptid_get_pid (inferior_ptid));
++    else
++      resume_ptid = minus_one_ptid;
++    target_resume (resume_ptid, 0, TARGET_SIGNAL_0);
++    target_wait (resume_ptid, &ws, 0);
++  }
++
+   /* Reinsert all breakpoints.  (Those which were symbolic have
+      been reset to the proper address in the new a.out, thanks
+      to symbol_file_command...) */

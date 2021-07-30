@@ -1,0 +1,22 @@
+llbuild guide
+*************
+
+Let's assume you have following directory structure:
+
+project/
+	include/
+	src/
+	src/subsystem1
+	src/sybsystem2
+
+
+* install the llbuild directory to project/llbuild
+* copy project/llbuild/Makefile.toplevel-sample to project/Makefile
+* create subdir Makefiles using project/llbuild/Makefile.subdir-sample
+  as a guideline
+
+
+llbuild is light weight and tries to avoid creating any unnecessary
+cruft on top of make itself. Make is a rather powerful tool if you take
+the time to learn it.
+

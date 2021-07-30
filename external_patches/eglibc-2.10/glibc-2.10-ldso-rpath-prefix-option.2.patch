@@ -1,0 +1,283 @@
+Index: libc/elf/dl-load.c
+===================================================================
+--- libc/elf/dl-load.c	(revision 13883)
++++ libc/elf/dl-load.c	(working copy)
+@@ -237,7 +237,7 @@
+ 
+ char *
+ _dl_dst_substitute (struct link_map *l, const char *name, char *result,
+-		    int is_path)
++		    int is_path, const char *rpath_prefix)
+ {
+   const char *const start = name;
+   char *last_elem, *wp;
+@@ -273,6 +273,13 @@
+ 
+ 	  if (repl != NULL && repl != (const char *) -1)
+ 	    {
++	      if (__builtin_expect (rpath_prefix != NULL, 0))
++		{
++		  /* has rpath_prefix */
++		  size_t rpath_prefix_len = strlen (rpath_prefix);
++		  if (!strncmp (repl, rpath_prefix, rpath_prefix_len))
++		    repl += rpath_prefix_len;
++		}
+ 	      wp = __stpcpy (wp, repl);
+ 	      name += len;
+ 	    }
+@@ -310,7 +317,7 @@
+    belonging to the map is loaded.  In this case the path element
+    containing $ORIGIN is left out.  */
+ static char *
+-expand_dynamic_string_token (struct link_map *l, const char *s)
++expand_dynamic_string_token (struct link_map *l, const char *s, const char *rpath_prefix)
+ {
+   /* We make two runs over the string.  First we determine how large the
+      resulting string is and then we copy it over.  Since this is now
+@@ -335,7 +342,7 @@
+   if (result == NULL)
+     return NULL;
+ 
+-  return _dl_dst_substitute (l, s, result, 1);
++  return _dl_dst_substitute (l, s, result, 1, rpath_prefix);
+ }
+ 
+ 
+@@ -380,7 +387,8 @@
+ 
+ static struct r_search_path_elem **
+ fillin_rpath (char *rpath, struct r_search_path_elem **result, const char *sep,
+-	      int check_trusted, const char *what, const char *where)
++	      int check_trusted, const char *what, const char *where,
++	      const char *rpath_prefix)
+ {
+   char *cp;
+   size_t nelems = 0;
+@@ -436,10 +444,24 @@
+ 	}
+ 
+       /* See if this directory is already known.  */
+-      for (dirp = GL(dl_all_dirs); dirp != NULL; dirp = dirp->next)
+-	if (dirp->dirnamelen == len && memcmp (cp, dirp->dirname, len) == 0)
+-	  break;
++      if (__builtin_expect (rpath_prefix != NULL, 0))
++	{
++	  /* has rpath_prefix */
++	  size_t rpath_prefix_len = strlen (rpath_prefix);
+ 
++	  for (dirp = GL(dl_all_dirs); dirp != NULL; dirp = dirp->next)
++	    if (dirp->dirnamelen == (rpath_prefix_len+len) &&
++		(memcmp (cp, rpath_prefix, rpath_prefix_len) == 0) &&
++		(memcmp (cp+rpath_prefix_len, dirp->dirname, len) == 0))
++	      break;
++	}
++      else
++	{
++	  for (dirp = GL(dl_all_dirs); dirp != NULL; dirp = dirp->next)
++	    if (dirp->dirnamelen == len && memcmp (cp, dirp->dirname, len) == 0)
++	      break;
++	}
++
+       if (dirp != NULL)
+ 	{
+ 	  /* It is available, see whether it's on our own list.  */
+@@ -456,23 +478,44 @@
+ 	  size_t cnt;
+ 	  enum r_dir_status init_val;
+ 	  size_t where_len = where ? strlen (where) + 1 : 0;
++	  size_t rpath_prefix_len = 0;
+ 
++	  if (__builtin_expect (rpath_prefix != NULL, 0)
++	      && !INTUSE(__libc_enable_secure))
++	    {
++		rpath_prefix_len = strlen (rpath_prefix);
++		if (*cp != '/') rpath_prefix_len++; /* need to add a '/' */
++	    }
++
+ 	  /* It's a new directory.  Create an entry and add it.  */
+ 	  dirp = (struct r_search_path_elem *)
+ 	    malloc (sizeof (*dirp) + ncapstr * sizeof (enum r_dir_status)
+-		    + where_len + len + 1);
++		    + where_len + rpath_prefix_len + len + 1);
+ 	  if (dirp == NULL)
+ 	    _dl_signal_error (ENOMEM, NULL, NULL,
+ 			      N_("cannot create cache for search path"));
+ 
+ 	  dirp->dirname = ((char *) dirp + sizeof (*dirp)
+ 			   + ncapstr * sizeof (enum r_dir_status));
+-	  *((char *) __mempcpy ((char *) dirp->dirname, cp, len)) = '\0';
+-	  dirp->dirnamelen = len;
++	  if (rpath_prefix_len == 0)
++	    {
++		  *((char *) __mempcpy ((char *) dirp->dirname, cp, len)) = '\0';
++	    }
++	  else
++	    {
++		char *prefixend;
+ 
+-	  if (len > max_dirnamelen)
+-	    max_dirnamelen = len;
++		prefixend = (char *) __mempcpy ((char *) dirp->dirname,
++				rpath_prefix, rpath_prefix_len);
++		if (*cp != '/')
++		  prefixend[-1] = '/'; /* replace \0 */
++		*((char *) __mempcpy (prefixend, cp, len)) = '\0';
++	    }
++	  dirp->dirnamelen = len + rpath_prefix_len;
+ 
++	  if ((len + rpath_prefix_len) > max_dirnamelen)
++	    max_dirnamelen = len + rpath_prefix_len;
++
+ 	  /* We have to make sure all the relative directories are
+ 	     never ignored.  The current directory might change and
+ 	     all our saved information would be void.  */
+@@ -482,7 +525,8 @@
+ 
+ 	  dirp->what = what;
+ 	  if (__builtin_expect (where != NULL, 1))
+-	    dirp->where = memcpy ((char *) dirp + sizeof (*dirp) + len + 1
++	    dirp->where = memcpy ((char *) dirp + sizeof (*dirp)
++				  + rpath_prefix_len + len + 1
+ 				  + (ncapstr * sizeof (enum r_dir_status)),
+ 				  where, where_len);
+ 	  else
+@@ -551,7 +595,7 @@
+ 
+   /* Make a writable copy.  At the same time expand possible dynamic
+      string tokens.  */
+-  copy = expand_dynamic_string_token (l, rpath);
++  copy = expand_dynamic_string_token (l, rpath, GLRO(dl_rpath_prefix));
+   if (copy == NULL)
+     {
+       errstring = N_("cannot create RUNPATH/RPATH copy");
+@@ -576,7 +620,7 @@
+       _dl_signal_error (ENOMEM, NULL, NULL, errstring);
+     }
+ 
+-  fillin_rpath (copy, result, ":", 0, what, where);
++  fillin_rpath (copy, result, ":", 0, what, where, GLRO(dl_rpath_prefix));
+ 
+   /* Free the copied RPATH string.  `fillin_rpath' make own copies if
+      necessary.  */
+@@ -749,7 +793,7 @@
+ 
+ 	  /* Allocate the necessary memory.  */
+ 	  llp_tmp = (char *) alloca (total + 1);
+-	  llp_tmp = _dl_dst_substitute (l, llp, llp_tmp, 1);
++	  llp_tmp = _dl_dst_substitute (l, llp, llp_tmp, 1, NULL);
+ 	}
+ #else
+       llp_tmp = strdupa (llp);
+@@ -775,7 +819,7 @@
+ 
+       (void) fillin_rpath (llp_tmp, env_path_list.dirs, ":;",
+ 			   INTUSE(__libc_enable_secure), "LD_LIBRARY_PATH",
+-			   NULL);
++			   NULL, NULL/*no prefix*/);
+ 
+       if (env_path_list.dirs[0] == NULL)
+ 	{
+@@ -2167,7 +2211,7 @@
+     {
+       /* The path may contain dynamic string tokens.  */
+       realname = (loader
+-		  ? expand_dynamic_string_token (loader, name)
++		  ? expand_dynamic_string_token (loader, name, NULL)
+ 		  : local_strdup (name));
+       if (realname == NULL)
+ 	fd = -1;
+Index: libc/elf/dl-support.c
+===================================================================
+--- libc/elf/dl-support.c	(revision 13883)
++++ libc/elf/dl-support.c	(working copy)
+@@ -56,6 +56,9 @@
+    ignored.  */
+ const char *_dl_inhibit_rpath;
+ 
++/* prefix to be added to all RUNPATHs and RPATHs */
++const char *_dl_rpath_prefix = NULL;
++
+ /* The map for the object we will profile.  */
+ struct link_map *_dl_profile_map;
+ 
+Index: libc/elf/rtld.c
+===================================================================
+--- libc/elf/rtld.c	(revision 13883)
++++ libc/elf/rtld.c	(working copy)
+@@ -978,6 +978,15 @@
+ 	    _dl_argc -= 2;
+ 	    INTUSE(_dl_argv) += 2;
+ 	  }
++	else if (! strcmp (INTUSE(_dl_argv)[1], "--rpath-prefix")
++		 && _dl_argc > 2)
++	  {
++	    GLRO(dl_rpath_prefix) = INTUSE(_dl_argv)[2];
++
++	    _dl_skip_args += 2;
++	    _dl_argc -= 2;
++	    INTUSE(_dl_argv) += 2;
++	  }
+ 	else if (! strcmp (INTUSE(_dl_argv)[1], "--audit") && _dl_argc > 2)
+ 	  {
+ 	    process_dl_audit (INTUSE(_dl_argv)[2]);
+@@ -1011,6 +1020,7 @@
+                         object we can handle\n\
+   --library-path PATH   use given PATH instead of content of the environment\n\
+                         variable LD_LIBRARY_PATH\n\
++  --rpath-prefix PREFIX add PREFIX to every RUNPATH and RPATH component\n\
+   --inhibit-rpath LIST  ignore RUNPATH and RPATH information in object names\n\
+                         in LIST\n\
+   --audit LIST          use objects named in LIST as auditors\n");
+Index: libc/sysdeps/generic/ldsodefs.h
+===================================================================
+--- libc/sysdeps/generic/ldsodefs.h	(revision 13883)
++++ libc/sysdeps/generic/ldsodefs.h	(working copy)
+@@ -664,6 +664,12 @@
+ 
+   /* 0 if internal pointer values should not be guarded, 1 if they should.  */
+   EXTERN int _dl_pointer_guard;
++#endif
++
++  /* prefix for RPATH + RUNPATH components.  */
++  EXTERN const char *_dl_rpath_prefix;
++
++#ifdef SHARED
+ };
+ # define __rtld_global_attribute__
+ # ifdef IS_IN_rtld
+@@ -1047,7 +1053,8 @@
+ 
+ /* Substitute DST values.  */
+ extern char *_dl_dst_substitute (struct link_map *l, const char *name,
+-				 char *result, int is_path) attribute_hidden;
++				 char *result, int is_path,
++				 const char *rpath_prefix) attribute_hidden;
+ 
+ /* Check validity of the caller.  */
+ extern int _dl_check_caller (const void *caller, enum allowmask mask)
+Index: libc/elf/dl-open.c
+===================================================================
+--- libc/elf/dl-open.c	(revision 13883)
++++ libc/elf/dl-open.c	(working copy)
+@@ -269,7 +269,7 @@
+       char *new_file = (char *) alloca (required + 1);
+ 
+       /* Generate the new file name.  */
+-      _dl_dst_substitute (call_map, file, new_file, 0);
++      _dl_dst_substitute (call_map, file, new_file, 0, NULL);
+ 
+       /* If the substitution failed don't try to load.  */
+       if (*new_file == '\0')
+Index: libc/elf/dl-deps.c
+===================================================================
+--- libc/elf/dl-deps.c	(revision 13883)
++++ libc/elf/dl-deps.c	(working copy)
+@@ -117,7 +117,7 @@
+ 	__newp = (char *) alloca (DL_DST_REQUIRED (l, __str, strlen (__str),  \
+ 						   __dst_cnt));		      \
+ 									      \
+-	__result = _dl_dst_substitute (l, __str, __newp, 0);		      \
++	__result = _dl_dst_substitute (l, __str, __newp, 0, NULL);	      \
+ 									      \
+ 	if (*__result == '\0')						      \
+ 	  {								      \

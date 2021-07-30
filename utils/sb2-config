@@ -1,0 +1,248 @@
+#!/bin/bash
+# Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
+# Licensed under GPL version 2
+
+my_path=$_
+if [ $(basename $my_path) != $(basename $0) ]; then
+	my_path=$0
+	if [ $(basename $my_path) = $my_path ]; then
+		my_path=$(which $my_path)
+	fi
+fi
+ 
+function log_config_action()
+{
+	mkdir -p $SBOX_CONFIG_DIR
+	tstamp=`/bin/date '+%Y-%m-%d %H:%M:%S'`
+	echo "$tstamp	$*" >>$SBOX_CONFIG_DIR/CONFIG-LOG
+}
+
+function usage()
+{
+	cat <<EOF
+sb2-config - configure scratchbox2
+Usage:
+	sb2-config [OPTION]... [COMMAND [PARAMS]]
+
+Options:
+    -l                list all scratchbox2 targets
+    -f                list accessible (found) scratchbox2 targets
+    -d TARGETNAME     set default scratchbox2 target
+    -t TARGETNAME     set scratchbox2 target to configure
+    -h                print this help
+    -v                display version
+
+Commands:
+    showtarget		     show (default) target
+    showlog                  show configuration log
+    showenv		     show target-specific environment variables
+    setenv VARIABLE VALUE    set target-specific environment variable
+    clearenv VARIABLE        set clearing for target-specific environment variable
+    unsetenv VARIABLE        remove target-specific environment variable
+
+Examples:
+    sb2-config -d ARM
+    sb2-config -t ARM setenv FOO bar
+EOF
+	exit 2
+}
+
+function version()
+{
+	cat $SBOX_DIR/share/scratchbox2/version
+	exit 0
+}
+
+function list_targets()
+{
+	local all_targets=$1
+
+	if [ ! -d $HOME/.scratchbox2 ]; then
+		echo "$HOME/.scratchbox2 missing, create some targets with sb2-init!" >&2
+		exit 1
+	fi
+	list=$(find $HOME/.scratchbox2/ -maxdepth 2 -mindepth 2 \
+		-type f -and -name "sb2.config" 2>/dev/null | sort)
+	if [ $? != 0 ]; then
+		echo "Error occured while getting list of targets" >&2
+		exit 2
+	fi
+	if [ -z "$list" ]; then
+		echo "No targets found, create some with sb2-init!" >&2
+		exit 1
+	fi
+	for f in $list; do
+	    if [ $all_targets -ge 1 ]; then
+		echo $(basename $(dirname $f))
+	    else
+		. $f
+		if [ -d "$SBOX_TARGET_ROOT" ]; then
+		    echo $(basename $(dirname $f))
+		fi
+	    fi
+	done
+}
+
+function show_config_log()
+{
+	target=$1
+
+	if [ "$target" == "-" ]; then
+		# use default target
+		if [ ! -f $HOME/.scratchbox2/config ]; then
+			echo "default target has not been set!" >&2
+			exit 1
+		fi
+		. $HOME/.scratchbox2/config
+		target=$DEFAULT_TARGET
+		echo "Configuration log of '$target'"
+	fi
+	SBOX_CONFIG_DIR=$HOME/.scratchbox2/$target/sb2.config.d
+
+	if [ ! -d $HOME/.scratchbox2/$target ]; then
+		echo "target $target does not exist!" >&2
+		exit 1
+	fi
+
+	if [ ! -f $SBOX_CONFIG_DIR/CONFIG-LOG ]; then
+		echo "target $target does not have a configuration log!" >&2
+		exit 1
+	fi
+	# else log found
+
+	cat $SBOX_CONFIG_DIR/CONFIG-LOG
+	exit 0
+}
+
+function write_config()
+{
+	echo "
+DEFAULT_TARGET=$DEFAULT_TARGET
+" > $HOME/.scratchbox2/config
+	log_config_action "sb2-config: this is now the default target."
+}
+
+function setenv_var()
+{
+	varname="$1"
+	[ -z "$varname" ] && usage
+
+	shift
+	value="$*"
+
+	mkdir -p "$SBOX_CONFIG_DIR/env_vars"
+	echo "$varname=$value" >$SBOX_CONFIG_DIR/env_vars/$varname
+
+	log_config_action "sb2-config: setenv $varname=$value"
+}
+
+function clearenv_var()
+{
+	varname="$1"
+	[ -z "$varname" ] && usage
+
+	shift
+	value="$*"
+
+	mkdir -p "$SBOX_CONFIG_DIR/env_vars"
+	:>$SBOX_CONFIG_DIR/env_vars/$varname
+
+	log_config_action "sb2-config: clearenv $varname"
+}
+
+function unsetenv_var()
+{
+	varname="$1"
+	[ -z "$varname" ] && usage
+
+	if [ -f "$SBOX_CONFIG_DIR/env_vars/$varname" ]; then
+		rm $SBOX_CONFIG_DIR/env_vars/$varname
+		log_config_action "sb2-config: unsetenv $varname"
+	else
+		echo "variable $varname did not exist for this target" >&2
+		exit 1
+	fi
+}
+
+
+function showenv_vars()
+{
+	if [ -d $SBOX_CONFIG_DIR/env_vars ]; then
+		count=$( ls $SBOX_CONFIG_DIR/env_vars/* 2>/dev/null | wc -l )
+		if [ "$count" -gt 0 ]; then
+			for i in $SBOX_CONFIG_DIR/env_vars/*; do
+				if [ -s "$i" ]; then
+					echo declare -x `cat "$i"`
+				else
+					echo unset `basename "$i"`
+				fi
+			done
+		fi
+	fi
+	# else there are none.
+}
+
+SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
+WRITE_CONFIG=0
+
+if [ $# == 0 ]; then
+	# No parameters
+	usage
+fi
+
+while getopts d:fhlL:vt: foo
+do
+	case $foo in
+	(d) DEFAULT_TARGET=$OPTARG
+	    targetname=$OPTARG
+	    WRITE_CONFIG=1
+	    ;;
+	(h) usage ;;
+	(l) list_targets 1;;
+	(f) list_targets 0;;
+	(L) show_config_log $OPTARG ;; # Deprecated! use command 'showlog' instead
+	(t) targetname=$OPTARG ;;
+	(v) version ;;
+	(*) usage ;;
+	esac
+done
+shift $(($OPTIND - 1))
+
+# Use the default target if "-t target" was not used
+if [ -z "$targetname" ]; then
+	if [ ! -f $HOME/.scratchbox2/config ]; then
+		echo "default target has not been set!" >&2
+		exit 1
+	fi
+	. $HOME/.scratchbox2/config
+	targetname=$DEFAULT_TARGET
+fi
+
+# log_config_action can be used after this, it requires SBOX_CONFIG_DIR
+SBOX_CONFIG_DIR=$HOME/.scratchbox2/$targetname/sb2.config.d
+
+if [ $WRITE_CONFIG == 1 ]; then
+	write_config
+fi
+
+command=$1
+if [ -z "$command" ]; then
+	exit 0
+fi
+shift
+
+if [ ! -d $HOME/.scratchbox2/$targetname ]; then
+	echo "target $targetname does not exist!" >&2
+	exit 1
+fi
+
+case "$command" in
+showtarget)	echo $targetname;;
+showenv)	showenv_vars $*;;
+setenv)		setenv_var $*;;
+clearenv)	clearenv_var $*;;
+unsetenv)	unsetenv_var $*;;
+showlog)	show_config_log $targetname;;
+*)		usage;;
+esac
+

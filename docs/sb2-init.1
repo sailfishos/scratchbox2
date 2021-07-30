@@ -1,0 +1,124 @@
+.TH sb2-init 1 "17 December 2010" "2.2" "sb2-init man page"
+.SH NAME
+sb2-init \- initialize a target for scratchbox2
+.SH SYNOPSIS
+.B sb2-init
+[OPTION]... [TARGETNAME] [COMPILER[:SPECS]] [SECONDARY_COMPILER...]
+
+.SH DESCRIPTION
+.B sb2-init
+initializes a target for scratchbox2. If no options or other
+parameters are given, already initialized targets are listed.
+.PP
+A
+.I scratchbox2 target
+is simply a light-weight, symbolic name for a configuration set.
+A target does not contain anything that is active, like
+running processes; hence a user never "works inside a target”.
+Instead, sessions are used for all active operations.
+Sessions are created by the
+.B sb2
+command.
+.PP
+sb2-init is expected to be run in the directory you want
+to use as the target root filesystem.
+.PP
+TARGETNAME is the name of the target to initialize. If it refers to
+an existing target, then the target is re-initialized. Otherwise
+a new one is created.
+.PP
+COMPILER is full path to a cross-compiler (gcc), 
+of the form $HOME/arm-2006q3/bin/arm-linux-gcc.
+An optional SPECS parameter is path to the compiler specs file.
+.PP
+If more than one compiler is specified, additional compilers
+are available by version number (e.g. if the primary is known as
+"gcc" and "gcc-4.1", the secondary may be "gcc-3.4", etc)
+.PP
+Note that the compiler is usually used during the target
+creation process to determine CPU architecture of the target
+system.
+
+.SH OPTIONS
+.TP
+\-c "command"
+specify cpu transparency command, for example:
+"qemu-arm", "sbrsh" or "qemu-arm -R 256M".
+CPU transparency method is the program which is used to execute
+foreign binaries, that the host computer can not execute directly.
+.TP
+\-p "command"
+specify cpu transparency command for staticly linked native binaries.
+.TP
+\-r [hostname]
+generate sbrsh config using remote device address
+.TP
+\-l [hostname]
+NFS server/localhost address seen by remote device
+.TP
+\-d
+set target as default scratchbox2 target (default target can
+also be set later with the
+.B sb2-config
+command)
+.TP
+\-m [mapping_mode]
+use mapping_mode as default. Default for this is "simple"
+.TP
+\-h
+Print help.
+.TP
+\-n
+don't build libtool for the target
+.TP
+\-N
+don't generate localization files for the target
+.TP
+\-s
+skip checks for target root's /usr/include etc.
+.TP
+\-t [tools_dir]
+set directory containing the build tools distribution
+.TP
+\-C "options"
+add extra options for the compiler, for example:
+.I -C "-fgnu89-inline"
+.TP
+\-L "options"
+add extra options for the linker, for example:
+.I -L "--sysroot=/"
+.TP
+\-A arch
+manually override target architecture
+.TP
+\-M arch
+manually override machine name (see uname(2)). This
+defaults to the target architecture (see option -A)
+.TP
+\-v
+display version
+
+
+.SH EXAMPLES
+
+.nf
+mkdir $HOME/buildroot
+cd $HOME/buildroot
+[fetch a rootfs from somewhere and extract it here]
+sb2-init -c qemu-arm TARGET /path/to/cross-compiler/bin/arm-linux-gcc
+.fi
+
+.SH FILES
+.P
+.I $HOME/.scratchbox2/*
+.P
+.SH SEE ALSO
+.BR sb2 (1),
+.BR sb2-config (1),
+.BR qemu (1)
+.SH BUGS
+No known bugs at this time.
+.SH AUTHORS
+.nf
+Lauri T. Aarnio
+.fi

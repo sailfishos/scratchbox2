@@ -1,0 +1,102 @@
+#!/bin/bash
+#
+# "dpkg" and "apt-get" wrapper for scratchbox 2:
+# All mapping modes are not compatible with all operations that Debian
+# package management tools can do; for example, packages must not be
+# installed in the "maemo" mode which has been designed for compiling packages.
+# This wrapper first checks if the operation is permitted, and executes the
+# real tool only if it hasn't been denied by SB2's configuration.
+#
+# Following tools and operations are controlled here:
+# - "dpkg": "-i" and "--install" can be disabled
+# - "apt-get": "install" and "upgrade" can be disabled
+#
+# Copyright (c) 2008 Nokia Corporation.
+# All rights reserved.
+# Author: Lauri T. Aarnio
+#
+# Licensed under GPL version 2
+
+args="$*"
+prog="$0"
+progbase=`basename $0`
+
+function error_not_inside_sb2()
+{
+	echo "SB2: $progbase wrapper: This wrapper can only be used from inside"
+	echo "the scratchbox 2'ed environment"
+	exit 1
+}
+
+if [ -z "$SBOX_SESSION_DIR" ]
+then
+	error_not_inside_sb2
+fi
+
+. $SBOX_SESSION_DIR/sb2-session.conf
+
+if [ -z "$sbox_mapmode" -o -z "$sbox_dir" ]
+then
+	error_not_inside_sb2
+fi
+
+# read-in mode-specific settings
+if [ -f $SBOX_SESSION_DIR/modes/$sbox_mapmode/sb2rc ]
+then
+	. $SBOX_SESSION_DIR/modes/$sbox_mapmode/sb2rc "$progbase"
+fi
+
+function deny_operation()
+{
+	echo "SB2: $progbase wrapper: Operation denied in this mode ($sbox_mapmode)"
+	echo "SB2: $progbase wrapper: You need to use another mode for installing and"
+	echo "SB2: $progbase wrapper: removing packages (typically the 'emulate' mode will do)"
+	exit 1
+}
+
+case "$progbase" in
+(dpkg)
+	realtool=/usr/bin/dpkg
+	if [ -n "$SBOX_DPKG_WRAPPER_DENY_INSTALL" ]
+	then
+		for i in $args
+		do
+			case "$i" in
+			(-i|--install|-r|--remove)
+				deny_operation
+				;;
+			esac
+		done
+	fi
+	case "$1" in
+	--print-architecture)
+		if [ -n "$DEB_HOST_ARCH" ]; then
+			echo "$DEB_HOST_ARCH"
+			exit 0
+		fi
+		;;
+	esac
+	;;
+(apt-get)
+	realtool=/usr/bin/apt-get
+	if [ -n "$SBOX_APT_GET_WRAPPER_DENY_INSTALL" ]
+	then
+		for i in $args
+		do
+			case "$i" in
+			(install|upgrade|remove)
+				deny_operation
+				exit 1
+				;;
+			esac
+		done
+	fi
+	;;
+(*)
+	echo "SB2: $progbase wrapper: FATAL ERROR: don't know where to find real $progbase"
+	exit 1
+	;;
+esac
+
+# Default: Ok to execute the real tool
+exec $realtool $args

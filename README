@@ -1,0 +1,182 @@
+
+DISCLAIMER:
+
+THIS IS A DEVELOPMENT VERSION OF NEXT GENERATION OF SCRATCHBOX 2,
+called "2.3-series" during the development.
+So, this version should be regarded as an early prototype;
+if you need a stable version, please use the latest one
+from the 2.2-series (currently 2.2.2).
+
+Original "README" follows:
+---------------------------------------
+SCRATCHBOX 2 README
+
+author: Lauri Leukkunen <lle@rahina.org>
+date:   2008-10-20
+(minor updates by Lauri T. Aarnio, 2011-03-29)
+
+
+
+LICENSING
+
+All files are licensed under GNU LGPL version 2.1 unless specifically 
+stated otherwise in the file itself.
+
+
+
+GENERAL NOTICE
+
+This is no longer only development code, it is expected to work.
+If it doesn't, please report bugs to the scratchbox development
+mailing list (scratchbox-devel@lists.scratchbox.org)
+
+
+INSTALLATION
+
+You need git to work with sbox2, get it from http://git.or.cz/.
+
+Clone the scratchbox 2 repository:
+$ git clone git://gitorious.org/scratchbox2/scratchbox2.git
+or if behind a corporate firewall, use http:
+$ git clone http://git.gitorious.org/scratchbox2/scratchbox2.git
+
+(the old git repository at freedesktop.org is not used anymore)
+
+For x86_64 hosts Scratchbox 2 automatically builds both i386
+and x86_64 versions of libsb2.so, for this reason you need
+to have the necessary 32bit support libs available (libc6-dev-i386,
+lib32gcc1 & co. on debian).
+
+There are two ways to build and install SB2:
+
+1) for Debian (and derivatives, including Ubuntu):
+
+	$ cd scratchbox2
+	$ dpkg-buildpackage -rfakeroot
+	$ cd ..
+	$ sudo dpkg -i libsb2*deb scratchbox2*deb
+
+2) for non-debian systems:
+
+	$ cd scratchbox2
+	$ ./autogen.sh
+	$ make install prefix=$HOME/sb2
+
+	(Perhaps adding $HOME/sb2/bin to your PATH is also a good idea, put
+	"export PATH=$PATH:$HOME/sb2/bin")
+
+You need Qemu for cpu-transparency. As of 2009-03, qemu-0.10.1 seems to work
+pretty well. 
+
+Latest Qemu can be retrieved with: 
+
+$ git clone git://git.qemu.org/qemu.git
+$ cd qemu
+$ ./configure --prefix=$HOME/sb2 --target-list=arm-linux-user
+$ make && make install
+
+If you're targeting ARM you can get a good toolchain from CodeSourcery:
+http://www.codesourcery.com/gnu_toolchains/arm/download.html
+
+Notice! Old Scratchbox 1 toolchains don't work with SB2.
+
+To use sb2 you need to get a rootfs for your target and put it into
+some useful directory, alternatively you can copy the necessary files
+into right places from your toolchain. The essential thing is that
+sb2 needs FHS compliant target directory structure to work.
+
+From a codesourcery toolchain, you can find the "seed" target rootfs contents
+from arm-2008q3/arm-none-linux-gnueabi/libc, simply copy that to the buildroot.
+
+To complete sb2 target setup:
+
+$ mkdir $HOME/buildroot
+$ cd $HOME/buildroot
+$ cp -a $HOME/arm-2008q3/arm-none-linux-gnueabi/libc/{lib,etc,usr} .
+$ sb2-init my_target arm-none-linux-gnueabi-gcc
+
+That will automatically generate a working target config for the compiler
+given on the command line and run sb2-build-libtool script to get you a
+nice working libtool for your compiler. If the sb2-build-libtool part
+fails for some reason (incorrect http proxy or something similar), you
+can always run it manually later.
+
+At this point you can simply run sb2:
+
+$ sb2
+
+sb2-init made this target your default if you had no prior sb2 targets
+configured. To change the default use sb2-config -d your_target.
+
+After that you can run sb2 easily from anywhere and it'll just do its magic.
+Continuing the above examples, here's how to compile and run a simple
+hello-world program:
+
+$ sb2 gcc -o hello hello.c
+$ sb2 ./hello
+Hello, World!
+
+
+MAEMO DEVELOPMENT
+
+The Maemo SDK+ project at http://maemo-sdk.garage.maemo.org/ provides
+everything you need to develop for Maemo using SB2.
+
+
+DIAGNOSING PROBLEMS WITH SB2
+
+Sometimes everything does not work as expected, so it is good to know
+how to locate problems (typically problems are related to misconfigured
+mapping rules). Scratchbox 2 can produce extensive logs about all
+operations, but it does not do so by default. So the first step is
+to enable logging: Use the "-d" or "-L <level>" options of "sb2".
+
+For example,
+
+$ sb2 -L info dpkg-buildpackage -rfakeroot -d
+
+will produce a log of most important actions that were performed by
+"dpkg-buildpackage" and all subprocesses started by it. The log will
+be created under ~/sb2_logs/ (The above command will also print out the
+exact name and location of the logfile.)
+
+The produced logfile can be quite huge, especially when using the higher
+logging levels. A logfile analyzer script, sb2-logz, can be used to extract
+essentials like error and warning messages and path mapping actions from
+the logged information; log level 'info' in enough for anything that
+sb2-logz needs. Higher logging levels ('debug', etc) are mostly useful
+only for developers of scratchbox 2.
+
+Another useful helper tool is "sb2-show", an utility which can be used to 
+test path and command mapping rules while scratchbox 2 is active.
+
+For example,
+
+$ sb2-show path /etc/apt
+
+$ sb2-show -b apt-get path /etc/apt
+
+will show how the /etc/apt database has been mapped. The latter command
+uses "apt-get" as the name of the calling program (the results may
+be different depending on mapping mode, name of the calling program, etc)
+
+sb2-show can also be used to see how parameters to certain processes will
+be modified:
+
+$ sb2-show exec gcc foo.c
+
+shows which "gcc" would be started inside the sb2 session, together with
+the actual, possibly modified, arguments. The result depends on how sb2 
+was configured (see notes about sb2-init above)
+
+
+KNOWN ISSUES
+
+1. Dmalloc is utterly and completely incompatible with Scratchbox 2.
+2. Performance is not as good as it could be.
+3. Memory leaks exist, but they have not posed significant problems
+   so far.
+
+-- 
+That's all folks, enjoy!
+

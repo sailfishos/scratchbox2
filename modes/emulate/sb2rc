@@ -1,0 +1,40 @@
+#
+# Configuration variables for sb2 - specific to the "emulate" mapping mode.
+#
+# First argument is "initializing" when this script is included from sb2-init,
+# or "starting" when included from the "sb2" script, or name of the command
+# wrapper which needs mode-specific parameters ("dpkg", "apt-get", etc),
+# and empty otherwise.
+sb2rc_mode="$1"
+
+
+case "$sb2rc_mode" in
+
+	initializing)
+		SB2INIT_CROSS_GCC_PREFIX_LIST=$ARCH-linux-:$ARCH-linux-gnueabi-:$ARCH-linux-gnu-
+		if [ "$ARCH" != "$MACHINE_ARCH" ]; then
+			SB2INIT_CROSS_GCC_PREFIX_LIST=$SB2INIT_CROSS_GCC_PREFIX_LIST:$MACHINE_ARCH-linux-:$MACHINE_ARCH-linux-gnueabi-:$MACHINE_ARCH-linux-gnu-
+		fi
+		;;
+
+	starting)
+		# Make sure /var/log/apt exists, needed when 
+		# running as "sb2 -eR":
+		if [ "$SBOX_ROOT_SIMULATION" = "root" -a \
+		     -d $SBOX_TARGET_ROOT/var/log ]; then
+			if [ ! -d $SBOX_TARGET_ROOT/var/log/apt ]; then
+				mkdir $SBOX_TARGET_ROOT/var/log/apt
+			fi
+		fi
+		;;
+
+	wrapper_list)
+		SBOX_WRAPPERS="gdb ldconfig fakeroot"
+		;;
+
+	*)
+		# Default.
+		;;
+
+esac
+

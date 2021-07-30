@@ -1,0 +1,416 @@
+.TH sb2 1 "7 March 2012" "2.3" "sb2 man page"
+.SH NAME
+sb2 \- crosscompiling environment
+.SH SYNOPSIS
+.B sb2
+[options] [command] [arguments] [...]
+.SH DESCRIPTION
+.B sb2
+runs command in a scratchbox2 session. If no command is given, an interactive shell is started.
+.PP
+Scratchbox2 is typically used to create a
+.I transparent cross-compiling environment
+for developing programs and compiling software packages for e.g. embedded devices.
+.PP
+The environment created by
+.B sb2
+has essential differences to the host OS environment:
+.PP
+First, a virtual file system view is presented to the applications.
+In practise that means that the file names (paths) which an application
+uses may be modified before the OS does its operations;
+applications observe a different file system than what the real file system is. For example,
+common directories like /bin, /usr/lib and /lib can be changed to point to target-specific directories,
+which contain files for a different CPU architecture than what the host has.
+.PP
+Second, scratchbox2 makes execution of foreign binaries completely transparent. 
+Target's binaries can be executed on the host just as if they were host's binaries;
+scratchbox2 will start a 
+.I CPU transparency method
+automatically whenever needed (Qemu is typically used for this).
+.PP
+Third, scratchbox2 can also virtualize network (TCP/IP) addresses
+and connections.
+.PP
+Fourth, scratchbox2 can also virtualize file owner and permission
+information, and user and group IDs of the running processes.
+.PP
+The result is that the development machine appears as a virtual target system to
+the software development tools, and complex tools (like GNU Autotools)
+can be used directly.
+.PP
+Scratchbox2 works by intercepting library calls of dynamically linked binaries (see
+manual page libsb2_interface(7)).
+It uses a flexible and highly configurable rule engine for deciding how to
+modify parameters of the intercepted calls; this is completely
+transparent to the users and applications.
+.PP
+Scratchbox2 2 does not need any special privileges or kernel-level services;
+it is completely based on features that are available for all ordinary users.
+.PP
+Configuration data is stored to a
+.I target
+(see sb2-init(1) for details about creating a target).
+The target contains defaults for all settings that are needed when a session is
+created.
+.PP
+A new session is created every time when the
+.B sb2
+command is used (unless one of the persistent session control options is present -
+see options -S,-J,-P and -D below).
+.SH OPTIONS
+.TP
+\-b DIR
+Produce graphs and log summaries to directory DIR.
+Implies '-L info'. Log summaries are created by 
+.I sb2-logz,
+and if the
+.I graphviz
+package is available, execution and process grahps 
+are created by 'dot', too.
+.TP
+\-B DIR
+As -b, but also include process accounting data.
+(This may require special permissions, because 
+.I acct(2)
+system call is used twice. Tries to use 
+.I sudo
+if process accounting can not be activated directly, and
+that may require a password)
+.TP
+\-c
+When creating a session, also create a private copy of the target root filesystem (rootstrap).
+Modifications done to the copy will be thrown away when the session is destroyed.
+Note that the copy operation can be really slow, depending on the size of the file system,
+but if the copy goes to a ramdisk, overall performance may much be better (see also option -W).
+.TP
+\-C DIR
+When creating a session, create copy of DIR and use it as the
+target root filesystem (rootstrap). Note that this can be really slow. See also option -c.
+.TP
+\-d
+Use debug mode: same as
+.B -L debug
+.TP
+\-D FILE
+Delete a persistent session associated with FILE. 
+Warning: this does not check if the session is still in use!
+(see also -S and -J)
+.TP
+\-e
+Same as
+.B -m emulate:
+Use emulation mode, avoid executing any host binaries except qemu.
+See
+.B mapping modes
+below.
+.TP
+\-g
+Create a new session with setsid(); useful when executing commands in the background
+(i.e. creates a system session and a new process group, and detaches from the
+controlling terminal. See setsid(2) for more info)
+.TP
+\-G file
+Append process group number to a file.
+.TP
+\-h
+Print help.
+.TP
+\-J FILE
+Join a persistent session associated with FILE (see also -D,-P and -S) 
+.TP
+\-L LEVEL
+Enable logging. Following values for LEVEL are available (in order
+of increasing level of details): error, warning, net, notice, info, debug, noise, noise2.
+The default is
+.I warning.
+Logs can be post-processed with 
+.I sb2-logz,
+a tool which produces summaries and visualizes various things that were logged.
+.TP
+\-m MODE
+Use one of the pre-defined mapping modes.  See
+.B mapping modes
+below.
+.TP
+\-M FILE
+Read mapping rules from FILE.
+.TP
+\-n NET_MODE
+Use one of the pre-defined networking modes.  See
+.B networking modes
+below.
+.TP
+\-O OPTIONS
+Set options for the selected mapping mode. OPTIONS is a mode-specific string.
+.TP
+\-P FILE
+Instead of joining or creating a session,
+print all logs related to a persistent session. Output can be piped to
+.I sb2-logz.
+This option can be used even before the session is terminated. (see also options -D, -S and -J)
+.TP
+\-p
+Do not simulate special filesystem permissions in "superuser mode" (see opt. -R):
+By default Scratchbox2 tries to simulate similar privileges as the real
+.I root
+user has; this option prevents that.
+See VIRTUAL PERMISSIONS below.
+.TP
+\-Q BUGLIST
+Emulate bugs of scratchbox 1 (BUGLIST consists of letters: 'x' enables exec permission checking bug emulation).
+.TP
+\-q
+quiet; don't print debugging details to stdout etc.
+.TP
+\-R
+"superuser  mode":
+Execute commands in simulated privileged environment, as simulated "root" user.
+Depending on the selected mapping mode,
+this may also disable some mode-specific features, like simulated write protection
+of the target filesystem. See also option -U and VIRTUAL PERMISSIONS below.
+.TP
+\-s DIRECTORY
+Use redirection rules from the DIRECTORY given in argument.
+.TP
+\-S FILE
+Create a persistent session: Write session information to FILE
+(see also -D, -P and -J)
+.TP
+\-t TARGET
+Define TARGET to use. Use
+.I sb2-config -d TARGET
+to set a default.
+.TP
+\-T DIRECTORY
+Use DIRECTORY as tools_root (override the value which was specified to sb2-init when the target specification was created).
+.TP
+\-U UID.GID
+Set default file owner and group:
+All "unknown" files appers to be owned by UID, and group appears to be GID.
+Both values need to be numeric values, e.g. use "-U 0.0" to set the
+default owner to "root", and group to "root".
+In this context an "unknown file" refers to anything which is not explicitly
+known to to the Vperm subsystem; See also VIRTUAL PERMISSIONS below.
+.TP
+\-u
+Disable automatic configuration upgrade.
+.TP
+\-v
+Display version number.
+
+.TP
+\-W DIR
+Use DIR as the session directory when creating the session (The default is to
+create the session in /tmp). DIR must be an absolute path and must not exist.
+Note that long pathnames may cause trouble with socket operations, so try to
+keep DIR as short as possible.
+.TP
+\-x OPTIONS
+specify additional options for
+.I sb2d(1)
+(effective only when a new session is created; it is
+too late to try to use this with option -J)
+
+.SH EXAMPLES
+.TP
+sb2 ./configure
+.TP
+sb2 make
+.TP
+sb2 -eR make install
+.TP
+sb2 -R -m emulate make install
+
+.SH MAPPING MODES
+Scratchbox2 contains several ready-made rulesets, called
+.I mapping modes,
+for different purposes. This manual page presents only the
+basics of each. Full details can be found from the
+rulesets themselves.
+.PP
+There are three development-oriented modes, that are intended for
+cross-compilation:
+.PP
+"simple" makes only the very basic modifications to the file environment:
+For example,
+.I /usr/include
+refers to /usr/include in the target root file system, not to the real
+/usr/include of the host (and the same applies to /lib, /usr/lib, 
+and many other directories).
+Typical toolchain commands, i.e. commands that are used to
+create binary programs (like
+.I gcc, as
+and
+.I ld)
+refer to tools that were supplied with the the cross-compiler which was configured with
+.I sb2-init
+(also when used with full pathname: /usr/bin/gcc, /usr/bin/as, etc)
+.PP
+The "simple" mode usually takes other tools directly from the host OS.
+This approach means that simple tools work fine, and well-behaving
+OSS projects can be compiled with the "simple" mode. The drawback is that
+there are some cases, where such a simple approach fails.
+.PP
+The other two development modes, "accel" and "devel" have more complete
+support for different tools, but these are not necessarily as easy to
+set up as the "simple" mode is.
+Both "accel" and "devel" are intended to be used with a separate
+"tools root" directory, 
+consisting of host-compatible binaries of the same programs that 
+exist in the target file system as foreign binaries (e.g. target root can contain
+arm binaries, whereas tools root has x86 binaries of the exactly versions
+of the same programs). This is configured with the -t option of sb2-init(1).
+.PP
+In addition to the development-oriented modes, scratchbox2 also has an "emulate"
+mode, which sets up an environment without development tools: It maps as many paths
+to the target root as possible.  It can be used for
+installing programs to the target filesystem and testing them.
+.PP
+"tools" mode is very much like "emulate", except that there most
+things are mapped to tools root.
+.PP
+"nomap" mode is a special mapping mode, which is mostly useful only
+for debugging purposes: It does not apply any file system related mappings,
+but otherwise scratchbox2 functions are fully operational.
+
+.SH NETWORKING MODES
+The networking subsystem is essentially a "mini-firewall", which
+makes it possible to allow or deny TCP/IP connections independently of
+host system settings. Decisions are typically made when network
+addresses are processed (e.g. when connect(2),
+bind(2), sendmsg(2) or sendto(2) is called). Scratchbox2 does
+not contain a full firewall which would process each networking
+packet separately.
+.PP
+There are four ready-made rulesets for networking. The mode
+is selected with option "-n NET_MODE" when a session is created (or joined)
+and the networking mode can be freely combined with any of the file
+system mapping modes.
+.PP
+"online" is the default mode. It allows unrestricted access to
+networking facilities of the host OS.
+.PP
+"offline" is the opposite of "online". It denies attempts
+to use networking. For example, connect(2) will return EPERM
+and bind(2) will return EADDRNOTAVAIL for all IP addresses.
+.PP
+"localhost" restricts networking to local addresses only.
+In this mode, attempts to bind() to INADDR_ANY will be changed
+to bind to 127.0.0.1.
+.PP
+"online_privatenets" restricts networking to private networks
+(e.g. 10.0.0.0/8, 172.16.0.0/12 and 192.168.0.0/16 for IPv4,
+and fc00::/7 etc. for IPv6 addresses)
+.PP
+Note that networking operations are not logged by default.
+Use "-L net" (or higher levels) to activate logging of
+network-related events.
+.PP
+N.B. Together with the "nomap" filesystem mapping mode,
+you can also test what ordinary programs (programs that
+belong to the host OS) are doing.
+
+.SH VIRTUAL PERMISSIONS
+The virtual permission ("Vperm") subsystem does three things:
+.PP
+First, it can virtualize file system metadata, i.e. the
+information returned by stat(), lstat(), fstat() etc. calls.
+.PP
+Second, the Vperm subsystem can masquerade user- and group
+information of running processes: getuid(), getgid() etc
+calls may return simulated information (see option -R)
+.PP
+Third, a subset of the special superuser filesystem privileges 
+can be simulated (unless option -p was used).
+.PP
+Virtualized metadata means that file ownership, access permission 
+information (mode bits) and even file type can be virtualized.
+Typically, the data is set by library/system calls like chown()
+or chmod(). These calls are always first tried directly, but if the call
+fails, the Vperm subsystem takes control and will set virtualized owner (or
+other information) for the file. This way practically any
+file on the system can get virtual metadata.
+.PP
+Virtualized metadata is shared between all processes inside a
+session. It disappears when the session is deleted.
+.PP
+Virtual device nodes are also possible: if real
+device nodes (character/block special nodes) can not be created
+by mknod(), the Vperm system will create virtual device nodes
+by creating an empty file which doesn't have any permissions,
+and then setting the virtual file type to be a device. This
+is useful for e.g. creating "tar" archives which need to have
+device nodes inside, but the virtualized device nodes can not
+be used for anything real, of course.
+.PP
+Note that the Vperm subsystem does not affect the way real
+how permission checks are done. The kernel is still responsible:
+All operations are still done with the real user
+ID and real group ID. This can present some surprises: For example,
+any file can be opened for reading only if the 
+real (effective) user ID of process permits and the file
+has owner's R-bit set, regardless of the virtual permissions
+or virtual metadata.
+.PP
+For the simulated root user (option -R), some privileged operations
+are simulated (unless -p is used):
+.IP \(bu
+For directories, SB2 may silently add R and X permissions for the
+owner, otherwise various operations might fail.
+This migth happen in the mkdir(2) and chmod(2) functions.
+These additions are permanent modifications to the real directory
+modes, but not visible inside the session (the directory is masqueraded 
+with virtualized metadata, so that the directory appears to be
+more restricted than what it really is)
+.IP \(bu
+For files, SB2 simulates root's abilities to write to write-protected
+files and read from read-protected files. That is done by momentarily
+changing (chmod(2)) permissions to be able to open the file. Because
+this can't be atomically, race conditions are possible.
+.PP
+This subsystem is essentially a superset of what the
+.I fakeroot
+utility has done. But Scratchbox2 does more; For example,
+if user ID information is masqueraded, newly created files
+will appear to be owned by that simulated user ID (fakeroot
+doesn't do that). Also, the set-user-ID and set-group-ID bits
+are correctly simulated for foreign binaries running under e.g. qemu
+(fakeroot can't do that).
+.PP
+For compatibility with
+.I fakeroot,
+scratchbox2 offers two features: Most modes have a built-in
+command "fakeroot" which accepts similar options as the real
+.I fakeroot
+command (but ignores most of those). Also, since the default in
+a fakeroot session is to have all files owned by root (and group=root),
+the Vperm subsystem can do a similar thing if the session is
+created with the -U option (this is also activated by the
+built-in "fakeroot" command.)
+
+.SH FILES
+.P
+.I $HOME/.scratchbox2/*
+.P
+.I $HOME/sb2_logs
+.P
+.I /usr/share/scratchbox2/*.
+In particular, /usr/share/scratchbox2/modes/* contains mapping modes
+and the networking modes can be found at /usr/share/scratchbox2/net_rules/*.
+
+.SH SEE ALSO
+.BR sb2-init (1),
+.BR sb2-config (1),
+.BR sb2-show (1),
+.BR sb2-logz (1),
+.BR sb2-session (1),
+.BR sb2d (1),
+.BR qemu (1),
+.BR libsb2_interface (7)
+.SH BUGS
+No known bugs at this time.
+.SH AUTHORS
+.nf
+Lauri T. Aarnio, Riku Voipio
+.fi

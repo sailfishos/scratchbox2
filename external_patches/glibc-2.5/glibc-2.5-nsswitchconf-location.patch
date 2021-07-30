@@ -1,0 +1,30 @@
+--- a/nss/nsswitch.c	2007-09-25 17:20:01.000000000 +0300
++++ b/nsswitch.c	2009-11-06 14:15:27.000000000 +0200
+@@ -42,6 +42,8 @@
+ #include "nsswitch.h"
+ #include "../nscd/nscd_proto.h"
+ 
++#include <unistd.h> /* __libc_enable_secure */
++
+ /* Prototypes for the local functions.  */
+ static name_database *nss_parse_file (const char *fname) internal_function;
+ static name_database_entry *nss_getline (char *line) internal_function;
+@@ -103,8 +105,16 @@
+ 
+   /* Are we initialized yet?  */
+   if (service_table == NULL)
+-    /* Read config file.  */
+-    service_table = nss_parse_file (_PATH_NSSWITCH_CONF);
++    {
++      const char *ext_nss_config_file = NULL;
++      if (__libc_enable_secure == 0)
++	{
++	  ext_nss_config_file = getenv ("NSSWITCH_CONF_PATH");
++	}
++      /* Read config file.  */
++      service_table = nss_parse_file (ext_nss_config_file ?
++		ext_nss_config_file : _PATH_NSSWITCH_CONF);
++    }
+ 
+   /* Test whether configuration data is available.  */
+   if (service_table != NULL)

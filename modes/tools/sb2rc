@@ -1,0 +1,36 @@
+#
+# Configuration variables for sb2 - specific to the "tools" mapping mode.
+#
+# First argument is "initializing" when this script is included from sb2-init,
+# or "starting" when included from the "sb2" script, or name of the command
+# wrapper which needs mode-specific parameters ("dpkg", "apt-get", etc),
+# and empty otherwise.
+sb2rc_mode="$1"
+
+
+case "$sb2rc_mode" in
+
+	initializing)
+		;;
+
+	wrapper_list)
+		SBOX_WRAPPERS="ldconfig dpkg fakeroot"
+		;;
+
+	dpkg)
+		# "dpkg" must use the real host architecture
+		# (for example, "i386") in tools mode even if
+		# the target is something else ("armel", etc)
+		unset DEB_HOST_ARCH
+		;;
+
+	ldconfig)
+		sbox_ldconfig_path="$sbox_tools_root/sbin/ldconfig"
+		sbox_ldconfig_root="$sbox_tools_root"
+		;;
+
+	*)
+		# Default.
+		;;
+esac
+

@@ -1,0 +1,164 @@
+
+"external_patches" for SB2:
+===========================
+
+Attention: The patches stored here are the archived patches. The current version
+of glibc used in Sailfish OS contains more recent versions of these patches.
+
+This directory contains patches to external components that are recommended
+to be used in the SB2'ed environment.
+
+These patches are needed when:
+
+a) target CPU archictecture is the same as host CPU architecture;
+   i.e. when sb2 is used without Qemu.
+
+b) these are also recommended for tools, when the tools are not used
+   from the host OS (which is usually the case with "accel" and "devel" modes)
+
+c) The host OS contains buggy components (this currently applies to
+   64-bit Ubuntu Lucid; see detailed description below)
+
+Short description of the files:
+
+
+GDB pathces:
+============
+
+gdb-7.0.1+sb2.patch
+-------------------
+
+	From: Gergely Risko <gergely@risko.hu>
+	
+	The main problem is that sb2 wraps exec and instead of execve'ing the
+	executable, it uses ld-linux.so.2 to do the loading.  This way the
+	kernel only maps ld-linux.so.2, and the mmapping of the real binary is
+	done by ld-linux.so.2 itself.  Thus the kernel raises SIGTRAP as soon as
+	ld-linux.so.2 is mmapped, but by this time the real binary is not in the
+	memory, setting breakpoints fail.
+
+	My solution is two minimal modifications in libsb2 and gdb.
+
+	Gdb has a
+	#define START_INFERIOR_TRAPS_EXPECTED 2
+	in gdb/inferior.h, which specifies that 2 SIGTRAPs will be raised, and
+	then we are really debugging the wanted process.  The first SIGTRAP is
+	from the shell, which is used in GDB to make e.g.
+	run *
+	possible (where * is expanded by the shell).  I just increased this
+	constant to 4.  I also set a new environment variable SBOX_SIGTRAP to 1
+	in the shell started by GDB.
+
+	In libsb2 I added to the initialization a check.  If SBOX_SIGTRAP is
+	set, then we do a raise(SIGTRAP).
+
+	So the whole process is this:
+	gdb forks
+	  ptrace(TRACME)
+	  execve("/bin/sh", ["-e", "./mybin"], {SBOX_SIGTRAP => "1", ...})
+	    libsb2 wraps this exec:
+	    exec("ld-linux.so.2", ["/bin/sh", "-e", "exec ./mybin"])  -> 1 SIGTRAP
+	      libsb2.so gets loaded for the shell, constructor gets called,
+	      the constructor notes the SBOX_SIGTRAP               -> 1 SIGTRAP
+	      shell exec's the mybin                               -> 1 SIGTRAP
+	      libsb2.so preload constructor notes SBOX_SIGTRAP     -> 1 SIGTRAP
+	<-
+	gdb parent already got 4 SIGTRAPs, so it starts putting in breakpoints
+	and everything.
+
+	Pro: no gdb wrapper, user can start putting breakpoints right away after
+	gdb startup, no special handling of gdb is needed inside sb2.
+
+	Con: modification in both gdb and libsb2.
+
+	-=-
+
+	GDB can follow exec calls, see (info "(gdb) Processes").
+
+	To support this, SB2 has to reintroduce SBOX_SIGTRAP if it
+	going to be lost because the program called exec*e without
+	specifying SBOX_SIGTRAP in the new env.  This is done in
+	preload/sb-exec.c:prepare_envp_for_do_exec.
+
+	In GDB we have to wait for an extra SIGTRAP after every time,
+	the inferior called exec(), the modification for this is made
+	in gdb/infrun.c.
+
+
+GLIBC/EGLIBC pathces:
+=====================
+[NOTE: patches for glibc/eglibc should be applied in this order:]
+
+ldconfig patch
+--------------
+[available for eglibc-2.10]
+	A bugfix for "ldconfig" (eglibc 2.10). The bug exists in 2.8, too.
+	Version 2.5 was ok.
+
+elf/rtld.c --argv0 option patch
+-------------------------------
+[available for glibc-2.3.6, glibc-2.5, eglibc-2.8, eglibc-2.10, glibc-2.14.1]
+
+	A small patch for the dynamic linker/loader ("ld.so", also known as
+	"ld-linux.so"). The dynamic linker is part of the "glibc" package.
+
+	This patch adds one command line option which is only used
+	when the dynamic linker is started as an ordinary program,
+	which is a seldom used way to start dynamically linked
+	programs. SB2 uses that option to preserve semantics of the
+	exec* calls
+
+	[SB2 starts the dynamic linker as an ordinary program,
+	to be able to get full control of the execution environment -
+	this is somewhat complex system. Study the implementation
+	of SB2's exec-related functions for full details]
+
+	Note that this patch causes no harm in the default case, i.e.
+	when the dynamic linker is started "automatically" by the kernel.
+
+ld.so --rpath-prefix option patch
+---------------------------------
+[available for glibc-2.5, eglibc-2.8, eglibc-2.10, glibc-2.14.1]
+	
+	This patch adds a new option "--rpath-prefix" to ld.so.
+	This makes it possible to add a prefix to all RPATH and
+	RUNPATH options from binaries and libraries; that way 
+	Scratchbox 2 can run also host-compatible binaries that
+	contain such options (without this, the RPATHs would
+	refer to the libraries on the host system and not to
+	the correct libraries under 'target_root').
+
+	Note that this patch causes no harm in the default case, i.e.
+	when the dynamic linker is started "automatically" by the kernel.
+
+/etc/nsswitch.conf location selection patch
+-------------------------------------------
+[available for glibc-2.5, eglibc-2.8, eglibc-2.10, glibc-2.14.1]
+	This patch makes location of the /etc/nsswitch.conf file
+	to be run-time configurable via an environment variable.
+
+	This is needed for correct operation with Scratchbox 2.
+	Without this, the sb2-virtualized environment will
+	always read /etc/nsswitch.conf from the host.
+
+nscd socket location selection patch
+---------------------------------------
+[available for glibc-2.5, eglibc-2.8, eglibc-2.10, glibc-2.14.1]
+	This patch makes location of nscd's socket to be run-time
+	configurable via an environment variable.
+
+ld.so --nodefaultdirs option patch
+--------------------------------------------
+[available for glibc-2.5, eglibc-2.8, eglibc-2.10, glibc-2.14.1]
+	Adds a new option "--nodefaultdirs" to ld.so.
+
+	This option disables searching from the default directories
+	(/lib,/usr/lib) and also disables use of ld.so's search
+	cache.
+
+	This is recommended for correct operation with Scratchbox 2;
+	without this, libraries may be incorrectly loaded from the
+	host environment (such libraries that are missing from
+	the "scratchboxed" environment but are present in the host)
+
+

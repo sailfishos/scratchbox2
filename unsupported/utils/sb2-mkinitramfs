@@ -1,0 +1,24 @@
+#!/bin/sh
+
+if [ "x$1" = x -o  "x$2" = x ]; then
+	echo usage fakeroot $0 initramfsdir initramfsfile
+	exit 1
+fi
+
+if [ x`whoami` != xroot ]; then
+	echo must be run under root or fakeroot
+	exit 2
+fi
+
+rm -rf $1/dev
+mkdir -p $1/dev/pts
+cp -a /dev/{null,tty,tty0,ram0,console,zero,loop*,ptmx} $1/dev/
+
+# sanity checks
+
+if [ ! -x $1/init ]; then
+	echo "$1/init script missing"
+fi
+
+(cd $1;  find . | cpio -o -H newc | gzip )  > $2
+

@@ -1,0 +1,3 @@
+#!/bin/bash
+
+exec $SBOX_SESSION_DIR/bin/sb2-show pwd

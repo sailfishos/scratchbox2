@@ -1,0 +1,546 @@
+#!/bin/bash
+#
+# Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
+#
+# Redesigned/refactored by Lauri T. Aarnio;
+#	Portion Copyright (c) 2008 Nokia Corporation.
+#	All rights reserved.
+#
+# Licensed under GPL version 2
+#
+# -------------------
+#
+# dpkg-checkbuilddeps wrapper for SB2.
+#
+# ENVIRONMENT VARIABLES:
+# - set SBOX_CHECKBUILDDEPS_VERBOSE to non-empty value to get
+#   verbose description about what is missing.
+# - SBOX_DOUBLECHECK_DEPS; see the text below:
+#
+# Currently there are two algorithms for this: Old and new.
+#
+# The old one, implemented completely as a shell script,
+# ignores many things that should be checked. The new one is 
+# is written in perl, but the implementation is still
+# incomplete. Currently things work so that this shell
+# script digs out the needed variables and feeds them to
+# the perl script (the old algorithm is off by default).
+#
+# Alternatively, the old and new algorithms can both be
+# enabled by setting environment variable SBOX_DOUBLECHECK_DEPS
+# to any non-empty value. I haven't seen any cases where the
+# old algorithm would be better that the new one, but I'm
+# interested to hear if there are any...before this old
+# stuff will be completely removed / Lauri T. Aarnio 2009-01-31.
+#
+# Here is description of the OLD algorithm:
+# Idea behind operation is to first check target's package db,
+# then check if missing packages are tools that could be used
+# from the host (or sbox_tools_root, if that has been set)
+#
+# There might also be dependencies that SB2 itself solves;
+# for example, gcc-* dependencies might be resolved by the
+# cross compiler.
+#
+# Requirements:
+# - Package db maps to *target* package db
+# - can switch temporarily to tools mode, and then the
+#   db maps to *tools* package db
+#
+# [N.B. The new algorithm solves this:
+# FIXME: This implementation is still incomplete, as this does not
+# check package versions while checking host/tools_root tools.
+# Also, it would be a good idea to do a "visibility check" for host packages,
+# too (see how sb2-check-pkg-mappings does it for target's pkg db)]
+
+args="$*"
+prog="$0"
+progbase=`basename $0`
+
+SBOX_REDIRECT_IGNORE=""
+
+function error_not_inside_sb2()
+{
+	echo "SB2: $progbase: This wrapper can only be used from inside"
+	echo "the scratchbox 2'ed environment"
+	exit 1
+}
+
+function verbose_message()
+{
+	if [ -n "$SBOX_CHECKBUILDDEPS_VERBOSE" ]; then
+		echo "$*" 1>&2
+	fi
+}
+
+if [ -z "$SBOX_SESSION_DIR" ]
+then
+	error_not_inside_sb2
+fi
+
+. $SBOX_SESSION_DIR/sb2-session.conf
+
+# A generated, temporary package db which only contains packages that
+# are usable thru the current mapping mode:
+TARGET_DPKG_ADMINDIR_USABLE_PKGS=$sbox_temp_dpkg_admin_dir
+
+cfgfile_host_accepted_pkgs=$sbox_dir/share/scratchbox2/modes/$sbox_mapmode/host-accepted-packages
+cfgfile_host_ignored_pkgs=$sbox_dir/share/scratchbox2/modes/$sbox_mapmode/host-ignored-packages
+
+# Execute a command in tools mode. forces /usr/bin/perl to tools,
+# otherwise the shell which is running this script may try to take perl from
+# the rootstrap - some, but not all, of the dpkg* tools are perl scripts.
+# Return status is in $tools_mode_tool_stat when this returns.
+function run_in_tools_mode()
+{
+	SBOX_REDIRECT_FORCE="/usr/bin/perl" SBOX_SESSION_MODE=tools \
+		eval "$*"
+	tools_mode_tool_stat=$?
+}
+
+# Check if a named package exists of the host.
+# Returns result in three variables:
+# - $installed_to_host is either "yes" or "no"
+# - $check_result_msg and $check_result_msg2 return a more detailed
+#   explanation of the result (strings).
+function check_host_pkg()
+{
+	pkgname=$1
+
+	installed_to_host="no"	# default
+	check_result_msg="'$pkgname' not found."
+	check_result_msg2=""
+
+	# Check if it can be accepted from the host:
+	g=`grep "^$pkgname\$" $cfgfile_host_accepted_pkgs`
+	if [ -z "$g" ]
+	then
+		# No, the package has not been aproved to be used from the host.
+
+		# first check if this requirement should be ignored completely:
+		if [ -f $cfgfile_host_ignored_pkgs ]
+		then
+			# ignorelist exists
+			g=`grep "^$pkgname\$" $cfgfile_host_ignored_pkgs`
+			if [ -z "$g" ]
+			then
+				check_result_msg="'$pkgname' is missing (must be installed to the rootstrap)"
+			else
+				check_result_msg="'$pkgname' is missing, but this is ignored by configuration"
+				installed_to_host="yes"
+				return
+			fi
+		fi
+
+		pkg_stat_tmp=`mktemp -p $SBOX_SESSION_DIR/tmp pkg-stat.XXXXXXXXXX`
+		# next check again if the package exists on the target,
+		# just to be able to give a better error message.
+		if dpkg-query -s "$pkgname" >$pkg_stat_tmp 2>&1
+		then
+			if grep -q "ok installed" $pkg_stat_tmp
+			then
+				rm $pkg_stat_tmp
+				check_result_msg="'$pkgname': OOPS. Needed from the the rootstrap (installed there),"
+				check_result_msg2="   but unusable (not fully visible due to SB2 mapping rules)"
+				return
+			fi
+		fi
+		rm $pkg_stat_tmp
+
+		check_result_msg="'$pkgname' is missing, must be installed to the rootstrap"
+		return
+	fi
+
+	# package is not present in the rootstrap, but
+	# it can be accepted from the host environment.
+	run_in_tools_mode dpkg-query -s "$pkgname" >/dev/null 2>&1
+	if [ $tools_mode_tool_stat == 0 ]; then
+		installed_to_host="yes"
+		check_result_msg="'$pkgname' found from the host environment"
+		return
+	fi
+
+	# not installed. Test if this can be ignored.
+	if [ -f $cfgfile_host_ignored_pkgs ]
+	then
+		g=`grep "^$pkgname\$" $cfgfile_host_ignored_pkgs`
+		if [ -n "$g" ]
+		then
+			check_result_msg="'$pkgname' is not available (ignored by configuration)"
+			installed_to_host="yes"
+			return
+		fi
+	fi
+
+	check_result_msg="'$pkgname' is missing (can be installed to the host)"
+	return 1
+}
+
+# This is now used only in "OLD_CHK" mode
+function check_gcc_dependency()
+{
+	required_gcc=$1
+	prefix="$2"
+
+	if [ -f $HOME/.scratchbox2/$sbox_target/sb2.config.d/gcc.config.sh ]
+	then
+		# a cross compiler has been configured
+		if [ "$required_gcc" = "gcc" ]
+		then
+			# requires GCC, but does not depend on gcc version
+			verbose_message "$prefix""SB2 provides gcc"
+			return 0
+		fi
+		if [ "$required_gcc" = "g++" ]
+		then
+			# requires G++, but does not depend on g++ version
+			verbose_message "$prefix""SB2 provides g++"
+			return 0
+		fi
+		#
+		# Find out if gcc version is suitable, try all configured
+		# toolchains
+		for gcc_conf_file in \
+			$HOME/.scratchbox2/$sbox_target/sb2.config.d/gcc*.config.sh
+		do
+			if [ -f $gcc_conf_file ]; then
+				. $gcc_conf_file
+				short_vrs="g??-$SBOX_CROSS_GCC_SHORTVERSION"
+				full_vrs="g??-$SBOX_CROSS_GCC_VERSION"
+				case "$required_gcc" in
+				$short_vrs|$full_vrs)
+					verbose_message "$prefix""SB2 provides $required_gcc"
+					return 0
+					;;
+				esac
+			fi
+		done
+	fi # else a cross-compiler is not available, gcc comes from tools
+
+	# Failed, SB2 environment does not provide a suitable gcc.
+	return 1
+}
+
+# This is now used only in "OLD_CHK" mode
+function check_sb2_builddeps()
+{
+	orig_missing="$1"
+	prefix="$2"
+
+	new_missing=""
+	ret=0
+
+	# Currently, SB2 can fulfill "gcc", "gcc-<version>",
+	# "g++", "g++-<version>"
+	for m in $orig_missing
+	do
+		case $m in
+		gcc*|g++*)	check_gcc_dependency "$m" "$prefix"
+			if [ $? != 0 ]; then
+				# gcc check failed
+				new_missing="$new_missing $m"
+			fi
+			;;
+		*)	# keep it in the list of missing pkgs
+			new_missing="$new_missing $m"
+			;;
+		esac
+	done
+
+	missing_deps="$new_missing"
+
+	if [ -z "$new_missing" ]; then
+		# all resolved.
+		true
+	else
+		# still missing something
+		false
+	fi
+}
+
+
+function check_host_builddeps()
+{
+	missing="$1"
+	prefix="$2"
+	ret=0
+
+	# do the magic here
+	verbose_message "$prefix""SB2 Checking host build deps.."
+
+	list_ok=1	# default to ok
+	# $m will be the package to test, or pkg/pkg[/...] if there are
+	# alternatives (unfortunately '|' has special meaning in shell's
+	# "case" statement, so we'll have to replace it by '/')
+	for m in $(echo $missing | sed -e 's/([^)]\+)//g' | \
+		sed -e 's:[ 	]*|[ 	]*:/:g')
+	do
+		## echo "   Testing $m:"
+		case "$m" in
+		*/*)	# alternatives..
+			has_one_alternative=0
+			for mmm in $(echo $m | sed -e 's:/: :')
+			do
+				verbose_message "$prefix""       ...$mmm"
+				check_host_pkg $mmm
+				if [ "$installed_to_host" = "yes" ]
+				then
+					verbose_message "$prefix""       $mmm = ok"
+					has_one_alternative=1
+				else
+					verbose_message "$prefix""       no $mmm.."
+				fi
+			done
+			if [ $has_one_alternative == 0 ]
+			then
+				verbose_message "$prefix""     Requirement $m failed; none of the alternatives were found."
+				list_ok=0
+			else
+                                verbose_message "$prefix""     '$m': At least one alternative found, ok."
+			fi
+			;;
+
+		*)	# No alternatives.
+			check_host_pkg $m
+			verbose_message "$prefix""     $check_result_msg"
+			if [ -n "$check_result_msg2" ]
+			then
+				verbose_message "$prefix""     $check_result_msg2"
+			fi
+			if [ "$installed_to_host" = "no" ]
+			then
+				list_ok=0
+			fi
+		esac
+
+	done
+
+	if [ $list_ok == 0 ]; then
+		# somethings missing
+		false
+	else
+		true
+	fi
+}
+
+function check_host_builddeps_by_real_tool()
+{
+	ret=0
+	verbose_message "SB2 Checking tools build deps..."
+	x_missing_dep_file=`mktemp -p $SBOX_SESSION_DIR/tmp tools_missing_deps.XXXXXXXXXX`
+
+	# Run dpkg-checkbuilddeps in the "tools" mode
+	# Note: Can't use a pipeline here, we want to the
+	# dpkg-checkbuilddeps' return status.
+	run_in_tools_mode /usr/bin/dpkg-checkbuilddeps \
+		$args > $x_missing_dep_file 2>&1
+	if [ $tools_mode_tool_stat == 0 ]; then
+		# real dpkg-checkbuilddeps says "all ok"
+		rm $x_missing_dep_file
+		tools_missing_deps=""
+		return 0
+	fi
+
+	# else real dpkg-checkbuilddeps failed.
+	# sed -e 's/^/     /' < $x_missing_dep_file
+	tools_missing_deps=$(egrep \
+		"^dpkg-checkbuilddeps: Unmet build dependencies:" \
+			$x_missing_dep_file | \
+		sed 's/dpkg-checkbuilddeps: Unmet build dependencies: //')
+	rm $x_missing_dep_file
+
+	if [ -n "$tools_missing_deps" ]; then
+		# failing target deps, and missing packages are listed
+		# in $tools_missing_deps = continue by checking if those are
+		# available on the host environment
+		return 1
+	else
+		# failing target deps, but $tools_missing_deps is empty. Something
+		# is fatally wrong.
+		echo "dpkg-checkbuilddeps: FATAL: Failed to check dependencies from tools_root DB"
+		exit 1
+	fi
+}
+
+function check_target_builddeps()
+{
+	ret=0
+	verbose_message "SB2 Checking target build deps..."
+	missing_dep_file=`mktemp -p $SBOX_SESSION_DIR/tmp missing_deps.XXXXXXXXXX`
+
+	# dpkg-checkbuilddeps with another package db..
+	# a special rule in the tools mode is needed because the
+	# version which is available in /usr/bin may not know about the
+	# --admindir option. Can't use a pipeline here, we want to the
+	# dpkg-checkbuilddeps' return status.
+	SBOX_TOOLS_MODE_VAR_LIB_DPKG_STATUS_LOCATION=$TARGET_DPKG_ADMINDIR_USABLE_PKGS/status \
+		run_in_tools_mode /usr/bin/dpkg-checkbuilddeps \
+			$args > $missing_dep_file 2>&1
+	if [ $tools_mode_tool_stat == 0 ]; then
+		# real dpkg-checkbuilddeps says "all ok"
+		rm $missing_dep_file
+		return 0
+	fi
+
+	# else real dpkg-checkbuilddeps failed.
+	if [ -n "$SBOX_CHECKBUILDDEPS_VERBOSE" ]; then
+		sed -e 's/^/     /' < $missing_dep_file
+	fi
+	missing_deps=$(egrep \
+		"^dpkg-checkbuilddeps: Unmet build dependencies:" \
+			$missing_dep_file | \
+		sed 's/dpkg-checkbuilddeps: Unmet build dependencies: //')
+	rm $missing_dep_file
+
+	if [ -n "$missing_deps" ]; then
+		# failing target deps, and missing packages are listed
+		# in $missing_deps = continue by checking if those are
+		# available on the host environment
+		return 1
+	else
+		# failing target deps, but $missing_deps is empty. Something
+		# is fatally wrong.
+		echo "dpkg-checkbuilddeps: FATAL: Failed to check dependencies from target_root DB"
+		exit 1
+	fi
+}
+
+function compare_target_and_host_results_with_new_tool() 
+{
+	t_missing=$missing_deps
+	h_missing=$tools_missing_deps
+
+	both_required=`cat $TARGET_DPKG_ADMINDIR_USABLE_PKGS/both-required`
+	host_accepted=`grep -v "#" $cfgfile_host_accepted_pkgs`
+
+	host_ignored=""
+	if [ -f $cfgfile_host_ignored_pkgs ]
+	then
+		# ignorelist exists
+		host_ignored=`grep -v "#" $cfgfile_host_ignored_pkgs`
+	fi
+
+	verbose_message "SB2 Combining results from target and tools..."
+
+	SBOX_TARGET=$sbox_target \
+		$sbox_dir/share/scratchbox2/lib/sb2-cmp-checkbuilddeps-output.pl \
+		"$t_missing" "$h_missing" "$both_required" "$host_accepted" "$host_ignored"
+	result2=$?
+	return $result2
+	#### if [ $? = 0 ]; then
+	####	result2="ok"
+	####else
+	####	result2="fail"
+	####fi
+}
+
+# First, make sure we are in a correct directory:
+if [ ! -f debian/control ]
+then
+	echo "dpkg-checkbuilddeps: failure: cannot read debian/control: No such file or directory" 1>&2
+	exit 1
+fi
+
+# Next, check that the list of usable packages exists and is up-to-date.
+# That list is really a temporary package database, which contains only
+# packages that are usable thru this mapping mode.
+sb2-check-pkg-mappings -u
+
+check_target_builddeps
+check_target_builddeps_result=$?
+missing_deps_after_target_check="$missing_deps"
+
+function old_deps_checker()
+{
+	if [ $check_target_builddeps_result == 0 ]; then
+		# nothing is missing = nothing needed from the host side
+		verbose_message "OLD_CHK: Target rootstrap => all dependencies OK"
+		return 0
+	fi
+
+	verbose_message "OLD_CHK: Build dependencies missing from the target environment:"
+	verbose_message "OLD_CHK:      $missing_deps"
+
+	# Something is missing. Check if SB2 can fulfill the requirements:
+	check_sb2_builddeps "$missing_deps" "OLD_CHK: "
+	if [ $? == 0 ]; then
+		# OK now, nothing needed from the host side
+		verbose_message "OLD_CHK: SB2 tools check => all dependencies OK"
+		return 0
+	fi
+
+	# Something is missing. To be able to get the missing packages from the
+	# host environment, at least the list of allowed packages is needed:
+	#
+	if [ ! -f $cfgfile_host_accepted_pkgs ]
+	then
+		verbose_message "OLD_CHK:"
+		verbose_message "OLD_CHK: Configuration file $cfgfile_host_accepted_pkgs"
+		verbose_message "OLD_CHK: does not exist. This means that no packages have been approved to be used"
+		verbose_message "OLD_CHK: from the host environment in this mapping mode ($sbox_mapmode)."
+		return 1
+	fi
+
+	check_host_builddeps "$missing_deps" "OLD_CHK: "
+	if [ $? != 0 ]; then
+		verbose_message "OLD_CHK: Failed. Host environment did not meet all requirements."
+		return 1
+	fi
+
+	# since we're here, everything is more or less ok
+	verbose_message "OLD_CHK: All OK."
+	return 0
+}
+
+function new_deps_checker()
+{
+	check_host_builddeps_by_real_tool
+	# $tools_missing_deps now contains a list of missing
+	# packages, liste by the real dpkg-checkbuilddeps
+
+	compare_target_and_host_results_with_new_tool
+	new_deps_checker_result=$?
+}
+
+function deps_check_failed_exit_1()
+{
+	verbose_message "Failed."
+	if [ -z "$SBOX_CHECKBUILDDEPS_VERBOSE" ]; then
+		echo "dpkg-checkbuilddeps: (Set env.var. SBOX_CHECKBUILDDEPS_VERBOSE='y' and run this command again to get more details)" 1>&2
+	fi
+	exit 1
+}
+
+if [ -n "$SBOX_DOUBLECHECK_DEPS" ]; then
+	old_deps_checker
+	old_deps_checker_result=$?
+fi
+
+missing_deps="$missing_deps_after_target_check"
+new_deps_checker
+
+if [ -n "$SBOX_DOUBLECHECK_DEPS" ]; then
+	if [ "$new_deps_checker_result" != "$old_deps_checker_result" ]; then
+		verbose_message "INCONSISTENT: new and old methods do not agree:"
+		if [ "$new_deps_checker_result" = 0 ]; then
+			verbose_message "            : new => dependency checks OK"
+		else
+			verbose_message "            : new => dependency checks FAILED"
+		fi
+		if [ "$old_deps_checker_result" = 0 ]; then
+			verbose_message "            : old => dependency checks OK"
+		else
+			verbose_message "            : old => dependency checks FAILED"
+		fi
+		deps_check_failed_exit_1
+	fi
+fi
+
+if [ "$new_deps_checker_result" != "0" ]; then
+	deps_check_failed_exit_1
+fi
+
+# since we're here, everything is more or less ok
+echo "All OK."
+exit 0
+

@@ -1,0 +1,84 @@
+#!/bin/bash
+# sb2-build-libtool - Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
+# Licensed under GPL version 2
+
+prog="$0"
+progbase=`basename $0`
+
+# test that we're inside sb2
+function error_not_inside_sb2()
+{
+	echo "Please run this script inside sb2, like this:
+$ sb2 $0"
+	exit 1
+}
+
+if [ -z "$SBOX_SESSION_DIR" ]; then
+	error_not_inside_sb2
+fi
+
+. $SBOX_SESSION_DIR/sb2-session.conf
+
+TARGET="$sbox_target"
+
+set -e
+
+NAME=libtool
+VERSION=1.5.26
+
+DLHOST="http://ftp.funet.fi/pub/mirrors/ftp.gnu.org/pub/gnu/libtool"
+SOURCEFILE=$NAME-$VERSION.tar.gz
+LOCAL_SOURCEFILE=$HOME/.scratchbox2/$SOURCEFILE
+COMPILERDIR=
+WORKDIR=$HOME/.scratchbox2/libtool_build
+rm -rf $WORKDIR
+mkdir -p $WORKDIR
+cd $WORKDIR
+
+# $LOCAL_SOURCEFILE must exist and have size greater than zero
+# (a failed or interrupted wget might create a zero-sized file)
+if [ ! -s $LOCAL_SOURCEFILE ]; then
+	wget $DLHOST/$SOURCEFILE -O $LOCAL_SOURCEFILE
+fi
+
+tar zxf $LOCAL_SOURCEFILE --strip-components=1
+
+
+./configure --prefix=$HOME/.scratchbox2/$TARGET --build=$(uname -m)-unknown-linux-gnu
+
+# The system libtool script in Debian must be able to support
+# invoking gcc as cc (Debian specific)
+echo '# ### BEGIN LIBTOOL TAG CONFIG: BINCC' >> libtool
+sed -n -e '/^# ### BEGIN LIBTOOL CONFIG/,/^# ### END LIBTOOL CONFIG/p' < libtool \
+	| grep -B 2 -A 1 -e '^LTCC=' -e '^CC=' \
+	| sed -e 's/gcc/cc/g' >> libtool
+echo '# ### END LIBTOOL TAG CONFIG: BINCC' >> libtool
+echo >> libtool
+
+# The system libtool script in Debian must be able to support
+# invoking g++ both by the g++ and c++ names. (Debian specific)
+sed -n -e '/^# ### BEGIN LIBTOOL TAG CONFIG: CXX$$/,/^# ### END LIBTOOL TAG CONFIG: CXX$$/p' < libtool \
+	| sed -e 's/CONFIG: CXX/CONFIG: BINCXX/g' \
+		-e 's/g++/c++/g' >> libtool
+echo >> libtool
+
+# Add our BINCC and BINCXX tags (Debian specific)
+sed -e 's/^\(available_tags\)=\"\(.*\)\"/\1=\"\2 BINCC BINCXX\"/' \
+	< libtool > libtool.tags
+mv libtool.tags libtool
+
+# Make libtool executable again
+chmod 755 libtool
+
+
+make
+# create these directories to work around ppc host issues
+mkdir -p $HOME/.scratchbox2/$TARGET/share/aclocal
+mkdir -p $HOME/.scratchbox2/$TARGET/share/libtool/libltdl
+mkdir -p $HOME/.scratchbox2/$TARGET/lib
+mkdir -p $HOME/.scratchbox2/$TARGET/include
+make install
+cd ..
+# cleanup
+rm -rf $WORKDIR
+

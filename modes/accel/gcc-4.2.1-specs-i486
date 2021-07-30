@@ -1,0 +1,24 @@
+
+*cross_compile:
+0
+
+%rename cpp old_cpp
+
+*cpp:
+-isystem /usr/local/include -isystem /usr/include %(old_cpp)
+
+%rename cc1 old_cc1
+
+*cc1:
+-fno-omit-frame-pointer -fno-optimize-sibling-calls %(old_cc1)
+
+%rename cc1plus old_cc1plus
+
+*cc1plus:
+-fno-omit-frame-pointer -fno-optimize-sibling-calls %(old_cc1plus)
+
+%rename link old_link
+
+*link:
+-O 1 --hash-style=gnu %(old_link)
+

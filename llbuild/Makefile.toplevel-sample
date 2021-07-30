@@ -1,0 +1,48 @@
+# mandatory llbuild variables
+
+export TOPDIR LLBUILD MAKEFILES
+
+# user customizable variables
+
+CC = gcc
+LD = ld
+CFLAGS = -Wall -W -I$(TOPDIR)/include -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
+CONFIGURE_ARGS = --prefix=/usr/local
+
+export CC CFLAGS LD
+
+# subdirs must be specified before including llbuild/Makefile.include
+subdirs = a b c d
+# targets will accumulate a list of all targets to be made
+targets = sample
+
+include llbuild/Makefile.include
+
+
+all: $(targets)
+
+include/config.h: configure
+	./configure $(CONFIGURE_ARGS)
+
+configure: configure.ac
+	./autogen.sh
+
+install: build
+	install -d -m 755 $(prefix)/bin
+	install -c -m 755 sample $(prefix)/bin/
+
+# specify a dynamic linked binary target "sample", its pre-requisites come from
+# subdir makefiles
+sample: include/config.h
+	$(llbuild_link_shbin)
+sample: CFLAGS := $(CFLAGS) -Wall -W -I$(TOPDIR)/lua/lua-5.1.1/src
+sample: LDFLAGS := $(LDFLAGS)
+sample: LIBS := -ldl -lm -lpthread -lrt
+
+CLEAN_FILES = $(targets)
+
+clean:
+	$(ll_clean)
+
+
+

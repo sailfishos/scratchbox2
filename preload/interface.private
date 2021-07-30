@@ -1,0 +1,37 @@
+-- SB2 preload library: interface to external functions
+-- ====================================================
+--
+-- This file defines symbols that are called from the SB2 preload
+-- library, but not exported to the application. The idea is not
+-- to change the functionality of these functions, but instead
+-- this interface specification tries to protect against 
+-- side-effects that are caused by name space pollution:
+--
+-- Wrappers are used for these functions, so that the functions
+-- can be guaranteed to be called from lower-level libraries
+-- (=glibc) and not from the application. Some application
+-- binaries introduce functions with identical names 
+-- (which is a very bad practise, but at least "bash"
+-- has done so: it has private versions of getenv(),
+-- unsetenv(), etc...use "nm" to find out the ugly details)
+--
+-- Syntax of this file is explained in "gen-interface.pl".
+--
+-- Copyright (C) 2009 Nokia Corporation.
+-- Author: Lauri T. Aarnio
+
+LOGLEVEL: SB_LOGLEVEL_NOISE
+
+-- Environment management.
+-- These are used during library initialization => MUST be marked
+-- with "no_libsb2_init_check" to avoid infinite recursion.
+WRAP: char *getenv(const char *varname) : \
+	log_params(SB_LOGLEVEL_DEBUG,"%s(%s)",__func__,varname) \
+	no_libsb2_init_check returns_string
+WRAP: int unsetenv(const char *varname) : \
+	log_params(SB_LOGLEVEL_DEBUG,"%s(%s)",__func__,varname) \
+	no_libsb2_init_check
+WRAP: int setenv(const char *varname, const char *value, int overwrite_flag) : \
+	log_params(SB_LOGLEVEL_DEBUG,"%s(%s)",__func__,varname) \
+	no_libsb2_init_check
+

@@ -1,0 +1,1349 @@
+#!/usr/bin/perl
+#
+# SB2 Log Analyzer.
+# Reads a logfile from stdin, collects data and then writes a summary to
+# stdout. Additionally, various details can be requested by command line
+# options (see descriptions below).
+#
+# Copyright (c) 2007 Nokia Corporation. All rights reserved.
+# Author: Lauri T. Aarnio
+# Licensed under LGPL version 2.1, see top level LICENSE file for details.
+
+use strict;
+use Data::Dumper;
+use Getopt::Std;
+
+sub usage {
+	print	"Usage:\n".
+		"\tsb2-logz [options]\n".
+		"\t(stdin should be a logfile produced by the sb2 command,\n".
+		"\tsee options '-d' and '-L level' of sb2)\n".
+		"Options:\n".
+		"\t-b\tno blacklist: do not ignore log lines from __xstat etc\n".
+		"\t-B fn1,fn2,..\tblacklist funcions fn1,..: ignore log specific lines\n".
+		"\t-d level\tdebug mode, for debugging the script itself.\n".
+		"\t-h\tdisplay this help text\n".
+		"\t-i\tprint details about 'disabled' pathnames\n".
+		"\t\t(unmodifed paths, because mapping was disabled)\n".
+		"\t-l\tprint long details (affect output of -i,-m,-r,-p etc)\n".
+		"\t-m\tprint details about mapped pathnames (src->dest)\n".
+		"\t-N\tprint all 'notice' messages\n".
+		"\t-p\tprint details about passed pathnames\n".
+		"\t\t('passed' path = not mapped)\n".
+		"\t-r\tprint reversed mappings (dest->src)\n".
+		"\t-s\tprint process statistics\n".
+		"\t-v\tverbose mode, prints dots while reading input etc.\n".
+		"\t-P file.dot\twrite process diagram to file.dot (postprocess\n".
+		"\t\t\t it with 'dot', e.g. 'dot -Tpdf file.dot >file.pdf'\n".
+		"\t-E file.dot\twrite execution diagram to file.dot (postprocess\n".
+		"\t\t\t it with 'dot', e.g. 'dot -Tpdf file.dot >file.pdf'\n".
+		"\t-A acct-file\tRead process accounting information from acct-file\n".
+		"\t\t\t (enhances output of -P and -E)'\n".
+		"";
+}
+
+#============================================
+#
+# Options:
+#
+our($opt_d,$opt_v,$opt_m,$opt_p,$opt_l,$opt_b,$opt_B,$opt_r,
+    $opt_s,$opt_i,$opt_h,$opt_N,$opt_P,$opt_E,$opt_A);
+if (!getopts("A:bB:d:hilmNprsvP:E:")) {
+	usage();
+	exit(1);
+}
+if($opt_h) {
+	usage();
+	exit(0);
+}
+
+my $debug = $opt_d;
+my $verbose = $opt_v;
+my $print_mapped_paths = $opt_m;
+my $print_revmap_paths = $opt_r;
+my $print_passed_paths = $opt_p;
+my $print_disabled_passed_paths = $opt_i;
+my $print_full_details = $opt_l;
+my $no_blacklist = $opt_b;
+my $user_blacklist = $opt_B;
+my $print_process_statistics = $opt_s;
+my $print_notices = $opt_N;
+my $process_diagram_file = $opt_P;
+my $exec_diagram_file = $opt_E;
+my $acct_file = $opt_A;
+
+#============================================
+# 
+# Initializations
+
+local $|;
+if($verbose) {
+	$| = 1;	# enable autoflush
+}
+
+# list of functions that should be ignored unless -b is specified:
+my %blacklisted_functions = (
+	'__xstat' => 1,
+	'__xstat64' => 1,
+	'__lxstat' => 1,
+	'__lxstat64' => 1,
+);
+
+if($no_blacklist) {
+	%blacklisted_functions = ();
+}
+if($user_blacklist) {
+	my $b;
+	foreach $b (split(',',$user_blacklist)) {
+		$blacklisted_functions{$b} = 1;
+	}
+}
+
+#============================================
+# Global variables
+
+my %all_processes;	# Indexed by processname[pid]
+my @all_processes_array;
+my %all_processes_by_pid;	# Indexed by pid
+my %active_processes;	# Indexed by pid
+
+my %argv0_counters;	# Indexed by processname, counts processes with the
+			# same argv[0]
+
+my %mapped_src_paths;	# this will hold mapped pathnames, indexed by the source
+			# path (=the original, unmapped path that was provided 
+			# by the caller). here a "reference" is the destination.
+
+my %mapped_dest_paths;	# this will hold mapped pathnames, indexed by the 
+			# desitnation pathname (result of mapping). here the
+			# "reference" is the source path.
+
+my %passed_paths;	# and here we'll get all pathnames that were not
+			# mapped.
+
+my %disabled_passed_paths; # for all pathnames that were not
+			# mapped because mapping was disabled.
+
+my %all_script_interpreters; # script interpreters, contains scripts and number of
+			# times those were executed
+
+my %all_exec_policies;	# indexed by exec policy name
+
+my $sbox_target_root = undef;
+my $sbox_tools_root = undef;
+my $sbox_mapmode = "UNKNOWN";
+
+my @errors;		# collect error messages to this array..
+my @warnings;		# ..and warnings here
+my @notices;		# ..and notices here
+
+#####my %failed_process;	# processes with non-zero exit status
+
+my $first_process = undef;
+
+my @i_pid;
+
+my %programs;
+
+#============================================
+
+# path_accessed() is the place that registers path objects to the
+# path data hashes (the four global .._paths hashes above)
+sub path_accessed {
+	my $r_pathhash = shift;
+	my $fn_name = shift;
+	my $procname = shift;
+	my $pathname = shift;
+	my $reference = shift;
+
+	my $r_path;
+
+	if(defined $sbox_target_root) {
+		# tentatively substitute target root path..
+		$pathname =~ s/^$sbox_target_root/<TARGET_ROOT>/;
+	}
+	if(defined $sbox_tools_root) {
+		# tentatively substitute...
+		$pathname =~ s/^$sbox_tools_root/<TOOLS_ROOT>/;
+	}
+
+	if(!defined($r_pathhash->{$pathname})) {
+		$r_path = $r_pathhash->{$pathname} = {
+			'count' => 1,
+			'procs' => {
+				$procname => 1,
+			},
+			'fn_names' => {
+				$fn_name => 1,
+			},
+			'refs' => { },
+		};
+	} else {
+		$r_path = $r_pathhash->{$pathname};
+		$r_path->{'count'}++;
+		$r_path->{'procs'}->{$procname} = 1;
+		$r_path->{'fn_names'}->{$fn_name} = 1;
+	}
+	if(defined $reference) {
+		$r_path->{'refs'}->{$reference} = 1;
+	}
+
+	return($r_path);
+}
+
+# print references and refering function names
+sub print_details {
+	my	$r_path = shift;
+	my	$arrow = shift;
+
+	my $r_refs = $r_path->{'refs'};
+	my @all_refs = sort(keys(%{$r_refs}));
+	my $r;
+	foreach $r (@all_refs) {
+		printf "    %2s\t%s\n", $arrow, $r;
+	}
+	my $r_fn_names = $r_path->{'fn_names'};
+	my @all_fn_names = sort(keys(%{$r_fn_names}));
+	print "\t[".join(',',@all_fn_names)."]\n";
+
+	my $r_procs = $r_path->{'procs'};
+	my @all_procs = sort(keys(%{$r_procs}));
+	print "\t[".join(',',@all_procs)."]\n";
+}
+
+sub check_multiple_refs {
+	my $r_pathnames_array = shift;
+	my $r_paths_data = shift;
+	my $name_txt = shift;
+	my $ref_txt = shift;
+	my $arrow = shift;
+
+	my @paths_with_multiple_refs;
+	my $p;
+	foreach $p (@{$r_pathnames_array}) {
+		my @refs = keys(%{$r_paths_data->{$p}->{'refs'}});
+		if(@refs > 1) {
+			push(@paths_with_multiple_refs, $p);
+		}
+	}
+	if(@paths_with_multiple_refs > 0) {
+		print "\nNOTICE: ".
+			"Following $name_txt have been mapped $ref_txt:\n";
+		foreach $p (@paths_with_multiple_refs) {
+			print "\t$p\n";
+			if($print_full_details) {
+				print_details($r_paths_data->{$p}, $arrow);
+				print "\n";
+			}
+		}
+	}
+}
+
+sub print_all_paths {
+	my $r_pathnames_array = shift;
+	my $r_paths_data = shift;
+	my $name_txt = shift;
+	my $arrow = shift;
+
+	print "\n$name_txt (#used, pathname):\n";
+	my $p;
+	foreach $p (@{$r_pathnames_array}) {
+		my $count = $r_paths_data->{$p}->{'count'};
+		if($debug) {
+			$Data::Dumper::Indent = 1;
+			print Dumper($r_paths_data->{$p});
+		}
+		printf "%d\t%s\n", $count, $p;
+
+		if($print_full_details) {
+			print_details($r_paths_data->{$p}, $arrow);
+			print "\n";
+		}
+	}
+}
+
+# returns (name,pid,tid)
+sub split_name_and_pid {
+	my $process_name_and_pid = shift;
+	
+	my $procname = $process_name_and_pid;
+	my $pid = undef;
+	my $tid = 0;
+	if($process_name_and_pid =~ m/^(.*)\[([0-9]+)\]$/) {
+		$procname = $1;
+		$pid = $2;
+	} elsif($process_name_and_pid =~ m/^(.*)\[([0-9]+)\/([0-9]+)\]$/) {
+		$procname = $1;
+		$pid = $2;
+		$tid = $3;
+	}
+	return($procname,$pid,$tid);
+}
+
+# Returns a reference to the script interpreter structure
+sub add_script_interpreter {
+	my $exec_policy_name = shift;
+	my $script_interpreter = shift;
+	my $script_name = shift;
+
+	my $interp_id = "$exec_policy_name\t$script_interpreter";
+	my $r_si = $all_script_interpreters{$interp_id};
+
+	if (!defined($r_si)) {
+		$r_si = {
+			'exec_policy_name' => $exec_policy_name,
+			'script_interpreter_name' => $script_interpreter,
+			'scripts' => { $script_name => 1 },
+			'time_elapsed' => 0,
+			'time_user' => 0,
+			'time_sys' => 0,
+		};
+		$all_script_interpreters{$interp_id} = $r_si;
+	} else {
+		# Interpreter was known, add info about the script
+		my $r_scripts = $r_si->{'scripts'};
+		if (defined($r_scripts->{$script_name})) {
+			$r_scripts->{$script_name} =
+				$r_scripts->{$script_name} + 1;
+		} else {
+			$r_scripts->{$script_name} = 1;
+		}
+	}
+	return $r_si;
+}
+
+my $program_num = 0;
+
+sub process_started {
+	my $process_name_and_pid = shift;
+	my $timestamp = shift;
+	my $version = shift;
+	my $build_time = shift;
+	my $ppid = shift;
+	my $exec_binary_name = shift;
+	my $exec_policy_name = shift;
+
+	my $procname;
+	my $pid;
+	my $tid;
+	($procname,$pid,$tid) = split_name_and_pid($process_name_and_pid);
+
+	if(!defined $first_process) {
+		# the very first real process is still unknown..
+		if($procname =~ m/^sb2:[A-Z][a-zA-Z0-9]*$/) {
+			# This is one of sb2's internal, initialization-phase
+			# processes. Forget it.
+			return;
+		}
+		# If the name is *sh, and exec policy is empty,
+		# it is the "trampoline" shell started in the
+		# beginning => forget it.
+		if(($procname =~ m/sh$/) && $exec_policy_name eq "") {
+			return;
+		}
+	}
+
+	my $script_name = undef;
+	my $script_interpreter = undef;
+	my $r_script_interpreter = undef;
+
+	# name{interp} => it is a script.
+	if($procname =~ m/^(.*){(.*)}$/) {
+		$script_name = $1;
+		$script_interpreter = $2;
+		$r_script_interpreter = add_script_interpreter($exec_policy_name,
+			$script_interpreter, $script_name);
+	}
+
+	if ($exec_policy_name eq "") {
+		$exec_policy_name = "Unknown_Exec_Policy";
+	}
+	my $r_ep = $all_exec_policies{$exec_policy_name};
+	if (!defined($r_ep)) {
+		$r_ep = {
+			'time_elapsed' => 0,
+			'time_user' => 0,
+			'time_sys' => 0,
+			'instances' => 1,
+		};
+		$all_exec_policies{$exec_policy_name} = $r_ep;
+	} else {
+		$r_ep->{'instances'} += 1;
+	}
+
+	my $program_id = "$exec_policy_name\t$exec_binary_name";
+	my $r_prog = undef;
+	if($program_id ne "\t") {
+		$r_prog = $programs{$program_id};
+		if(!defined($r_prog)) {
+			# Something new..
+			$r_prog = {
+				'label' => "P$program_num",
+				'exec_policy' => $exec_policy_name,
+				'r_exec_policy' => $r_ep,
+				'exec_binary' => $exec_binary_name,
+				'script_name' => $script_name,
+				'script_interpreter' => $script_interpreter,
+				'r_script_interpreter' => $r_script_interpreter,
+				'executed' => {},
+				'instances' => 1,
+
+				'time_elapsed' => 0,
+				'time_user' => 0,
+				'time_sys' => 0,
+			};
+			$program_num++;
+			$programs{$program_id} = $r_prog;
+		} else {
+			$r_prog->{'instances'} += 1;
+		}
+	}
+
+	if(defined($pid)) {
+		my $r_proc = $active_processes{$pid};
+		my $r_parent = undef;
+
+		if(!defined($r_proc)) {
+			# found a new active process.
+			$r_proc = $active_processes{$pid} = {
+				'label' => "L".$pid,
+				'program_id' => $program_id,
+				'program_ref' => $r_prog,
+				'pid' => $pid,
+				'ppid' => $ppid,
+				'name' => $procname,
+				'exec_policy' => $exec_policy_name,
+				'exec_binary' => $exec_binary_name,
+				'parent' => undef,
+				'children' => [],
+				'adopted_children' => [],
+				'prev_names' => [],
+				'prev_exec_policies' => [],
+				'start_times' => [$timestamp],
+				'exit_status' => undef,
+
+				'time_elapsed' => undef,
+				'time_user' => undef,
+				'time_sys' => undef,
+			};
+			$r_parent = $all_processes_by_pid{$ppid};
+			if (defined($r_parent)) {
+				$r_proc->{'parent'} = $r_parent;
+				push(@{$r_parent->{'children'}},$r_proc);
+			} else {
+				# Oops. Unknown parent. Try if the i_pid
+				# translation helps:
+				$r_parent = $all_processes_by_pid{$i_pid[$pid]};
+				if (defined $r_parent) {
+					# found a grandparent.
+					$r_proc->{'parent'} = $r_parent;
+					push(@{$r_parent->{'adopted_children'}},$r_proc);
+				}
+			}
+			push(@all_processes_array, $r_proc);
+			# if pid is reused, $all_processes_by_pid{$pid}
+			# will be overwritten.
+			$all_processes_by_pid{$pid} = $r_proc;
+
+			if(!defined $first_process) {
+				$first_process = $r_proc;
+			}
+		} else {
+			# An old pid; probably the process exec'd 
+			# another executable.
+
+			#FIXME: check ppid
+			#FIXME: Write previous names.
+			push(@{$r_proc->{'prev_names'}}, $r_proc->{'name'});
+			push(@{$r_proc->{'prev_exec_policies'}}, $r_proc->{'exec_policy'});
+			push(@{$r_proc->{'start_times'}}, $timestamp);
+			$r_proc->{'name'} = $procname;
+			$r_proc->{'exec_policy'} = $exec_policy_name;
+			$r_parent = $r_proc->{'parent'};
+
+			if($r_proc->{'program_id'} eq "\t") {
+				# the very first shell process, we'll have
+				# to fix this..
+				$r_proc->{'program_ref'} = $r_prog;
+				$r_proc->{'program_id'} = $program_id;
+			}
+		}
+		if (defined($r_parent)) {
+			my $parent_prog = $r_parent->{'program_ref'};
+			my $ep = $parent_prog->{'executed'};
+			$ep->{$program_id} = 1;
+		}
+	}
+
+# FIXME: OLD CODE:
+	if(defined($all_processes{$process_name_and_pid})) {
+		# just increment number of lines from that process
+		$all_processes{$process_name_and_pid}++;
+	} else {
+		# found a new process!
+		# first set number of log lines from that process to 1:
+		$all_processes{$process_name_and_pid} = 1;
+		# and next count that there was yet another instance
+		# of $procname:
+		$argv0_counters{$procname}++;
+	}
+}
+
+sub process_exited {
+	my $pid = shift;
+	my $process_exit_status = shift;
+
+#####	if($process_exit_status != 0) {
+#####		$failed_process{$process_name_and_pid} = $process_exit_status;
+#####	}
+#####print "EXIT: $pid $process_exit_status\n";
+	if(defined($pid)) {
+		my $r_proc = $active_processes{$pid};
+		if(defined $r_proc) {
+			$r_proc->{'exit_status'} = $process_exit_status;
+			delete($active_processes{$pid});
+		}
+	}
+}
+
+my $max_elapsed = 0;
+my $total_user = 0;
+my $total_sys = 0;
+
+sub acct_data_comp_t_type_to_number {
+	my $c = shift;
+
+	# From the manual page: "the comp_t data type is a floating-point
+	# value consisting of a 3-bit, base-8 exponent,  and  a  13-bit
+	# mantissa.  A value, c, of this type can be converted to a 
+	# (long) integer as follows:"
+	#	 v = (c & 0x1fff) << (((c >> 13) & 0x7) * 3);
+
+	my $v = ($c & 0x1fff) << ((($c >> 13) & 0x7) * 3);
+	return($v);
+}
+
+sub read_acct_file {
+	return if(!defined $acct_file);
+
+	open(ACCTFILE, "<$acct_file") || die "Failed to open $acct_file\n";
+
+	my $ticks = `getconf CLK_TCK`;
+	if ($ticks < 1) {
+		$ticks = 1;
+	}
+
+	while(!eof(ACCTFILE)) {
+		my $buffer;
+
+		read(ACCTFILE, $buffer, 64);
+
+		my @acctdata = unpack("CCSIIIIIIfSSSSSSSSA16", $buffer);
+		if ($acctdata[1] != 3) {
+			die "acct record version != 3";
+		}
+
+		my $a_pid = $acctdata[6];
+		my $a_ppid = $acctdata[7];
+
+		my $r_proc = $all_processes_by_pid{$a_pid};
+		if (defined($r_proc) && ($r_proc->{'ppid'} == $a_ppid)) {
+			my $a_comm = $acctdata[18];
+			my $ac_utime = acct_data_comp_t_type_to_number($acctdata[10]);
+			my $ac_stime = acct_data_comp_t_type_to_number($acctdata[11]);
+		
+			if($debug > 1) {
+				printf "Found process $a_pid: etime=%f utime=%d stime=%d comm='%s'\n",
+					$acctdata[9],$ac_utime,$ac_stime,$a_comm;
+			}
+			my $time_elapsed = $acctdata[9] / $ticks;
+			my $time_user = $ac_utime / $ticks;
+			my $time_sys = $ac_stime / $ticks;
+
+			$r_proc->{'time_elapsed'} = $time_elapsed;
+			$r_proc->{'time_user'} = $time_user;
+			$r_proc->{'time_sys'} = $time_sys;
+
+			my $r_prog = $r_proc->{'program_ref'};
+			$r_prog->{'time_elapsed'} += $time_elapsed;
+			$r_prog->{'time_user'} += $time_user;
+			$r_prog->{'time_sys'} += $time_sys;
+
+			my $r_ep = $r_prog->{'r_exec_policy'};
+			if (defined($r_ep)) {
+				$r_ep->{'time_elapsed'} += $time_elapsed;
+				$r_ep->{'time_user'} += $time_user;
+				$r_ep->{'time_sys'} += $time_sys;
+			}
+
+			my $r_si = $r_prog->{'r_script_interpreter'};
+			if (defined($r_si)) {
+				$r_si->{'time_elapsed'} += $time_elapsed;
+				$r_si->{'time_user'} += $time_user;
+				$r_si->{'time_sys'} += $time_sys;
+			}
+
+			if ($max_elapsed < $time_elapsed) {
+				$max_elapsed = $time_elapsed;
+			}
+			$total_user += $time_user;
+			$total_sys += $time_sys;
+		}
+	}
+	close ACCTFILE;
+}
+
+# summary in the dot-files:
+my $summary_table_begin = " [shape=octagon,margin=0,".
+	"label=<<table border=\"0\" cellborder=\"0\"".
+	" cellspacing=\"0\">\n";
+my $summary_table_end = "</table>>];\n";
+
+# process/program element in the dot-files:
+my $pr_element_table_begin = " [shape=none,margin=0,".
+	"label=<<table border=\"0\" cellborder=\"1\"".
+	" cellspacing=\"0\">\n";
+my $pr_element_table_end = "</table>>];\n";
+
+sub select_exec_policy_colors {
+	my $exec_policy = shift;
+
+	my $ep_color_begin = "";
+	my $ep_color_end = "";
+
+	if ($exec_policy =~ m/^Target/) {
+		$ep_color_begin = "<font color=\"darkgreen\">";
+		$ep_color_end = "</font>";
+	} elsif($exec_policy =~ m/^Host/) {
+		$ep_color_begin = "<font color=\"coral3\">";
+		$ep_color_end = "</font>";
+	} elsif($exec_policy =~ m/^Toolchain/) {
+		$ep_color_begin = "<font color=\"blueviolet\">";
+		$ep_color_end = "</font>";
+	} elsif($exec_policy =~ m/^Tools/) {
+		$ep_color_begin = "<font color=\"blue\">";
+		$ep_color_end = "</font>";
+	}
+	return($ep_color_begin,$ep_color_end);
+}
+
+sub write_process_data {
+	my $rp = shift;
+
+	my $label = $rp->{'label'};
+	my $ep_color_begin;
+	my $ep_color_end;
+	($ep_color_begin,$ep_color_end) =
+		 select_exec_policy_colors($rp->{'exec_policy'});
+
+	my $exit_status = $rp->{'exit_status'};
+	my $exit_text = undef;
+	my $exit_color_begin;
+	my $exit_color_end;
+	if(defined $exit_status) {
+		if($exit_status eq '0') {
+			# normal exit.
+		} elsif($exit_status =~ m/^\d+$/) {
+			# numeric
+			$exit_text .= " exit($exit_status)";
+			$exit_color_begin = "<font color=\"red\">";
+			$exit_color_end = "</font>";
+		} else {
+			$exit_text .= " $exit_status";
+			$exit_color_begin = "<font color=\"red\">";
+			$exit_color_end = "</font>";
+		}
+	} else {
+		$exit_text .= " NO EXIT STATUS";
+		$exit_color_begin = "<font color=\"red\">";
+		$exit_color_end = "</font>";
+	}
+	my $r_prev_names = $rp->{'prev_names'};
+	my $pnames = join('<br/>', @{$r_prev_names});
+	my $pexecpols = "";
+	if ($pnames ne '') {
+		$pnames .= '<br/>';
+		my $r_pep = $rp->{'prev_exec_policies'};
+		$pexecpols = join('<br/>', @{$r_pep}).'<br/>';
+		# (previous exec policies are not colored, only
+		# the final policy gets it)
+	}
+	print PDIAG "\t".$label." ".$pr_element_table_begin.
+		"<tr>".
+		   "<td colspan=\"2\"";
+	if (defined($rp->{'cell_color'})) {
+		printf PDIAG " bgcolor=\"%s\"", $rp->{'cell_color'};
+	}
+	printf PDIAG ">".
+		   $pnames.
+		   $rp->{'name'}.
+		   "</td>\n".
+		"</tr>\n".
+		"<tr>".
+		   "<td>pid=".$rp->{'pid'}."</td>\n".
+		   "<td>$pexecpols$ep_color_begin".$rp->{'exec_policy'}."$ep_color_end</td>\n".
+		"</tr>\n";
+	if(defined($exit_text)) {
+		print PDIAG
+		"<tr>".
+		   "<td colspan=\"2\">$exit_color_begin".$exit_text."$exit_color_end</td>\n".
+		"</tr>\n";
+	}
+	if(defined($rp->{'time_elapsed'})) {
+		printf PDIAG
+		"<tr>".
+		   "<td colspan=\"2\">real = %5.2f".
+		      "<br/>user %5.2f + sys %5.2f = %5.2f</td>\n".
+		"</tr>\n",
+		   $rp->{'time_elapsed'},
+		   $rp->{'time_user'},
+		   $rp->{'time_sys'},
+		   $rp->{'time_user'} + $rp->{'time_sys'};
+	}
+	print PDIAG $pr_element_table_end;
+}
+
+my $toploadcolor = "red";
+my $highloadcolor = "sandybrown";
+my $mediumloadcolor = "wheat";
+
+sub write_process_diagram {
+	if(defined $acct_file) {
+		# Add color to the most time consuming processes:
+		# first sort them:
+		my @processes_sorted_by_time = sort {
+			my $t_a = $a->{'time_user'} + $a->{'time_sys'};
+			my $t_b = $b->{'time_user'} + $b->{'time_sys'};
+			$t_b <=> $t_a; # biggest time first in the results
+		} @all_processes_array;
+
+		my $num_processes = @processes_sorted_by_time;
+		my $top_load_limit = 3;
+		my $high_load_limit = 15;
+		my $medium_load_limit = 30;
+		my $print_limit = $num_processes < $medium_load_limit ?
+			 $num_processes : $medium_load_limit;
+
+		# add color attributes:
+		my $i;
+		for ($i=0; $i < $print_limit; $i++) {
+			my $rp = $processes_sorted_by_time[$i];
+			if($debug) {
+				printf "PID=%d u=%5.2f s=%5.2f\n", 
+					$rp->{'pid'}, $rp->{'time_user'}, $rp->{'time_sys'};
+			}
+			if ($i <= $top_load_limit) {
+				$rp->{'cell_color'} = $toploadcolor;
+			} elsif ($i <= $high_load_limit) {
+				$rp->{'cell_color'} = $highloadcolor;
+			} elsif ($i <= $medium_load_limit) {
+				$rp->{'cell_color'} = $mediumloadcolor;
+			}
+			$rp->{'show_this'} = 1;
+
+			# make sure that parent and grandparents will be
+			# visible
+			my $r_parent = $rp->{'parent'};
+			while (defined($r_parent)) {
+				$r_parent->{'show_this'} = 1;
+				$r_parent = $r_parent->{'parent'};
+			}
+		}
+	}
+
+	open(PDIAG, ">$process_diagram_file");
+	print PDIAG "digraph processes {\n".
+		"\trankdir=LR;\n";
+	my $rp;
+	foreach $rp (@all_processes_array) {
+		if (!defined $acct_file || $rp->{'show_this'}) {
+			write_process_data($rp);
+
+			my $label = $rp->{'label'};
+			my $invisible_children = 0;
+			my $cp;
+			foreach $cp (@{$rp->{'children'}}) {
+				if (!defined $acct_file || $cp->{'show_this'}) {
+				
+					print PDIAG "\t".$label." -> ".$cp->{'label'}.";\n";
+				} else {
+					$invisible_children++;
+				}
+			}
+			foreach $cp (@{$rp->{'adopted_children'}}) {
+				if (!defined $acct_file || $cp->{'show_this'}) {
+					print PDIAG "\t".$label." -> ".$cp->{'label'}.
+						" [style=dashed];\n";
+				} else {
+					$invisible_children++;
+				}
+			}
+			if ($invisible_children > 0) {
+				print PDIAG "\t".$label." -> ".$label."ic;\n";
+				my $iclbl;
+				if ($invisible_children == 1) {
+					$iclbl = "one child process";
+				} else {
+					$iclbl = "$invisible_children child processes";
+				}
+				print PDIAG "\t".$label."ic [shape=ellipse,".
+					"label=\"$iclbl\"];\n";
+			}
+		}
+	}
+	print PDIAG "}\n";
+	close(PDIAG);
+}
+
+sub write_exec_diagram {
+	open(EDIAG, ">$exec_diagram_file");
+	printf EDIAG "digraph programs {\n".
+		"\trankdir=LR;\n";
+
+	# Exec policy stats
+	my $ep_name;
+	foreach $ep_name (sort(keys(%all_exec_policies))) {
+		my $r_ep = $all_exec_policies{$ep_name};
+			'time_elapsed' => 0,
+			'time_user' => 0,
+			'time_sys' => 0,
+
+		printf EDIAG "__exec_policy__$ep_name ".$summary_table_begin.
+				"<tr>".
+				   "<td>Exec policy $ep_name: n=%d</td>\n</tr>\n",
+				$r_ep->{'instances'};
+		if(defined $acct_file) {
+			my $tu = $r_ep->{'time_user'};
+			my $ts = $r_ep->{'time_sys'};
+
+			printf EDIAG
+			"<tr>".
+			   "<td>real = %5.2f".
+			      "<br/>user %5.2f + sys %5.2f<br/>\n".
+			      " = %5.2f (%2.2f%%)</td>\n".
+			"</tr>\n",
+			   $r_ep->{'time_elapsed'},
+			   $tu,
+			   $ts,
+			   $tu + $ts,
+			   (($tu + $ts) * 100) / ($total_user + $total_sys);
+		}
+		printf EDIAG $summary_table_end;
+	}
+
+	# Totals:
+	my $n_procs = @all_processes_array;
+	printf EDIAG
+		"summary ".$summary_table_begin.
+			"<tr>".
+			   "<td>Totals:<br/>%d programs<br/>\n".
+			   "%d processes\n",
+			$program_num, $n_procs;
+	if(defined $acct_file) {
+		printf EDIAG
+			"<br/>real = %5.2f".
+			"<br/>user = %5.2f<br/>sys = %5.2f\n".
+			"<br/>user + sys = %5.2f",
+			$max_elapsed,
+			$total_user, $total_sys,
+			$total_user + $total_sys;
+	}
+	printf EDIAG "</td>\n</tr>\n";
+	if(defined $acct_file) {
+		printf EDIAG
+			"<tr>\n".
+			  "<td bgcolor=\"$toploadcolor\">Load = top 3%</td>\n".
+			"</tr>\n".
+			"<tr>\n".
+			  "<td bgcolor=\"$highloadcolor\">Load = high (10%)</td>\n".
+			"</tr>\n".
+			"<tr>\n".
+			  "<td bgcolor=\"$mediumloadcolor\">Load = medium (20%)</td>\n".
+			"</tr>\n";
+	}
+	printf EDIAG $summary_table_end;
+
+	# Show script interpreter statistics
+	my $interp_id;
+	foreach $interp_id (sort(keys(%all_script_interpreters))) {
+		my $node_name = $interp_id;
+		$node_name =~ s/\t/__/g;
+		$node_name =~ s/^/__/;
+		my $r_si = $all_script_interpreters{$interp_id};
+		my $printable_name = $interp_id;
+		$printable_name =~ s/\t/ /g;
+		printf EDIAG "$node_name ".$summary_table_begin.
+				"<tr>".
+				   "<td>$printable_name scripts:";
+		my $s;
+		my $r_scripts = $r_si->{'scripts'};
+		foreach $s (sort(keys(%$r_scripts))) {
+			printf EDIAG "<br/>$s (n=%d)\n", $r_scripts->{$s};
+		}
+		printf EDIAG "</td>\n</tr>\n";
+		if(defined $acct_file) {
+			my $tu = $r_si->{'time_user'};
+			my $ts = $r_si->{'time_sys'};
+
+			printf EDIAG
+			"<tr>".
+			   "<td>real = %5.2f".
+			      "<br/>user %5.2f + sys %5.2f<br/>\n".
+			      " = %5.2f (%2.2f%%)</td>\n".
+			"</tr>\n",
+			   $r_si->{'time_elapsed'},
+			   $tu,
+			   $ts,
+			   $tu + $ts,
+			   (($tu + $ts) * 100) / ($total_user + $total_sys);
+		}
+		printf EDIAG $summary_table_end;
+	}
+
+	my @all_program_keys = keys(%programs);
+	if(defined $acct_file) {
+		# Add color to the most time consuming programs:
+		# first sort them:
+		my @programs_sorted_by_time = sort {
+			my $r_a = $programs{$a};
+			my $r_b = $programs{$b};
+			my $t_a = $r_a->{'time_user'} + $r_a->{'time_sys'};
+			my $t_b = $r_b->{'time_user'} + $r_b->{'time_sys'};
+			$t_b <=> $t_a; # biggest time first in the result array
+		} @all_program_keys;
+
+		my $num_programs = @programs_sorted_by_time;
+		my $top_load_limit = $num_programs * .03; # 3%
+		my $high_load_limit = $num_programs * .10; # 10%
+		my $medium_load_limit = $num_programs * .20; # 20%
+
+		# add color attributes:
+		my $i;
+		for ($i=0; $i < $num_programs; $i++) {
+			my $pkey = $programs_sorted_by_time[$i];
+			my $rp = $programs{$pkey};
+			if($debug) {
+				printf "u=%5.2f s=%5.2f %s\n", $rp->{'time_user'}, $rp->{'time_sys'}, $pkey;
+			}
+			if ($i <= $top_load_limit) {
+				$rp->{'cell_color'} = $toploadcolor;
+			} elsif ($i <= $high_load_limit) {
+				$rp->{'cell_color'} = $highloadcolor;
+			} elsif ($i <= $medium_load_limit) {
+				$rp->{'cell_color'} = $mediumloadcolor;
+			}
+		}
+	}
+
+	my $pkey;
+	foreach $pkey (@all_program_keys) {
+		my $rp = $programs{$pkey};
+
+		my $label = $rp->{'label'};
+		my $ep_color_begin;
+		my $ep_color_end;
+		($ep_color_begin,$ep_color_end) =
+			 select_exec_policy_colors($rp->{'exec_policy'});
+
+		# First item: Name of the binary, with background
+		# color if this was one of the most time-consuming
+		# programs
+		print EDIAG "\t".$label." ".$pr_element_table_begin.
+			"<tr>\n<td ";
+		if (defined($rp->{'cell_color'})) {
+			printf EDIAG "bgcolor=\"%s\" ", $rp->{'cell_color'};
+		}
+		print EDIAG
+			   "colspan=\"2\">".$rp->{'exec_binary'}."\n";
+		#  additional info: If it is a script, print name of
+		#  the interpreter
+		my $r_si = $rp->{'r_script_interpreter'};
+		if (defined($r_si)) {
+			print EDIAG
+			   "<br/>{".$r_si->{'script_interpreter_name'}."}\n";
+		}
+		print EDIAG
+			"</td>".
+			"</tr>\n";
+
+		# Second item: "n" and exec policy name
+		print EDIAG
+			"<tr>".
+			   "<td>n=".$rp->{'instances'}."</td>\n".
+			   "<td>$ep_color_begin".$rp->{'exec_policy'}."$ep_color_end</td>\n".
+			"</tr>\n";
+		
+		# Third: Cumulative times, if available
+		if(defined $acct_file) {
+			my $tu = $rp->{'time_user'};
+			my $ts = $rp->{'time_sys'};
+
+			printf EDIAG
+			"<tr>".
+			   "<td colspan=\"2\">real = %5.2f".
+			      "<br/>user %5.2f + sys %5.2f<br/>\n".
+			      " = %5.2f (%2.2f%%)</td>\n".
+			"</tr>\n",
+			   $rp->{'time_elapsed'},
+			   $tu,
+			   $ts,
+			   $tu + $ts,
+			   (($tu + $ts) * 100) / ($total_user + $total_sys);
+		}
+		printf EDIAG
+			$pr_element_table_end;
+		# contents of the box done, now connect it to
+		# related programs
+		my $cp;
+		foreach $cp (keys(%{$rp->{'executed'}})) {
+			my $x = $programs{$cp};
+
+			print EDIAG "\t".$label." -> ".$x->{'label'}.";\n";
+		}
+	}
+	print EDIAG "}\n";
+	close(EDIAG);
+}
+
+#============================================
+#
+# Read log lines from standard input.
+#
+my $linenum = 0;
+my $first_timestamp;
+my $last_timestamp;
+my $timestamp;
+my $loglevel;
+my $line;
+if($verbose) {
+	print "Reading log:\n";
+}
+while ($line = <STDIN>) {
+	$linenum++;
+	chomp($line);
+
+	if($verbose) {
+		if(!($linenum % 1000)) {
+			print(".");
+		}
+	}
+
+	if($line =~ /^#/) {
+		# A comment, or line containing environment variable
+		if($line =~ /^#SBOX_TARGET_ROOT=(\/.+)/) {
+			$sbox_target_root = $1;
+		} elsif($line =~ /^#SBOX_TOOLS_ROOT=(\/.+)/) {
+			$sbox_tools_root = $1;
+		} elsif($line =~ /^#SBOX_MAPMODE=(.*)/) {
+			$sbox_mapmode = $1;
+		}
+		next;
+	}
+
+	# The logger routine in sb2 uses tabs as separators and makes sure
+	# that the log messages do not contain extra tabs => safe to use split
+	my @msgfield = split(/\t/,$line);
+	if(@msgfield < 3) {
+		# not enough fields, malformed line?
+		next;
+	}
+
+	my $timestamp_and_level = $msgfield[0];
+	my $process_name_and_pid = $msgfield[1];
+	my $logmessage = $msgfield[2];
+	my $srclocation = $msgfield[3];	# optional (only if debug log from sb2)
+
+	if($timestamp_and_level =~ m/^(.*)\s\((.*)\)$/) {
+		$timestamp = $1;
+		$loglevel = $2;
+		if($debug > 1) {
+			print "t+d: $timestamp: $loglevel\n";
+		}
+	} else {
+		$timestamp = $timestamp_and_level;
+		$loglevel = undef;
+		if($debug > 1) {
+			print "t+no d: $timestamp\n";
+		}
+	}
+	if($loglevel eq "ERROR") {
+		push(@errors, $line);
+	} elsif($loglevel eq "WARNING") {
+		push(@warnings, $line);
+	} elsif ($loglevel eq "NOTICE") {
+		push(@notices, $line);
+	}
+	$last_timestamp = $timestamp;
+	if(!defined($first_timestamp)) {
+		$first_timestamp = $last_timestamp;
+	}
+
+	if($logmessage =~ m/^mapped: ([a-zA-Z0-9_]+) '(.*)' -> '(.*)'/) {
+		my $fn_name = $1;
+		my $from_path = $2;
+		my $to_path = $3;
+		if($debug > 1) {
+			print "MAPPED: $fn_name: $from_path -> $to_path\n";
+		}
+		if(!defined($blacklisted_functions{$fn_name})) {
+			my $procname;
+			my $pid;
+			my $tid;
+			($procname,$pid,$tid) = split_name_and_pid($process_name_and_pid);
+			path_accessed(\%mapped_src_paths,
+				$fn_name, $procname, $from_path, $to_path);
+			path_accessed(\%mapped_dest_paths,
+				$fn_name, $procname, $to_path, $from_path);
+		}
+	} elsif($logmessage =~ m/^pass: ([a-zA-Z0-9_]+) '(.*)'$/) {
+		my $fn_name = $1;
+		my $path = $2;
+		if($debug > 1) {
+			print "PASS: $fn_name: $path\n";
+		}
+		if(!defined($blacklisted_functions{$fn_name})) {
+			my $procname;
+			my $pid;
+			my $tid;
+			($procname,$pid,$tid) = split_name_and_pid($process_name_and_pid);
+			path_accessed(\%passed_paths,
+				$fn_name, $procname, $path, undef);
+		}
+	} elsif($logmessage =~ m/^disabled\(\d*\): ([a-zA-Z0-9_]+) '(.*)'$/) {
+		my $fn_name = $1;
+		my $path = $2;
+		if($debug > 1) {
+			print "DISABLED/PASS: $fn_name: $path\n";
+		}
+		if(!defined($blacklisted_functions{$fn_name})) {
+			my $procname;
+			my $pid;
+			my $tid;
+			($procname,$pid,$tid) = split_name_and_pid($process_name_and_pid);
+			path_accessed(\%disabled_passed_paths,
+				$fn_name, $procname, $path, undef);
+		}
+	} elsif($logmessage =~ m/^---------- Starting \((.*)\) \[(.*)\] ppid=(\d*) <(.*)> \((.*)\) -/) {
+		my $version = $1;
+		my $build_time = $2;
+		my $ppid = $3;
+		my $exec_binary_name = $4;
+		my $exec_policy_name = $5;
+
+		if($debug > 1) {
+			print "Starting $version, $build_time, $ppid, ".
+				"$exec_binary_name, $exec_policy_name\n";
+		}
+
+		process_started($process_name_and_pid, $timestamp,
+			$version, $build_time,
+			$ppid, $exec_binary_name, $exec_policy_name);
+			
+	} elsif($logmessage =~ m/^wait[pid]*: child (\d+) (.*)$/) {
+		my $child_pid = $1;
+		my $reason = $2;
+
+		if($reason =~ m/^exit status=(\d+)/) {
+			my $process_exit_status = $1;
+
+			if($debug > 1) {
+				print "Child exited %s\n", $process_exit_status;
+			}
+			process_exited($child_pid, $process_exit_status);
+		} elsif($reason =~ m/^terminated by signal (\d+)(.*)$/) {
+			if($debug > 1) {
+				print "Child: ".$reason."\n";
+			}
+			process_exited($child_pid, $reason);
+		}
+	} elsif($logmessage =~ m/[Ee]xit: status=(\d*)/) {
+		my $process_exit_status = $1;
+		my $procname;
+		my $pid;
+		my $tid;
+		($procname,$pid,$tid) = split_name_and_pid($process_name_and_pid);
+		process_exited($pid, $process_exit_status);
+	} elsif($logmessage =~ m/EXEC: i_pid=(\d*) /) {
+		my $ipid = $1;
+		# The "i_pid" hack is used to track lost parents.
+		# some complex programs may use several fork() calls, etc,
+		# which may lead to a situation where the PPID refers to a
+		# process that we don't know (but which is still a forked 
+		# child of a process that we know). We'll record the i_pid
+		# if it is needed later...
+		my $procname;
+		my $pid;
+		my $tid;
+		($procname,$pid,$tid) = split_name_and_pid($process_name_and_pid);
+		$i_pid[$pid] = $1;
+	}
+}
+if($verbose) {
+	print("\nRead $linenum lines.\n");
+}
+
+#============================================
+#
+# Write report(s).
+#
+
+if($debug) {
+	$Data::Dumper::Indent = 1;
+	print "###### mapped_src_paths\n";
+	print Dumper(\%mapped_src_paths);
+	print "###### mapped_dest_paths\n";
+	print Dumper(\%mapped_dest_paths);
+	print "###### passed_paths\n";
+	print Dumper(\%passed_paths);
+	print "######.\n";
+}
+
+my $num_errors = @errors;
+if($num_errors > 0) {
+	print "\nErrors:\n";
+	print join("\n", @errors), "\n";
+}
+
+my $num_warnings = @warnings;
+if($num_warnings > 0) {
+	print "\nWarnings:\n";
+	print join("\n", @warnings), "\n";
+}
+
+my $num_notices = @notices;
+if ($num_notices > 0) {
+	if ($print_notices) {
+		print "\nNotices:\n";
+		print join("\n", @notices), "\n";
+	} else {
+		print "\n(Use option -N to print all 'notice'-messages)\n";
+	}
+}
+
+my @mapped_src_paths = sort(keys(%mapped_src_paths));
+my $num_mapped_src_paths = @mapped_src_paths;
+
+my @mapped_dest_paths = sort(keys(%mapped_dest_paths));
+my $num_mapped_dest_paths = @mapped_dest_paths;
+
+my @passed_paths = sort(keys(%passed_paths));
+my $num_passed_paths = @passed_paths;
+
+my @disabled_passed_paths = sort(keys(%disabled_passed_paths));
+my $num_disabled_passed_paths = @disabled_passed_paths;
+
+print	"\nMapping mode = $sbox_mapmode,\n".
+	"\tTimeframe: $first_timestamp ... $last_timestamp,\n".
+	"\t$num_errors errors, $num_warnings warnings, $num_notices notices.\n";
+if(defined $sbox_target_root) {
+	print "\tTARGET_ROOT = $sbox_target_root\n";
+}
+if(defined $sbox_tools_root) {
+	print "\tTOOLS_ROOT = $sbox_tools_root\n";
+}
+
+my @process_names_with_pids = sort(keys(%all_processes));
+my $num_process_names_with_pids = @process_names_with_pids;
+print   "Number of processes: $num_process_names_with_pids\n";
+
+if($print_process_statistics) {
+	my $pname;
+	print "\tNumber of instances, process name:\n";
+	foreach $pname (sort(keys(%argv0_counters))) {
+		print "\t\t".$argv0_counters{$pname}."\t".$pname."\n";
+	}
+
+#####	my @failures = sort(keys(%failed_process));
+#####	my $num_failures = @failures;
+#####	if($num_failures > 0) {
+#####		print "\t$num_failures processes with non-zero exit status:\n";
+#####		foreach $pname (@failures) {
+#####			print "\t\t$pname:\t".$failed_process{$pname}."\n";
+#####		}
+#####	}
+	my @unknown_exit_status = keys(%active_processes);
+	my $num_unknown_exit_status = @unknown_exit_status;
+	if($num_unknown_exit_status > 0) {
+		print "\t$num_unknown_exit_status processes with unknown exit status (or still active):\n";
+		my $u_pid;
+		foreach $u_pid (@unknown_exit_status) {
+			my $rp = $active_processes{$u_pid};
+			print "\t\t$u_pid\t".$rp->{'name'}."\n";
+		}
+	}
+
+}
+
+print   "Number of pathnames:\n".
+	"\tMapped $num_mapped_src_paths to $num_mapped_dest_paths".
+	" destinations\n".
+	"\tPassed $num_passed_paths pathnames without modifications\n".
+	"\tPassed $num_disabled_passed_paths because mapping was disabled\n";
+
+my @ignored = sort(keys(%blacklisted_functions));
+if(@ignored > 0) {
+	print   "Lines from following functions were ignored:\n".
+		"\t".join(',',@ignored)."\n";
+}
+
+my $p;
+
+#First, check if there are potentially problematic paths:
+check_multiple_refs(\@mapped_src_paths, \%mapped_src_paths,
+	"source paths", "to multiple destinations", "->");
+
+check_multiple_refs(\@mapped_dest_paths, \%mapped_dest_paths,
+	"destination paths", "from multiple sources", "<-");
+
+my $printed_path_details = 0;
+
+if($print_mapped_paths) {
+	print_all_paths(\@mapped_src_paths, \%mapped_src_paths,
+		"Mapped pathnames, by source path", "->");
+	$printed_path_details = 1;
+}
+if($print_revmap_paths) {
+	print_all_paths(\@mapped_dest_paths, \%mapped_dest_paths,
+		"Mapped pathnames, by destination path", "<-");
+	$printed_path_details = 1;
+}
+if($print_passed_paths) {
+	print_all_paths(\@passed_paths, \%passed_paths,
+		"Passed pathnames", "");
+	$printed_path_details = 1;
+}
+if($print_disabled_passed_paths) {
+	print_all_paths(\@disabled_passed_paths, \%disabled_passed_paths,
+		"Mapping disabled => passed pathnames", "");
+	$printed_path_details = 1;
+}
+
+if(defined $acct_file) {
+	read_acct_file();
+	if ($total_user + $total_sys == 0) {
+		print "WARNING: Nothing found from acct file '$acct_file', accounting data turned off.\n";
+		$acct_file = undef;
+	}
+}
+
+if($debug) {
+	$Data::Dumper::Indent = 1;
+	print "###### Scripts:\n";
+	print Dumper(\%all_script_interpreters);
+	print "######.\n";
+}
+
+if($process_diagram_file) {
+	write_process_diagram();
+	$printed_path_details = 1;
+}
+if($exec_diagram_file) {
+	write_exec_diagram();
+	$printed_path_details = 1;
+}
+
+if(!$printed_path_details) {
+	print "\n(use options -m, -r, -p and/or -i to print more information about\n".
+		"processed paths, and -l to get full details)\n";
+}
+

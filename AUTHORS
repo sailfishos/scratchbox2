@@ -1,0 +1,23 @@
+Complete list of authors and their modules:
+
+Lauri Leukkunen <lle@rahina.org>:
+	luaif/*
+	preload/*
+	lua_scripts/*
+	utils/*
+	include/*
+	scripts/*
+
+Valtteri Rahkonen <valtteri@rahkonen.fi>:
+	x86_64 port
+
+Riku Voipio <riku.voipio@movial.fi>:
+	debian/*
+
+Lauri T. Aarnio <lauri.aarnio@iki.fi>:
+	preload/gen-interface.pl
+	preload/interface.master
+	luaif/sb_log.c
+	utils/sb2-logz
+	utils/sb2-show.c
+

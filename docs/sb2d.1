@@ -1,0 +1,111 @@
+.TH sb2d 1 "7 March 2012" "2.3" "sb2d man page"
+.SH NAME
+sb2d \- Rule database daemon for Scratchbox2
+.SH SYNOPSIS
+.B sb2d
+[options]
+.SH DESCRIPTION
+.I sb2d
+initializes and manages a rule database inside every Scratchbox2 session.
+.PP
+Normally
+.I sb2d
+is started automatically when a session is created by
+.I sb2
+and will be shut down when the session is
+terminated, so there is usually no need to interact with this
+daemon directly. However, under some conditions, it might be useful to 
+specify options -S, -M or -F for sb2d. That can be done
+with the "-x" option of sb2.
+.PP
+.I sb2d
+is responsible for all updates to the database; client processes (i.e.
+all processes running inside the session) will use mmap(2) to map the
+database image to memory, and will read data from there without
+any kind of locking. If a client process needs to add or update data,
+it will create a socket and send an RPC message to sb2d, which will
+perform the update.
+.PP
+The database is used to hold several kinds of rules: During session
+setup pathmapping rules and exec rules are written to it. Those won't
+be modified during session lifetime. But rules related to the virtual
+permissions (see sb2(1)) might be added anytime, which might cause
+the database file to grow.
+
+.SH OPTIONS
+
+.TP
+\-d LEVEL
+Enable debug messages.
+
+.TP
+\-f
+foreground; does not fork (for debugging the daemon).
+
+.TP
+\-F MIN_CLIENT_SOCKET_FD
+Set minimum client socket filedescriptor value.
+Client processes which need to communicate with 
+sb2d will create a socket, and then relocate the
+file descriptor to a value which is at least
+the value defined by this option.
+Default is 279.
+
+.TP
+\-l FILE
+Log messages to FILE. If FILE is "-", writes to stdout.
+(note that
+.I sb2
+redirects stdout of sb2d to $SBOX_SESSION_DIR/sb2d.out
+and uses option "-l -")
+
+.TP
+\-M MIN_MMAP_ADDR
+Set minimum address for the memory mapped database.
+Each client process will mmap(2) the database to be above
+this address. Default is 0. This can be a 64-bit value,
+but note that there can be both 64- and 32-bit client processes,
+and the 32-bit processes will drop the most significant
+32 bits, and only use the lower part of this value.
+
+.TP
+\-n
+Don't start server; only initializes the rule database and exits (for debugging the daemon).
+
+.TP
+\-p FILE
+write process ID to FILE.
+
+.TP
+\-s SESSION_DIR
+set location of the session directory.
+
+.TP
+\-S SIZE
+set maximum size of the memory mapped database.
+This defines the amount of memory which will be reserved for
+the database in
+each client process running inside a Scratchbox2 session.
+Default is 16 megabytes.
+
+.SH DEBUGGING
+A note for developers (of SB2 itself) about debugging:
+The rule database file contains binary data. 
+There is a debugging tool for printing out the contents,
+distributed with the SB2 sources; see utils/sb2-ruletree.c
+if you ever need to dig into the low-level details.
+
+.SH FILES
+.P
+.I $SBOX_SESSION_DIR/*
+.P
+
+.SH SEE ALSO
+.BR sb2 (1),
+.BR sb2-init (1),
+.SH BUGS
+No known bugs at this time.
+.SH AUTHOR
+.nf
+Lauri T. Aarnio
+.fi

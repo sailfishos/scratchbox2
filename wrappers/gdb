@@ -1,0 +1,79 @@
+#!/bin/bash
+#
+# Copyright (c) 2008 Nokia Corporation.
+# All rights reserved.
+#
+# Licensed under GPL version 2
+
+prog="$0"
+progbase=`basename $0`
+
+error_not_inside_sb2()
+{
+	echo "SB2: $progbase wrapper: This wrapper can only be used from inside"
+	echo "the scratchbox 2'ed environment"
+	exit 1
+}
+
+if [ -z "$SBOX_SESSION_DIR" ]
+then
+	error_not_inside_sb2
+fi
+
+. $SBOX_SESSION_DIR/sb2-session.conf
+
+if [ -z "$sbox_mapmode" -o -z "$sbox_dir" ]
+then
+	error_not_inside_sb2
+fi
+
+# read-in mode-specific settings
+if [ -f $SBOX_SESSION_DIR/modes/$sbox_mapmode/sb2rc ]
+then
+	. $SBOX_SESSION_DIR/modes/$sbox_mapmode/sb2rc "$progbase"
+fi
+
+#
+# Create initialization file for gdb that provides helper
+# macro that is used to stop running process before main()
+# gets called.
+#
+cat > $SBOX_SESSION_DIR/gdbinit << EOF
+def sb2-prepare
+	set breakpoint pending on
+	tbreak _dl_debug_state
+	set breakpoint pending off
+end
+
+document sb2-prepare
+Prepares the target process for being debugged.
+
+If you are attaching to an already running process or examining a core
+dump, this step is not necessary.
+
+Run this command before starting the target program. It will set a
+breakpoint which is used to stop the target before its main() gets
+called. After the breakpoint is hit, you are able to set further
+breakpoints and do normal debugging actions.
+
+Example:
+(sb2-emulate-gdb) sb2-prepare
+(sb2-emulate-gdb) run
+...
+and now gdb will stop and you are able to set further breakpoints etc.
+end
+
+set prompt (sb2-$sbox_mapmode-gdb) 
+echo \ngdb: read 'help sb2-prepare' before running programs.\n
+EOF
+
+#
+# sb2 script sets SHELL to tools by default but in emulation
+# mode, we don't have access there so we reset SHELL to correct
+# value in case we are in emulation mode.
+#
+if [ "$sbox_mapmode" = "emulate" ]
+then
+	SHELL=/bin/sh
+fi
+exec $sbox_target_root/usr/bin/gdb -command $SBOX_SESSION_DIR/gdbinit "$@"

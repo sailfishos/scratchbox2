@@ -477,6 +477,14 @@ emulate_mode_rules_usr = {
                  actions=accelerated_program_actions},
                 {path = "/usr/lib/qt5/bin/qdoc", func_class = FUNC_CLASS_EXEC,
                  actions=accelerated_program_actions},
+                {path = "/usr/lib64/qt5/bin/qmake", func_class = FUNC_CLASS_EXEC,
+                 actions=accelerated_program_actions},
+                {path = "/usr/lib64/qt5/bin/moc", func_class = FUNC_CLASS_EXEC,
+                 actions=accelerated_program_actions},
+                {path = "/usr/lib64/qt5/bin/uic", func_class = FUNC_CLASS_EXEC,
+                 actions=accelerated_program_actions},
+                {path = "/usr/lib64/qt5/bin/qdoc", func_class = FUNC_CLASS_EXEC,
+                 actions=accelerated_program_actions},
 
 		-- gdb wants to have access to our dynamic linker also,
 		-- /usr/lib/libsb2/wrappers/*, etc.

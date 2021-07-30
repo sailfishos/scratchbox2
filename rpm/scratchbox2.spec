@@ -10,6 +10,7 @@ ExclusiveArch:	%{ix86}
 BuildRequires:	make
 BuildRequires:	autoconf
 BuildRequires:  pkgconfig(lua)
+BuildRequires:  automake
 Requires:	fakeroot
 Requires:	libsb2 = %{version}-%{release}
 

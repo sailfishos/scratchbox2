@@ -250,7 +250,7 @@ local num_rules, argvenvp_rule
 
 -- Next "gcc" and "misc";
 -- misc rules are already in argvmods table, don't clear it
-for _, argvenvp_rule in pairs({"misc", "gcc"}) do
+for _, argvenvp_rule in pairs({"wrappers", "misc", "gcc"}) do
    do_file(session_dir .. "/lua_scripts/argvenvp_"..argvenvp_rule..".lua")
    check_and_count_rules(argvmods)
    argvmods_to_ruletree(argvenvp_rule, num_rules, argvmods)

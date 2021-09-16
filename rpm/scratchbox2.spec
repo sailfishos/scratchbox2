@@ -13,6 +13,7 @@ BuildRequires:  pkgconfig(lua)
 BuildRequires:  automake
 Requires:	fakeroot
 Requires:	libsb2 = %{version}-%{release}
+Requires:	lua-posix
 
 %description
 Scratchbox2 crosscompiling environment

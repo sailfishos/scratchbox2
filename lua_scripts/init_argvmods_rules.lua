@@ -252,7 +252,7 @@ local num_rules, argvenvp_rule
 -- misc rules are already in argvmods table, don't clear it
 for _, argvenvp_rule in pairs({"wrappers", "misc", "gcc"}) do
    do_file(session_dir .. "/lua_scripts/argvenvp_"..argvenvp_rule..".lua")
-   check_and_count_rules(argvmods)
+   num_rules = check_and_count_rules(argvmods)
    argvmods_to_ruletree(argvenvp_rule, num_rules, argvmods)
    argvmods_to_file(session_dir .. "/argvmods_"..argvenvp_rule..".lua", num_rules, argvmods)
    clear_attr_list()

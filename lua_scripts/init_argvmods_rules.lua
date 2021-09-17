@@ -247,27 +247,20 @@ end
 
 -- first "misc":
 argvmods = {}
-argvmods_source_file = session_dir .. "/lua_scripts/argvenvp_misc.lua"
-do_file(argvmods_source_file)
-local num_rules = check_and_count_rules(argvmods)
-argvmods_to_ruletree("misc", num_rules, argvmods)
-argvmods_to_file(session_dir .. "/argvmods_misc.lua", num_rules, argvmods)
-if (debug_messages_enabled) then
-	sblib.log("debug",
-		string.format("%d rules", num_rules))
-end
+local num_rules, argvenvp_rule
 
 -- Next "gcc" and "misc";
 -- misc rules are already in argvmods table, don't clear it
-argvmods_source_file = session_dir .. "/lua_scripts/argvenvp_gcc.lua"
-do_file(argvmods_source_file)
-local num_rules = check_and_count_rules(argvmods)
-argvmods_to_ruletree("gcc", num_rules, argvmods)
-clear_attr_list()
-argvmods_to_file(session_dir .. "/argvmods_gcc.lua", num_rules, argvmods)
-if (debug_messages_enabled) then
-	sblib.log("debug",
+for _, argvenvp_rule in pairs({"misc", "gcc"}) do
+   do_file(session_dir .. "/lua_scripts/argvenvp_"..argvenvp_rule..".lua")
+   num_rules = check_and_count_rules(argvmods)
+   argvmods_to_ruletree(argvenvp_rule, num_rules, argvmods)
+   argvmods_to_file(session_dir .. "/argvmods_"..argvenvp_rule..".lua", num_rules, argvmods)
+   clear_attr_list()
+   if (debug_messages_enabled) then
+      sblib.log("debug",
 		string.format("%d rules", num_rules))
+   end
 end
 
 argvmods = nil  -- cleanup.

@@ -1,7 +1,8 @@
 -- Copyright (c) 2009,2012 Nokia Corporation.
+-- Copyright (c) 2021      Jolla Ltd.
 -- Author: Lauri T. Aarnio
 --
--- Licensed under MIT license
+-- License: MIT
 
 -- This script is executed by sb2d, while initializing a new session,
 -- to create mapping rules for toolchain components:
@@ -30,12 +31,12 @@ function argvmods_to_mapping_rules(rule_file, prefix)
 			rule.argvmods_processed = true
 			local k
 			for k=1,#rule.path_prefixes do
-				if rule.path_prefixes[k] == "/usr/bin/" and
-				   rule.new_filename ~= nil then
+				if rule.new_filename ~= nil then
 					-- this rule maps "n" from /usr/bin to
 					-- another file
 					if sblib.path_exists(rule.new_filename) then
-						rule_file:write("  {path=\"/usr/bin/"..n.."\",\n")
+						rule_file:write("  {path=\""..rule.path_prefixes[k]..n..
+							"\",\n")
 						rule_file:write("   replace_by=\"" ..
 							rule.new_filename.."\"},\n")
 					else

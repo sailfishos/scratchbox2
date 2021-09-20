@@ -30,12 +30,12 @@ function argvmods_to_mapping_rules(rule_file, prefix)
 			rule.argvmods_processed = true
 			local k
 			for k=1,#rule.path_prefixes do
-				if rule.path_prefixes[k] == "/usr/bin/" and
-				   rule.new_filename ~= nil then
+				if rule.new_filename ~= nil then
 					-- this rule maps "n" from /usr/bin to
 					-- another file
 					if sblib.path_exists(rule.new_filename) then
-						rule_file:write("  {path=\"/usr/bin/"..n.."\",\n")
+						rule_file:write("  {path=\""..rule.path_prefixes[k]..n..
+							"\",\n")
 						rule_file:write("   replace_by=\"" ..
 							rule.new_filename.."\"},\n")
 					else

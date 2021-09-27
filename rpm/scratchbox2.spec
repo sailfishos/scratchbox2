@@ -30,7 +30,7 @@ Summary: Scratchbox2 docs
 Scratchbox2 man pages.
 
 %prep
-%setup -q -n %{name}-%{version}/%{name}
+%setup
 
 %build
 ./autogen.sh

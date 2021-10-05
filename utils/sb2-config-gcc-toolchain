@@ -226,8 +226,8 @@ if [ $? != 0 ]; then
 	exit 1
 fi
 
-SBOX_CROSS_GCC_DIR=$(dirname $(which $GCC))
-if [ $GCC -v > /dev/null 2>&1 != 0 ]; then
+SBOX_CROSS_GCC_DIR="$(readlink -f $(dirname $(which $GCC)))"
+if ! $GCC -v > /dev/null ; then
 	echo "Invalid compiler specified: $GCC"
 	exit 1
 fi

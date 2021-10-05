@@ -4,7 +4,7 @@
 $(D)/sb2d: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
 		$(PROTOTYPEWARNINGS) \
 		-I$(SRCDIR)/include \
-		-I$(SRCDIR)/preload -Ipreload/
+		-I$(SRCDIR)/preload -I$(OBJDIR)/preload
 
 $(D)/sb2d: $(D)/sb2d.o \
 		$(D)/server_socket.o \

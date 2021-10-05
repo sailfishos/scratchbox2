@@ -36,7 +36,7 @@ $(D)/libsb2.$(SHLIBEXT): execs/libexecs.a
 $(D)/libsb2.$(SHLIBEXT): network/libsb2net.a
 $(D)/libsb2.$(SHLIBEXT): rule_tree/libruletree.a
 $(D)/libsb2.$(SHLIBEXT): CFLAGS := $(CFLAGS) -fPIC -Wall -W \
-		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS)
+		-I$(SRCDIR)/preload -I$(OBJDIR)/preload $(PROTOTYPEWARNINGS)
 $(D)/libsb2.$(SHLIBEXT): LDFLAGS := $(LDFLAGS) $(LIBSB2_LDFLAGS)
 $(D)/libsb2.$(SHLIBEXT): LIBS := -ldl $(LIBSB2_LIBS)
 

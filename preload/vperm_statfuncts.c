@@ -2,7 +2,7 @@
  * Copyright (C) 2011 Nokia Corporation.
  * Author: Lauri T. Aarnio
  *
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
+ * License: LGPL-2.1
  */
 
 #include <errno.h>

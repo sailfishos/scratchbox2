@@ -1,7 +1,7 @@
 -- Copyright (c) 2008 Nokia Corporation.
 -- Author: Lauri T. Aarnio
 --
--- Licensed under MIT license
+-- License: MIT
 
 -- This script is executed once after a new SB2 session has been created,
 -- to create reversing rules for path mapping (see utils/sb2).

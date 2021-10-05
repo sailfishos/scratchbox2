@@ -3,7 +3,7 @@
 #
 # Copyright (c) 2008 Nokia Corporation.
 # Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
-# Licensed under GPL version 2
+# License: GPL-2.0
 
 my_path=$_
 if [ $(basename $my_path) != $(basename $0) ]; then

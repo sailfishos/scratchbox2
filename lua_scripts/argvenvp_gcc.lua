@@ -1,5 +1,5 @@
 -- Copyright (C) 2008 Lauri Leukkunen <lle@rahina.org>
--- Licensed under MIT license
+-- License: MIT
 
 -- Here is the necessary plumbing to generate gcc related
 -- argv/envp manglings

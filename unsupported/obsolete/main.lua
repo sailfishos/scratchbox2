@@ -1,6 +1,6 @@
 -- Scratchbox2 Lua main file
 -- Copyright (C) 2006, 2007 Lauri Leukkunen
--- Licensed under MIT license.
+-- License: MIT.
 
 -- This file is loaded by the libsb2.so preload library, from the 
 -- constructor to initialize sb2's "Lua-side"

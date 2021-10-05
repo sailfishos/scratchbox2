@@ -1,6 +1,6 @@
 -- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 -- Copyright (C) 2007 Nokia Corporation.
--- Licensed under MIT license.
+-- License: MIT.
 
 -- "nomap" mapping mode: Does not map any paths anywhere, but still pushes
 -- all paths thru SB2's path mapping logic, handles execs, etc.

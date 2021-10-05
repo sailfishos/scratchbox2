@@ -1,5 +1,5 @@
 -- Copyright (C) 2012 Nokia Corporation.
--- Licensed under MIT license.
+-- License: MIT.
 
 -- Rule file interface version, mandatory.
 --

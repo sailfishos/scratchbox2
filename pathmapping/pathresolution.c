@@ -3,7 +3,7 @@
  * Portion Copyright (c) 2008 Nokia Corporation.
  * (symlink- and path resolution code refactored by Lauri T. Aarnio at Nokia)
  *
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
+ * License: LGPL-2.1
  *
  * ----------------
  *

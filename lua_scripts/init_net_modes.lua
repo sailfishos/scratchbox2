@@ -1,7 +1,7 @@
 -- Copyright (c) 2012 Nokia Corporation.
 -- Author: Lauri T. Aarnio
 --
--- Licensed under MIT license
+-- License: MIT
 
 -- This script is executed when SB2 session is created
 -- (from init.lua) to load networking rules to the rule

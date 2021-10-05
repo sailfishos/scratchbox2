@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010 Nokia Corporation.
  * Portion Copyright (C) Lauri Leukkunen <lle@rahina.org>
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
+ * License: LGPL-2.1
  * Author: Lauri T. Aarnio
  *
  * This file contians private defitions and interfaces of sb2's

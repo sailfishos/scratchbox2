@@ -3,7 +3,7 @@
 # Copyright (C) 2013 Jolla Ltd.
 # Contact: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 #
-# Licensed under GPL version 2
+# License: GPL-2.0
 
 _sb2()
 {

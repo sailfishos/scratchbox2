@@ -2,7 +2,7 @@
 -- Portion Copyright (c) 2008 Nokia Corporation.
 -- (exec postprocessing code written by Lauri T. Aarnio at Nokia)
 --
--- Licensed under MIT license
+-- License: MIT
 
 -- Load session-specific exec-related settings
 do_file(session_dir .. "/exec_config.lua")

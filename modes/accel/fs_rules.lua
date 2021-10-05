@@ -1,7 +1,7 @@
 -- Author: Lauri T. Aarnio
 -- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 -- Copyright (c) 2009 Nokia Corporation.
--- Licensed under MIT license.
+-- License: MIT.
 --
 -- "accel" mode = build accelerator mode, to be used for software 
 -- development & building when the rootstrap and the tools are "twins":

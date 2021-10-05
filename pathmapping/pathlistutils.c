@@ -2,7 +2,7 @@
  * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
  * Portion Copyright (c) 2008 Nokia Corporation.
  *
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
+ * License: LGPL-2.1
  *
  * ----------------
 */

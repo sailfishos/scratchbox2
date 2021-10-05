@@ -1,7 +1,7 @@
 -- Copyright (c) 2012 Intel Corporation
 -- Author: Mika Westerberg <mika.westerberg@linux.intel.com>
 --
--- Licensed under LGPL version 2.1, see top level LICENSE file for details.
+-- License: LGPL-2.1
 
 --
 -- Constants which can be used from the exec policy files. These are loaded

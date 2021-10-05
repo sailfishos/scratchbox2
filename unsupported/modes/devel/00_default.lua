@@ -1,6 +1,6 @@
 -- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 -- Copyright (c) 2008 Nokia Corporation.
--- Licensed under MIT license.
+-- License: MIT.
 --
 -- "devel" mode, to be used for software development & building when
 -- the "simple" mode is not enough.

@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # Copyright (C) 2008 Nokia Corporation.
-# Licensed under GPL version 2
+# License: GPL-2.0
 #
 # Generate locale definition files under $HOME/.scratchbox2/ in extracted
 # form.  We need to do this because otherwise it is impossible to map

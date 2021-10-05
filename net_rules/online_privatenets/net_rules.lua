@@ -1,7 +1,7 @@
 -- Copyright (c) 2011 Nokia Corporation.
 -- Author: Lauri T. Aarnio
 --
--- Licensed under MIT license.
+-- License: MIT.
 
 -- "online_privatenets" networking rules:
 -- Allow to private address spaces and local host,

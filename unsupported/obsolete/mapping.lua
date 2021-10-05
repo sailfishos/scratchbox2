@@ -1,6 +1,6 @@
 -- Scratchbox2 universal redirector dynamic path translation scripts
 -- Copyright (C) 2006, 2007 Lauri Leukkunen
--- Licensed under MIT license.
+-- License: MIT.
 
 do_file(session_dir .. "/lua_scripts/rule_constants.lua")
 

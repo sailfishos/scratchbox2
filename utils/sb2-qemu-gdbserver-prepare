@@ -11,7 +11,7 @@
 # and qemu should start listening gdbserver port.
 #
 # Copyright (C) 2008 Nokia Corporation.
-# Licensed under GPL version 2
+# License: GPL-2.0
 #
 prog="$0"
 progbase=`basename $0`

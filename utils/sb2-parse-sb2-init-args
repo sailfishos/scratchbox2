@@ -3,7 +3,7 @@
 #   Parses sb2-init's arguments and prints them out as assignments.
 #   Used from sb2-init and sb2-upgrade-config.
 # Copyright (C) 2009 Nokia Corporation.
-# Licensed under GPL version 2
+# License: GPL-2.0
 
 # Use an array to preserve spaces in original arguments:
 declare -a init_orig_args_array

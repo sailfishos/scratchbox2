@@ -1,7 +1,7 @@
 -- Copyright (c) 2012 Nokia Corporation.
 -- Author: Lauri T. Aarnio
 --
--- Licensed under MIT license
+-- License: MIT
 
 argvmods = nil
 

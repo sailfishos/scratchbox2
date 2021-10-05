@@ -1,6 +1,6 @@
 #!/bin/bash
 # sb2-build-libtool - Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
-# Licensed under GPL version 2
+# License: GPL-2.0
 
 prog="$0"
 progbase=`basename $0`

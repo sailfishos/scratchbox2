@@ -2,7 +2,7 @@
 -- Copyright (c) 2021      Jolla Ltd.
 -- Author: Lauri T. Aarnio
 --
--- Licensed under LGPL version 2.1, see top level LICENSE file for details.
+-- License: LGPL-2.1
 --
 -- Read in argvmods_{gcc,misc}.lua files and insert
 -- exec preprocessing rules to the rule tree db.

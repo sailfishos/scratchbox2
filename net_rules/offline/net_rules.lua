@@ -1,7 +1,7 @@
 -- Copyright (c) 2011 Nokia Corporation.
 -- Author: Lauri T. Aarnio
 --
--- Licensed under MIT license.
+-- License: MIT.
 
 -- "offline" networking rules: deny everything.
 

@@ -3,7 +3,7 @@
 # Copyright (c) 2009 Nokia Corporation. All rights reserved.
 # Author: Lauri T. Aarnio;
 #
-# Licensed under GPL version 2
+# License: GPL-2.0
 #
 # -------------------
 # "Mechanics" of the new dpkg-checkbuilddeps dependency checker.

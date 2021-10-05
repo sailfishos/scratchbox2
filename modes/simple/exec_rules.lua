@@ -1,5 +1,5 @@
 -- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
--- Licensed under MIT license.
+-- License: MIT.
 --
 -- "simple" mode, to be used for software development & building
 -- (as the name says, this is the simple solution; See/use the "devel"

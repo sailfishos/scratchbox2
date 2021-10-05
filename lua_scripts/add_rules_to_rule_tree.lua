@@ -1,7 +1,7 @@
 -- Copyright (c) 2011 Nokia Corporation.
 -- Author: Lauri T. Aarnio
 --
--- Licensed under MIT license
+-- License: MIT
 
 -- This script is executed when SB2 session is created
 -- (from init.lua) to load FS mapping rules to the rule

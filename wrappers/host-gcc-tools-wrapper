@@ -8,7 +8,7 @@
 # All rights reserved.
 # Author: Lauri T. Aarnio
 #
-# Licensed under GPL version 2
+# License: GPL-2.0
 
 progbase=`basename $0`
 

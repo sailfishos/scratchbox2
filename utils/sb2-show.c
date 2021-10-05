@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2008 Nokia Corporation. All rights reserved.
  * Author: Lauri T. Aarnio
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
+ * License: LGPL-2.1
 */
 
 #include <unistd.h>

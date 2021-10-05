@@ -1,6 +1,6 @@
 -- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 -- Copyright (C) 2011 Nokia Corporation.
--- Licensed under MIT license.
+-- License: MIT.
 
 -- Rule file interface version, mandatory.
 --

@@ -1,6 +1,6 @@
 -- Copyright (C) 2008 Lauri Leukkunen <lle@rahina.org>
 -- Copyright (C) 2008 Nokia Corporation.
--- Licensed under MIT license.
+-- License: MIT.
 
 -- "tools" mapping mode: Almost everything maps to tools_root.
 

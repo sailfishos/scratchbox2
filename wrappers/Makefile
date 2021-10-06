@@ -2,7 +2,7 @@
 # into the top-level Makefile
 
 $(D)/fakeroot: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
-		-I$(SRCDIR)/preload -Ipreload/ $(PROTOTYPEWARNINGS) \
+		-I$(SRCDIR)/preload -I$(OBJDIR)/preload $(PROTOTYPEWARNINGS) \
 		-I$(SRCDIR)/include
 
 $(D)/fakeroot: $(D)/fakeroot.o

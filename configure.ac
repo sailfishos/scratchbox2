@@ -19,7 +19,24 @@ AC_PROG_MAKE_SET
 # Checks for libraries.
 AC_CHECK_LIB([dl], [dlsym])
 
-PKG_CHECK_MODULES([LUA], lua >= 5.2.0)
+PKG_CHECK_MODULES([lua], lua >= 5.2.0)
+PKG_CHECK_VAR(LUA_VERSION_MAJOR_MINOR, [lua], [V])
+PKG_CHECK_VAR(LUA_LIBDIR, [lua], [libdir],
+[
+	m4_foreach([lua_module], [[posix]],
+			[AC_MSG_CHECKING([for lua module lua_module])
+			AS_IF([ test -e \
+			"$LUA_LIBDIR/lua/$LUA_VERSION_MAJOR_MINOR/lua_module"],
+			[AC_MSG_RESULT([yes])
+			],
+			[AC_MSG_RESULT([no])
+			AC_MSG_ERROR([Unable to find lua module lua_module.])
+			])
+		])
+],
+[AC_MSG_FAILURE([Unable to identify lua libdir.])
+])
+
 
 # Checks for header files.
 AC_HEADER_DIRENT
@@ -222,7 +239,7 @@ AC_SUBST(CXX, ${CXX})
 AC_SUBST(CFLAGS, ${CFLAGS})
 AC_SUBST(LDFLAGS, ${LDFLAGS})
 
-AC_SUBST(LUA_LIBS, ${LUA_LIBS})
-AC_SUBST(LUA_CFLAGS, ${LUA_CFLAGS})
+AC_SUBST(LUA_LIBS, ${lua_LIBS})
+AC_SUBST(LUA_CFLAGS, ${lua_CFLAGS})
 
 AC_OUTPUT

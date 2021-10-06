@@ -118,8 +118,8 @@ regular: .configure .version
 multilib:
 	@mkdir -p obj-32
 	@mkdir -p obj-64
-	@$(MAKE) MACH_CFLAG=-m32 -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. regular
-	@$(MAKE) MACH_CFLAG=-m64 -C obj-64 --include-dir=.. -f ../Makefile SRCDIR=.. regular
+	@$(MAKE) MACH_CFLAG=-m32 -C obj-32 --include-dir=.. -f $(TOPDIR)/Makefile SRCDIR=$(TOPDIR) regular
+	@$(MAKE) MACH_CFLAG=-m64 -C obj-64 --include-dir=.. -f $(TOPDIR)/Makefile SRCDIR=$(TOPDIR) regular
 
 
 gcc_bins = addr2line ar as cc c++ c++filt cpp g++ gcc gcov gdb gdbtui gprof ld nm objcopy objdump ranlib rdi-stub readelf run size strings strip
@@ -255,8 +255,8 @@ endif
 multilib_prefix=$(prefix)
 
 install-multilib: multilib
-	@$(MAKE) -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. do-install-multilib bitness=32
-	@$(MAKE) -C obj-64 --include-dir=.. -f ../Makefile SRCDIR=.. do-install
+	@$(MAKE) -C obj-32 --include-dir=.. -f $(TOPDIR)/Makefile SRCDIR=$(TOPDIR) do-install-multilib bitness=32
+	@$(MAKE) -C obj-64 --include-dir=.. -f $(TOPDIR)/Makefile SRCDIR=$(TOPDIR) do-install
 
 do-install-multilib:
 	$(P)INSTALL
@@ -279,8 +279,8 @@ superclean: clean
 
 clean-multilib:
 	$(P)CLEAN
-	-$(Q)$(MAKE) -C obj-32 --include-dir=.. -f ../Makefile SRCDIR=.. do-clean
-	-$(Q)$(MAKE) -C obj-64 --include-dir .. -f ../Makefile SRCDIR=.. do-clean
+	-$(Q)$(MAKE) -C obj-32 --include-dir=.. -f $(TOPDIR)/Makefile SRCDIR=$(TOPDIR) do-clean
+	-$(Q)$(MAKE) -C obj-64 --include-dir=.. -f $(TOPDIR)/Makefile SRCDIR=$(TOPDIR) do-clean
 
 ifeq ($(MACH),x86_64)
 clean: clean-multilib do-clean

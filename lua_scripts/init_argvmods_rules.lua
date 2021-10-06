@@ -1,10 +1,40 @@
 -- Copyright (c) 2009,2012 Nokia Corporation.
+-- Copyright (c) 2021      Jolla Ltd.
 -- Author: Lauri T. Aarnio
 --
 -- Licensed under LGPL version 2.1, see top level LICENSE file for details.
 --
 -- Read in argvmods_{gcc,misc}.lua files and insert
 -- exec preprocessing rules to the rule tree db.
+--
+-- This script reads in argvmods_xxx.lua file (xxx being here
+-- gcc or misc) and writes out lua table containing generated
+-- argvmods rules.
+--
+-- argv&envp mangling rules are separated into two files
+-- 	argvenvp_misc.lua - rules for misc binaries
+-- 	argvenvp_gcc.lua  - rules for gcc
+--
+-- With these rules, this script generates exec preprocessing
+-- rules, and writes those to SBOX_SESSION_DIR/argvmods_misc.lua and
+-- SBOX_SESSION_DIR/argvmods_gcc.lua.
+--
+-- Syntax is of the form:
+--
+-- rule = {
+--	path_prefixes = {"/list/of", "/possible/path/prefixes"},
+-- 	add_head = {"list", "of", "args", "to", "prepend"},
+-- 	add_options = {"list", "of", "options", "to", "add",
+--		 "after", "argv[0]"},
+-- 	add_tail = {"these", "are", "appended"},
+-- 	remove = {"args", "to", "remove"},
+-- 	new_filename = "exec-this-binary-instead",
+-- 	disable_mapping = 1 -- set this to disable mappings
+-- }
+-- argvmods[name] = rule
+--
+-- Environment modifications are not supported yet, except for disabling
+-- mappings.
 
 local argvmods_allowed_rulenames = {
 	"name",
@@ -217,27 +247,20 @@ end
 
 -- first "misc":
 argvmods = {}
-argvmods_source_file = session_dir .. "/lua_scripts/argvenvp_misc.lua"
-do_file(argvmods_source_file)
-local num_rules = check_and_count_rules(argvmods)
-argvmods_to_ruletree("misc", num_rules, argvmods)
-argvmods_to_file(session_dir .. "/argvmods_misc.lua", num_rules, argvmods)
-if (debug_messages_enabled) then
-	sblib.log("debug",
-		string.format("%d rules", num_rules))
-end
+local num_rules, argvenvp_rule
 
 -- Next "gcc" and "misc";
 -- misc rules are already in argvmods table, don't clear it
-argvmods_source_file = session_dir .. "/lua_scripts/argvenvp_gcc.lua"
-do_file(argvmods_source_file)
-local num_rules = check_and_count_rules(argvmods)
-argvmods_to_ruletree("gcc", num_rules, argvmods)
-clear_attr_list()
-argvmods_to_file(session_dir .. "/argvmods_gcc.lua", num_rules, argvmods)
-if (debug_messages_enabled) then
-	sblib.log("debug",
+for _, argvenvp_rule in pairs({"misc", "gcc"}) do
+   do_file(session_dir .. "/lua_scripts/argvenvp_"..argvenvp_rule..".lua")
+   num_rules = check_and_count_rules(argvmods)
+   argvmods_to_ruletree(argvenvp_rule, num_rules, argvmods)
+   argvmods_to_file(session_dir .. "/argvmods_"..argvenvp_rule..".lua", num_rules, argvmods)
+   clear_attr_list()
+   if (debug_messages_enabled) then
+      sblib.log("debug",
 		string.format("%d rules", num_rules))
+   end
 end
 
 argvmods = nil  -- cleanup.

@@ -1,7 +1,7 @@
 #!/bin/bash
-# Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
-# Licensed under GPL version 2
-#
+# Copyright (c) 2006,2007 Lauri Leukkunen <lle@rahina.org>
+# Copyright (c) 2021      Jolla Ltd.
+# License: GPL-2.0
 # "sb2" script, the command-line interface to Scratchbox 2.
 #
 
@@ -448,17 +448,14 @@ function sboxify_environment()
 	SBOX_TARGET_TOOLCHAIN_DIR=$(dirname "$SBOX_CROSS_GCC_DIR")
 
 	if [ -z "$SBOX_MODE_PATH" ]; then
-		# /sb2/wrappers and /sb2/scripts contain utilities for
-		# development support, and are available in the
-		# software development modes ("simple" and "devel")
-	    TMP_PATH=/sb2/wrappers:/sb2/scripts:$HOME/.scratchbox2/$SBOX_TARGET/bin
-	    if [ ! -z "$CCACHE_TOOLS_PATH" ]; then
-		TMP_PATH=$TMP_PATH:$CCACHE_TOOLS_PATH
-	    fi
-	    export PATH=$TMP_PATH:$SBOX_DIR/bin:$PATH:/sbin:/usr/sbin:$SBOX_TARGET_ROOT/bin:$SBOX_TARGET_ROOT/usr/bin:$SBOX_TARGET_ROOT/usr/local/bin
+		new_PATH=$HOME/.scratchbox2/$SBOX_TARGET/bin
+		new_PATH+=:${CCACHE_TOOLS_PATH+$CCACHE_TOOLS_PATH:}$SBOX_DIR/bin:$PATH
+		PATH=$new_PATH:/sbin:/usr/sbin:$SBOX_TARGET_ROOT/bin
+		PATH+=$SBOX_TARGET_ROOT/usr/bin:$SBOX_TARGET_ROOT/usr/local/bin
 	else
-		export PATH=$SBOX_MODE_PATH
+		PATH=$SBOX_MODE_PATH
 	fi
+        export PATH
 
 	# LD_PRELOAD will be set to SBOX_LIBSB2 by sb2-monitor.
 

@@ -54,7 +54,6 @@ gcc_tools = {
 
 local generic_gcc_tools_path_prefixes = {
 	"/usr/bin/",
-	"/sb2/"
 }
 
 function register_gcc_component_path(tmp, gccrule)

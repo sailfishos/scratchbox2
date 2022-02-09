@@ -829,6 +829,10 @@ import_from_fs_rule_library("user_rules")
 -- path convention
 use_outside_path("/parentroot")
 
+-- Allow to access SDK root filesystem. Used to access cache locations shared
+-- between build targets.
+replace_outside_path("/sdkroot", "/")
+
 -- Define sbox_user_workspace as being outside like /home, this is a Mer SDK
 -- path convention. Take care to not override /home rules accidentally as those may overlap
 if sbox_user_workspace ~= "/home" then

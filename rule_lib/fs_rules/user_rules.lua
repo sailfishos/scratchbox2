@@ -22,6 +22,11 @@ function use_outside_path(path)
     {dir = path, rules = { {dir = path, use_orig_path = true}, }, })
 end
 
+function replace_outside_path(path, replacement)
+  table.insert(  emulate_mode_rules, 1,
+    {dir = path, rules = { {dir = path, replace_by = replacement}, }, })
+end
+
 -- Allow user-defined rules to "overlay" what we've defined here.
 -- What is in ~/.sbrules gets executed as if its contents were in this file, on this line.
 function run_user_sbrules()

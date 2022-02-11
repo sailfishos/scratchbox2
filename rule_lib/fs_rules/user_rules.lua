@@ -24,7 +24,7 @@ end
 
 function replace_outside_path(path, replacement)
   table.insert(  emulate_mode_rules, 1,
-    {dir = path, rules = { {dir = path, replace_by = replacement}, }, })
+    {dir = path, rules = { {dir = path, replace_by = replacement, virtual_path = true}, }, })
 end
 
 -- Allow user-defined rules to "overlay" what we've defined here.

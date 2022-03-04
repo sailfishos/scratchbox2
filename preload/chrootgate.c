@@ -24,7 +24,9 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+
 #include "sb2.h"
+#include "sb2_stat.h"
 #include "libsb2.h"
 #include "exported.h"
 

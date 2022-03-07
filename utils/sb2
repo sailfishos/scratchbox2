@@ -546,6 +546,14 @@ function create_common_sb2_conf_file_for_session()
 		sbox_user_home_dir="/home/unknown_user"
 	fi
 
+	# Workspace root from sbox' point of view is not the mount point but
+	# already the immediate subdirectory of the root directory, which is
+	# always one of "/home", "/Home", "/Users", "/[a-z]" or "/_*" (that's
+	# how the mount point is derived from the workspace path on host), none
+	# of which is to be mapped.  Use home dir as a fallback for easier use.
+	sbox_user_workspace=$(grep --only-matching -e '^/[^/]\+' \
+		<<<${SAILFISH_SDK_SRC1_MOUNT_POINT:-$sbox_user_home_dir})
+
 	cat <<END >>$SBOX_SESSION_DIR/sb2-session.conf
 comment_1=" Common configuration file for Lua and Shell scripts."
 comment_2=" Automatically generated file, do not edit."
@@ -555,6 +563,7 @@ sbox_target="$SBOX_TARGET"
 sbox_dir="$SBOX_DIR"
 sbox_workdir="$SBOX_WORKDIR"
 sbox_user_home_dir="$sbox_user_home_dir"
+sbox_user_workspace="$sbox_user_workspace"
 sbox_target_toolchain_dir="$SBOX_TARGET_TOOLCHAIN_DIR"
 
 sbox_mapmode="$SBOX_MAPMODE"

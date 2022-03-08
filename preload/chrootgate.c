@@ -24,7 +24,9 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+
 #include "sb2.h"
+#include "sb2_stat.h"
 #include "libsb2.h"
 #include "exported.h"
 
@@ -44,21 +46,19 @@ int chroot_gate(int *result_errno_ptr,
 
 	/* Parameter 'path' may not be a clean path,
 	 * and it isn't necessarily even absolute path. */
-	if (*path == '/') {
+	if (*path == '/' && sbox_chroot_path) {
 		char	*path2 = NULL;
 		/* "path" is absolute == really it is relative to
 		 * sbox_chroot_path if that is set; otherwise it is
 		 * relative to the virtual root */
-		if (sbox_chroot_path) {
-			if (asprintf(&path2, "%s/%s", sbox_chroot_path, path) < 0) {
-				*result_errno_ptr = EIO;
-				return(-1);
-			}
-			SB_LOG(SB_LOGLEVEL_DEBUG, "chroot, old dir='%s'",
-				sbox_chroot_path);
-		} else {
-			path2 = path;
+
+		if (asprintf(&path2, "%s/%s", sbox_chroot_path, path) < 0) {
+			*result_errno_ptr = EIO;
+			return(-1);
 		}
+		SB_LOG(SB_LOGLEVEL_DEBUG, "chroot, old dir='%s'",
+		       sbox_chroot_path);
+
 		/* sbox_virtual_path_to_abs_virtual_path() will clean it */
 		new_chroot_path = sbox_virtual_path_to_abs_virtual_path(
 			sbox_binary_name, realfnname, SB2_INTERFACE_CLASS_CHROOT,

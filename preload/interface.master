@@ -786,7 +786,7 @@ WRAP: int mkostemps64(char *template, int suffixlen, int flags) : \
 -- that did not exist when the function was called. These need to do path
 -- mapping when performing the tests.. because of that we need to replace
 -- these functions completely.
-GATE: char *tmpnam(char *s) : returns_string
+GATE: char *tmpnam(char __s[L_tmpnam]) : returns_string
 GATE: char *tempnam(const char *tmpdir, const char *prefix) : returns_string
 WRAP: char *mktemp(char *template) : \
 	map(template) \

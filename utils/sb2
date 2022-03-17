@@ -451,7 +451,7 @@ function sboxify_environment()
 		new_PATH=$HOME/.scratchbox2/$SBOX_TARGET/bin
 		new_PATH+=:${CCACHE_TOOLS_PATH+$CCACHE_TOOLS_PATH:}$SBOX_DIR/bin:$PATH
 		PATH=$new_PATH:/sbin:/usr/sbin:$SBOX_TARGET_ROOT/bin
-		PATH+=$SBOX_TARGET_ROOT/usr/bin:$SBOX_TARGET_ROOT/usr/local/bin
+		PATH+=:$SBOX_TARGET_ROOT/usr/bin:$SBOX_TARGET_ROOT/usr/local/bin
 	else
 		PATH=$SBOX_MODE_PATH
 	fi

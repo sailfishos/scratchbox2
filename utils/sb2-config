@@ -89,12 +89,14 @@ function show_config_log()
 
 	if [ "$target" == "-" ]; then
 		# use default target
-		if [ ! -f $HOME/.scratchbox2/config ]; then
+		if [ -f $HOME/.scratchbox2/config ]; then
+			. $HOME/.scratchbox2/config
+			target=$DEFAULT_TARGET
+		fi
+		if [ -z "$target" ]; then
 			echo "default target has not been set!" >&2
 			exit 1
 		fi
-		. $HOME/.scratchbox2/config
-		target=$DEFAULT_TARGET
 		echo "Configuration log of '$target'"
 	fi
 	SBOX_CONFIG_DIR=$HOME/.scratchbox2/$target/sb2.config.d
@@ -210,12 +212,14 @@ shift $(($OPTIND - 1))
 
 # Use the default target if "-t target" was not used
 if [ -z "$targetname" ]; then
-	if [ ! -f $HOME/.scratchbox2/config ]; then
+	if [ -f $HOME/.scratchbox2/config ]; then
+		. $HOME/.scratchbox2/config
+		targetname=$DEFAULT_TARGET
+	fi
+	if [ -z "$targetname" ]; then
 		echo "default target has not been set!" >&2
 		exit 1
 	fi
-	. $HOME/.scratchbox2/config
-	targetname=$DEFAULT_TARGET
 fi
 
 # log_config_action can be used after this, it requires SBOX_CONFIG_DIR

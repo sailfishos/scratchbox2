@@ -210,6 +210,16 @@ do
 done
 shift $(($OPTIND - 1))
 
+if [ $WRITE_CONFIG == 1 ]; then
+	write_config
+fi
+
+command=$1
+if [ -z "$command" ]; then
+	exit 0
+fi
+shift
+
 # Use the default target if "-t target" was not used
 if [ -z "$targetname" ]; then
 	if [ -f $HOME/.scratchbox2/config ]; then
@@ -224,16 +234,6 @@ fi
 
 # log_config_action can be used after this, it requires SBOX_CONFIG_DIR
 SBOX_CONFIG_DIR=$HOME/.scratchbox2/$targetname/sb2.config.d
-
-if [ $WRITE_CONFIG == 1 ]; then
-	write_config
-fi
-
-command=$1
-if [ -z "$command" ]; then
-	exit 0
-fi
-shift
 
 if [ ! -d $HOME/.scratchbox2/$targetname ]; then
 	echo "target $targetname does not exist!" >&2

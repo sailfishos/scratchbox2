@@ -9,8 +9,8 @@ enable_cross_gcc_toolchain = true
 -- Note that the real path (mapped path) is used when looking up rules!
 exec_policy_selection = {
 		-- Tools. at least qemu might be used from there.
-		-- Rule isn't active if tools_root is not set.
-		{prefix = tools_root, exec_policy_name = "Tools"},
+		-- Rule isn't active if tools_root is not set or "/".
+		{prefix = tools_prefix, exec_policy_name = "Tools"},
 
                 -- the toolchain, if not from Tools:
                 {dir = sbox_target_toolchain_dir, exec_policy_name = "Toolchain"},

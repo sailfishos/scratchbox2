@@ -12,8 +12,8 @@ enable_cross_gcc_toolchain = false
 -- Note that the real path (mapped path) is used when looking up rules!
 exec_policy_selection = {
 		-- Tools. at least qemu might be used from there.
-		-- Rule isn't active if tools_root is not set or "/".
-		{prefix = tools_prefix, exec_policy_name = "Tools"},
+		-- Rule isn't active if tools_root is not set.
+		{prefix = tools_root, exec_policy_name = "Tools"},
 
 		-- scratchbox2 binaries are expected from Host
 		{dir = sbox_dir .. "/bin", exec_policy_name = "Host"},

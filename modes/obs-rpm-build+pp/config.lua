@@ -20,8 +20,6 @@ exec_policy_selection = {
 		 exec_policy_name = "Tools-python"},
 		{prefix = tools_prefix .. "/bin/python",
 		 exec_policy_name = "Tools-python"},
-		-- Rule isn't active if tools_root is not set or "/".
-		{prefix = tools_prefix, exec_policy_name = "Tools"},
 
                 -- the toolchain, if not from Tools:
                 {dir = sbox_target_toolchain_dir, exec_policy_name = "Toolchain"},
@@ -31,6 +29,8 @@ exec_policy_selection = {
 
                 -- the workspace directory is expected to contain target binaries:
                 {dir = sbox_user_workspace, exec_policy_name = "Target"},
+
+		{prefix = tools, exec_policy_name = "Tools"},
 
 		-- DEFAULT RULE (must exist):
 		{prefix = "/", exec_policy_name = "Host"}

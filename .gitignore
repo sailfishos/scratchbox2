@@ -8,7 +8,9 @@ config.log
 include/config.h
 include/config.h.in
 configure
+config.guess
 config.status
+config.sub
 .config
 *.d
 autom4te.cache

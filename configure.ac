@@ -2,13 +2,13 @@
 # Based on the configure.ac script from fakechroot package
 
 
-AC_PREREQ(2.59)
-AC_INIT([sb2], [1.99b], [lle@rahina.org])
+AC_PREREQ([2.59])
+AC_INIT([sb2],[1.99b],[lle@rahina.org])
 #AC_CANONICAL_TARGET
 #AM_INIT_AUTOMAKE
 #AM_MAINTAINER_MODE
 #AC_CONFIG_SRCDIR([src/libfakechroot.c])
-AC_CONFIG_HEADER([include/config.h])
+AC_CONFIG_HEADERS([include/config.h])
 AC_CONFIG_FILES([config.mak])
 AC_PROG_CC
 AC_PROG_CXX
@@ -40,7 +40,6 @@ PKG_CHECK_VAR(LUA_LIBDIR, [lua], [libdir],
 
 # Checks for header files.
 AC_HEADER_DIRENT
-AC_HEADER_STDC
 AC_CHECK_HEADERS([ \
 fcntl.h \
 fts.h \
@@ -59,7 +58,7 @@ AC_TYPE_UID_T
 AC_TYPE_MODE_T
 AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
-AC_HEADER_TIME
+AC_CHECK_HEADERS_ONCE([sys/time.h])
 
 # Checks for library functions.
 AC_FUNC_ALLOCA

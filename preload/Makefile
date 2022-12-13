@@ -6,6 +6,7 @@ objs := wrappers.o privatewrappers.o \
 	tmpnamegates.o \
 	vperm_filestatgates.o \
 	vperm_uid_gid_gates.o \
+	dbusgates.o \
 	chrootgate.o \
 	vperm_statfuncts.o \
 	fdpathdb.o procfs.o mempcpy.o \
@@ -41,6 +42,8 @@ $(D)/libsb2.$(SHLIBEXT): LDFLAGS := $(LDFLAGS) $(LIBSB2_LDFLAGS)
 $(D)/libsb2.$(SHLIBEXT): LIBS := -ldl $(LIBSB2_LIBS)
 
 targets := $(targets) $(D)/libsb2.$(SHLIBEXT)
+
+$(D)/dbusgates.o: CFLAGS := $(CFLAGS) $(DBUS_CFLAGS)
 
 $(D)/libsb2.o $(D)/sb_l10n.o: preload/exported.h
 $(D)/exported.h $(D)/ldexportlist: preload/wrappers.c

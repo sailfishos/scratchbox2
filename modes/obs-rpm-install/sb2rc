@@ -26,6 +26,16 @@ case "$sb2rc_mode" in
 				mkdir $SBOX_TARGET_ROOT/var/log/apt
 			fi
 		fi
+
+		# Pacrunner is available under SDK build engine - redirect D-Bus
+		# connections from libproxy to it.
+		#
+		# An attempt to connect via unix socket would fail on sending
+		# credentials (SO_PEERCRED), but we can make use of the fact that it
+		# already accepts TCP connections for communication with sfdk.
+		if [ -f /etc/mer-sdk-vbox ]; then
+			SBOX_PACRUNNER_DBUS_BUS_ADDRESS="tcp:host=127.0.0.1,port=777"
+		fi
 		;;
 
 	mode_settings)

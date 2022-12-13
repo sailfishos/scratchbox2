@@ -99,6 +99,8 @@ ruletree.catalog_set("config", "sbox_uname_machine",
         ruletree.new_string(sbox_uname_machine))
 ruletree.catalog_set("config", "sbox_emulate_sb1_bugs",
         ruletree.new_string(sbox_emulate_sb1_bugs))
+ruletree.catalog_set("config", "sbox_pacrunner_dbus_bus_address",
+        ruletree.new_string(sbox_pacrunner_dbus_bus_address))
 
 -- Load exec config.
 -- NOTE: At this point all conf_cputransparency_* variables

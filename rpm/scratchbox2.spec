@@ -12,6 +12,7 @@ BuildRequires:	autoconf
 BuildRequires:  pkgconfig(lua)
 BuildRequires:  automake
 BuildRequires:	lua-posix
+BuildRequires:  pkgconfig(dbus-1)
 Requires:	libsb2 = %{version}-%{release}
 Requires:	lua-posix
 

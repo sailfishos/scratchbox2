@@ -37,6 +37,10 @@ PKG_CHECK_VAR(LUA_LIBDIR, [lua], [libdir],
 [AC_MSG_FAILURE([Unable to identify lua libdir.])
 ])
 
+# Only headers needed.
+PKG_CHECK_MODULES(DBUS, dbus-1)
+AC_SUBST(DBUS_CFLAGS)
+
 
 # Checks for header files.
 AC_HEADER_DIRENT

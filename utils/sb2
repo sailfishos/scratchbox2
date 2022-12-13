@@ -592,6 +592,8 @@ sbox_uname_machine="$SBOX_UNAME_MACHINE"
 sbox_libsb2="$SBOX_LIBSB2"
 
 sbox_emulate_sb1_bugs="$SBOX_EMULATE_SB1_BUGS"
+
+sbox_pacrunner_dbus_bus_address="$SBOX_PACRUNNER_DBUS_BUS_ADDRESS"
 END
 }
 

@@ -882,3 +882,9 @@ GATE: int setreuid(uid_t ruid, uid_t euid)
 
 GATE: int setuid(uid_t uid)
 
+--
+-- 11. Redirect some D-Bus connections to host
+--
+
+GATE: void *dbus_bus_get_private(int type, void *error)
+GATE: void *px_proxy_factory_new(void)

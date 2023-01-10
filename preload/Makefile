@@ -11,6 +11,7 @@ objs := wrappers.o privatewrappers.o \
 	fdpathdb.o procfs.o mempcpy.o \
 	union_dirs.o \
 	system.o \
+	syscallgate.o \
 	sb2context.o
 
 ifeq ($(shell uname -s),Linux)
@@ -49,7 +50,7 @@ $(OBJDIR)/preload/exported.h $(D)/ldexportlist: $(OBJDIR)/preload/wrappers.c
 # without
 .NOTPARALLEL: $(OBJDIR)/preload/exported.h
 .NOTPARALLEL: preload/exported.h
-$(OBJDIR)/preload/wrappers.c: preload/interface.master preload/gen-interface.pl
+$(OBJDIR)/preload/wrappers.c $(OBJDIR)/preload/syscallgate.c: preload/interface.master preload/gen-interface.pl
 	$(MKOUTPUTDIR)
 	$(P)PERL
 	$(Q)$(SRCDIR)/preload/gen-interface.pl \
@@ -57,6 +58,7 @@ $(OBJDIR)/preload/wrappers.c: preload/interface.master preload/gen-interface.pl
 		-W $(OBJDIR)/preload/wrappers.c \
 		-E $(OBJDIR)/preload/exported.h \
 		-M $(OBJDIR)/preload/export.map \
+		-S $(OBJDIR)/preload/syscallgate.c \
 		-V $(PACKAGE_VERSION) \
 		-m $(OBJDIR)/preload/libsb2_interface.7 \
 		<$(SRCDIR)/preload/interface.master
@@ -73,6 +75,7 @@ $(D)/privatewrappers.c: preload/interface.private preload/gen-interface.pl
 
 generated := $(OBJDIR)/preload/wrappers.c \
 			$(OBJDIR)/preload/exported.h \
+			$(OBJDIR)/preload/syscallgate.c \
 			$(OBJDIR)/preload/ldexportlist \
 			$(OBJDIR)/preload/export.map \
 			$(OBJDIR)/preload/privatewrappers.c \

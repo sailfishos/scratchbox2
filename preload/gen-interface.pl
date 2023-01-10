@@ -90,6 +90,7 @@
 # For "GATE" only:
 #   - "pass_va_list" is used for generic varargs processing: It passes a
 #     "va_list" to the gate function.
+#    - syscall([ifdef] NUM) mark gate as also be available through syscall(2) gate.
 #
 # Command "EXPORT" is used to specify that a function needs to be exported
 # from the scratchbox preload library. This does not create any wrapper
@@ -101,15 +102,16 @@
 
 use strict;
 
-our($opt_d, $opt_W, $opt_E, $opt_L, $opt_M, $opt_n, $opt_m, $opt_V);
+our($opt_d, $opt_W, $opt_E, $opt_S, $opt_L, $opt_M, $opt_n, $opt_m, $opt_V);
 use Getopt::Std;
 use File::Basename;
 
 # Process options:
-getopts("dW:E:L:M:n:m:V:");
+getopts("dW:E:S:L:M:n:m:V:");
 my $debug = $opt_d;
 my $wrappers_c_output_file = $opt_W;		# -W generated_c_filename
 my $export_h_output_file = $opt_E;		# -E generated_h_filename
+my $syscallgate_c_output_file = $opt_S;
 my $export_list_for_ld_output_file = $opt_L;	# -L generated_list_for_ld
 my $export_map_for_ld_output_file = $opt_M;	# -M generated_export_map_for_ld
 my $interface_name = $opt_n;			# -n interface_name
@@ -205,9 +207,17 @@ sub parser_separate_type_and_name {
 		if($debug) { print "type='$type', name='$name'\n"; }
 	} elsif($input =~ m/^\s*(\S.*?\S)\s*(\w+)\s*\[(.*)\]$/) {
 		# Case 2: an array.
-		$type = $1."[".$3."]";
-		$name = $2;
-
+        $type = $1;
+        $name = $2;
+        if ($type =~ m/^(\w+)\s(\**\s*const.*)/) {
+            # Case 2.1: an array with const
+            # The poiner star has to go to the type name
+            $type = $1." * ".$2;
+  #      } elsif ($type =~ m/^const /){
+   #         $type = $type . " *"
+        } else {
+            $type = $type . " * ";
+        }
 		if($debug) { print "Array: type='$type', name='$name'\n"; }
 	} elsif($input =~ m/^\s*(\S.*?\S)\s*\(\s*\**\s*(\w+)\s*\)\s*\((.*)$/) {
 		# Case 3: a function pointer.
@@ -518,6 +528,19 @@ sub flagexpr_join {
 	return $result;
 }
 
+sub syscall_cond_parse {
+    my $syscall_cond = shift;
+    my $cond = undef;
+    my @syscalls = undef;
+
+    $cond = $1, @syscalls = $2 if ( $syscall_cond =~ m/^(\w+)\s+([\w,]+)/);
+
+    @syscalls = split(/\,/, ($syscalls[0] or $syscall_cond));
+
+    return $cond,@syscalls;
+}
+
+
 # Process the modifier section coming from the original input line.
 # This returns undef if failed, or a structure containing code fragments
 # and other information for the actual code generation phase.
@@ -794,6 +817,16 @@ sub process_wrap_or_gate_modifiers {
 				$fn->{'last_named_var'}.");\n";
 			$mods->{'va_list_end_code'} = "\tva_end(ap);\n";
 			$varargs_handled = 1;
+        } elsif($modifiers[$i] =~ m/^syscall\((.*)\)$/) {
+            if($mods->{'syscall'}) {
+				print "ERROR: redefinition of syscall for '%s'\n",
+					$fn_name;
+				$num_errors++;
+			} else {
+                my ($sycall_cond, @syscalls) = syscall_cond_parse($1);
+                $mods->{'syscall_cond'} = $sycall_cond;
+				@{$mods->{'syscall'}} = @syscalls;
+			}
 		} elsif($modifiers[$i] eq 'returns_string') {
 			$mods->{'returns_string'} = 1;
 		} elsif($modifiers[$i] =~ m/^log_params\((.*)\)$/) {
@@ -1021,15 +1054,35 @@ sub create_call_to_gate_fn {
 #-------------------
 # actual code generators:
 
+
+sub include_h_head {
+    my $h_output_file_macro_name = uc(shift())."__";
+    $h_output_file_macro_name =~ s/\W/_/g;
+
+    my $h_output_head_buffer =<<"EOF";
+#ifndef $h_output_file_macro_name
+#define $h_output_file_macro_name
+
+#include "config.h"
+EOF
+    return $h_output_head_buffer;
+}
+
+
+my $file_header_comment = "/* Automatically generated file. Do not edit. */";
+
+my $generated_c_head = <<"EOF";
+$file_header_comment
+
+#include "config.h"
+EOF
+
 my $wrappers_c_buffer = "";	# buffers contents of the generated ".c" file
 
-# buffers contents of the generated ".h" file
-my $h_file_include_check_macroname = uc($export_h_output_file)."__";
-$h_file_include_check_macroname =~ s/\W/_/g;
-my $export_h_buffer =
-"#ifndef $h_file_include_check_macroname
-#define $h_file_include_check_macroname
+# buffers contents of the generated ".h" files
 
+my $export_h_buffer =
+    include_h_head($export_h_output_file).<<"END";
 #include <sys/utsname.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -1064,7 +1117,7 @@ my $export_h_buffer =
 #include <sys/xattr.h>
 #endif
 
-#include \"mapping.h\"
+#include "mapping.h"
 
 #if (defined(PROPER_DIRENT) && (PROPER_DIRENT == 1))
 typedef const struct dirent *scandir_arg_t;
@@ -1073,8 +1126,59 @@ typedef const struct dirent64 *scandir64_arg_t;
 typedef const void scandir_arg_t;
 typedef const void scandir64_arg_t;
 #endif
+END
 
-";
+
+my $wrappers_c_head = <<"EOF";
+$generated_c_head
+#include "libsb2.h"
+EOF
+
+my $syscallgate_c_buffer_head = <<"END";
+$generated_c_head
+#include <asm-generic/unistd.h>
+#include <sys/syscall.h>
+#include <unistd.h>
+
+#include "libsb2.h"
+#include "exported.h"
+END
+
+my $syscallgate_c_buffer_function_head = <<"END";
+
+long syscall_gate(
+        int *result_errno_ptr,
+	long (*real_syscall_ptr)(long number, ...),
+	const char *realfnname, long number, va_list ap)
+{
+	(void)realfnname;
+	long ret = 0;
+	switch (number) {
+END
+
+my $syscallgate_c_buffer_function_body = "";
+
+my $syscallgate_c_buffer_function_bottom = <<"END";
+        default: {
+                SB_LOG(SB_LOGLEVEL_NOISE2,
+                       "%s gate: calling unmapped syscall(%s)",
+                        realfnname, number);
+                ret = real_syscall_ptr(number,
+                                       va_arg(ap, long),
+                                       va_arg(ap, long),
+                                       va_arg(ap, long),
+                                       va_arg(ap, long),
+                                       va_arg(ap, long),
+                                       va_arg(ap, long));
+                break;
+        }
+	};
+	if (result_errno_ptr) *result_errno_ptr = errno;
+	return ret;
+}
+END
+
+my $syscallgate_c_body = "";
 
 sub add_fn_to_man_page {
 	my $fn = shift;
@@ -1083,6 +1187,7 @@ sub add_fn_to_man_page {
 }
 
 my %fn_to_classmasks;
+my $syscall_in_cond;
 
 # Handle "WRAP" and "GATE" commands.
 sub command_wrap_or_gate {
@@ -1132,6 +1237,53 @@ sub command_wrap_or_gate {
 	my $nomap_funct_def = $funct_def;
 	$nomap_funct_def =~ s/($fn_name)/$1_nomap/;
 	$export_h_buffer .= "extern $nomap_funct_def;\n";
+	if($command eq 'GATE' or $command eq 'WRAP')  {
+		if (defined($mods->{'syscall'})) {
+            for my $syscall (@{$mods->{'syscall'}}) {
+                if ($syscall_in_cond) {
+                    $syscallgate_c_buffer_function_body .= "\n";
+                    $syscall_in_cond = 0;
+                }
+                if(defined($mods->{'syscall_cond'})) {
+                    if ($mods->{'syscall_cond'} ne 'ifdef') {
+                        print("Error unsupported sycall condition: "
+                              . $mods->{'syscall_cond'}
+                              . "\n");
+                        $num_errors++;
+                    }
+                    $syscallgate_c_buffer_function_body .= "#ifdef "
+                        . $syscall . "\n";
+                    $syscall_in_cond = 1;
+                }
+                my @syscall_arguments;
+                for (my $num_index=0;
+                     $num_index < $fn->{'num_parameters'};
+                     $num_index++) {
+                    $syscall_arguments[$#syscall_arguments+1]
+                        = join(",",
+                               "va_arg(ap, " .
+                               $mods->{'parameter_types'}[$num_index]
+                               . ")");
+                }
+                $syscallgate_c_buffer_function_body .=
+                    "\tcase $syscall: {\n";
+                $syscallgate_c_buffer_function_body .=
+                    "\t\tret = $fn_name("
+                    .join(",\n\t\t\t     ", @syscall_arguments)
+                    . ");\n";
+                $syscallgate_c_buffer_function_body .=
+                    "\t\tbreak;\n"
+                    ."\t}";
+                if(defined($mods->{'syscall_cond'})) {
+                    $syscallgate_c_buffer_function_body .= "\n";
+                    $syscallgate_c_buffer_function_body .= "#endif\n";
+                    $syscall_in_cond = 0;
+                } else {
+                    $syscallgate_c_buffer_function_body .= "\n";
+                }
+            }
+		}
+	}
 	my $nomap_fn_c_code .=
 		$nomap_funct_def."\n".
 		"{\n".
@@ -1499,15 +1651,14 @@ if($num_errors) {
 
 # No errors - write output files.
 
-my $file_header_comment = "/* Automatically generated file. Do not edit. */\n";
+my $include_export_h_file = "";
+
+if(defined $export_h_output_file) {
+    my $bn = basename($export_h_output_file);
+    $include_export_h_file = '#include "'.$bn.'"'."\n\n";
+}
 
 if(defined $wrappers_c_output_file) {
-	my $include_h_file = "";
-	
-	if(defined $export_h_output_file) {
-		my $bn = basename($export_h_output_file);
-		$include_h_file = '#include "'.$bn.'"'."\n";
-	}
 	my $interface_functions_and_classes =
 		"interface_function_and_classes_t ".
 		"interface_functions_and_classes__".$interface_name."[] = {\n";
@@ -1518,10 +1669,8 @@ if(defined $wrappers_c_output_file) {
 	}
 	$interface_functions_and_classes .= "\t{NULL, 0},\n};\n";
 	write_output_file($wrappers_c_output_file,
-		$file_header_comment.
-        '#include <config.h>'."\n\n".
-        '#include "libsb2.h"'."\n".
-		$include_h_file.
+		$wrappers_c_head.
+		$include_export_h_file.
 		$wrappers_c_buffer.
 		$interface_functions_and_classes);
 }
@@ -1547,6 +1696,14 @@ if(defined $export_map_for_ld_output_file) {
 
 	write_output_file($export_map_for_ld_output_file,
 		$export_map);
+}
+
+if(defined $syscallgate_c_output_file) {
+	write_output_file($syscallgate_c_output_file,
+                      $syscallgate_c_buffer_head
+                      .$syscallgate_c_buffer_function_head
+                      .$syscallgate_c_buffer_function_body
+                      .$syscallgate_c_buffer_function_bottom);
 }
 
 if(defined $man_page_output_file) {

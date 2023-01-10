@@ -11,6 +11,7 @@ objs := wrappers.o privatewrappers.o \
 	fdpathdb.o procfs.o mempcpy.o \
 	union_dirs.o \
 	system.o \
+	syscallgate.o \
 	sb2context.o
 
 ifeq ($(shell uname -s),Linux)
@@ -47,6 +48,7 @@ preloader_generated_public := \
 	$(OBJDIR)/$(D)/wrappers.c \
 	$(OBJDIR)/$(D)/exported.h \
 	$(OBJDIR)/$(D)/export.map \
+	$(OBJDIR)/$(D)/syscallgate.c \
 	$(OBJDIR)/$(D)/libsb2_interface.7
 
 $(preloader_generated_public): preload/interface.master \
@@ -58,6 +60,7 @@ $(preloader_generated_public): preload/interface.master \
 		-W $(OBJDIR)/preload/wrappers.c \
 		-E $(OBJDIR)/preload/exported.h \
 		-M $(OBJDIR)/preload/export.map \
+		-S $(OBJDIR)/preload/syscallgate.c \
 		-V $(PACKAGE_VERSION) \
 		-m $(OBJDIR)/preload/libsb2_interface.7 \
 		<$(SRCDIR)/preload/interface.master

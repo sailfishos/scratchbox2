@@ -244,20 +244,11 @@ void sbox_map_path_at(
 {
 	const char *dirfd_path;
 
-	if (!virtual_path) {
-		res->mres_result_buf = res->mres_result_path = NULL;
-		res->mres_readonly = 1;
-		return;
-	}
-        if (*virtual_path == '\0') {
-		goto end;
-	}
-
-	if ((*virtual_path == '/')
+	if (virtual_path && ((*virtual_path == '/')
 #ifdef AT_FDCWD
-	    || (dirfd == AT_FDCWD)
+		|| (dirfd == AT_FDCWD)
 #endif
-	   ) {
+	   )) {
 		/* same as sbox_map_path() */
 		fwd_map_path(
 			(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
@@ -273,9 +264,16 @@ void sbox_map_path_at(
 		/* pathname found */
 		char *virtual_abs_path_at_fd = NULL;
 
-		if (asprintf(&virtual_abs_path_at_fd, "%s/%s", dirfd_path, virtual_path) < 0) {
-			/* asprintf failed */
-			abort();
+		if (!virtual_path || *virtual_path == '\0') {
+			if (asprintf(&virtual_abs_path_at_fd, "%s", dirfd_path) < 0) {
+				/* asprintf failed */
+				abort();
+			}
+		} else {
+			if (asprintf(&virtual_abs_path_at_fd, "%s/%s", dirfd_path, virtual_path) < 0) {
+				/* asprintf failed */
+				abort();
+			}
 		}
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"Synthetic path for %s(%d,'%s') => '%s'",
@@ -289,15 +287,6 @@ void sbox_map_path_at(
 
 		return;
 	}
-
-end:
-	/* name not found. Can't do much here, log a warning and return
-	 * the original relative path. That will work if we are lucky, but
-	 * not always..  */
-	SB_LOG(SB_LOGLEVEL_WARNING, "Path not found for FD %d, for %s(%s)",
-		dirfd, func_name, virtual_path);
-	res->mres_result_buf = res->mres_result_path = strdup(virtual_path);
-	res->mres_readonly = 0;
 }
 
 /* this maps the path and then leaves "rule" and "exec_policy" to the stack, 

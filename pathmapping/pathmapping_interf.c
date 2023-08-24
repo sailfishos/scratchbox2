@@ -244,6 +244,12 @@ void sbox_map_path_at(
 {
 	const char *dirfd_path;
 
+	if (!virtual_path) {
+		res->mres_result_buf = res->mres_result_path = NULL;
+		res->mres_readonly = 1;
+		return;
+	}
+
 	if (virtual_path && ((*virtual_path == '/')
 #ifdef AT_FDCWD
 		|| (dirfd == AT_FDCWD)
@@ -287,6 +293,14 @@ void sbox_map_path_at(
 
 		return;
 	}
+
+	/* name not found. Can't do much here, log a warning and return
+	 * the original relative path. That will work if we are lucky, but
+	 * not always..  */
+	SB_LOG(SB_LOGLEVEL_WARNING, "Path not found for FD %d, for %s(%s)",
+			dirfd, func_name, virtual_path);
+	res->mres_result_buf = res->mres_result_path = strdup(virtual_path);
+	res->mres_readonly = 0;
 }
 
 /* this maps the path and then leaves "rule" and "exec_policy" to the stack, 

@@ -15,7 +15,7 @@ objs := wrappers.o privatewrappers.o \
 
 ifeq ($(shell uname -s),Linux)
 LIBSB2_LDFLAGS = -Wl,-soname=$(LIBSB2_SONAME) \
-		-Wl,--version-script=preload/export.map
+		-Wl,--version-script=$(OBJDIR)preload/export.map
 
 # DO NOT add any libraries that depend on libpthread to
 # LIBSB2_LIBS or LIBS!! see the comments in luaif.c.

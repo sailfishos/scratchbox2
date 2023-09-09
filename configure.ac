@@ -20,7 +20,7 @@ AC_PROG_MAKE_SET
 AC_CHECK_LIB([dl], [dlsym])
 
 PKG_CHECK_MODULES([lua], lua >= 5.2.0)
-PKG_CHECK_VAR(LUA_VERSION_MAJOR_MINOR, [lua], [V])
+LUA_VERSION_MAJOR_MINOR=$($PKG_CONFIG --modversion lua | cut -d. -f1,2)
 PKG_CHECK_VAR(LUA_LIBDIR, [lua], [libdir],
 [
 	m4_foreach([lua_module], [[posix]],

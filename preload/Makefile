@@ -15,7 +15,7 @@ objs := wrappers.o privatewrappers.o \
 
 ifeq ($(shell uname -s),Linux)
 LIBSB2_LDFLAGS = -Wl,-soname=$(LIBSB2_SONAME) \
-		-Wl,--version-script=preload/export.map
+		-Wl,--version-script=$(OBJDIR)/preload/export.map
 
 # DO NOT add any libraries that depend on libpthread to
 # LIBSB2_LIBS or LIBS!! see the comments in luaif.c.
@@ -42,18 +42,18 @@ $(D)/libsb2.$(SHLIBEXT): LIBS := -ldl $(LIBSB2_LIBS)
 
 targets := $(targets) $(D)/libsb2.$(SHLIBEXT)
 
-$(D)/libsb2.o $(D)/sb_l10n.o: preload/exported.h
-$(D)/exported.h: preload/wrappers.c
-$(D)/wrappers.c: preload/interface.master preload/gen-interface.pl
+$(D)/libsb2.o $(D)/sb_l10n.o: $(OBJDIR)/preload/exported.h
+$(OBJDIR)/preload/exported.h: $(OBJDIR)/preload/wrappers.c
+$(OBJDIR)/preload/wrappers.c: preload/interface.master preload/gen-interface.pl
 	$(MKOUTPUTDIR)
 	$(P)PERL
 	$(Q)$(SRCDIR)/preload/gen-interface.pl \
 		-n public \
-		-W preload/wrappers.c \
-		-E preload/exported.h \
-		-M preload/export.map \
+		-W $(OBJDIR)/preload/wrappers.c \
+		-E $(OBJDIR)/preload/exported.h \
+		-M $(OBJDIR)/preload/export.map \
 		-V $(PACKAGE_VERSION) \
-		-m preload/libsb2_interface.7 \
+		-m $(OBJDIR)/preload/libsb2_interface.7 \
 		<$(SRCDIR)/preload/interface.master
 
 $(D)/privatewrappers.h: preload/privatewrappers.c
@@ -62,11 +62,11 @@ $(D)/privatewrappers.c: preload/interface.private preload/gen-interface.pl
 	$(P)PERL
 	$(Q)$(SRCDIR)/preload/gen-interface.pl \
 		-n private \
-		-W preload/privatewrappers.c \
-		-E preload/privatewrappers.h \
+		-W $(OBJDIR)/preload/privatewrappers.c \
+		-E $(OBJDIR)/preload/privatewrappers.h \
 		<$(SRCDIR)/preload/interface.private
 
-generated := preload/wrappers.c preload/exported.h
+generated := $(OBJDIR)/preload/wrappers.c $(OBJDIR)/preload/exported.h
 .PRECIOUS: $(generated)
 
 CLEAN_FILES += $(generated)

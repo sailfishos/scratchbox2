@@ -45,7 +45,7 @@ define import_dir
 	objects-y :=
 	D := $(1)
 	$(shell mkdir -p $(1))
-	include $(1)/Makefile
+	include $(SRCDIR)/$(1)/Makefile
 	dep_files := $$(wildcard $(1)/.*.d)
 	include $(dep_files)
 	all_objects := $$(all_objects) $$(patsubst %,$(1)/%,$$(objects))

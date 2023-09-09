@@ -47,10 +47,18 @@ void sblog_printf_line_to_logfile(const char *file, int line,
         va_end(ap);
 }
 
-extern int open_nomap_nolog(const char *pathname, int flags, mode_t mode);
+extern int open_nomap_nolog(const char *pathname, int flags, ...);
 
-int open_nomap_nolog(const char *pathname, int flags, mode_t mode)
+int open_nomap_nolog(const char *pathname, int flags, ...)
 {
+	mode_t mode = 0;
+	if(__OPEN_NEEDS_MODE(flags)) {
+		va_list arg;
+		va_start (arg, flags);
+		mode = va_arg (arg, int);
+		va_end (arg);
+	}
+
 	return open(pathname, flags, mode);
 }
 

@@ -1,19 +1,24 @@
-Summary: 	Scratchbox2 crosscompiling environment
-License: 	LGPLv2
-URL:	        https://git.sailfishos.org/mer-core/scratchbox2
-Name: 		scratchbox2
-Version:	2.3.90
+Summary:	Scratchbox2 crosscompiling environment
+License:	LGPLv2
+URL:		https://git.sailfishos.org/mer-core/scratchbox2
+Name:		scratchbox2
+Version:	2.3.90+git58
 Release:	0
-Source: 	%{name}-%{version}.tar.gz
-Prefix: 	/usr
-ExclusiveArch:	%{ix86}
+Source:		%{name}-%{version}.tar.gz
+Prefix:		/usr
+ExclusiveArch:	%{ix86} %{x86_64}
 BuildRequires:	make
 BuildRequires:	autoconf
-BuildRequires:  pkgconfig(lua)
-BuildRequires:  automake
+BuildRequires:	pkgconfig(lua)
+BuildRequires:	automake
+%if 0%{?suse_version}
+BuildRequires:	lua-luaposix
+Requires:		lua-luaposix
+%else
 BuildRequires:	lua-posix
-Requires:	libsb2 = %{version}-%{release}
-Requires:	lua-posix
+Requires:		lua-posix
+%endif
+Requires:		libsb2 = %{version}-%{release}
 
 %description
 Scratchbox2 crosscompiling environment
@@ -31,13 +36,13 @@ Summary: Scratchbox2 docs
 Scratchbox2 man pages.
 
 %prep
-%setup
+%autosetup
 
 %build
 ./autogen.sh
 %configure
 touch .configure
-# Can't use  %{?_smp_mflags}  here: race condition in build system
+# Can't use %{?_smp_mflags} here: race condition in build system
 %{__make} %{_make_output_sync} %{_make_verbose}
 
 %install
@@ -46,7 +51,6 @@ touch .configure
 install -D -m 644 utils/sb2.bash %{buildroot}/etc/bash_completion.d/sb2.bash
 
 %files
-%defattr(-,root,root)
 %{_bindir}/sb2*
 %{_datadir}/scratchbox2/*
 %config %{_sysconfdir}/bash_completion.d/sb2.bash
@@ -56,7 +60,6 @@ install -D -m 644 utils/sb2.bash %{buildroot}/etc/bash_completion.d/sb2.bash
 %doc %attr(0444,root,root) /usr/share/man/man7/*
 
 %files -n libsb2
-%defattr(-,root,root)
 %{_libdir}/libsb2/*
 %ifarch x86_64
 /usr/lib32/libsb2/*

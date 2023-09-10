@@ -1,19 +1,24 @@
-Summary: 	Scratchbox2 crosscompiling environment
-License: 	LGPLv2
-URL:	        https://git.sailfishos.org/mer-core/scratchbox2
-Name: 		scratchbox2
-Version:	2.3.90
+Summary:	Scratchbox2 crosscompiling environment
+License:	LGPLv2
+URL:		https://git.sailfishos.org/mer-core/scratchbox2
+Name:		scratchbox2
+Version:	2.3.90+git58
 Release:	0
-Source: 	%{name}-%{version}.tar.gz
-Prefix: 	/usr
-ExclusiveArch:	%{ix86}
+Source:		%{name}-%{version}.tar.gz
+Prefix:		/usr
+ExclusiveArch:	%{ix86} %{x86_64}
 BuildRequires:	make
 BuildRequires:	autoconf
-BuildRequires:  pkgconfig(lua)
-BuildRequires:  automake
+BuildRequires:	pkgconfig(lua)
+BuildRequires:	automake
+%if 0%{?suse_version}
+BuildRequires:	lua-luaposix
+Requires:		lua-luaposix
+%else
 BuildRequires:	lua-posix
-Requires:	libsb2 = %{version}-%{release}
-Requires:	lua-posix
+Requires:		lua-posix
+%endif
+Requires:		libsb2 = %{version}-%{release}
 
 %description
 Scratchbox2 crosscompiling environment
@@ -31,13 +36,13 @@ Summary: Scratchbox2 docs
 Scratchbox2 man pages.
 
 %prep
-%setup
+%autosetup
 
 %build
 ./autogen.sh
 %configure
 touch .configure
-# Can't use  %{?_smp_mflags}  here: race condition in build system
+# Can't use %{?_smp_mflags} here: race condition in build system
 %{__make} %{_make_output_sync} %{_make_verbose}
 
 %install

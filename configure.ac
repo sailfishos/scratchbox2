@@ -164,6 +164,7 @@ setenv \
 setxattr \
 stat \
 stat64 \
+statx \
 strchrnul \
 symlink \
 symlinkat \

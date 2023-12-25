@@ -667,6 +667,13 @@ WRAP: int stat(const char *file_name, struct stat *buf) : \
 	create_nomap_nolog_version \
 	map(file_name) class(STAT)
 
+#ifdef HAVE_STATX
+GATE: int statx(int dirfd, const char *__restrict pathname, int flags, \
+	unsigned int mask, struct statx *__restrict buf) : \
+	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
+	map_at(dirfd,pathname) class(STAT)
+#endif
+
 #ifdef HAVE_STAT64
 WRAP: int stat64(const char *file_name, struct stat64 *buf) : map(file_name) class(STAT) \
         create_nomap_nolog_version

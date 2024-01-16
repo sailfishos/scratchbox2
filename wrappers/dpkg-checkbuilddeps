@@ -343,7 +343,7 @@ function check_host_builddeps_by_real_tool()
 
 	# else real dpkg-checkbuilddeps failed.
 	# sed -e 's/^/     /' < $x_missing_dep_file
-	tools_missing_deps=$(egrep \
+	tools_missing_deps=$(grep -E \
 		"^dpkg-checkbuilddeps: Unmet build dependencies:" \
 			$x_missing_dep_file | \
 		sed 's/dpkg-checkbuilddeps: Unmet build dependencies: //')
@@ -386,7 +386,7 @@ function check_target_builddeps()
 	if [ -n "$SBOX_CHECKBUILDDEPS_VERBOSE" ]; then
 		sed -e 's/^/     /' < $missing_dep_file
 	fi
-	missing_deps=$(egrep \
+	missing_deps=$(grep -E \
 		"^dpkg-checkbuilddeps: Unmet build dependencies:" \
 			$missing_dep_file | \
 		sed 's/dpkg-checkbuilddeps: Unmet build dependencies: //')

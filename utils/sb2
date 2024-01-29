@@ -19,12 +19,12 @@ SBOX_LIBSB2="libsb2.so.1"
 	
 # Show version.
 # (called to process a command-line option)
-function show_version()
+show_version()
 {
 	cat $SBOX_DIR/share/scratchbox2/version
 }
 
-function show_usage_and_exit()
+show_usage_and_exit()
 {
 	cat <<EOF
 sb2 - crosscompiling environment
@@ -91,9 +91,9 @@ EOF
 	exit 2
 }
 
-function exit_error()
+exit_error()
 {
-	echo "sb2: Error: $@"
+	echo "sb2: Error: $*"
 	if [ ! -z "$SBOX_SESSION_DIR" ]; then
 	    if [ -z "$OPT_DONT_DELETE_SESSION" ]; then
 		rm -rf $SBOX_SESSION_DIR
@@ -114,7 +114,7 @@ function exit_error()
 #
 # Used during initialization stage 1 (while setting
 # up the environment, which can't be used yet)
-function write_rules_to_session_dir()
+write_rules_to_session_dir()
 {
 	output_file_name=$1
 	mapmode_name=$2
@@ -156,7 +156,7 @@ END
 #   source tree)
 #
 # Used during stage 5: Preparing environment variables.
-function locate_target_nsswitch_conf()
+locate_target_nsswitch_conf()
 {
 	__SB2_BINARYNAME="sb2:LocatingNsswitchConf" \
 	sb2-monitor \
@@ -168,12 +168,12 @@ function locate_target_nsswitch_conf()
 		-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
 		which /var/run/nscd/socket \
 		>$SBOX_SESSION_DIR/path_to_nscd_socket.conf
-	NSSWITCH_CONF_PATH=`cat $SBOX_SESSION_DIR/path_to_nsswitch.conf`
-	NSCD_SOCKET_PATH=`cat $SBOX_SESSION_DIR/path_to_nscd_socket.conf`
-	if [ -n "NSSWITCH_CONF_PATH" ]; then
+	read -r NSSWITCH_CONF_PATH < $SBOX_SESSION_DIR/path_to_nsswitch.conf
+	read -r NSCD_SOCKET_PATH < $SBOX_SESSION_DIR/path_to_nscd_socket.conf
+	if [ -n "$NSSWITCH_CONF_PATH" ]; then
 		export NSSWITCH_CONF_PATH
 	fi
-	if [ -n "NSCD_SOCKET_PATH" ]; then
+	if [ -n "$NSCD_SOCKET_PATH" ]; then
 		export NSCD_SOCKET_PATH
 	fi
 }
@@ -181,10 +181,10 @@ function locate_target_nsswitch_conf()
 # Create some additional rules for the default mapping mode:
 #
 # Used during stage 3 (generation of automatic rules)
-function add_auto_rules_to_mapping_rules()
+add_auto_rules_to_mapping_rules()
 {
 	for ammf in $SBOX_SESSION_DIR/rules/$SBOX_MAPMODE.lua; do
-		amm_base=`basename $ammf .lua`
+		amm_base=$(basename $ammf .lua)
 
 		if [ -f $SBOX_SESSION_DIR/rules_auto/$amm_base.usr_bin.lua ]; then
 			# add the generated rules to the beginning of the rule file
@@ -198,7 +198,7 @@ function add_auto_rules_to_mapping_rules()
 #
 # Used during initialization stage 1 (while setting
 # up the environment, which can't be used yet)
-function set_and_check_SBOX_TARGET()
+set_and_check_SBOX_TARGET()
 {
 	if [ -z "$SBOX_TARGET" ]; then
 		if [ -r ~/.scratchbox2/config ]; then
@@ -220,7 +220,7 @@ function set_and_check_SBOX_TARGET()
 #
 # Used during initialization stage 1 (while setting
 # up the environment, which can't be used yet)
-function load_configuration()
+load_configuration()
 {
 	#-----------
 	# part of the configuration is still stored in the "old format"
@@ -236,9 +236,9 @@ function load_configuration()
 	LD_LIBRARY_PATH=$saved_LD_LIBRARY_PATH
 
 	# resolve possible symlinks in SBOX_TARGET_ROOT and SBOX_TOOLS_ROOT
-	SBOX_TARGET_ROOT=`readlink -f $SBOX_TARGET_ROOT`
+	SBOX_TARGET_ROOT=$(readlink -f $SBOX_TARGET_ROOT)
 	if [ -n "$SBOX_TOOLS_ROOT" ]; then
-		SBOX_TOOLS_ROOT=`readlink -f $SBOX_TOOLS_ROOT`
+		SBOX_TOOLS_ROOT=$(readlink -f $SBOX_TOOLS_ROOT)
 	fi
 
 	# now that we know SBOX_TOOLS_ROOT, we can create the required
@@ -350,7 +350,7 @@ function load_configuration()
 #
 # Used during initialization stage 1 (while setting
 # up the environment, which can't be used yet)
-function clone_target_root_dir_from()
+clone_target_root_dir_from()
 {
 	source_directory=$1
 
@@ -382,7 +382,7 @@ function clone_target_root_dir_from()
 #
 # Used during initialization stage 1 (while setting
 # up the environment, which can't be used yet)
-function sboxify_environment()
+sboxify_environment()
 {
 	load_configuration
 
@@ -468,12 +468,12 @@ function sboxify_environment()
 }
 
 
-function initialize_sb_logging()
+initialize_sb_logging()
 {
 	cmd_param=$1
 	args_param=$2
 	if [ "$SBOX_MAPPING_LOGLEVEL" != "" ]; then
-		tstamp=`SBOX_DISABLE_MAPPING=1 /bin/date +%Y%m%d-%H%M.%N`
+		tstamp=$(SBOX_DISABLE_MAPPING=1 date +%Y%m%d-%H%M.%N)
 
 		# put logs to
 		#  a) if SBOX_LOG_AND_GRAPH_DIR is set, there
@@ -539,7 +539,7 @@ function initialize_sb_logging()
 #
 # Used during initialization stage 1 (while setting
 # up the environment, which can't be used yet)
-function create_common_sb2_conf_file_for_session()
+create_common_sb2_conf_file_for_session()
 {
 	sbox_user_home_dir=$HOME
 	if [ -z "$HOME" ]; then
@@ -599,17 +599,18 @@ END
 #
 # Used during initialization stage 1 (while setting
 # up the environment, which can't be used yet)
-function create_gcc_conf_file_for_session()
+create_gcc_conf_file_for_session()
 {
-	gcc_config_files=`ls ~/.scratchbox2/$SBOX_TARGET/sb2.config.d/gcc.config*.lua 2>/dev/null`
-	if [ -n "$gcc_config_files" ] ; then
-		# Create the configuration file. Do some variable substitutions:
-		# "extra_cross_compiler_args" and "extra_cross_ld_args"
-		# need absolute paths to the orig. rootstrap location, at least.
-		cat $gcc_config_files | \
+	for gcc_config_file in ~/.scratchbox2/"$SBOX_TARGET"/sb2.config.d/gcc.config*.lua ; do
+		if [ -e "$gcc_config_file" ] ; then
+			# Create the configuration file. Do some variable substitutions:
+			# "extra_cross_compiler_args" and "extra_cross_ld_args"
+			# need absolute paths to the orig. rootstrap location, at least.
 			sed -e "s:@SBOX_TARGET_ROOT@:$SBOX_TARGET_ROOT:g" \
-			>$SBOX_SESSION_DIR/gcc-conf.lua
-	fi
+				"$gcc_config_file" \
+				>>"$SBOX_SESSION_DIR"/gcc-conf.lua
+		fi
+	done
 }
 
 # write_ld_library_path_replacement_to_exec_config():
@@ -621,7 +622,7 @@ function create_gcc_conf_file_for_session()
 #
 # Used during initialization stage 1 (while setting
 # up the environment, which can't be used yet)
-function write_ld_library_path_replacement_to_exec_config()
+write_ld_library_path_replacement_to_exec_config()
 {
 	rootdir=$1
 	varname=$2
@@ -642,7 +643,7 @@ function write_ld_library_path_replacement_to_exec_config()
 				# IMPORTANT: $libsb2_dirname and $libsb2_path
 				# will be used by
 				# write_libsb2_and_ld_so_state_to_exec_config()
-				libsb2_dirname=`dirname $l`
+				libsb2_dirname=$(dirname $l)
 				libsb2_path=$l
 				break
 			fi
@@ -655,12 +656,17 @@ function write_ld_library_path_replacement_to_exec_config()
 
 	# Include directories listed in ld.so.conf
 	if [ -f $rootdir/etc/ld.so.conf ]; then
-		lloc2=`egrep '^/' $rootdir/etc/ld.so.conf`
+		lloc2=$(grep -E '^/' $rootdir/etc/ld.so.conf)
 		liblocations="$liblocations $lloc2"
 	fi
 	# Include directories listed in ld.so.conf.d/*
 	if [ -d $rootdir/etc/ld.so.conf.d ]; then
-		lloc2=`cat $rootdir/etc/ld.so.conf.d/* 2>/dev/null | egrep '^/'`
+		for ld_so_conf in "$root"/etc/ld.so.conf.d/* ; do
+			if [ -e "$ld_so_conf" ] ; then
+				lloc2=$(grep --extended-regexp --only-matching '^/' "$rootdir"/etc/ld.so.conf.d/* )
+				break
+			fi
+		done
 		liblocations="$liblocations $lloc2"
 	fi
 
@@ -669,11 +675,11 @@ function write_ld_library_path_replacement_to_exec_config()
 		# print contents of the cache, take destination
 		# names (the part after "=>"), drop file names (leave
 		# directory names, and remove duplicates:
-		dirs_in_cache=`$rootdir/sbin/ldconfig -p \
-			-C $rootdir/etc/ld.so.cache | 
-			fgrep '=>' | 
-			sed -e 's/^.*=> //' -e 's:/[^/]*$::' | 
-			sort | uniq`
+		dirs_in_cache=$($rootdir/sbin/ldconfig --print-cache \
+							-r "$rootdir" \
+							-C "$rootdir/etc/ld.so.cache" |
+						sed -En '/=>/ {s/.*=> (.*)/\1/;s|(.*)/.*$|\1|p}' |
+						sort | uniq)
 		ld_library_extras_from_cache=$dirs_in_cache
 		liblocations="$liblocations $dirs_in_cache"
 	fi
@@ -708,7 +714,7 @@ function write_ld_library_path_replacement_to_exec_config()
 #
 # Used during initialization stage 2: Requires that binaries
 # can be executed in the sb2'ed environment.
-function check_qemu_features()
+check_qemu_features()
 {
 	qemu_path=$($SBOX_DIR/bin/sb2-show realpath $1)
 	shift
@@ -728,10 +734,11 @@ function check_qemu_features()
 	fi
 
 	# run qemu -h
+	read qemu_cmdline < $SBOX_SESSION_DIR/qemu_cmdline
 	__SB2_BINARYNAME="sb2:CheckingQemuFeatures" \
 	sb2-monitor \
 		-L $SBOX_LIBSB2 -- \
-		`cat $SBOX_SESSION_DIR/qemu_cmdline` -h \
+		$qemu_cmdline -h \
 		>$SBOX_SESSION_DIR/qemu_help
 	# we don't test $? here, qemu -h returns with a non-zero
 	# argument anyway
@@ -777,7 +784,7 @@ function check_qemu_features()
 		esac
 	fi
 
-	test_output=`grep '^-0' $SBOX_SESSION_DIR/qemu_help`
+	test_output=$(grep -- '^-0' $SBOX_SESSION_DIR/qemu_help)
 	if [ -n "$test_output" ]; then
 		# -0 is supported
 		conf_cputransparency_has_argv0_flag="true"
@@ -785,7 +792,7 @@ function check_qemu_features()
 		conf_cputransparency_has_argv0_flag="false"
 	fi
 
-	test_output=`grep '^-E' $SBOX_SESSION_DIR/qemu_help`
+	test_output=$(grep -- '^-E' $SBOX_SESSION_DIR/qemu_help)
 	if [ -n "$test_output" ]; then
 		# -E is supported
 		conf_cputransparency_qemu_has_env_control_flags="true"
@@ -793,7 +800,7 @@ function check_qemu_features()
 		conf_cputransparency_qemu_has_env_control_flags="false"
 	fi
 
-	test_output=`grep '^-libattr-hack' $SBOX_SESSION_DIR/qemu_help`
+	test_output=$(grep -- '^-libattr-hack' $SBOX_SESSION_DIR/qemu_help)
 	if [ -n "$test_output" ]; then
 		conf_cputransparency_qemu_has_libattr_hack_flag="true"
 	else
@@ -801,33 +808,34 @@ function check_qemu_features()
 	fi
 
 	qemu_argv=""
-	for qemuarg in `cat $SBOX_SESSION_DIR/qemu_cmdline`; do
-		case "$qemuarg" in
+	read -r qemu_args < $SBOX_SESSION_DIR/qemu_cmdline
+	for qemu_arg in $qemu_args; do
+		case "$qemu_arg" in
 		LD_LIBRARY_PATH=*)
-			conf_cputransparency_qemu_ld_library_path=$qemuarg ;;
+			conf_cputransparency_qemu_ld_library_path=$qemu_arg ;;
 		LD_PRELOAD=*)
-			conf_cputransparency_qemu_ld_preload=$qemuarg ;;
+			conf_cputransparency_qemu_ld_preload=$qemu_arg ;;
 		__SB2_*=*) # skip it
 			;;
 		SBOX_VPERM_*=*) # skip it
 			;;
 		[A-Z_]*=*)	# other additional env.vars.
 			if [ -z "$qemu_env" ]; then
-				qemu_env="'$qemuarg'"
+				qemu_env="'$qemu_arg'"
 			else
-				qemu_env="$qemu_env,'$qemuarg'"
+				qemu_env="$qemu_env,'$qemu_arg'"
 			fi ;;
 		[\'\"]*[\'\"])
 			if [ -z "$qemu_argv" ]; then
-				qemu_argv="$qemuarg"
+				qemu_argv="$qemu_arg"
 			else
-				qemu_argv="$qemu_argv,$qemuarg"
+				qemu_argv="$qemu_argv,$qemu_arg"
 			fi ;;
 		*)
 			if [ -z "$qemu_argv" ]; then
-				qemu_argv="'$qemuarg'"
+				qemu_argv="'$qemu_arg'"
 			else
-				qemu_argv="$qemu_argv,'$qemuarg'"
+				qemu_argv="$qemu_argv,'$qemu_arg'"
 			fi ;;
 		esac
 	done
@@ -844,7 +852,7 @@ function check_qemu_features()
 #
 # Used during initialization stage 1 (while setting
 # up the environment, which can't be used yet)
-function check_ld_so_features()
+check_ld_so_features()
 {
 	rootdir=$1
 	ld_so_path=$2
@@ -855,17 +863,17 @@ function check_ld_so_features()
 
 	# Executing ld.so without any arguments should print 
 	# usage information to stderr:
-	test_argv0_opt=`$ld_so_path 2>&1 | grep 'argv0 STRING'`
+	test_argv0_opt=$($ld_so_path 2>&1 | grep 'argv0 STRING')
 	if [ -n "$test_argv0_opt" ]; then
 		# description about --argv0 exists!
 		ld_so_argv_flag_works="true"
 	fi
-	test_rpath_prefix_opt=`$ld_so_path 2>&1 | grep 'rpath-prefix PREFIX'`
+	test_rpath_prefix_opt=$($ld_so_path 2>&1 | grep 'rpath-prefix PREFIX')
 	if [ -n "$test_rpath_prefix_opt" ]; then
 		# description about --rpath-prefix exists!
 		ld_so_rpath_prefix_flag_works="true"
 	fi
-	test_nodefaultdirs_opt=`$ld_so_path 2>&1 | grep 'nodefaultdirs'`
+	test_nodefaultdirs_opt=$($ld_so_path 2>&1 | grep 'nodefaultdirs')
 	if [ -n "$test_nodefaultdirs_opt" ]; then
 		# description about --nodefaultdirs exists!
 		ld_so_nodefaultdirs_flag_works="true"
@@ -875,13 +883,13 @@ function check_ld_so_features()
 # Locate shell and set the initial binary name for the mapping engine
 #
 # Used during stage 5: Preparing environment variables.
-function locate_shell()
+locate_shell()
 {
 	__SB2_BINARYNAME="sb2:TestingBash" sb2-monitor \
 		-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
 		which /bin/bash \
 		>$SBOX_SESSION_DIR/path_to_shell.conf
-	SHELL_PATH=`cat $SBOX_SESSION_DIR/path_to_shell.conf`
+	read -r SHELL_PATH < $SBOX_SESSION_DIR/path_to_shell.conf
 	if [ -f "$SHELL_PATH" ]; then
 		# Good, bash exists. Use that.
 		SHELL=/bin/bash
@@ -905,11 +913,11 @@ function locate_shell()
 #
 # Used during initialization stage 1 (while setting
 # up the environment, which can't be used yet)
-function guess_ld_so()
+guess_ld_so()
 {
 	local prefix="$1"
 
-	if [ "`uname -m`" = 'x86_64' -a -r "$prefix/lib/ld-linux-x86-64.so.2" ]
+	if [ "$(uname -m)" = 'x86_64' -a -r "$prefix/lib/ld-linux-x86-64.so.2" ]
 	then
 		printf "$prefix/lib/ld-linux-x86-64.so.2"
 	else
@@ -932,7 +940,7 @@ function guess_ld_so()
 #
 # Used during initialization stage 1 (while setting
 # up the environment, which can't be used yet)
-function write_libsb2_and_ld_so_state_to_exec_config()
+write_libsb2_and_ld_so_state_to_exec_config()
 {
 	rootdir=$1
 	sb2_installed_varname=$2
@@ -960,7 +968,7 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 	fi
 
 	if [ -f $libsb2_path ]; then
-		libsb2_dir=`/usr/bin/dirname $libsb2_path`
+		libsb2_dir=$(dirname $libsb2_path)
 		echo "-- $libsb2_path" >>$SBOX_SESSION_DIR/exec_config.lua
 		echo "$libsb2_dir_varname=\"$libsb2_dir\"" \
 		    >>$SBOX_SESSION_DIR/exec_config.lua
@@ -977,13 +985,13 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 	# check the dynamic linker:
 
 	# First try if the default linker can be used
-	ld_so_candidate="`guess_ld_so $rootdir`"
+	ld_so_candidate="$(guess_ld_so $rootdir)"
 	if [ -f $ld_so_candidate ]; then
 		check_ld_so_features $rootdir $ld_so_candidate
 		if [ "$ld_so_argv_flag_works" != "true" ]; then
 			# the default ld.so does not support --argv0.
 			# Find out if a replacement has been installed for sb2.
-			ld_so_with_version=`readlink $ld_so_candidate`
+			ld_so_with_version=$(readlink $ld_so_candidate)
 
 			# First try if it exists in the same directory where
 			# libsb2.so is:
@@ -1021,9 +1029,9 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 		# points to the actual dynamic linker since we don't
 		# know its version.
 		#
-		ld_so_candidate2="`guess_ld_so $libsb2_dirname`"
+		ld_so_candidate2="$(guess_ld_so $libsb2_dirname)"
 		if [ -L $ld_so_candidate2 ]; then
-			ld_so_candidate2=`readlink -f $ld_so_candidate2`
+			ld_so_candidate2=$(readlink -f $ld_so_candidate2)
 			# check also that it has --argv0 support
 			check_ld_so_features $rootdir $ld_so_candidate2
 			if [ "$ld_so_argv_flag_works" == "true" ]; then
@@ -1066,7 +1074,7 @@ function write_libsb2_and_ld_so_state_to_exec_config()
 #
 # Used during initialization stage 1 (while setting
 # up the environment, which can't be used yet)
-function write_locale_and_gconv_paths_to_exec_config()
+write_locale_and_gconv_paths_to_exec_config()
 {
 	rootdir=$1
 	generated_locale_path=$2
@@ -1132,7 +1140,7 @@ function write_locale_and_gconv_paths_to_exec_config()
 #
 # Used during initialization stage 1 (while setting
 # up the environment, which can't be used yet)
-function create_exec_config_file()
+create_exec_config_file()
 {
 	cat >$SBOX_SESSION_DIR/exec_config.lua <<END
 -- exec settings. Automatically generated file, do not edit.
@@ -1143,11 +1151,11 @@ END
 -- CPU transparency settings. Automatically generated file, do not edit.
 END
 
-	library_interface=`LD_LIBRARY_PATH=$SBOX_DIR/lib/libsb2:$LD_LIBRARY_PATH $SBOX_DIR/bin/sb2-show libraryinterface`
+	library_interface=$(LD_LIBRARY_PATH=$SBOX_DIR/lib/libsb2:$LD_LIBRARY_PATH $SBOX_DIR/bin/sb2-show libraryinterface)
 
 	# 1. Exec settings for tools
 	if [ -n "$SBOX_TOOLS_ROOT" -a "$SBOX_TOOLS_ROOT" != "/" ]; then
-		tools_basename=`basename $SBOX_TOOLS_ROOT`
+		tools_basename=$(basename $SBOX_TOOLS_ROOT)
 		write_ld_library_path_replacement_to_exec_config \
 			$SBOX_TOOLS_ROOT conf_tools_ld_so_library_path \
 			~/.scratchbox2/libsb2/tools/$target_basename/$library_interface/libsb2.so.1 \
@@ -1200,12 +1208,12 @@ END
 		# CPU transparency method has not been set:
 		# host CPU == target CPU
 		if [ -n "$SBOX_CLONED_TARGET_ROOT" ]; then
-			target_basename=`basename $SBOX_CLONED_TARGET_ROOT`
+			target_basename=$(basename $SBOX_CLONED_TARGET_ROOT)
 		else
 			if [ -z $SBOX_TARGET_ROOT ]; then
 			    exit_error "SBOX_TARGET_ROOT empty, valid target not found"
 			fi
-			target_basename=`basename $SBOX_TARGET_ROOT`
+			target_basename=$(basename $SBOX_TARGET_ROOT)
 		fi
 
 		write_ld_library_path_replacement_to_exec_config \
@@ -1258,7 +1266,7 @@ END
 #
 # Used during initialization stage 2: Requires that binaries
 # can be executed in the sb2'ed environment.
-function add_cputransparency_settings_to_exec_config_file()
+add_cputransparency_settings_to_exec_config_file()
 {
 	type="$1"
 
@@ -1307,7 +1315,7 @@ END
 }
 
 
-function get_SBOX_SESSION_DIR_from_file()
+get_SBOX_SESSION_DIR_from_file()
 {
 	file=$1
 
@@ -1318,8 +1326,8 @@ function get_SBOX_SESSION_DIR_from_file()
 
 	if grep -q "# SB2 SessionInfo:" "$file" 2>/dev/null; then
 		# $file seems to be valid
-		SBOX_SESSION_DIR=`sed -n -e 's/^SBOX_SESSION_DIR=//p' < $file`
-		SBOX_TARGET=`sed -n -e 's/^SBOX_TARGET=//p' < $file`
+		SBOX_SESSION_DIR=$(sed -n -e 's/^SBOX_SESSION_DIR=//p' < $file)
+		SBOX_TARGET=$(sed -n -e 's/^SBOX_TARGET=//p' < $file)
 	else
 		exit_error "'$file' is not a valid SB2 session information file"
 	fi
@@ -1334,7 +1342,7 @@ function get_SBOX_SESSION_DIR_from_file()
 # used to select a mapping mode which is distributed with sb2.
 #
 # (called to process a command-line option)
-function add_map_mode()
+add_map_mode()
 {
 	if [ ! -d "$SBOX_DIR/share/scratchbox2/modes/$1" ]; then
 		exit_error "Invalid mode '$1', aborting."
@@ -1352,29 +1360,29 @@ function add_map_mode()
 	fi
 
 	SB2_INTERNAL_MAPMODES="$SB2_INTERNAL_MAPMODES $1"
-	NUM_MAPMODES=`expr $NUM_MAPMODES + 1`
+	NUM_MAPMODES=$(($NUM_MAPMODES + 1))
 }
 
 # Add a non-standard mapping mode.
 # FIXME: Currently not possible, due to the change to
 # mapping mode directories. To be fixed.
 # (called to process a command-line option)
-##function add_external_map_mode()
+##add_external_map_mode()
 ##{
 ##	if [ -z "$SBOX_MAPMODE" ]; then
 ##		# SBOX_MAPMODE was not set. Use basename of the rule file
 ##		# as default mode name:
-##		SBOX_MAPMODE=`basename $1 .lua`
+##		SBOX_MAPMODE=$(basename $1 .lua)
 ##	fi
 ##
 ##	SB2_EXTERNAL_RULEFILES="$SB2_EXTERNAL_RULEFILES $1"
-##	NUM_MAPMODES=`expr $NUM_MAPMODES + 1`
+##	NUM_MAPMODES=$(($NUM_MAPMODES + 1))
 ##}
 
 #
 # Used during initialization stage 1 (while setting
 # up the environment, which can't be used yet)
-function initialize_new_sb2_session()
+initialize_new_sb2_session()
 {
 	# Create a new session
 	if [ -n "$SBOX_WRITE_SESSION_INFO_TO_FILE" -a \
@@ -1387,14 +1395,14 @@ function initialize_new_sb2_session()
 		SBOX_SESSION_DIR=$OPT_SESSION_DIR
 	else
 		# Create session directories
-		date_and_time_now=`date +%Y%m%d-%H%M%S`
-		SBOX_SESSION_DIR=`mktemp -d /tmp/sb2-$USER-$date_and_time_now.XXXXXX`
+		date_and_time_now=$(date +%Y%m%d-%H%M%S)
+		SBOX_SESSION_DIR=$(mktemp -d /tmp/sb2-$USER-$date_and_time_now.XXXXXX)
 		if [ $? != 0 ]; then
 			exit_error "Failed to create directory for session (problems with /tmp ?)"
 		fi
 	fi
 	# resolve possible symlinks in SBOX_SESSION_DIR
-	SBOX_SESSION_DIR=`readlink -f $SBOX_SESSION_DIR`
+	SBOX_SESSION_DIR=$(readlink -f $SBOX_SESSION_DIR)
 
 	mkdir -p $SBOX_SESSION_DIR
 	if [ $? != 0 ]; then
@@ -1459,7 +1467,7 @@ END
 #
 # Used during initialization stage 1 (while setting
 # up the environment, which can't be used yet)
-function join_existing_session()
+join_existing_session()
 {
 	# Join an existing session, don't create it..
 	get_SBOX_SESSION_DIR_from_file "$SBOX_JOIN_SESSION_FILE"
@@ -1487,7 +1495,7 @@ function join_existing_session()
 #
 # Used during initialization stage 1 (while setting
 # up the environment, which can't be used yet)
-function link_wrappers_for_mapmode()
+link_wrappers_for_mapmode()
 {
 	w_mode=$1
 
@@ -1528,7 +1536,7 @@ function link_wrappers_for_mapmode()
 #
 # Used during initialization stage 1 (while setting
 # up the environment, which can't be used yet)
-function write_configfiles_and_rules_for_new_session()
+write_configfiles_and_rules_for_new_session()
 {
 	# creating a new session..
 
@@ -1550,7 +1558,7 @@ function write_configfiles_and_rules_for_new_session()
 	# Create links to network rules
 	for netr in $SBOX_DIR/share/scratchbox2/net_rules/*; do
 		ln -s $netr $SBOX_SESSION_DIR/net_rules
-		netr_b=`basename $netr`
+		netr_b=$(basename $netr)
 		SB2_ALL_NET_MODES="$SB2_ALL_NET_MODES $netr_b"
 	done
 	# Create a link to the default mode
@@ -1558,7 +1566,7 @@ function write_configfiles_and_rules_for_new_session()
 
 	##if [ -n "$SB2_EXTERNAL_RULEFILES" ]; then
 	##	for ammf in $SB2_EXTERNAL_RULEFILES; do
-	##		amm=`basename $ammf .lua`
+	##		amm=$(basename $ammf .lua)
 	##		write_rules_to_session_dir \
 	##			$SBOX_SESSION_DIR/rules/$amm.lua $amm $ammf
 	##
@@ -1579,7 +1587,7 @@ function write_configfiles_and_rules_for_new_session()
 	fi
 }
 
-function delete_old_sb2_session()
+delete_old_sb2_session()
 {
 	# Delete a session
 	get_SBOX_SESSION_DIR_from_file "$SBOX_DELETE_SESSION_FILE"
@@ -1593,11 +1601,11 @@ function delete_old_sb2_session()
 	rm "$SBOX_DELETE_SESSION_FILE"
 }
 
-function print_session_logs()
+print_session_logs()
 {
 	get_SBOX_SESSION_DIR_from_file "$SBOX_PRINT_SESSION_LOGS"
 
-	for logfilename in `awk '$1=="#LOG:" {print $3}' <$SBOX_PRINT_SESSION_LOGS`; do
+	for logfilename in $(awk '$1=="#LOG:" {print $3}' <$SBOX_PRINT_SESSION_LOGS); do
 		# Log files do not exists, if nothing was logged
 		if [ -f "$logfilename" ]; then
 			echo "# ===================== $logfilename"
@@ -1859,7 +1867,8 @@ fi
 
 # Final addition to LD_LIBRARY_PATH, if needed
 if [ -f $SBOX_SESSION_DIR/ld_library_path_extras ]; then
-	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`cat $SBOX_SESSION_DIR/ld_library_path_extras`
+	read -r ld_library_path_extras < $SBOX_SESSION_DIR/ld_library_path_extras
+	LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ld_library_path_extras
 fi
 
 if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
@@ -1922,7 +1931,7 @@ if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 	# to the rule tree.
 	# (this step needs to be syncronous; sb2dctl won't return
 	# before init2.lua is completed)
-	ctl_result=`$SBOX_DIR/lib/libsb2/sb2dctl -n -s $SBOX_SESSION_DIR init2`
+	ctl_result=$($SBOX_DIR/lib/libsb2/sb2dctl -n -s $SBOX_SESSION_DIR init2)
 
 	case "$ctl_result" in
 	*OK*)	# Startup OK
@@ -1985,7 +1994,7 @@ unset SBOX_TOOLS_ROOT
 # to an existing session [see the "sb2-session" tool])
 if [ -d "$SBOX_SESSION_DIR/env_vars" ]; then
 	for evfile in $SBOX_SESSION_DIR/env_vars/*; do
-		evname=`basename $evfile`
+		evname=$(basename $evfile)
 		. $evfile
 		export $evname
 	done

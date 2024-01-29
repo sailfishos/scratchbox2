@@ -21,9 +21,9 @@ SBOX_DIR=$(readlink -f $SBOX_SHARE_DIR/../..)
 SBOX_TARGET=$1
 SBOX_CONFIG_DIR=~/.scratchbox2/$SBOX_TARGET/sb2.config.d 
 
-function exit_error()
+exit_error()
 {
-	echo "$my_path: Error: $@"
+	echo "$my_path: Error: $*"
 	exit 1
 }
 
@@ -31,15 +31,15 @@ if [ -z "$SBOX_TARGET" ]; then
 	exit_error "this script is intended for sb2's internal use only!"
 fi 
 
-function log_config_action()
+log_config_action()
 {
-	tstamp=`/bin/date '+%Y-%m-%d %H:%M:%S'`
-	echo "$tstamp	$*" >>$SBOX_CONFIG_DIR/CONFIG-LOG
+	tstamp=$(date '+%Y-%m-%d %H:%M:%S')
+	echo "$tstamp	$*" >>"$SBOX_CONFIG_DIR"/CONFIG-LOG
 }
 
 # Get the original arguments that were specified to sb2-init from
 # the old configuration file; we only need three variables from that file..
-function get_sb2_init_arguments_from_old_config_file()
+get_sb2_init_arguments_from_old_config_file()
 {
 	OLD_CONFIG_FILE=$HOME/.scratchbox2/$SBOX_TARGET/sb2.config
 
@@ -47,22 +47,20 @@ function get_sb2_init_arguments_from_old_config_file()
 		exit_error "$OLD_CONFIG_FILE does not exist"
 	fi
 
-	# Check version
-	vers=`egrep -m 1 '^SBOX_CONFIG_VERSION=' $OLD_CONFIG_FILE`
-	SBOX_CONFIG_VERSION=0
-	eval $vers
 
+
+	# Check version
+	SBOX_CONFIG_VERSION=$(sed -En '/^SBOX_CONFIG_VERSION/ s/^SBOX_CONFIG_VERSION=.*"/\1/ p' $OLD_CONFIG_FILE)
 	if [ "$SBOX_CONFIG_VERSION" -lt 5 ]; then
 		exit_error "configuration file version is too old ($OLD_CONFIG_FILE)"
 	fi
 
+
 	# Get original options & target name & compiler(s)
-	args=`egrep -m 1 '^SBOX_INIT_ORIG_ARGS=' $OLD_CONFIG_FILE`
-	eval $args
+	SBOX_INIT_ORIG_ARGS=$(sed -En '/^SBOX_INIT_ORIG_ARGS/ s/^SBOX_INIT_ORIG_ARGS=\"(.*)\"/\1/ p' $OLD_CONFIG_FILE)
 
 	# Get original target_root
-	targetroot=`egrep -m 1 '^SBOX_TARGET_ROOT=' $OLD_CONFIG_FILE`
-	eval $targetroot
+	SBOX_TARGET_ROOT=$(sed -En '/^SBOX_TARGET_ROOT/ s/^SBOX_TARGET_ROOT=(.*)/\1/ p' $OLD_CONFIG_FILE)
 	export SB2INIT_TARGET_ROOT=$SBOX_TARGET_ROOT
 
 	$SBOX_SHARE_DIR/scripts/sb2-parse-sb2-init-args $SBOX_INIT_ORIG_ARGS \
@@ -70,7 +68,7 @@ function get_sb2_init_arguments_from_old_config_file()
 	log_config_action "Config upgrade: arguments of original sb2-init restored from old config file"
 }
 
-function update_toolchain_configs()
+update_toolchain_configs()
 {
 	secondary_compiler=""
 
@@ -111,7 +109,7 @@ function update_toolchain_configs()
 # "host-ld_library_path.conf" contains settings that are needed for running
 # host-compatible binaries in host mode (i.e. started directly, not 
 # indirectly by running ld.so).
-function update_host_ld_library_path()
+update_host_ld_library_path()
 {
 	# Old versions of sb.config will set $LD_LIBRARY_PATH,
 	# which is not nice... save the current value and restore it later.
@@ -157,7 +155,7 @@ function update_host_ld_library_path()
 	log_config_action "Created LD_LIBRARY_PATH configuration file for host-compatible binaries"
 }
 
-function update_debian_config()
+update_debian_config()
 {
 	$SBOX_DIR/share/scratchbox2/scripts/sb2-config-debian -t $SBOX_TARGET
 }

@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <stdint.h>
 #include <string.h>
+#include <sys/sysmacros.h>
 #include "sb2.h"
 #include "sb2_stat.h"
 #include "sb2_vperm.h"
@@ -114,11 +115,15 @@ int real_fstat64(int fd, struct stat64 *statbuf)
 }
 
 /* return 0 if not modified, positive if something was virtualized.
- * only one of {buf,buf64} should be set; set the other one to NULL */
-int i_virtualize_struct_stat(
-	const char *realfnname,
-	struct stat *buf,
-	struct stat64 *buf64)
+ * only one of {buf,bufx,buf64} should be set; set the other ones to NULL */
+int i_virtualize_struct_stat_internal(
+	const char *realfnname
+	, struct stat *buf
+	, struct stat64 *buf64
+#ifdef HAVE_STATX
+	, struct statx *bufx
+#endif
+	)
 {
 	int				res = 0;
 	ruletree_inodestat_handle_t	handle;
@@ -129,6 +134,12 @@ int i_virtualize_struct_stat(
 	ruletree_clear_inodestat_handle(&handle);
 	if (buf) {
 		ruletree_init_inodestat_handle(&handle, buf->st_dev, buf->st_ino);
+#ifdef HAVE_STATX
+	} else if (bufx) {
+		ruletree_init_inodestat_handle(&handle,
+			gnu_dev_makedev(bufx->stx_dev_major, bufx->stx_dev_minor),
+			bufx->stx_ino);
+#endif
 	} else {
 		ruletree_init_inodestat_handle(&handle, buf64->st_dev, buf64->st_ino);
 	}
@@ -145,6 +156,9 @@ int i_virtualize_struct_stat(
 				"%s/%s: found, set uid to %d",
 				realfnname, __func__, istat_in_db.inodesimu_uid);
 			if (buf) buf->st_uid = istat_in_db.inodesimu_uid;
+#ifdef HAVE_STATX
+			else if (bufx) bufx->stx_uid = istat_in_db.inodesimu_uid;
+#endif
 			else   buf64->st_uid = istat_in_db.inodesimu_uid;
 			res++;
 		} else if (set_uid_gid_of_unknown) {
@@ -152,6 +166,9 @@ int i_virtualize_struct_stat(
 				"%s/%s: 'unknown' file, set owner to %d",
 					realfnname, __func__, uf_uid);
 			if (buf) buf->st_uid = uf_uid;
+#ifdef HAVE_STATX
+			else if (bufx) bufx->stx_uid = uf_uid;
+#endif
 			else   buf64->st_uid = uf_uid;
 			res++;
 		}
@@ -162,6 +179,9 @@ int i_virtualize_struct_stat(
 				"%s/%s: found, set gid to %d",
 				realfnname, __func__, istat_in_db.inodesimu_gid);
 			if (buf) buf->st_gid = istat_in_db.inodesimu_gid;
+#ifdef HAVE_STATX
+			else if (bufx) bufx->stx_gid = istat_in_db.inodesimu_gid;
+#endif
 			else   buf64->st_gid = istat_in_db.inodesimu_gid;
 			res++;
 		} else if (set_uid_gid_of_unknown) {
@@ -169,6 +189,9 @@ int i_virtualize_struct_stat(
 				"%s/%s: 'unknown' file, set group to %d",
 					realfnname, __func__, uf_gid);
 			if (buf) buf->st_gid = uf_gid;
+#ifdef HAVE_STATX
+			else if (bufx) bufx->stx_gid = uf_gid;
+#endif
 			else   buf64->st_gid = uf_gid;
 			res++;
 		}
@@ -181,6 +204,11 @@ int i_virtualize_struct_stat(
 			if (buf) buf->st_mode =
 					(buf->st_mode & S_IFMT) |
 					(istat_in_db.inodesimu_mode & (~S_IFMT));
+#ifdef HAVE_STATX
+			else if (bufx) bufx->stx_mode =
+					(bufx->stx_mode & S_IFMT) |
+					(istat_in_db.inodesimu_mode & (~S_IFMT));
+#endif
 			else   buf64->st_mode =
 					(buf64->st_mode & S_IFMT) |
 					(istat_in_db.inodesimu_mode & (~S_IFMT));
@@ -194,6 +222,11 @@ int i_virtualize_struct_stat(
 			if (buf) buf->st_mode =
 				(buf->st_mode & ~(S_ISUID | S_ISGID)) |
 				(istat_in_db.inodesimu_suidsgid & (S_ISUID | S_ISGID));
+#ifdef HAVE_STATX
+			else if (bufx) bufx->stx_mode =
+				(bufx->stx_mode & ~(S_ISUID | S_ISGID)) |
+				(istat_in_db.inodesimu_suidsgid & (S_ISUID | S_ISGID));
+#endif
 			else   buf64->st_mode =
 				(buf64->st_mode & ~(S_ISUID | S_ISGID)) |
 				(istat_in_db.inodesimu_suidsgid & (S_ISUID | S_ISGID));
@@ -210,6 +243,14 @@ int i_virtualize_struct_stat(
 					(buf->st_mode & (~S_IFMT)) |
 					(istat_in_db.inodesimu_devmode & S_IFMT);
 				buf->st_rdev = istat_in_db.inodesimu_rdev;
+#ifdef HAVE_STATX
+			} else if (bufx) {
+				bufx->stx_mode =
+					(bufx->stx_mode & (~S_IFMT)) |
+					(istat_in_db.inodesimu_devmode & S_IFMT);
+				bufx->stx_rdev_major = major(istat_in_db.inodesimu_rdev);
+				bufx->stx_rdev_minor = minor(istat_in_db.inodesimu_rdev);
+#endif
 			} else {
 				buf64->st_mode =
 					(buf64->st_mode & (~S_IFMT)) |
@@ -223,8 +264,14 @@ int i_virtualize_struct_stat(
 			"%s/%s: 'unknown' file, set owner and group to %d.%d",
 				realfnname, __func__, uf_uid, uf_gid);
 		if (buf) buf->st_uid = uf_uid;
+#ifdef HAVE_STATX
+		else if (bufx) bufx->stx_uid = uf_uid;
+#endif
 		else   buf64->st_uid = uf_uid;
 		if (buf) buf->st_gid = uf_gid;
+#ifdef HAVE_STATX
+		else if (bufx) bufx->stx_gid = uf_gid;
+#endif
 		else   buf64->st_gid = uf_gid;
 		res += 2;
 	}
@@ -232,6 +279,34 @@ int i_virtualize_struct_stat(
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s/%s: done, result=%d", realfnname, __func__, res);
 	return(res);
 }
+
+/* return 0 if not modified, positive if something was virtualized.
+ * only one of {buf,buf64} should be set; set the other one to NULL */
+int i_virtualize_struct_stat(
+	const char *realfnname,
+	struct stat *buf,
+	struct stat64 *buf64)
+{
+	return i_virtualize_struct_stat_internal(realfnname
+		, buf
+		, buf64
+#ifdef HAVE_STATX
+		, NULL
+#endif
+		);
+}
+
+#ifdef HAVE_STATX
+int i_virtualize_struct_statx(
+	const char *realfnname,
+	struct statx *buf)
+{
+	return i_virtualize_struct_stat_internal(realfnname
+		, NULL
+		, NULL
+		, buf);
+}
+#endif
 
 int sb2_stat_file(const char *path, struct stat *buf, int *result_errno_ptr,
 	int (*statfn_with_ver_ptr)(int ver, const char *filename, struct stat *buf),

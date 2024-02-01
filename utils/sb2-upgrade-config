@@ -50,17 +50,20 @@ get_sb2_init_arguments_from_old_config_file()
 
 
 	# Check version
-	SBOX_CONFIG_VERSION=$(sed -En '/^SBOX_CONFIG_VERSION/ s/^SBOX_CONFIG_VERSION=.*"/\1/ p' $OLD_CONFIG_FILE)
+	SBOX_CONFIG_VERSION=$(sed --regexp-extended \
+				  -n '/^SBOX_CONFIG_VERSION/ s/^SBOX_CONFIG_VERSION=.*"/\1/ p' $OLD_CONFIG_FILE)
 	if [ "$SBOX_CONFIG_VERSION" -lt 5 ]; then
 		exit_error "configuration file version is too old ($OLD_CONFIG_FILE)"
 	fi
 
 
 	# Get original options & target name & compiler(s)
-	SBOX_INIT_ORIG_ARGS=$(sed -En '/^SBOX_INIT_ORIG_ARGS/ s/^SBOX_INIT_ORIG_ARGS=\"(.*)\"/\1/ p' $OLD_CONFIG_FILE)
+	SBOX_INIT_ORIG_ARGS=$(sed --regexp-extended \
+				  -n '/^SBOX_INIT_ORIG_ARGS/ s/^SBOX_INIT_ORIG_ARGS=\"(.*)\"/\1/ p' $OLD_CONFIG_FILE)
 
 	# Get original target_root
-	SBOX_TARGET_ROOT=$(sed -En '/^SBOX_TARGET_ROOT/ s/^SBOX_TARGET_ROOT=(.*)/\1/ p' $OLD_CONFIG_FILE)
+	SBOX_TARGET_ROOT=$(sed --regexp-extended \
+			       -n '/^SBOX_TARGET_ROOT/ s/^SBOX_TARGET_ROOT=(.*)/\1/ p' $OLD_CONFIG_FILE)
 	export SB2INIT_TARGET_ROOT=$SBOX_TARGET_ROOT
 
 	$SBOX_SHARE_DIR/scripts/sb2-parse-sb2-init-args $SBOX_INIT_ORIG_ARGS \

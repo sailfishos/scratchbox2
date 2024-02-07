@@ -677,7 +677,7 @@ write_ld_library_path_replacement_to_exec_config()
 		# directory names, and remove duplicates:
 		dirs_in_cache=$($rootdir/sbin/ldconfig --print-cache \
 							-r "$rootdir" \
-							-C "$rootdir/etc/ld.so.cache" |
+							-C '/etc/ld.so.cache' |
 						sed --regexp-extended -n '/=>/ {s/.*=> (.*)/\1/;s|(.*)/.*$|\1|p}' |
 						sort | uniq)
 		ld_library_extras_from_cache=$dirs_in_cache

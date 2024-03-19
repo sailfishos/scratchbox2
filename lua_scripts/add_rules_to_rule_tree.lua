@@ -311,6 +311,7 @@ local valid_keywords_in_exec_policy = {
 	native_app_ld_library_path_prefix = "string",
 	native_app_ld_library_path_suffix = "string",
 	native_app_ld_preload_prefix = "string",
+	native_app_ld_preload_suffix = "string",
 
 	native_app_ld_so = "string",
 	native_app_ld_so_rpath_prefix = "string",

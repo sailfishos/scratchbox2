@@ -72,7 +72,7 @@ exec_policy_tools = {
 	native_app_ld_library_path_prefix = devel_mode_tools_ld_library_path_prefix,
 	native_app_ld_library_path_suffix = devel_mode_tools_ld_library_path_suffix,
 
-	native_app_ld_preload_prefix = host_ld_preload,
+	native_app_ld_preload_suffix = host_ld_preload,
 
 	native_app_locale_path = devel_mode_locale_path,
 	native_app_gconv_path = devel_mode_gconv_path,
@@ -94,7 +94,7 @@ exec_policy_tools_perl = {
 	native_app_ld_library_path_prefix = devel_mode_tools_ld_library_path_prefix,
 	native_app_ld_library_path_suffix = devel_mode_tools_ld_library_path_suffix,
 
-	native_app_ld_preload_prefix = host_ld_preload,
+	native_app_ld_preload_suffix = host_ld_preload,
 
 	native_app_locale_path = devel_mode_locale_path,
 	native_app_gconv_path = devel_mode_gconv_path,
@@ -116,7 +116,7 @@ exec_policy_tools_python = {
 	native_app_ld_library_path_prefix = devel_mode_tools_ld_library_path_prefix,
 	native_app_ld_library_path_suffix = devel_mode_tools_ld_library_path_suffix,
 
-	native_app_ld_preload_prefix = host_ld_preload,
+	native_app_ld_preload_suffix = host_ld_preload,
 
 	native_app_locale_path = devel_mode_locale_path,
 	native_app_gconv_path = devel_mode_gconv_path,
@@ -169,7 +169,7 @@ exec_policy_target = {
 
 	native_app_locale_path = conf_target_locale_path,
 
-	native_app_ld_preload_prefix = host_ld_preload,
+	native_app_ld_preload_suffix = host_ld_preload,
 
 	native_app_ld_library_path_prefix = devel_mode_target_ld_library_path_prefix,
 	native_app_ld_library_path_suffix = devel_mode_target_ld_library_path_suffix,

@@ -21,7 +21,7 @@ end
 default_exec_policy = {
 	name = "Default",
 
-	native_app_ld_preload_prefix = host_ld_preload,
+	native_app_ld_preload_suffix = host_ld_preload,
 
 	native_app_ld_library_path_prefix = 
 		host_ld_library_path_prefix ..

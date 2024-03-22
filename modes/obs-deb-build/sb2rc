@@ -39,6 +39,14 @@ case "$sb2rc_mode" in
 		SBOX_WRAPPERS="gdb ldconfig pwd fakeroot"
 		;;
 
+	ldconfig)
+		# When ldconfig is used at build time, then it must be the case
+		# that it is used on the build artefacts (with the help of the
+		# '-n' option), so locking it to the target root would not be
+		# desired.
+		sbox_ldconfig_root=/
+		;;
+
 	*)
 		# Default.
 		;;

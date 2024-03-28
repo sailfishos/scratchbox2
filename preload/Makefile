@@ -44,6 +44,7 @@ targets := $(targets) $(D)/libsb2.$(SHLIBEXT)
 
 $(D)/libsb2.o $(D)/sb_l10n.o: preload/exported.h
 $(D)/exported.h $(D)/ldexportlist: preload/wrappers.c
+.NOTPARALLEL: exported.h
 $(D)/wrappers.c: preload/interface.master preload/gen-interface.pl
 	$(MKOUTPUTDIR)
 	$(P)PERL

@@ -2,7 +2,7 @@
 # Licensed under LGPL 2.1
 
 TOPDIR = $(CURDIR)
-OBJDIR = $(TOPDIR)
+OBJDIR = $(TOPDIR)/
 SRCDIR = $(TOPDIR)
 VPATH = $(SRCDIR)
 

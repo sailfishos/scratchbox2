@@ -5,7 +5,7 @@ objs := $(D)/pathresolution.o \
 	$(D)/paths_ruletree_maint.o
 
 pathmapping/libpaths.a: $(objs)
-pathmapping/libpaths.a: override CFLAGS := $(CFLAGS) -O2 -g -fPIC -Wall -W -I$(SRCDIR)/$(LUASRC) -I$(OBJDIR)/preload -I$(SRCDIR)/preload -I$(SRCDIR)/pathmapping \
+pathmapping/libpaths.a: override CFLAGS := $(CFLAGS) $(LUA_CFLAGS) -O2 -g -fPIC -Wall -W -I$(SRCDIR)/$(LUASRC) -I$(OBJDIR)/preload -I$(SRCDIR)/preload -I$(SRCDIR)/pathmapping \
 	$(WERROR) -Wmissing-prototypes -Wstrict-prototypes
 pathmapping/libpaths.a: override LDFLAGS := $(LDFLAGS)
 pathmapping/libpaths.a: override LIBS := 

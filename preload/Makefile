@@ -15,7 +15,7 @@ objs := wrappers.o privatewrappers.o \
 
 ifeq ($(shell uname -s),Linux)
 LIBSB2_LDFLAGS = -Wl,-soname=$(LIBSB2_SONAME) \
-		-Wl,--version-script=preload/export.map
+		-Wl,--version-script=$(OBJDIR)/preload/export.map
 
 # DO NOT add any libraries that depend on libpthread to
 # LIBSB2_LIBS or LIBS!! see the comments in luaif.c.
@@ -35,7 +35,7 @@ $(D)/libsb2.$(SHLIBEXT): pathmapping/libpaths.a
 $(D)/libsb2.$(SHLIBEXT): execs/libexecs.a
 $(D)/libsb2.$(SHLIBEXT): network/libsb2net.a
 $(D)/libsb2.$(SHLIBEXT): rule_tree/libruletree.a
-$(D)/libsb2.$(SHLIBEXT): CFLAGS := $(CFLAGS) -fPIC -Wall -W \
+$(D)/libsb2.$(SHLIBEXT): CFLAGS := $(CFLAGS) $(LUA_CFLAGS) -fPIC -Wall -W \
 		-I$(SRCDIR)/preload -I$(OBJDIR)/preload $(PROTOTYPEWARNINGS)
 $(D)/libsb2.$(SHLIBEXT): LDFLAGS := $(LDFLAGS) $(LIBSB2_LDFLAGS)
 $(D)/libsb2.$(SHLIBEXT): LIBS := -ldl $(LIBSB2_LIBS)
@@ -44,6 +44,7 @@ targets := $(targets) $(D)/libsb2.$(SHLIBEXT)
 
 $(D)/libsb2.o $(D)/sb_l10n.o: preload/exported.h
 $(D)/exported.h $(D)/ldexportlist: preload/wrappers.c
+.NOTPARALLEL: exported.h
 $(D)/wrappers.c: preload/interface.master preload/gen-interface.pl
 	$(MKOUTPUTDIR)
 	$(P)PERL

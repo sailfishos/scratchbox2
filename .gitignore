@@ -20,8 +20,6 @@ config.mak
 preload/exported.h
 preload/export.map
 preload/wrappers.c
-obj-32
-obj-64
 .configure*
 utils/sb2-show
 utils/sb2-monitor

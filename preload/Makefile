@@ -44,6 +44,11 @@ targets := $(targets) $(D)/libsb2.$(SHLIBEXT)
 
 $(D)/libsb2.o $(D)/sb_l10n.o: $(OBJDIR)/preload/exported.h
 $(OBJDIR)/preload/exported.h $(D)/ldexportlist: $(OBJDIR)/preload/wrappers.c
+# Include both paths with $(OBJDIR) and without
+# Make doesn't seem to follow the .NOTPARALLEL rule correctly
+# without
+.NOTPARALLEL: $(OBJDIR)/preload/exported.h
+.NOTPARALLEL: preload/exported.h
 $(OBJDIR)/preload/wrappers.c: preload/interface.master preload/gen-interface.pl
 	$(MKOUTPUTDIR)
 	$(P)PERL

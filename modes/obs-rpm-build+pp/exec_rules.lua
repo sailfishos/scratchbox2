@@ -11,12 +11,12 @@ rule_file_interface_version = "203"
 
 exec_policy_host = {
 	name = "Host",
-	native_app_ld_preload_prefix = host_ld_preload_libsb2,
+	native_app_ld_preload_suffix = host_ld_preload_libsb2,
 }
 
 exec_policy_toolchain = {
 	name = "Toolchain",
-	native_app_ld_preload_prefix = host_ld_preload_libsb2,
+	native_app_ld_preload_suffix = host_ld_preload_libsb2,
 }
 
 -- For target binaries:
@@ -64,7 +64,7 @@ local exec_policy_target = {
 	native_app_locale_path = conf_target_locale_path,
 	native_app_gconv_path = conf_target_gconv_path,
 
-	native_app_ld_preload_prefix = host_ld_preload,
+	native_app_ld_preload_suffix = host_ld_preload,
 }
 
 --
@@ -117,7 +117,7 @@ local exec_policy_tools = {
 	native_app_locale_path = conf_tools_locale_path,
 	native_app_gconv_path = conf_tools_gconv_path,
 
-	native_app_ld_preload_prefix = host_ld_preload,
+	native_app_ld_preload_suffix = host_ld_preload,
 
 	script_log_level = "debug",
 	script_log_message = "SCRIPT from tools",
@@ -136,7 +136,7 @@ local exec_policy_tools_perl = {
 	native_app_ld_library_path_prefix = emulate_mode_tools_ld_library_path_prefix,
 	native_app_ld_library_path_suffix = emulate_mode_tools_ld_library_path_suffix,
 
-	native_app_ld_preload_prefix = host_ld_preload,
+	native_app_ld_preload_suffix = host_ld_preload,
 
 	native_app_locale_path = conf_tools_locale_path,
 	native_app_gconv_path = conf_tools_gconv_path,
@@ -158,7 +158,7 @@ local exec_policy_tools_python = {
 	native_app_ld_library_path_prefix = emulate_mode_tools_ld_library_path_prefix,
 	native_app_ld_library_path_suffix = emulate_mode_tools_ld_library_path_suffix,
 
-	native_app_ld_preload_prefix = host_ld_preload,
+	native_app_ld_preload_suffix = host_ld_preload,
 
 	native_app_locale_path = conf_tools_locale_path,
 	native_app_gconv_path = conf_tools_gconv_path,

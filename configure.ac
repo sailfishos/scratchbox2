@@ -231,9 +231,15 @@ freebsd*)
 esac
 
 AC_C_BIGENDIAN()
-
 AC_SUBST(WORDS_BIGENDIAN, ${WORDS_BIGENDIAN})
-AC_SUBST(PREFIX, ${prefix})
+
+AC_SUBST(prefix, ${prefix})
+AC_SUBST(exec_prefix, ${exec_prefix})
+AC_SUBST(bindir, ${bindir})
+AC_SUBST(libdir, ${libdir})
+AC_SUBST(datarootdir, ${datarootdir})
+AC_SUBST(datadir, ${datadir})
+
 AC_SUBST(CC, ${CC})
 AC_SUBST(CXX, ${CXX})
 AC_SUBST(CFLAGS, ${CFLAGS})

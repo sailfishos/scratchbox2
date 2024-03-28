@@ -45,7 +45,7 @@ touch .configure
 %make_build
 
 %install
-%__make install prefix=%{buildroot}/usr
+%make_install
 
 install -D -m 644 utils/sb2.bash %{buildroot}/etc/bash_completion.d/sb2.bash
 
@@ -62,6 +62,3 @@ install -D -m 644 utils/sb2.bash %{buildroot}/etc/bash_completion.d/sb2.bash
 %files -n libsb2
 %defattr(-,root,root)
 %{_libdir}/libsb2/*
-%ifarch x86_64
-/usr/lib32/libsb2/*
-%endif

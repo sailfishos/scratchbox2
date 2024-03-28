@@ -192,6 +192,13 @@ emulate_mode_rules_bin = {
 }
 
 emulate_mode_rules_usr_bin = {
+		{path = "/usr/bin/sh",
+		 func_class = FUNC_CLASS_EXEC,
+		 actions = accelerated_program_actions},
+		{path = "/usr/bin/bash",
+		 func_class = FUNC_CLASS_EXEC,
+		 actions = accelerated_program_actions},
+
 		{path = "/usr/bin/find",
 		 func_class = FUNC_CLASS_EXEC,
 		 actions = accelerated_program_actions},

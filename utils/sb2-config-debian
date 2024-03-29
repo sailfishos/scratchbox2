@@ -19,13 +19,13 @@ fi
 
 mapping_mode_for_dpkg_utils=accel
 
-function log_config_action()
+log_config_action()
 {
-	tstamp=`/bin/date '+%Y-%m-%d %H:%M:%S'`
+	tstamp=$(/bin/date '+%Y-%m-%d %H:%M:%S')
 	echo "$tstamp	$*" >>$SBOX_CONFIG_DIR/CONFIG-LOG
 }
 
-function usage()
+usage()
 {
 	cat <<EOF
 sb2-config-debian - Configure Debian build settings for SB2
@@ -118,8 +118,7 @@ arm*)
 	if [ -z "$SBOX_GCC_TARGET" ]; then
 		DEBIAN_CPU=$ARCH
 	else
-		echo $SBOX_GCC_TARGET | grep -q -i eabi
-		if [ $? == 0 ]; then
+		if echo $SBOX_GCC_TARGET | grep -q -i eabi ; then
 			DEBIAN_CPU=armel
 		fi
 	fi
@@ -170,8 +169,7 @@ fi
 # but just now there is no reliable way to find that out
 # automatically; e.g. if the target FS is being set up, and 
 # some files (like dpkg-architecture) do not exist yet..)
-DPKG_ARCHITECTURE_FULLPATH=$(sb2 -t $TARGET -m $mapping_mode_for_dpkg_utils which dpkg-architecture 2>/dev/null)
-if [ $? != 0 ]; then
+if ! DPKG_ARCHITECTURE_FULLPATH=$(sb2 -t $TARGET -m $mapping_mode_for_dpkg_utils which dpkg-architecture 2>/dev/null); then
 	# Can't locate or run dpkg-architecture. Set the values here.
 	# FIXME: I'm still not sure if these settings are sane,
 	# they ought to be the same as they have been in sb2

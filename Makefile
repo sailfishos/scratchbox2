@@ -82,13 +82,22 @@ else
 CONFIGURE_ARGS = 
 endif
 
-all: .version .configure do-all
+all: $(OBJDIR)/config.status .WAIT .version do-all
 
 do-all: $(targets)
 
-.configure:
-	$(SRCDIR)/configure $(CONFIGURE_ARGS)
-	@touch .configure
+# Don't erase these files if make is interrupted while refreshing them.
+.PRECIOUS: $(OBJDIR)/config.status
+$(OBJDIR)/config.status: $(SRCDIR)/configure $(SRCDIR)/config.mak.in
+	if [ -x $(OBJDIR)/config.status ]; then		\
+	    $(OBJDIR)/config.status --recheck;	\
+	else					\
+	    $(SRCDIR)/configure; \
+	fi
+
+$(SRCDIR)/configure: $(SRCDIR)/configure.ac
+	cd $(SRCDIR); \
+	./autogen.sh
 
 .PHONY: .version
 .version:
@@ -229,7 +238,6 @@ CLEAN_FILES += $(targets) config.status config.log
 
 superclean: clean
 	$(P)CLEAN
-	$(Q)rm -rf obj-32 obj-64 .configure
 	$(Q)rm -rf include/config.h config.mak
 
 clean:

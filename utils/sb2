@@ -271,14 +271,12 @@ load_configuration()
 	
 	# check if we need to upgrade configuration:
 	if [ -z "$OPT_DONT_UPGRADE_CONFIGURATION" ]; then
-		if [ ! -f ~/.scratchbox2/$SBOX_TARGET/sb2.config.d/config-stamp.20 ]; then
-			$SBOX_DIR/share/scratchbox2/scripts/sb2-upgrade-config \
-				$SBOX_TARGET
-			if [ $? != 0 ]; then
-				echo "Failed to upgrade configuration files" >&2
-				exit 1
-			fi
+	    if [ ! -f ~/.scratchbox2/$SBOX_TARGET/sb2.config.d/config-stamp.20 ]; then
+		if ! $SBOX_DIR/share/scratchbox2/scripts/sb2-upgrade-config $SBOX_TARGET; then
+		    echo "Failed to upgrade configuration files" >&2
+		    exit 1
 		fi
+	    fi
 	fi
 
 	#-----------
@@ -356,18 +354,18 @@ clone_target_root_dir_from()
 
 	echo "Copying target root from $source_directory..."
 	# cp -Rp does not preserve hard links, but cpio does
-	(cd $source_directory; find . -depth -print |
-		cpio -pamd $SBOX_SESSION_DIR/target_root)
-	if [ $? != 0 ]; then
-		exit_error "Failed to clone target_root"
+
+	if ! (cd $source_directory; find . -depth -print \
+		  | cpio -pamd $SBOX_SESSION_DIR/target_root) ; then
+	    exit_error "Failed to clone target_root"
 	fi
 	# There is a bug in gnu cpio: timestamps of directories
 	# will not be set correctly on the first run,
 	# but they will be corrected by another round:
-	(cd $source_directory; find . -depth -type d -print |
-		cpio -pamd $SBOX_SESSION_DIR/target_root)
-	if [ $? != 0 ]; then
-		exit_error "Failed to fix directory permissions in target_root clone"
+
+	if ! (cd $source_directory; find . -depth -type d -print \
+		  |  cpio -pamd $SBOX_SESSION_DIR/target_root) ; then
+	    exit_error "Failed to fix directory permissions in target_root clone"
 	fi
 	#
 	# We store path of the original target root here.  It
@@ -661,7 +659,7 @@ write_ld_library_path_replacement_to_exec_config()
 	fi
 	# Include directories listed in ld.so.conf.d/*
 	if [ -d $rootdir/etc/ld.so.conf.d ]; then
-		for ld_so_conf in "$root"/etc/ld.so.conf.d/* ; do
+		for ld_so_conf in "$rootdir"/etc/ld.so.conf.d/* ; do
 			if [ -e "$ld_so_conf" ] ; then
 				lloc2=$(grep --extended-regexp --only-matching '^/' "$rootdir"/etc/ld.so.conf.d/* )
 				break
@@ -723,13 +721,13 @@ check_qemu_features()
 	# Use "sb2-show" to find out how qemu should be executed
 	# (qemu might be under tools_root => it might need to
 	# use ld.so and libraries from tools)
-	__SB2_BINARYNAME="sb2:CheckingQemuExec" \
-	sb2-monitor \
+	if ! __SB2_BINARYNAME="sb2:CheckingQemuExec" \
+		 sb2-monitor \
 		-L $SBOX_LIBSB2 -- $SBOX_DIR/bin/sb2-show \
 		-- exec-cmdline \
 		$qemu_path $qemu_options \
 		>$SBOX_SESSION_DIR/qemu_cmdline
-	if [ $? != 0 ]; then
+	then
 		exit_error "Failed to find out how $qemu_path should be started"
 	fi
 
@@ -740,7 +738,7 @@ check_qemu_features()
 		-L $SBOX_LIBSB2 -- \
 		$qemu_cmdline -h \
 		>$SBOX_SESSION_DIR/qemu_help
-	# we don't test $? here, qemu -h returns with a non-zero
+	# we don't test the exit status here, qemu -h returns with a non-zero
 	# argument anyway
 
 	#
@@ -918,11 +916,11 @@ guess_ld_so()
 {
 	local prefix="$1"
 
-	if [ "$(uname -m)" = 'x86_64' -a -r "$prefix/lib/ld-linux-x86-64.so.2" ]
+	if [ "$(uname -m)" = 'x86_64' ] &&  [ -r "$prefix/lib/ld-linux-x86-64.so.2" ]
 	then
 		printf "$prefix/lib/ld-linux-x86-64.so.2"
 	else
-		printf "$prefix/lib/ld-linux.so.2"		
+		printf "$prefix/lib/ld-linux.so.2"
 	fi
 }
 
@@ -997,7 +995,7 @@ write_libsb2_and_ld_so_state_to_exec_config()
 			# First try if it exists in the same directory where
 			# libsb2.so is:
 			ld_so_candidate2=$libsb2_dirname/$ld_so_with_version
-			if [ -n "$libsb2_dirname" -a -f $ld_so_candidate2 ]; then
+			if [ -n "$libsb2_dirname" ] &&  [ -f $ld_so_candidate2 ]; then
 				check_ld_so_features $rootdir \
 					$ld_so_candidate2
 
@@ -1155,7 +1153,7 @@ END
 	library_interface=$(LD_LIBRARY_PATH=$SBOX_DIR/lib/libsb2:$LD_LIBRARY_PATH $SBOX_DIR/bin/sb2-show libraryinterface)
 
 	# 1. Exec settings for tools
-	if [ -n "$SBOX_TOOLS_ROOT" -a "$SBOX_TOOLS_ROOT" != "/" ]; then
+	if [ -n "$SBOX_TOOLS_ROOT" ] &&  [ "$SBOX_TOOLS_ROOT" != "/" ]; then
 		tools_basename=$(basename $SBOX_TOOLS_ROOT)
 		write_ld_library_path_replacement_to_exec_config \
 			$SBOX_TOOLS_ROOT conf_tools_ld_so_library_path \
@@ -1333,8 +1331,8 @@ get_SBOX_SESSION_DIR_from_file()
 		exit_error "'$file' is not a valid SB2 session information file"
 	fi
 
-	if [ ! -d "$SBOX_SESSION_DIR" -o \
-	     ! -f $SBOX_SESSION_DIR/.joinable-session ]; then
+	if [ ! -d "$SBOX_SESSION_DIR" ] || \
+	     [ ! -f $SBOX_SESSION_DIR/.joinable-session ]; then
 		exit_error "Session '$SBOX_SESSION_DIR' does not exist"
 	fi
 	# else the session seems to be valid.
@@ -1386,8 +1384,8 @@ add_map_mode()
 initialize_new_sb2_session()
 {
 	# Create a new session
-	if [ -n "$SBOX_WRITE_SESSION_INFO_TO_FILE" -a \
-	     -f "$SBOX_WRITE_SESSION_INFO_TO_FILE" ]; then
+	if [ -n "$SBOX_WRITE_SESSION_INFO_TO_FILE" ] \
+		   &&   [ -f "$SBOX_WRITE_SESSION_INFO_TO_FILE" ]; then
 		exit_error "File '$SBOX_WRITE_SESSION_INFO_TO_FILE' already exists."
 	fi
 
@@ -1397,16 +1395,14 @@ initialize_new_sb2_session()
 	else
 		# Create session directories
 		date_and_time_now=$(date +%Y%m%d-%H%M%S)
-		SBOX_SESSION_DIR=$(mktemp -d /tmp/sb2-$USER-$date_and_time_now.XXXXXX)
-		if [ $? != 0 ]; then
+		if ! SBOX_SESSION_DIR=$(mktemp -d /tmp/sb2-$USER-$date_and_time_now.XXXXXX) ; then
 			exit_error "Failed to create directory for session (problems with /tmp ?)"
 		fi
 	fi
 	# resolve possible symlinks in SBOX_SESSION_DIR
 	SBOX_SESSION_DIR=$(readlink -f $SBOX_SESSION_DIR)
 
-	mkdir -p $SBOX_SESSION_DIR
-	if [ $? != 0 ]; then
+	if ! mkdir -p $SBOX_SESSION_DIR; then
 		exit_error "Failed to create directory for session"
 	fi
 	mkdir $SBOX_SESSION_DIR/tmp
@@ -1685,7 +1681,7 @@ done
 shift $(($OPTIND - 1))
 
 
-if [ -n "$SBOX_SESSION_DIR" -a -d "$SBOX_SESSION_DIR/rules" ]; then
+if [ -n "$SBOX_SESSION_DIR" ] &&  [ -d "$SBOX_SESSION_DIR/rules" ]; then
 	# already inside an sb2 session; ignore all options and just exec the command.
 	echo "WARNING: recursive calls to sb2 are not supported (session already exists)"
 	echo "WARNING: going to execute '$*' in this session"
@@ -1694,7 +1690,7 @@ fi
 
 #----------- Check parameters
 
-# First check that we are not running under "fakeroot"; it 
+# First check that we are not running under "fakeroot"; it
 # will just mess up things and must not be combined with SB2.
 case "$LD_PRELOAD" in
 	(*fakeroot*)
@@ -1710,8 +1706,7 @@ esac
 
 if [ -n "$SBOX_LOG_AND_GRAPH_DIR" ]; then
 	if [ ! -d "$SBOX_LOG_AND_GRAPH_DIR" ]; then
-		mkdir -p "$SBOX_LOG_AND_GRAPH_DIR"
-		if [ $? != 0 ]; then
+		if ! mkdir -p "$SBOX_LOG_AND_GRAPH_DIR"; then
 			exit_error "Failed to create directory $SBOX_LOG_AND_GRAPH_DIR"
 		fi
 	else
@@ -1721,7 +1716,7 @@ if [ -n "$SBOX_LOG_AND_GRAPH_DIR" ]; then
 	export SBOX_LOG_AND_GRAPH_DIR
 	export SBOX_COLLECT_ACCT_DATA
 
-	if [ "$SBOX_MAPPING_DEBUG" != "1" -a -n "$SBOX_LOG_AND_GRAPH_DIR" ]; then
+	if [ "$SBOX_MAPPING_DEBUG" != "1" ] &&  [ -n "$SBOX_LOG_AND_GRAPH_DIR" ]; then
 		# Log & graphs requested, but log isn't active.
 		export SBOX_MAPPING_DEBUG=1
 		export SBOX_MAPPING_LOGLEVEL=info
@@ -1730,13 +1725,13 @@ if [ -n "$SBOX_LOG_AND_GRAPH_DIR" ]; then
 	if [ -n "$SBOX_COLLECT_ACCT_DATA" ]; then
 		# First try to activate it directly
 		touch $SBOX_LOG_AND_GRAPH_DIR/acct-data
-		$SBOX_DIR/bin/sb2-show acct_on $SBOX_LOG_AND_GRAPH_DIR/acct-data 2>/dev/null
-		if [ $? != 0 ]; then
+		if ! $SBOX_DIR/bin/sb2-show acct_on \
+			 $SBOX_LOG_AND_GRAPH_DIR/acct-data 2>/dev/null; then
 			if [ -z "$SBOX_QUIET" ];  then
 				echo "WARNING: Can't activate process accounting. Retrying with 'sudo', password may be needed."
 			fi
-			sudo $SBOX_DIR/bin/sb2-show acct_on $SBOX_LOG_AND_GRAPH_DIR/acct-data 2>/dev/null
-			if [ $? != 0 ]; then
+			if ! sudo $SBOX_DIR/bin/sb2-show acct_on \
+				 $SBOX_LOG_AND_GRAPH_DIR/acct-data 2>/dev/null; then
 				if [ -z "$SBOX_QUIET" ];  then
 					echo "WARNING: Failed to activate process accounting. Acct data won't be included in the graphs."
 				fi
@@ -1856,7 +1851,7 @@ export SBOX_SESSION_DIR
 
 sboxify_environment
 
-if [ -z "$SB2_INTERNAL_MAPMODES" -a -z "$SB2_EXTERNAL_RULEFILES" ]; then
+if [ -z "$SB2_INTERNAL_MAPMODES" ] &&  [ -z "$SB2_EXTERNAL_RULEFILES" ]; then
 	# mapping mode was not specified by an option, SBOX_MAPMODE has been
 	# set from the config file by sboxify_environment
 	SB2_INTERNAL_MAPMODES=$SBOX_MAPMODE
@@ -1888,14 +1883,13 @@ if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 	# deleted when session is terminated.)
 	#
 	# sb2d will execute "init.lua" before returning.
-	SB2_DEFAULT_NETWORK_MODE="$SBOX_DEFAULT_NETWORK_MODE" \
-	SB2_ALL_NET_MODES="$SB2_ALL_NET_MODES" \
-	SB2_ALL_MODES="$SB2_INTERNAL_MAPMODES" \
+	if ! SB2_DEFAULT_NETWORK_MODE="$SBOX_DEFAULT_NETWORK_MODE" \
+		SB2_ALL_NET_MODES="$SB2_ALL_NET_MODES" \
+		SB2_ALL_MODES="$SB2_INTERNAL_MAPMODES" \
 		sb2d -s $SBOX_SESSION_DIR -p $SBOX_SESSION_DIR/sb2d.pid \
 			-l - $SB2D_OPTIONS \
 			>$SBOX_SESSION_DIR/sb2d.out \
-			2>$SBOX_SESSION_DIR/sb2d.err
-	if [ $? != 0 ]; then
+			2>$SBOX_SESSION_DIR/sb2d.err ; then
 		grep ERROR $SBOX_SESSION_DIR/sb2d.out
 		cat $SBOX_SESSION_DIR/sb2d.err
 		exit_error "startup of sb2d failed."
@@ -1970,7 +1964,7 @@ fi
 # (If logging was activated earlier,
 # several bogus errors would be logged because of
 # missing auto-generated rules)
-if [ $# -gt 0 -o "$STDIN" = true ] ; then
+if [ $# -gt 0 ] || [ "$STDIN" = true ] ; then
 	initialize_sb_logging $(echo $1 | sed -e 's/\//_/g' -e 's/^\.//') "$args"
 else
 	initialize_sb_logging sb2
@@ -2012,7 +2006,7 @@ SBOX_CONFIG_DIR=$HOME/.scratchbox2/$SBOX_TARGET/sb2.config.d
 #
 __SB2_BINARYNAME="sb2:StartupTrampoline"
 export __SB2_BINARYNAME
-if [ $# -gt 0 -o "$STDIN" = true ]; then
+if [ $# -gt 0 ] || [ "$STDIN" = true ]; then
 	binary="$1"
 	shift 1
 

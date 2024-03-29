@@ -73,19 +73,25 @@ CXXFLAGS =
 
 include $(LLBUILD)/Makefile.include
 
-ifdef prefix
-CONFIGURE_ARGS = --prefix=$(prefix)
-else
-CONFIGURE_ARGS = 
-endif
+# These targets have to be updated first to not start building
+# while configure is running when any of these or their
+# dependencies change
+DIST_FILES = $(OBJDIR)/config.status \
+				$(OBJDIR)/config.mak
 
-all: .version .configure do-all
+
+all: $(DIST_FILES) .WAIT .version do-all
 
 do-all: $(targets)
 
-.configure:
-	$(SRCDIR)/configure $(CONFIGURE_ARGS)
-	@touch .configure
+# Don't erase these files if make is interrupted while refreshing them.
+.PRECIOUS: $(OBJDIR)/config.status
+$(OBJDIR)/config.status $(OBJDIR)/config.mak: $(SRCDIR)/configure $(SRCDIR)/config.mak.in
+	$(OBJDIR)/config.status --recheck
+
+$(SRCDIR)/configure: $(SRCDIR)/configure.ac
+	cd $(SRCDIR); \
+	./autogen.sh
 
 .PHONY: .version
 .version:
@@ -226,7 +232,6 @@ CLEAN_FILES += $(targets) config.status config.log
 
 superclean: clean
 	$(P)CLEAN
-	$(Q)rm -rf obj-32 obj-64 .configure
 	$(Q)rm -rf include/config.h config.mak
 
 clean:

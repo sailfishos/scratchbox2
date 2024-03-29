@@ -14,13 +14,14 @@
 exit_reason=$1
 exit_status=$2
 
-if [ -z "$SBOX_MAPPING_LOGFILE" -o \
-     -z "$exit_reason" -o -z "$exit_status" ]; then
+if [ -z "$SBOX_MAPPING_LOGFILE" ] \
+	   || [ -z "$exit_reason" ] \
+	   || [ -z "$exit_status" ]; then
 	echo "ERROR: $0 is an internal tool for sb2, do not use directly"
 	exit 1
 fi
 
-if [ "$exit_reason" == "exit" ]; then
+if [ "$exit_reason" = "exit" ]; then
 	# Normal exit
 	ret=$exit_status
 else
@@ -33,13 +34,11 @@ fi
 # Turn off accounting, if it was enabled in the beginning.
 if [ -n "$SBOX_COLLECT_ACCT_DATA" ]; then
 	# First try to deactivate it directly
-	sb2-show acct_off 2>/dev/null
-	if [ $? != 0 ]; then
+	if ! sb2-show acct_off 2>/dev/null ; then
 		if [ -z "$SBOX_QUIET" ];  then
 			echo "WARNING: Can't deactivate process accounting. Retrying with 'sudo', password may be needed."
 		fi
-		sudo sb2-show acct_off 2>/dev/null
-		if [ $? != 0 ]; then
+		if ! sudo sb2-show acct_off 2>/dev/null ; then
 			if [ -z "$SBOX_QUIET" ];  then
 				echo "ERROR: Failed to deactivate process accounting. Please do it manually!"
 			fi
@@ -72,7 +71,7 @@ if [ -s "$SBOX_MAPPING_LOGFILE" ]; then
 				-E $SBOX_LOG_AND_GRAPH_DIR/exec.dot \
 				< $SBOX_MAPPING_LOGFILE >/dev/null
 		fi
-		path_to_dot=`which dot 2>/dev/null`
+		path_to_dot=$(command -v dot 2>/dev/null)
 		if [ -z "$path_to_dot" ]; then
 			if [ -z "$SBOX_QUIET" ];  then
 				echo "Warning: 'dot' was not found, can't create .pdf files"
@@ -118,7 +117,7 @@ if [ -f $SBOX_SESSION_DIR/.joinable-session ]; then
 	echo >/dev/null
 else
 	# cleanup
-	if [ -n "$SBOX_SESSION_DIR" -a -d "$SBOX_SESSION_DIR" ]; then
+	if [ -n "$SBOX_SESSION_DIR" ] && [ -d "$SBOX_SESSION_DIR" ]; then
 		rm -rf $SBOX_SESSION_DIR
 	fi
 fi

@@ -12,7 +12,7 @@
 # Licensed under GPL version 2
 #
 prog="$0"
-progbase=`basename $0`
+progbase=$(basename $prog)
 session_save_dir="$HOME/.scratchbox2/saved_sessions"
 
 usage()
@@ -117,7 +117,7 @@ attach_session()
 		shift
 	fi
 
-	if [ -z "$session" -o "$session" = "--" ]; then
+	if [ -z "$session" ] || [ "$session" = "--" ]; then
 		#
 		# No session id given.  This means that there should
 		# only be one session and we should use that.
@@ -142,21 +142,23 @@ attach_session()
 
 save_session()
 {
-	echo -n "Session description: "
+	printf "%s" "Session description: "
 	read session_descr
 	write_session_info "$session_descr"
 }
 
 list_sessions()
 {
-	for s in $( ls $session_save_dir/session.* 2>/dev/null ); do
-		session_file=$(basename $s)
-		session_descr=$( grep SBOX_SESSION_DESCRIPTION $s | \
-		    sed 's/SBOX_SESSION_DESCRIPTION="\([^"]*\)"/\1/' )
-		session_target=$( grep SBOX_TARGET $s | \
-		    sed 's/SBOX_TARGET=\([^"]*\)/\1/' )
-		printf "%s\t%s\t%s\n" "$session_file" "$session_target" \
-		    "$session_descr"
+	for s in $session_save_dir/session.* ; do
+		if [ -e $s ] ; then
+			session_file=$(basename $s)
+			session_descr=$( grep SBOX_SESSION_DESCRIPTION $s | \
+								 sed 's/SBOX_SESSION_DESCRIPTION="\([^"]*\)"/\1/' )
+			session_target=$( grep SBOX_TARGET $s | \
+								  sed 's/SBOX_TARGET=\([^"]*\)/\1/' )
+			printf "%s\t%s\t%s\n" "$session_file" "$session_target" \
+				   "$session_descr"
+		fi
 	done
 }
 
@@ -191,9 +193,9 @@ set_env_var()
 show_env_vars()
 {
 	if [ $inside_sb2 -eq 1 ]; then
-		count=$( ls $SBOX_SESSION_DIR/env_vars/* 2>/dev/null | wc -l )
+		count=$(find "$SBOX_SESSION_DIR/env_vars" -print x | wc -c )
 		if [ "$count" -gt 0 ]; then
-			cat $SBOX_SESSION_DIR/env_vars/*
+			cat "$SBOX_SESSION_DIR"/env_vars/*
 		fi
 	else
 		die "'sb2-session showenv' must be used inside existing session!" $?
@@ -225,11 +227,11 @@ case "$command" in
 		;;
 	attach)
 		if [ $inside_sb2 -ne 0 ]; then
-			echo -n "'attach' command cannot be run from inside "
+			printf "%s" "'attach' command cannot be run from inside "
 			echo "sb2 session"
 			exit 1
 		fi
-		attach_session $*
+		attach_session "${@}"
 		;;
 
 	save)
@@ -239,7 +241,7 @@ case "$command" in
 		# it.
 		#
 		if [ $inside_sb2 -ne 1 ]; then
-			echo -n "'save' command can only be run from inside "
+			printf "%s" "'save' command can only be run from inside "
 			echo "sb2 session"
 			exit 1
 		fi
@@ -255,7 +257,7 @@ case "$command" in
 
 	delete)
 		if [ $inside_sb2 -ne 0 ]; then
-			echo -n "'delete' command cannot be run from inside "
+			printf "%s" "'delete' command cannot be run from inside "
 			echo "sb2 session"
 			exit 1
 		fi
@@ -264,7 +266,7 @@ case "$command" in
 		;;
 
 	setenv)
-		set_env_var $*
+		set_env_var "${@}"
 		;;
 
 	showenv)

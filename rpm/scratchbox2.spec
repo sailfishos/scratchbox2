@@ -40,11 +40,17 @@ Scratchbox2 man pages.
 
 %build
 ./autogen.sh
-%configure
-%make_build
+# FIXME switch to vpath macros once we have them
+mkdir -p build
+%global _configure ../configure
+(
+    cd build
+    %configure
+)
+%make_build -C build -f ../Makefile
 
 %install
-%make_install
+%make_install -C build -f ../Makefile
 
 install -D -m 644 utils/sb2.bash %{buildroot}/etc/bash_completion.d/sb2.bash
 

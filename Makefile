@@ -6,6 +6,11 @@ OBJDIR = $(TOPDIR)
 SRCDIR = $(TOPDIR)
 VPATH = $(SRCDIR)
 
+MAKEFILEDIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
+ifneq ($(MAKEFILEDIR),$(OBJDIR))
+SRCDIR:=$(MAKEFILEDIR)
+endif
+
 prefix = /usr/local
 libdir = $(prefix)/lib
 bindir = $(prefix)/bin

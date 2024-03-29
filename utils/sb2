@@ -233,6 +233,10 @@ load_configuration()
 	    exit_error "Cannot access target root '$SBOX_TARGET_ROOT', aborting."
 	fi
 
+	if [ ! -d "$SBOX_DIR/share/scratchbox2/modes/$SBOX_MAPMODE" ]; then
+		exit_error "Configured mode for target doesn't '$SBOX_MAPMODE' exist, aborting."
+	fi
+
 	LD_LIBRARY_PATH=$saved_LD_LIBRARY_PATH
 
 	# resolve possible symlinks in SBOX_TARGET_ROOT and SBOX_TOOLS_ROOT

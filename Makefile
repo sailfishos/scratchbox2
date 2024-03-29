@@ -169,9 +169,9 @@ install-noarch: all
 	else install -d -m 755 $(DESTDIR)$(datadir)/man/man7 ; \
 	fi
 	$(Q)echo "$(PACKAGE_VERSION)" > $(DESTDIR)$(datadir)/scratchbox2/version
-	$(Q)install -m 755 $(SRCDIR)/utils/sb2 $(DESTDIR)$(bindir)/sb2
-	$(Q)install -m 755 $(SRCDIR)/utils/sb2-init $(DESTDIR)$(bindir)/sb2-init
-	$(Q)install -m 755 $(SRCDIR)/utils/sb2-config $(DESTDIR)$(bindir)/sb2-config
+	$(Q)install -m 755 $(OBJDIR)/utils/sb2 $(DESTDIR)$(bindir)/sb2
+	$(Q)install -m 755 $(OBJDIR)/utils/sb2-init $(DESTDIR)$(bindir)/sb2-init
+	$(Q)install -m 755 $(OBJDIR)/utils/sb2-config $(DESTDIR)$(bindir)/sb2-config
 	$(Q)install -m 755 $(SRCDIR)/utils/sb2-session $(DESTDIR)$(bindir)/sb2-session
 	$(Q)install -m 755 $(SRCDIR)/utils/sb2-build-libtool $(DESTDIR)$(bindir)/sb2-build-libtool
 	$(Q)install -m 755 $(SRCDIR)/utils/sb2-start-qemuserver $(DESTDIR)$(bindir)/sb2-start-qemuserver
@@ -179,9 +179,9 @@ install-noarch: all
 
 	$(Q)install -m 755 $(SRCDIR)/utils/sb2-cmp-checkbuilddeps-output.pl $(DESTDIR)$(datadir)/scratchbox2/lib/sb2-cmp-checkbuilddeps-output.pl
 
-	$(Q)install -m 755 $(SRCDIR)/utils/sb2-upgrade-config $(DESTDIR)$(datadir)/scratchbox2/scripts/sb2-upgrade-config
+	$(Q)install -m 755 $(OBJDIR)/utils/sb2-upgrade-config $(DESTDIR)$(datadir)/scratchbox2/scripts/sb2-upgrade-config
 	$(Q)install -m 755 $(SRCDIR)/utils/sb2-parse-sb2-init-args $(DESTDIR)$(datadir)/scratchbox2/scripts/sb2-parse-sb2-init-args
-	$(Q)install -m 755 $(SRCDIR)/utils/sb2-config-gcc-toolchain $(DESTDIR)$(datadir)/scratchbox2/scripts/sb2-config-gcc-toolchain
+	$(Q)install -m 755 $(OBJDIR)/utils/sb2-config-gcc-toolchain $(DESTDIR)$(datadir)/scratchbox2/scripts/sb2-config-gcc-toolchain
 	$(Q)install -m 755 $(SRCDIR)/utils/sb2-config-debian $(DESTDIR)$(datadir)/scratchbox2/scripts/sb2-config-debian
 	$(Q)install -m 755 $(SRCDIR)/utils/sb2-check-pkg-mappings $(DESTDIR)$(datadir)/scratchbox2/scripts/sb2-check-pkg-mappings
 	$(Q)install -m 755 $(SRCDIR)/utils/sb2-exitreport $(DESTDIR)$(datadir)/scratchbox2/scripts/sb2-exitreport

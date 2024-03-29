@@ -14,7 +14,7 @@
 # Licensed under GPL version 2
 #
 prog="$0"
-progbase=`basename $0`
+progbase=$(basename $prog)
 
 usage()
 {
@@ -64,8 +64,7 @@ check_mode_and_cpu_transparency()
 	return $?
 }
 
-check_mode_and_cpu_transparency
-if [ $? -ne 0 ]; then
+if ! check_mode_and_cpu_transparency ; then
 	echo "SB2: $progbase: This script can be only used inside"
 	echo "emulation mode where cpu transparency is set to sb2-qemu-arm"
 	exit 1
@@ -104,4 +103,4 @@ fi
 # Run sb2-show and prepare output so that it is suitable for
 # remote debugging.
 #
-exec /usr/bin/sb2-show qemu-debug-exec -g $port $@
+exec /usr/bin/sb2-show qemu-debug-exec -g $port "$@"

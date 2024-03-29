@@ -9,7 +9,7 @@
 # Author: Lauri T. Aarnio
 # Licensed under LGPL version 2.1, see top level LICENSE file for details.
 
-function usage()
+usage()
 {
 	cat <<EOF
 sb2-check-pkg-mappings - check usability of target's .deb packages
@@ -41,9 +41,9 @@ if [ -z "$*" ]; then
 	usage
 fi
 prog="$0"
-progbase=`basename $0`
+progbase=$(basename $0)
 
-function error_not_inside_sb2()
+error_not_inside_sb2()
 {
 	echo "SB2: $progbase: This program can only be used from inside"
 	echo "the scratchbox 2'ed environment"
@@ -92,7 +92,7 @@ fi
 # Target's real package db:
 TARGET_DPKG_ADMINDIR_ALL_PKGS=$sbox_target_root/var/lib/dpkg
 
-if [ $check_all_pkgs = "yes" -o "$check_if_out_of_date" = "yes" ]; then
+if [ $check_all_pkgs = "yes" ] || [ "$check_if_out_of_date" = "yes" ]; then
 	if [ ! -d $sbox_temp_dpkg_admin_dir ]; then
 		mkdir $sbox_temp_dpkg_admin_dir
 	fi
@@ -140,12 +140,12 @@ if [ "$check_if_out_of_date" = "yes" ]; then
 	fi
 fi
 
-tstamp=`/bin/date +%Y%m%d-%H%M`
+tstamp=$(/bin/date +%Y%m%d-%H%M)
 
-if [ -z "$pkgs2check" -a "$check_all_pkgs" = "yes" ]; then
+if [ -z "$pkgs2check" ] && [ "$check_all_pkgs" = "yes" ]; then
 	# check all installed packages
 	echo "Checking visibility of all files installed from all packages to target_root:"
-	pkgs2check=`dpkg --get-selections | grep 'install$' | sed -e 's/install$//'`
+	pkgs2check=$(dpkg --get-selections | grep 'install$' | sed -e 's/install$//')
 	status_file=STATUS-NEW.$tstamp.$$
 	bothreq_file=BOTH_REQ-NEW.$tstamp.$$
 elif [ "$check_all_pkgs" = "yes" ]; then
@@ -153,7 +153,7 @@ elif [ "$check_all_pkgs" = "yes" ]; then
 	usage
 fi
 
-function add_pkg_to_status_file()
+add_pkg_to_status_file()
 {
 	if [ $check_all_pkgs = "yes" ]; then
 		if [ -f $status_file ]; then
@@ -163,13 +163,13 @@ function add_pkg_to_status_file()
 	fi
 }
 
-function remove_temp_files
+remove_temp_files()
 {
-	if [ -n "$status_file" -a -f "$status_file" ]; then
+	if [ -n "$status_file" ] && [ -f "$status_file" ]; then
 		echo "removing temp file '$status_file'"
 		rm $status_file
 	fi
-	if [ -n "$bothreq_file" -a -f "$bothreq_file" ]; then
+	if [ -n "$bothreq_file" ] && [ -f "$bothreq_file" ]; then
 		echo "removing temp file '$bothreq_file'"
 		rm $bothreq_file
 	fi
@@ -189,7 +189,7 @@ fi
 
 # for all installed packages..
 for pkg in $pkgs2check; do
-	pkgnum=`expr $pkgnum + 1`
+	pkgnum=$(expr $pkgnum + 1)
 	if [ -n "$verbose" ]; then
 		echo "=========== $pkgnum. Checking $pkg ==========="
 	fi
@@ -198,10 +198,10 @@ for pkg in $pkgs2check; do
 	# and feed it to sb2-show to be verified (-D causes directories
 	# to be ignored). Also ignore all files which are installed
 	# to these diretories listed in $SB2_CHECK_PKG_MAPPINGS_IGNORE_LIST.
-	sb2_pkg_chk=`mktemp /tmp/sb2-pkg-chk.XXXXXXXXXX`
+	sb2_pkg_chk=$(mktemp /tmp/sb2-pkg-chk.XXXXXXXXXX)
 	dpkg -L $pkg >$sb2_pkg_chk
 	if [ $? != 0 ]; then
-		num_failed=`expr $num_failed + 1`
+		num_failed=$(expr $num_failed + 1)
 		if [ -n "$verbose" ]; then
 			echo "	$pkg is not available"
 		else
@@ -222,7 +222,7 @@ for pkg in $pkgs2check; do
 			else
 				echo -n "."
 			fi
-			num_ok=`expr $num_ok + 1`
+			num_ok=$(expr $num_ok + 1)
 			add_pkg_to_status_file
 		elif [ $pathlist_mappings_result == 2 ]; then
 			# package can be used, as long as it is installed to 
@@ -232,13 +232,13 @@ for pkg in $pkgs2check; do
 			else
 				echo -n "."
 			fi
-			num_both_required=`expr $num_both_required + 1`
+			num_both_required=$(expr $num_both_required + 1)
 			add_pkg_to_status_file
 			if [ $check_all_pkgs = "yes" ]; then
 				echo $pkg >>$bothreq_file
 			fi
 		else
-			num_failed=`expr $num_failed + 1`
+			num_failed=$(expr $num_failed + 1)
 			if [ -n "$verbose" ]; then
 				echo "	$pkg can not be used in this mode ($sbox_mapmode)"
 			else

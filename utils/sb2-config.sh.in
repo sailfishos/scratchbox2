@@ -2,14 +2,7 @@
 # Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
 # Licensed under GPL version 2
 
-my_path=$_
-if [ $(basename $my_path) != $(basename $0) ]; then
-	my_path=$0
-	if [ $(basename $my_path) = $my_path ]; then
-		my_path=$(which $my_path)
-	fi
-fi
- 
+
 log_config_action()
 {
 	mkdir -p $SBOX_CONFIG_DIR
@@ -49,7 +42,7 @@ EOF
 
 version()
 {
-	cat $SBOX_DIR/share/scratchbox2/version
+	cat $SBOX_DATADIR/version
 	exit 0
 }
 
@@ -183,7 +176,7 @@ showenv_vars()
 	# else there are none.
 }
 
-SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
+SBOX_DATADIR=@datadir@
 WRITE_CONFIG=0
 
 if [ $# = 0 ]; then

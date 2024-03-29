@@ -40,7 +40,7 @@ Scratchbox2 man pages.
 
 %build
 ./autogen.sh
-# FIXME switch to vpath macros once we have them
+# FIXME: switch to vpath macros once we have them
 mkdir -p build
 %global _configure ../configure
 (

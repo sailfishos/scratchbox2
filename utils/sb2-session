@@ -12,7 +12,7 @@
 # Licensed under GPL version 2
 #
 prog="$0"
-progbase=`basename $0`
+progbase=$(basename $prog)
 session_save_dir="$HOME/.scratchbox2/saved_sessions"
 
 usage()
@@ -104,8 +104,8 @@ END
 
 die()
 {
-	echo $1
-	exit $2
+	echo "$1" >&2
+	exit ${2:-1}
 }
 
 attach_session()
@@ -117,7 +117,7 @@ attach_session()
 		shift
 	fi
 
-	if [ -z "$session" -o "$session" = "--" ]; then
+	if [ -z "$session" ] || [ "$session" = "--" ]; then
 		#
 		# No session id given.  This means that there should
 		# only be one session and we should use that.
@@ -142,22 +142,23 @@ attach_session()
 
 save_session()
 {
-	echo -n "Session description: "
+	printf "%s" "Session description: "
 	read session_descr
 	write_session_info "$session_descr"
 }
 
 list_sessions()
 {
-	for s in $( ls $session_save_dir/session.* 2>/dev/null ); do
+    for s in $session_save_dir/session.* ; do
+		[ -e $s ] || continue
 		session_file=$(basename $s)
 		session_descr=$( grep SBOX_SESSION_DESCRIPTION $s | \
-		    sed 's/SBOX_SESSION_DESCRIPTION="\([^"]*\)"/\1/' )
+							 sed 's/SBOX_SESSION_DESCRIPTION="\([^"]*\)"/\1/' )
 		session_target=$( grep SBOX_TARGET $s | \
-		    sed 's/SBOX_TARGET=\([^"]*\)/\1/' )
+							  sed 's/SBOX_TARGET=\([^"]*\)/\1/' )
 		printf "%s\t%s\t%s\n" "$session_file" "$session_target" \
-		    "$session_descr"
-	done
+			   "$session_descr"
+    done
 }
 
 delete_session()
@@ -184,19 +185,16 @@ set_env_var()
 		mkdir -p "$SBOX_SESSION_DIR/env_vars"
 		echo "$varname=\"$value\"" >$SBOX_SESSION_DIR/env_vars/$varname
 	else
-		die "'sb2-session setenv' must be used inside existing session!" $?
+		die "'sb2-session setenv' must be used inside existing session!"
 	fi
 }
 
 show_env_vars()
 {
 	if [ $inside_sb2 -eq 1 ]; then
-		count=$( ls $SBOX_SESSION_DIR/env_vars/* 2>/dev/null | wc -l )
-		if [ "$count" -gt 0 ]; then
-			cat $SBOX_SESSION_DIR/env_vars/*
-		fi
+		find "$SBOX_SESSION_DIR/env_vars" -type f cat {} \;
 	else
-		die "'sb2-session showenv' must be used inside existing session!" $?
+		die "'sb2-session showenv' must be used inside existing session!"
 	fi
 }
 
@@ -209,7 +207,7 @@ shift
 
 if [ ! -e "$session_save_dir" ]; then
 	/bin/mkdir $session_save_dir 2>/dev/null ||
-	    die "unable to create session save directory: $saved_sessions_dir" $rc
+	    die "unable to create session save directory: $saved_sessions_dir" $?
 fi
 
 if [ -z "$SBOX_SESSION_DIR" ]; then
@@ -225,11 +223,9 @@ case "$command" in
 		;;
 	attach)
 		if [ $inside_sb2 -ne 0 ]; then
-			echo -n "'attach' command cannot be run from inside "
-			echo "sb2 session"
-			exit 1
+		    die "'attach' command cannot be run from inside sb2 session"
 		fi
-		attach_session $*
+		attach_session "${@}"
 		;;
 
 	save)
@@ -239,9 +235,7 @@ case "$command" in
 		# it.
 		#
 		if [ $inside_sb2 -ne 1 ]; then
-			echo -n "'save' command can only be run from inside "
-			echo "sb2 session"
-			exit 1
+		    die "'save' command can only be run from inside sb2 session"
 		fi
 
 		. $SBOX_SESSION_DIR/sb2-session.conf
@@ -255,16 +249,14 @@ case "$command" in
 
 	delete)
 		if [ $inside_sb2 -ne 0 ]; then
-			echo -n "'delete' command cannot be run from inside "
-			echo "sb2 session"
-			exit 1
+		    die "'delete' command cannot be run from inside sb2 session"
 		fi
 
 		delete_session "$1"
 		;;
 
 	setenv)
-		set_env_var $*
+		set_env_var "${@}"
 		;;
 
 	showenv)
@@ -272,5 +264,5 @@ case "$command" in
 		;;
 
 	*)
-		die "invalid command: $command" 1
+		die "invalid command: $command"
 esac

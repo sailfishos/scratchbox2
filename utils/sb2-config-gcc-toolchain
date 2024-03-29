@@ -13,14 +13,14 @@ if [ $(basename $my_path) != $(basename $0) ]; then
 	fi
 fi
 
-function log_config_action()
+log_config_action()
 {
-	tstamp=`/bin/date '+%Y-%m-%d %H:%M:%S'`
+	tstamp=$(/bin/date '+%Y-%m-%d %H:%M:%S')
 	echo "$tstamp	$*" >>$SBOX_CONFIG_DIR/CONFIG-LOG
 }
 
 # Get the original arguments that were specified to sb2-init from
-function usage()
+usage()
 {
 	cat <<EOF
 sb2-config-gcc-toolchain - Configure a cross-gcc compiler for SB2
@@ -49,12 +49,12 @@ EOF
 	exit 2
 }
 
-function write_gcc_config()
+write_gcc_config()
 {
 	gcc_version=$1
 
 	if [ -n "$gcc_version" ] ; then
-		gcc_version_id=`echo $gcc_version | sed -e 's/[^0-9a-zA-Z]/_/g'`
+		gcc_version_id=$(echo $gcc_version | sed -e 's/[^0-9a-zA-Z]/_/g')
 	fi
 
 	SBOX_TARGET_TOOLCHAIN_DIR=$(dirname "$SBOX_CROSS_GCC_DIR")
@@ -125,14 +125,14 @@ EOF
 # It is possible to set SB2_GCC_INIT_ID externally (for example, if
 # another program is used to initialize the system)
 SB2_GCC_INIT_ORIG_ARGS="$*"
-SB2_GCC_INIT_TIME=`date +%Y-%m-%d_%H:%M:%S`
+SB2_GCC_INIT_TIME=$(date +%Y-%m-%d_%H:%M:%S)
 if [ -z "$SB2_GCC_INIT_ID" ]; then
 	SB2_GCC_INIT_ID="user '$USER'"
 fi
 
 SBOX_EXTRA_CROSS_COMPILER_ARGS=""
 
-if [ -z "$*" ]; then
+if [ $# -eq 0 ]; then
 	usage
 fi
 
@@ -159,8 +159,8 @@ shift $(($OPTIND - 1))
 
 case "$1" in
 *:*)	# Has a path to specs
-	GCC=`echo $1 | cut -d : -f 1`
-	GCC_SPECS=`echo $1 | cut -d : -f 2`
+	GCC=$(echo $1 | cut -d : -f 1)
+	GCC_SPECS=$(echo $1 | cut -d : -f 2)
 	;;
 *)	GCC=$1
 	GCC_SPECS=""
@@ -219,15 +219,14 @@ case "$GCC_SPECS" in
 	exit 1
 esac
 
-GCC_FULLPATH=$(which $GCC)
 # test that gcc exists and can be executed
-if [ $? != 0 ]; then
+if ! GCC_FULLPATH=$(which $GCC); then
 	echo "$GCC doesn't exist"
 	exit 1
 fi
 
 SBOX_CROSS_GCC_DIR=$(dirname $(which $GCC))
-if [ $GCC -v > /dev/null 2>&1 != 0 ]; then
+if ! $GCC -v > /dev/null 2>&1; then
 	echo "Invalid compiler specified: $GCC"
 	exit 1
 fi
@@ -243,11 +242,11 @@ case "$(basename $GCC)" in
 	;;
 esac
 
-SBOX_CROSS_GCC_VERSION=`$GCC -dumpversion`
+SBOX_CROSS_GCC_VERSION=$($GCC -dumpversion)
 
 # Create a version string with two digits
-SBOX_CROSS_GCC_SHORTVERSION=`echo $SBOX_CROSS_GCC_VERSION |
-	sed -e 's/^\([0-9][0-9]*\.[0-9][0-9]*\)\..*/\1/'`
+SBOX_CROSS_GCC_SHORTVERSION=$(echo $SBOX_CROSS_GCC_VERSION |
+	sed -e 's/^\([0-9][0-9]*\.[0-9][0-9]*\)\..*/\1/')
 
 GCC_TARGET=$($GCC -dumpmachine)
 
@@ -313,7 +312,7 @@ SBOX_EXTRA_CROSS_COMPILER_ARGS="$SBOX_EXTRA_CROSS_COMPILER_ARGS -L@SBOX_TARGET_R
 # usage ("gcc -E -Wno-poison-system-directories" is not a reliable way for
 # testing this; instead check if ld has the related flag)
 # Ensure its bin directory is in PATH to prevent "unable to find 'ld'" error.
-txt=`PATH="$(dirname $GCC_FULLPATH):$PATH" $GCC_FULLPATH -Wl,--help | grep no-poison-system-directories`
+txt=$(PATH="$(dirname $GCC_FULLPATH):$PATH" $GCC_FULLPATH -Wl,--help | grep no-poison-system-directories)
 case "$txt" in
 	(*no-poison-system-directories*)	# option is available
 		SBOX_EXTRA_CROSS_COMPILER_ARGS="$SBOX_EXTRA_CROSS_COMPILER_ARGS -Wno-poison-system-directories"

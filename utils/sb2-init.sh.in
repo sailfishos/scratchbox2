@@ -2,14 +2,6 @@
 # sb2-init - Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 # Licensed under GPL version 2
 
-my_path=$_
-if [ $(basename $my_path) != $(basename $0) ]; then
-	my_path=$0
-	if [ $(basename $my_path) = $my_path ]; then
-		my_path=$(which $my_path)
-	fi
-fi
-
 log_config_action()
 {
 	tstamp=$(/bin/date '+%Y-%m-%d %H:%M:%S')
@@ -44,7 +36,7 @@ show_existing_config_info()
 			echo
 		fi
 	done
-	if [ has_targets = "no" ]; then
+	if [ $has_targets = "no" ]; then
 		echo "none."
 	fi
 }
@@ -102,7 +94,7 @@ EOF
 
 version()
 {
-	cat $SBOX_DIR/share/scratchbox2/version
+	cat $SBOX_DATADIR/scratchbox2/version
 	exit 0
 }
 
@@ -208,15 +200,15 @@ configure_toolchains()
 	else
 		gccconfig_arch_option2=""
 	fi
-	for compiler_path in $*; do
+	for compiler_path in "${@}"; do
 		log_config_action "sb2-init: configuring toolchain, compiler $compiler_path"
-		if ! $SBOX_SHARE_DIR/scripts/sb2-config-gcc-toolchain \
+		if ! $SBOX_DATADIR/scratchbox2/scripts/sb2-config-gcc-toolchain \
 			-v \
 			$secondary_compiler \
 			$gccconfig_arch_option \
 			$gccconfig_arch_option2 \
 			-R "$SBOX_TARGET_ROOT" \
-			-S "$SBOX_DIR" \
+			-S "$SBOX_DATADIR" \
 			-t "$TARGET" \
 			-m "$MAPPING_MODE" \
 			-C "$SB2INIT_SBOX_EXTRA_CROSS_COMPILER_ARGS" \
@@ -231,10 +223,12 @@ configure_toolchains()
 	done
 }
 
-if [ -z "$SBOX_DIR" ]; then
-	SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
+if [ -z "$SBOXDATA_DIR" ]; then
+	SBOX_DATADIR=@datadir@
 fi
-SBOX_SHARE_DIR=$SBOX_DIR/share/scratchbox2
+if [ -z "$SBOXBIN_DIR" ]; then
+	SBOX_BINDIR=@bindir@
+fi
 
 # Use an array to preserve spaces in original arguments:
 declare -a init_orig_args_array
@@ -264,7 +258,7 @@ fi
 # because a) name of the target is currently unknown, b) there might be 
 # errors in the parameters, or c) if the user is just requesting help or
 # version and we are not actually going to configure anything.
-eval $($SBOX_SHARE_DIR/scripts/sb2-parse-sb2-init-args "${init_orig_args_array[@]}")
+eval $($SBOX_DATADIR/scratchbox2/scripts/sb2-parse-sb2-init-args "${init_orig_args_array[@]}")
 
 TARGET=$SB2INIT_TARGET
 SBOX_TARGET_ROOT=$SB2INIT_TARGET_ROOT
@@ -301,7 +295,7 @@ if [ -z "$MAPPING_MODE" ]; then
 	echo "Info: Mapping mode not specified, using default ($MAPPING_MODE)"
 fi
 
-if [ ! -d $SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE ]; then
+if [ ! -d $SBOX_DATADIR/scratchbox2/modes/$MAPPING_MODE ]; then
 	echo "Invalid mapping mode: $MAPPING_MODE"
 	exit 1
 fi
@@ -319,7 +313,7 @@ log_config_action "sb2-init $SBOX_INIT_ORIG_ARGS"
 # Parse parameters (round 2); store parameters to the config directory.
 # "$SBOX_CONFIG_DIR/sb2-init-args" can be overwritten by sb2-init or
 # sb2-upgrade-config; the config log should identify who did what..
-$SBOX_SHARE_DIR/scripts/sb2-parse-sb2-init-args "${init_orig_args_array[@]}" \
+$SBOX_DATADIR/scratchbox2/scripts/sb2-parse-sb2-init-args "${init_orig_args_array[@]}" \
 	>$SBOX_CONFIG_DIR/sb2-init-args
 
 if [ -z "$SB2INIT_COMPILERS" ]; then
@@ -452,7 +446,7 @@ fi
 
 mkdir -p $HOME/.scratchbox2
 
-if [ -z "$($SBOX_DIR/bin/sb2-config -l)" ]; then
+if [ -z "$($SBOX_BINDIR/sb2-config -l)" ]; then
 	# force this as default anyway as there are no
 	# other existing targets
 	SB2INIT_SET_AS_DEFAULT=1
@@ -469,7 +463,7 @@ fi
 
 _host_gcc=$(which gcc)
 if [ -n "$_host_gcc" ] && [ -e "$_host_gcc" ]; then
-	HOST_GCC_INC=$(echo "#include <stdio.h>" | gcc -M -E - | SBOX_DIR=$SBOX_DIR perl -e 'while(<STDIN>) { $foo{$1} = 1 if m/\/usr([^[:space:]]*\/include)/;}; foreach my $k (keys %foo) {print " -isystem $ENV{SBOX_DIR}/share/scratchbox2/host_usr$k"};')
+	HOST_GCC_INC=$(echo "#include <stdio.h>" | gcc -M -E - | SBOX_DATADIR=$SBOX_DATADIR perl -e 'while(<STDIN>) { $foo{$1} = 1 if m/\/usr([^[:space:]]*\/include)/;}; foreach my $k (keys %foo) {print " -isystem $ENV{SBOX_DATADIR}/scratchbox2/host_usr$k"};')
 	SB2INIT_SBOX_HOST_GCC_NAME=host-gcc
 	SB2INIT_SBOX_HOST_GCC_PREFIX_LIST=host-
 else
@@ -497,13 +491,13 @@ fi
 # finalize the configuration by running programs in the new environment.
 
 if [ $SB2INIT_SET_AS_DEFAULT = 1 ]; then
-	$SBOX_DIR/bin/sb2-config -d $TARGET
+	$SBOX_BINDIR/sb2-config -d $TARGET
 fi
 
 # if the target system is (based on) debian,
 # DEB_* environment variables are needed. We'll set them in any case:
 echo "sb2-init: Creating Debian build system settings for this target:"
-if ! $SBOX_DIR/share/scratchbox2/scripts/sb2-config-debian -t $TARGET ;then
+if ! $SBOX_DATADIR/scratchbox2/scripts/sb2-config-debian -t $TARGET ;then
 	log_config_action "sb2-init: failed run sb2-config-debian"
 	echo "sb2-init: sb2-config-debian failed."
 	exit 1
@@ -519,23 +513,23 @@ fi
 #
 if [ $SB2INIT_WITH_LOCALES = 1 ]; then
 	if [ -n "$SB2INIT_TOOLS_ROOT" ]; then
-		$SBOX_DIR/bin/sb2 -t $TARGET \
-		    $SBOX_DIR/share/scratchbox2/scripts/sb2-generate-locales -T
+		$SBOX_BINDIR/sb2 -t $TARGET \
+		    $SBOX_DATADIR/scratchbox2/scripts/sb2-generate-locales -T
 	fi
 
 	if [ -z "$SB2INIT_CPUTRANSP" ]; then
-		$SBOX_DIR/bin/sb2 -t $TARGET \
-		    $SBOX_DIR/share/scratchbox2/scripts/sb2-generate-locales
+		$SBOX_BINDIR/sb2 -t $TARGET \
+		    $SBOX_DATADIR/scratchbox2/scripts/sb2-generate-locales
 	fi
 fi
 
 if [ $SB2INIT_WITH_LIBTOOL = 1 ]; then
 	echo "sb2-init: configuring libtool for this target:"
 	printf "\n\n"
-	if $SBOX_DIR/bin/sb2 -t $TARGET $SBOX_DIR/bin/sb2-build-libtool ; then
+	if $SBOX_BINDIR/sb2 -t $TARGET $SBOX_BINDIR/sb2-build-libtool ; then
 		echo "sb2-init completed successfully, have fun!"
 	else
-		echo "Running $SBOX_DIR/bin/sb2-build-libtool failed"
+		echo "Running $SBOX_BINDIR/sb2-build-libtool failed"
 		echo "You can run this manually later, otherwise your"
 		echo "sb2 environment is correctly setup and ready to use"
 	fi

@@ -8,16 +8,8 @@
 # Copyright (C) 2009 Nokia Corporation.
 # Licensed under GPL version 2
 
-my_path=$_
-if [ $(basename $my_path) != $(basename $0) ]; then
-	my_path=$0
-	if [ $(basename $my_path) = $my_path ]; then
-		my_path=$(which $my_path)
-	fi
-fi
-
-SBOX_SHARE_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
-SBOX_DIR=$(readlink -f $SBOX_SHARE_DIR/../..)
+SBOX_DATADIR=@datadir@
+SBOX_DIR=@prefix@
 SBOX_TARGET=$1
 SBOX_CONFIG_DIR=~/.scratchbox2/$SBOX_TARGET/sb2.config.d 
 
@@ -66,7 +58,7 @@ get_sb2_init_arguments_from_old_config_file()
 			       -n '/^SBOX_TARGET_ROOT/ s/^SBOX_TARGET_ROOT=(.*)/\1/ p' $OLD_CONFIG_FILE)
 	export SB2INIT_TARGET_ROOT=$SBOX_TARGET_ROOT
 
-	$SBOX_SHARE_DIR/scripts/sb2-parse-sb2-init-args $SBOX_INIT_ORIG_ARGS \
+	$SBOX_DATADIR/scratchbox2/scripts/sb2-parse-sb2-init-args $SBOX_INIT_ORIG_ARGS \
 		> $SBOX_CONFIG_DIR/sb2-init-args
 	log_config_action "Config upgrade: arguments of original sb2-init restored from old config file"
 }
@@ -88,12 +80,12 @@ update_toolchain_configs()
 	for compiler_path in "$@"; do
 		# echo "Updating compiler $compiler_path"
 		log_config_action "Config upgrade: settings for compiler $compiler_path"
-		if ! $SBOX_SHARE_DIR/scripts/sb2-config-gcc-toolchain \
+		if ! $SBOX_DATADIR/scratchbox2/scripts/sb2-config-gcc-toolchain \
 			$secondary_compiler \
 			$gccconfig_arch_option \
 			$gccconfig_arch_option2 \
 			-R "$SB2INIT_TARGET_ROOT" \
-			-S "$SBOX_SHARE_DIR/../.." \
+			-S "$SBOX_DATADIR" \
 			-t "$SB2INIT_TARGET" \
 			-m "$SB2INIT_MAPPING_MODE" \
 			-C "$SB2INIT_SBOX_EXTRA_CROSS_COMPILER_ARGS" \
@@ -159,7 +151,7 @@ update_host_ld_library_path()
 
 update_debian_config()
 {
-	$SBOX_DIR/share/scratchbox2/scripts/sb2-config-debian -t $SBOX_TARGET
+	$SBOX_DATADIR/scratchbox2/scripts/sb2-config-debian -t $SBOX_TARGET
 }
 
 if [ ! -d $SBOX_CONFIG_DIR ]; then

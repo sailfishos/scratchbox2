@@ -41,7 +41,6 @@ Scratchbox2 man pages.
 %build
 ./autogen.sh
 %configure
-touch .configure
 %make_build
 
 %install

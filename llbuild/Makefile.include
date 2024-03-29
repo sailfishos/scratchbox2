@@ -27,6 +27,8 @@ _LL_BUILD_MAKEFILE_INCLUDE=1
 # this is here to enforce a sensible default target
 __kicker_target: all
 
+# Define .WAIT also .PHONY no-op for older version of GNU Make
+.PHONY: .WAIT
 
 TOPDIR := $(CURDIR)
 

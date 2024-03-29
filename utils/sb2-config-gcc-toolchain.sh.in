@@ -5,14 +5,6 @@
 # Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 # Licensed under GPL version 2
 
-my_path=$_
-if [ $(basename $my_path) != $(basename $0) ]; then
-	my_path=$0
-	if [ $(basename $my_path) = $my_path ]; then
-		my_path=$(which $my_path)
-	fi
-fi
-
 log_config_action()
 {
 	tstamp=$(/bin/date '+%Y-%m-%d %H:%M:%S')
@@ -39,7 +31,7 @@ Options:
     -A arch           manually override target architecture
     -h                print this help
     -m mapping_mode   target uses mapping_mode as default mode
-    -S SBOX_DIR       define value for SBOX_DIR
+    -S SBOX_DATADIR       define value for SBOX_DIR
     -R TARGET_ROOT    define value for SBOX_TARGET_ROOT
     -V                this toolchain is a secondary toolchain,
                       tools require version numbers in pathnames
@@ -148,7 +140,7 @@ do
 	(m) MAPPING_MODE=$OPTARG ;;
 	(C) SBOX_EXTRA_CROSS_COMPILER_ARGS="$SBOX_EXTRA_CROSS_COMPILER_ARGS $OPTARG " ;;
 	(L) SBOX_EXTRA_CROSS_LD_ARGS="$SBOX_EXTRA_CROSS_LD_ARGS $OPTARG " ;;
-	(S) SBOX_DIR=$OPTARG ;;
+	(S) SBOX_DATADIR=$OPTARG ;;
 	(R) SBOX_TARGET_ROOT=$OPTARG ;;
 	(V) SECONDARY_COMPILER=yes ;;
 	(v) verbose=yes ;;
@@ -169,8 +161,8 @@ esac
 
 # ---------- Check parameters
 
-if [ -z "$SBOX_DIR" ]; then
-	SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
+if [ -z "$SBOX_DATADIR" ]; then
+    SBOX_DATADIR=@datadir@
 fi
 
 if [ -z "$TARGET" ]; then
@@ -195,7 +187,7 @@ if [ -z "$MAPPING_MODE" ]; then
         exit 1
 fi
 
-if [ ! -d $SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE ]; then
+if [ ! -d $SBOX_DATADIR/scratchbox2/modes/$MAPPING_MODE ]; then
 	echo "Invalid mapping mode: $MAPPING_MODE"
 	exit 1
 fi
@@ -285,21 +277,21 @@ fi
 SBOX_CROSS_GCC_SPECS_FILE=""
 SBOX_EXTRA_CROSS_COMPILER_STDINC=""
 
-# FIXME: SBOX_CROSS_GCC_SPECS_FILE may point to $SBOX_DIR/share/scratchbox2/modes
+# FIXME: SBOX_CROSS_GCC_SPECS_FILE may point to $SBOX_DATADIR/scratchbox2/modes
 # after this. It should point to a session-specific location, but we don't have any
 # mechanism for that currently.
 if [ -n "$GCC_SPECS" ]; then
 	# the file was specified on the command line
 	SBOX_CROSS_GCC_SPECS_FILE="$GCC_SPECS"
 # else try to locate a specs file which was provided with gcc
-elif [ -f $SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_VERSION-specs-$ARCH ]; then
-	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_VERSION-specs-$ARCH"
-elif [ -f $SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_VERSION-specs ]; then
-	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_VERSION-specs"
-elif [ -f $SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_SHORTVERSION-specs ]; then
-	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_SHORTVERSION-specs"
-elif [ -f $SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-specs ]; then
-	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-specs"
+elif [ -f $SBOX_DATADIR/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_VERSION-specs-$ARCH ]; then
+	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DATADIR/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_VERSION-specs-$ARCH"
+elif [ -f $SBOX_DATADIR/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_VERSION-specs ]; then
+	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DATADIR/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_VERSION-specs"
+elif [ -f $SBOX_DATADIR/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_SHORTVERSION-specs ]; then
+	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DATADIR/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_SHORTVERSION-specs"
+elif [ -f $SBOX_DATADIR/scratchbox2/modes/$MAPPING_MODE/gcc-specs ]; then
+	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DATADIR/scratchbox2/modes/$MAPPING_MODE/gcc-specs"
 else
 	SBOX_EXTRA_CROSS_COMPILER_STDINC="-I/usr/include"
 fi

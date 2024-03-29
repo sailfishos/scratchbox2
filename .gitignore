@@ -31,3 +31,5 @@ preload/privatewrappers.c
 preload/privatewrappers.h
 preload/export.map
 include/scratchbox2_version.h
+build/
+compile_commands.json

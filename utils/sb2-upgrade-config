@@ -85,10 +85,10 @@ update_toolchain_configs()
 	else
 		gccconfig_arch_option2=""
 	fi
-	for compiler_path in $*; do
+	for compiler_path in "$@"; do
 		# echo "Updating compiler $compiler_path"
 		log_config_action "Config upgrade: settings for compiler $compiler_path"
-		$SBOX_SHARE_DIR/scripts/sb2-config-gcc-toolchain \
+		if ! $SBOX_SHARE_DIR/scripts/sb2-config-gcc-toolchain \
 			$secondary_compiler \
 			$gccconfig_arch_option \
 			$gccconfig_arch_option2 \
@@ -99,8 +99,7 @@ update_toolchain_configs()
 			-C "$SB2INIT_SBOX_EXTRA_CROSS_COMPILER_ARGS" \
 			-L "$SB2INIT_SBOX_EXTRA_CROSS_LD_ARGS" \
 			-- \
-			$compiler_path
-		if [ $? != 0 ]; then
+			$compiler_path; then
 			log_config_action "failed to configure $compiler_path"
 			echo "Failed to configure $compiler_path"
 			exit 1

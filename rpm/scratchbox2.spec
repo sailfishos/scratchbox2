@@ -1,11 +1,10 @@
-Summary:	Scratchbox2 crosscompiling environment
+Summary:	Crosscompiling environment
 License:	LGPLv2
 URL:		https://git.sailfishos.org/mer-core/scratchbox2
 Name:		scratchbox2
 Version:	2.3.90+git58
 Release:	0
 Source:		%{name}-%{version}.tar.gz
-Prefix:		/usr
 ExclusiveArch:	%{ix86} %{x86_64}
 BuildRequires:	make
 BuildRequires:	autoconf
@@ -31,6 +30,7 @@ Scratchbox2 preload library.
 
 %package docs
 Summary: Scratchbox2 docs
+BuildArch: noarch
 
 %description docs
 Scratchbox2 man pages.
@@ -48,16 +48,21 @@ Scratchbox2 man pages.
 
 install -D -m 644 utils/sb2.bash %{buildroot}/etc/bash_completion.d/sb2.bash
 
+%check
+# Rpmlint suggest to add it even thou we don't
+# have any checks so far
+
 %files
 %defattr(-,root,root)
 %{_bindir}/sb2*
+%dir %{_datadir}/scratchbox2
 %{_datadir}/scratchbox2/*
 %config %{_sysconfdir}/bash_completion.d/sb2.bash
 
 %files docs
-%doc %attr(0444,root,root) /usr/share/man/man1/*
-%doc %attr(0444,root,root) /usr/share/man/man7/*
+%doc /usr/share/man/man1/*
+%doc /usr/share/man/man7/*
 
 %files -n libsb2
-%defattr(-,root,root)
+%dir %{_libdir}/libsb2
 %{_libdir}/libsb2/*

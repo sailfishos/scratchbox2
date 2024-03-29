@@ -20,7 +20,6 @@ config.mak
 preload/exported.h
 preload/export.map
 preload/wrappers.c
-.configure*
 utils/sb2-show
 utils/sb2-monitor
 utils/sb2-interp-wrapper

@@ -147,7 +147,7 @@ function add_cross_compiler(gccrule, version)
 			local tmp = {}
 			tmp.name = prefix .. gcc_compilers_with_version[i] .. "-" ..
 				gccrule.cross_gcc_shortversion
-			tmp.new_filename = gccrule.cross_gcc_dir .. "/" .. gccrule.cross_gcc_subst_prefix .. gcc_compilers_with_version[i]
+			tmp.new_filename = gccrule.cross_gcc_dir .. "/" .. gccrule.cross_gcc_subst_prefix .. gcc_compilers_with_version[i] .. "-" .. gccrule.cross_gcc_shortversion
 			if sblib.path_exists(tmp.new_filename) then
 				gcc_compiler_arg_mods(tmp, gccrule)
 				register_gcc_component_path(tmp, gccrule)

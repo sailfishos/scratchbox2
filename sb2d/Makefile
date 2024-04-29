@@ -1,9 +1,12 @@
 # beware of namespace collisions, all subdir makefiles are included
 # into the top-level Makefile
 
-$(D)/sb2d: CFLAGS := $(CFLAGS) -Wall -W $(WERROR) \
+$(D)/sb2d: CFLAGS := $(CFLAGS) $(LUA_CFLAGS) -Wall -W $(WERROR) \
 		$(PROTOTYPEWARNINGS) \
 		-I$(SRCDIR)/include \
+		-I$(SRCDIR)/preload -I$(OBJDIR)/preload
+
+$(D)/libsupport.o: CFLAGS := $(CFLAGS) $(LUA_CFLAGS) \
 		-I$(SRCDIR)/preload -I$(OBJDIR)/preload
 
 $(D)/sb2d: $(D)/sb2d.o \

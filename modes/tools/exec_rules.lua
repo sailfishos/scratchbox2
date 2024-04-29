@@ -14,7 +14,7 @@ rule_file_interface_version = "203"
 
 default_exec_policy = {
 	name = "Default",
-	native_app_ld_preload_prefix = host_ld_preload,
+	native_app_ld_preload_suffix = host_ld_preload,
 }
 
 -- For binaries from tools_root:

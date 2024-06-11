@@ -450,7 +450,7 @@ WRAP: int fstatat(int dirfd, const char *pathname, struct stat *buf, int flags) 
         create_nomap_nolog_version \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname) class(STAT)
-WRAP: int fstatat64(int dirfd, const char *pathname, struct stat64 *buf, int flags) : \
+GATE: int fstatat64(int dirfd, const char *pathname, struct stat64 *buf, int flags) : \
         create_nomap_nolog_version \
 	dont_resolve_final_symlink_if(flags&AT_SYMLINK_NOFOLLOW) \
 	map_at(dirfd,pathname) class(STAT)

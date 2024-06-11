@@ -180,8 +180,13 @@ extern void mkostemps64_postprocess_template(const char *realfnname,
 */
 char *tmpnam_gate(
 	int *result_errno_ptr,
+#if __GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 34)
 	char *(*real_tmpnam_ptr)(char __s[L_tmpnam]),
 	const char *realfnname, char s[L_tmpnam])
+#else
+	char *(*real_tmpnam_ptr)(char *s),
+	const char *realfnname, char *s)
+#endif
 {
 	static char static_tmpnam_buf[PATH_MAX]; /* used if s is NULL */
 	char tmpnam_buf[PATH_MAX];

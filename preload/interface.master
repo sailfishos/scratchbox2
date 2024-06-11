@@ -793,7 +793,11 @@ WRAP: int mkostemps64(char *template, int suffixlen, int flags) : \
 -- that did not exist when the function was called. These need to do path
 -- mapping when performing the tests.. because of that we need to replace
 -- these functions completely.
+#if __GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 34)
 GATE: char *tmpnam(char __s[L_tmpnam]) : returns_string
+#else
+GATE: char *tmpnam(char *s) : returns_string
+#endif
 GATE: char *tempnam(const char *tmpdir, const char *prefix) : returns_string
 WRAP: char *mktemp(char *template) : \
 	map(template) \

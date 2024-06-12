@@ -254,25 +254,6 @@ int __fxstatat64_gate(int *result_errno_ptr,
 	return(res);
 }
 
-int fstatat64_gate(int *result_errno_ptr,
-	int (*real_fstatat64_ptr)(int dirfd, const char *pathname, struct stat64 *buf64, int flags),
-	const char *realfnname,
-	int dirfd,
-	const mapping_results_t *mapped_filename,
-	struct stat64 *buf64,
-	int flags)
-{
-	int	res;
-
-	res = (*real_fstatat64_ptr)(dirfd, mapped_filename->mres_result_path, buf64, flags);
-	if (res == 0) {
-		i_virtualize_struct_stat(realfnname, NULL, buf64);
-	} else {
-		*result_errno_ptr = errno;
-	}
-	return(res);
-}
-
 #ifdef HAVE_STATX
 int statx_gate(int *result_errno_ptr,
 	int (*real_statx_ptr)(int dirfd, const char *__restrict pathname, int flags,

@@ -42,8 +42,7 @@ Scratchbox2 man pages.
 ./autogen.sh
 %configure
 touch .configure
-# Can't use %{?_smp_mflags} here: race condition in build system
-%{__make} %{_make_output_sync} %{_make_verbose}
+%make_build
 
 %install
 %__make install prefix=%{buildroot}/usr

@@ -6,6 +6,8 @@
 
 /* Exec rule maintenance routines. */
 
+#include <config.h>
+
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,6 +18,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 
+#include <sys/mman.h>
 #ifdef _GNU_SOURCE
 #undef _GNU_SOURCE
 #include <string.h>
@@ -35,14 +38,14 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
-#include "mapping.h"
-#include "sb2.h"
+#include <mapping.h>
+#include <sb2.h>
+
 #include "libsb2.h"
 #include "exported.h"
-
-#include <sys/mman.h>
-
 #include "sb2_execs.h"
+
+
 
 /* "argvmods" rules: */
 ruletree_object_offset_t add_exec_preprocessing_rule_to_ruletree(

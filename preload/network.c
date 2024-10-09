@@ -25,17 +25,20 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 */
 
+#include <config.h>
+
 #include <stdio.h>
 #include <unistd.h>
-#include <config.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <stddef.h>
+
+#include <sb2_network.h>
+
 #include "libsb2.h"
-#include "sb2_network.h"
 #include "exported.h"
 
 /* ---------- internal functions etc. ---------- */

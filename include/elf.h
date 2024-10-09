@@ -20,6 +20,7 @@
 #ifndef _ELF_H
 #define	_ELF_H 1
 
+#include <sys/cdefs.h>
 //#include <features.h>
 
 __BEGIN_DECLS

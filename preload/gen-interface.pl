@@ -1519,7 +1519,8 @@ if(defined $wrappers_c_output_file) {
 	$interface_functions_and_classes .= "\t{NULL, 0},\n};\n";
 	write_output_file($wrappers_c_output_file,
 		$file_header_comment.
-		'#include "libsb2.h"'."\n".
+        '#include <config.h>'."\n\n".
+        '#include "libsb2.h"'."\n".
 		$include_h_file.
 		$wrappers_c_buffer.
 		$interface_functions_and_classes);

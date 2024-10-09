@@ -6,6 +6,7 @@
 */
 
 /* Rule tree server, server socket routines */
+#include <config.h>
 
 #include <stdio.h>
 #include <stdint.h>

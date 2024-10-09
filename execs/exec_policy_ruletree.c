@@ -5,13 +5,15 @@
  * Licensed under LGPL version 2.1, see top level LICENSE file for details.
  */
 
-#include "mapping.h"
-#include "sb2.h"
-#include "libsb2.h"
-#include "exported.h"
+#include <config.h>
 
 #include <sys/mman.h>
 
+#include <mapping.h>
+#include <sb2.h>
+
+#include "libsb2.h"
+#include "exported.h"
 #include "sb2_execs.h"
 
 /* Functions for accessing exec policy settings in the rule tree db.

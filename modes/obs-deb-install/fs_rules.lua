@@ -298,6 +298,9 @@ emulate_mode_rules = {
 		{path = sbox_cputransparency_cmd, use_orig_path = true,
 		 protection = readonly_fs_always},
 
+        {path = sbox_cputransparency_native_cmd, use_orig_path = true,
+		 protection = readonly_fs_always},
+
 		--{dir = target_root, use_orig_path = true,
 		-- protection = readonly_fs_if_not_root},
 		{dir = target_root, use_orig_path = true,

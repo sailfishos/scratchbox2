@@ -66,6 +66,8 @@ local exec_policy_target = {
 	native_app_gconv_path = conf_target_gconv_path,
 
 	native_app_ld_preload_suffix = host_ld_preload,
+
+	exec_flags = EXEC_FLAGS_FORCE_CPU_TRANSPARENCY,
 }
 
 --

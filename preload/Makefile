@@ -58,7 +58,7 @@ $(OBJDIR)/preload/wrappers.c: preload/interface.master preload/gen-interface.pl
 		-E $(OBJDIR)/preload/exported.h \
 		-M $(OBJDIR)/preload/export.map \
 		-V $(PACKAGE_VERSION) \
-		-m preload/libsb2_interface.7 \
+		-m $(OBJDIR)/preload/libsb2_interface.7 \
 		<$(SRCDIR)/preload/interface.master
 
 $(D)/privatewrappers.h: preload/privatewrappers.c
@@ -71,8 +71,14 @@ $(D)/privatewrappers.c: preload/interface.private preload/gen-interface.pl
 		-E $(OBJDIR)/preload/privatewrappers.h \
 		<$(SRCDIR)/preload/interface.private
 
-generated := $(OBJDIR)/preload/wrappers.c $(OBJDIR)/preload/exported.h \
-	$(OBJDIR)/preload/ldexportlist
+generated := $(OBJDIR)/preload/wrappers.c \
+			$(OBJDIR)/preload/exported.h \
+			$(OBJDIR)/preload/ldexportlist \
+			$(OBJDIR)/preload/export.map \
+			$(OBJDIR)/preload/privatewrappers.c \
+			$(OBJDIR)/preload/privatewrappers.h \
+			$(OBJDIR)/preload/libsb2_interface.7
+
 .PRECIOUS: $(generated)
 
 CLEAN_FILES += $(generated)

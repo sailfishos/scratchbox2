@@ -203,11 +203,15 @@ ifeq ($(OS),Linux)
 	$(Q)/sbin/ldconfig -n $(DESTDIR)$(libdir)/libsb2
 endif
 
-CLEAN_FILES += $(targets) config.status config.log
+CLEAN_FILES += $(targets) \
+				$(OBJDIR)/include/scratchbox2_version.h
+DISTCLEAN_FILES +=	$(DIST_FILES) \
+					$(OBJDIR)/config.log \
+					$(SRCDIR)/configure
 
-superclean: clean
+distclean: clean
 	$(P)CLEAN
-	$(Q)rm -rf include/config.h config.mak
+	$(Q)rm -rf $(DISTCLEAN_FILES)
 
 clean:
 	$(P)CLEAN

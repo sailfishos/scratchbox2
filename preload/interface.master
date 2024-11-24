@@ -164,8 +164,14 @@ GATE: void _exit(int status)
 GATE: void _Exit(int status)
 --	wait() and waitpid() are GATEd also for
 --	logging purposes.
-GATE: pid_t wait(int *status) : \
+GATE: pid_t wait(int *wstatus) : \
       syscall(ifdef SYS_wait)
+GATE: pid_t wait3(int *wstatus, int options, \
+                   struct rusage *rusage) : \
+                   syscall(ifdef SYS_wait3)
+GATE: pid_t wait4(pid_t pid, int *wstatus, int options, \
+                   struct rusage *rusage) : \
+                   syscall(ifdef SYS_wait4 )
 GATE: pid_t waitpid(pid_t pid, int *status, int options) : \
       syscall(ifdef SYS_waitpid)
 --	Note: we'd like to have similar logging-only wrappers for

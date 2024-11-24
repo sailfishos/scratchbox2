@@ -31,26 +31,8 @@ endif
 CC = gcc
 CXX = g++
 LD = ld
-PACKAGE_VERSION = 2.3.90
-
-ifeq ($(shell if [ -d $(SRCDIR)/.git ]; then echo y; fi),y)
-GIT_PV_COMMIT := $(shell git --git-dir=$(SRCDIR)/.git log -1 --pretty="format:%h" $(PACKAGE_VERSION) -- 2>/dev/null)
-GIT_CUR_COMMIT := $(shell git --git-dir=$(SRCDIR)/.git log -1 --pretty="format:%h" HEAD -- 2>/dev/null)
-GIT_MODIFIED := $(shell cd $(SRCDIR); git ls-files -m)
-GIT_TAG_EXISTS := $(strip $(shell git --git-dir=$(SRCDIR)/.git tag -l $(PACKAGE_VERSION) 2>/dev/null))
-ifeq ("$(GIT_TAG_EXISTS)","")
-# Add -rc to version to signal that the PACKAGE_VERSION release has NOT
-# been yet tagged
-PACKAGE_VERSION := $(PACKAGE_VERSION)-rc
-endif
-ifneq ($(GIT_PV_COMMIT),$(GIT_CUR_COMMIT))
-PACKAGE_VERSION := $(PACKAGE_VERSION)-$(GIT_CUR_COMMIT)
-endif
-ifneq ($(strip "$(GIT_MODIFIED)"),"")
-PACKAGE_VERSION := $(PACKAGE_VERSION)-dirty
-endif
-endif
-PACKAGE = "SB2"
+PACKAGE_VERSION =
+PACKAGE_NAME =
 LIBSB2_SONAME = "libsb2.so.1"
 LLBUILD ?= $(SRCDIR)/llbuild
 PROTOTYPEWARNINGS=-Wmissing-prototypes -Wstrict-prototypes
@@ -85,7 +67,7 @@ DIST_FILES = $(OBJDIR)/config.status \
 				$(OBJDIR)/config.mak
 
 
-all: $(DIST_FILES) .WAIT .version do-all
+all: $(DIST_FILES) .WAIT do-all
 
 do-all: $(targets)
 
@@ -98,22 +80,10 @@ $(SRCDIR)/configure: $(SRCDIR)/configure.ac
 	cd $(SRCDIR); \
 	./autogen.sh
 
-.PHONY: .version
-.version:
-	@(set -e; \
-	if [ -f .version ]; then \
-		version=$$(cat .version); \
-		if [ "$(PACKAGE_VERSION)" != "$$version" ]; then \
-			echo $(PACKAGE_VERSION) > .version; \
-		fi \
-	else \
-		echo $(PACKAGE_VERSION) > .version; \
-	fi)
-
-$(OBJDIR)/include/scratchbox2_version.h: .version Makefile
+$(OBJDIR)/include/scratchbox2_version.h: $(OBJDIR)/config.mak
 	mkdir -p $(OBJDIR)/include
 	echo "/* Automatically generated file. Do not edit. */" >$(OBJDIR)/include/scratchbox2_version.h
-	echo '#define SCRATCHBOX2_VERSION "'`cat .version`'"' >>$(OBJDIR)/include/scratchbox2_version.h
+	echo '#define SCRATCHBOX2_VERSION "'$(PACKAGE_VERSION)'"' >>$(OBJDIR)/include/scratchbox2_version.h
 	echo '#define LIBSB2_SONAME "'$(LIBSB2_SONAME)'"' >>$(OBJDIR)/include/scratchbox2_version.h
 
 gcc_bins = addr2line ar as cc c++ c++filt cpp g++ gcc gcov gdb gdbtui gprof ld nm objcopy objdump ranlib rdi-stub readelf run size strings strip

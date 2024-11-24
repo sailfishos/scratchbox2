@@ -3,7 +3,12 @@
 
 
 AC_PREREQ([2.59])
-AC_INIT([sb2],[1.99b],[lle@rahina.org])
+AC_INIT([SB2],
+        m4_esyscmd([build-aux/git-version-gen --prefix '' .tarball-version]),
+        [bjorn.bidar@jolla.com],
+        [scratchbox2],
+        [https://github.com/sailfishos/scratchbox2])
+AC_CONFIG_AUX_DIR([build-aux])
 #AC_CANONICAL_TARGET
 #AM_INIT_AUTOMAKE
 #AM_MAINTAINER_MODE

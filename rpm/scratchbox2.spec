@@ -37,6 +37,11 @@ Scratchbox2 man pages.
 
 %prep
 %autosetup
+# Tell autoconf the package version
+# Note we don't strip the version here not remove the indicator
+# for a development build
+echo %{version} > .tarball-version
+
 
 %build
 ./autogen.sh

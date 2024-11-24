@@ -669,17 +669,51 @@ pid_t wait_gate(int *result_errno_ptr,
 	return(p);
 }
 
+pid_t wait3_gate(int *result_errno_ptr,
+                 pid_t (*real_wait3_ptr)(int *wstatus, int options,
+                                         struct rusage *rusage),
+                 const char *realfnname, int *wstatus, int options,
+                 struct rusage *rusage)
+{
+        pid_t p;
+        int wstatus_always;
+
+        errno = *result_errno_ptr;
+        if(!wstatus) wstatus = &wstatus_always;
+        p = (*real_wait3_ptr)(wstatus, options, rusage);
+        *result_errno_ptr = errno;
+        if(p != -1) log_wait_result(realfnname, p, *wstatus);
+        return p;
+}
+
+pid_t wait4_gate(int *result_errno_ptr,
+                 pid_t (*real_wait4_ptr)(pid_t pid, int *wstatus, int options,
+                                         struct rusage *rusage),
+                 const char *realfnname, pid_t pid, int *wstatus, int options,
+                 struct rusage *rusage)
+{
+        pid_t p;
+        int wstatus_always;
+
+        errno = *result_errno_ptr;
+        if(!wstatus) wstatus = &wstatus_always;
+        p = (*real_wait4_ptr)(pid, wstatus, options, rusage);
+        *result_errno_ptr = errno;
+        if(p != -1) log_wait_result(realfnname, p, *wstatus);
+        return p;
+}
+
 pid_t waitpid_gate(int *result_errno_ptr,
-	pid_t (*real_waitpid_ptr)(pid_t pid, int *status, int options),
-        const char *realfnname, pid_t pid, int *status, int options)
+	pid_t (*real_waitpid_ptr)(pid_t pid, int *wstatus, int options),
+        const char *realfnname, pid_t pid, int *wstatus, int options)
 {
 	pid_t	p;
-	int	wstatus;
+	int	wstatus_always;
 
 	errno = *result_errno_ptr;
-	if (!status) status = &wstatus;
-	p = (*real_waitpid_ptr)(pid, status, options);
+	if (!wstatus) wstatus = &wstatus_always;
+	p = (*real_waitpid_ptr)(pid, wstatus, options);
 	*result_errno_ptr = errno;
-	if(p > 1) log_wait_result(realfnname, p, *status);
+	if(p > 1) log_wait_result(realfnname, p, *wstatus);
 	return(p);
 }

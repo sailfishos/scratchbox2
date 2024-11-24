@@ -186,6 +186,8 @@ unlinkat \
 ulckpwdf \
 utime \
 utimes \
+wait3 \
+wait4
 ])
 
 AC_REPLACE_FUNCS([mempcpy])

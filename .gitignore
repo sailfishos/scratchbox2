@@ -23,6 +23,7 @@ preload/wrappers.c
 utils/sb2-show
 utils/sb2-monitor
 utils/sb2-interp-wrapper
+.tarball-version
 .version
 preload/privatewrappers.c
 preload/privatewrappers.h

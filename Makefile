@@ -1,14 +1,14 @@
 # Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 # Licensed under LGPL 2.1
 
-TOPDIR = $(CURDIR)
+TOPDIR = $(patsubst %/,%,$(CURDIR))
 OBJDIR = $(TOPDIR)
 SRCDIR = $(TOPDIR)
 VPATH = $(SRCDIR):$(OBJDIR)
 
 MAKEFILEDIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 ifneq ($(MAKEFILEDIR),$(OBJDIR))
-SRCDIR:=$(MAKEFILEDIR)
+SRCDIR:=$(patsubst %/,%,$(MAKEFILEDIR))
 endif
 
 prefix = /usr/local

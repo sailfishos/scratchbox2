@@ -84,6 +84,7 @@ include $(LLBUILD)/Makefile.include
 BOOTSTRAP_FILES = \
 	$(SRCDIR)/config.guess \
 	$(SRCDIR)/config.sub \
+	$(SRCDIR)/include/config.h.in \
 	$(SRCDIR)/aclocal.m4 \
 	$(SRCDIR)/configure
 
@@ -103,18 +104,22 @@ DIST_FILES = $(OBJDIR)/config.status \
 # or follow:
 # https://www.gnu.org/prep/standards/html_node/Makefile-Conventions.html
 
-all: $(DIST_FILES) .WAIT do-all
+all: $(DIST_FILES) $(OBJDIR)/include/config.h .WAIT do-all
 
 do-all: $(targets)
 
 # Don't erase these files if make is interrupted while refreshing them.
 .PRECIOUS: $(OBJDIR)/config.status
-$(OBJDIR)/config.status $(OBJDIR)/config.mak: $(SRCDIR)/configure $(SRCDIR)/config.mak.in
+.NOTPARALLEL: $(DIST_FILES)
+$(DIST_FILES): $(SRCDIR)/configure $(SRCDIR)/config.mak.in
 	$(OBJDIR)/config.status --recheck
 
 $(SRCDIR)/configure: $(SRCDIR)/configure.ac
 	cd $(SRCDIR); \
 	./autogen.sh
+
+$(OBJDIR)/include/config.h: $(SRCDIR)/include/config.h.in $(OBJDIR)/config.status
+	$(OBJDIR)/config.status include/config.h
 
 $(OBJDIR)/include/scratchbox2_version.h: $(OBJDIR)/config.mak
 	mkdir -p $(OBJDIR)/include

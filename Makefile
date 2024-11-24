@@ -64,21 +64,26 @@ include $(LLBUILD)/Makefile.include
 # while configure is running when any of these or their
 # dependencies change
 DIST_FILES = $(OBJDIR)/config.status \
-				$(OBJDIR)/config.mak
+				$(OBJDIR)/config.mak \
+				$(SRCDIR)/include/config.h.in
 
 
-all: $(DIST_FILES) .WAIT do-all
+all: $(DIST_FILES) $(OBJDIR)/include/config.h .WAIT do-all
 
 do-all: $(targets)
 
 # Don't erase these files if make is interrupted while refreshing them.
 .PRECIOUS: $(OBJDIR)/config.status
-$(OBJDIR)/config.status $(OBJDIR)/config.mak: $(SRCDIR)/configure $(SRCDIR)/config.mak.in
+.NOTPARALLEL: $(DIST_FILES)
+$(DIST_FILES): $(SRCDIR)/configure $(SRCDIR)/config.mak.in
 	$(OBJDIR)/config.status --recheck
 
 $(SRCDIR)/configure: $(SRCDIR)/configure.ac
 	cd $(SRCDIR); \
 	./autogen.sh
+
+$(OBJDIR)/include/config.h: $(SRCDIR)/include/config.h.in $(OBJDIR)/config.status
+	$(OBJDIR)/config.status config.h
 
 $(OBJDIR)/include/scratchbox2_version.h: $(OBJDIR)/config.mak
 	mkdir -p $(OBJDIR)/include
@@ -204,10 +209,12 @@ ifeq ($(OS),Linux)
 endif
 
 CLEAN_FILES += $(targets) \
+				$(OBJDIR)/include/config.h \
 				$(OBJDIR)/include/scratchbox2_version.h
 DISTCLEAN_FILES +=	$(DIST_FILES) \
 					$(OBJDIR)/config.log \
-					$(SRCDIR)/configure
+					$(SRCDIR)/configure \
+					$(SRCDIR)/include/config.h.in
 
 distclean: clean
 	$(P)CLEAN

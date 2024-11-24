@@ -60,12 +60,48 @@ CXXFLAGS =
 
 include $(LLBUILD)/Makefile.include
 
+# Brief build system description
+#
+# To build we use autotools but without automake
+# this roughly maps onto for example GDB or Emacs.
+# Thous the Makefile loosely follow GNU standards.
+#
+# The build follows the usual
+# ./configure
+# make
+# make install schema
+#
+# In practice that means the build system is separated into
+# three stages:
+# - bootstrap
+# - setup
+# - build
+
+# Build system files
+
+# bootstrap files generated through autoreconf.
+# Clean them resets the whole generated of the source-tree
+BOOTSTRAP_FILES = \
+	$(SRCDIR)/config.guess \
+	$(SRCDIR)/config.sub \
+	$(SRCDIR)/aclocal.m4 \
+	$(SRCDIR)/configure
+
 # These targets have to be updated first to not start building
 # while configure is running when any of these or their
 # dependencies change
+# Files created by configure, removing reset them the whole
+# configuration  of the source tree.
 DIST_FILES = $(OBJDIR)/config.status \
-	$(OBJDIR)/config.mak
+	$(OBJDIR)/config.mak \
+	$(OBJDIR)/config.log
 
+# All other files are directly specified here (see $targets).
+# removing them resets the whole build but not the configuration.
+
+# For more read "(standards) Makefile Conventions" in Info
+# or follow:
+# https://www.gnu.org/prep/standards/html_node/Makefile-Conventions.html
 
 all: $(DIST_FILES) .WAIT do-all
 
@@ -203,11 +239,17 @@ ifeq ($(OS),Linux)
 	$(Q)/sbin/ldconfig -n $(DESTDIR)$(libdir)/libsb2
 endif
 
-CLEAN_FILES += $(targets) config.status config.log
+CLEAN_FILES += $(targets) \
+	$(OBJDIR)/include/scratchbox2_version.h
 
-superclean: clean
-	$(P)CLEAN
-	$(Q)rm -rf include/config.h config.mak
+
+bootstrap-clean: distclean
+	$(P)BOOTSTRAP-CLEAN
+	$(Q)rm -f $(BOOTSTRAP_FILES)
+
+distclean: clean
+	$(P)DISTCLEAN
+	$(Q)rm -rf $(DIST_FILES)
 
 clean:
 	$(P)CLEAN

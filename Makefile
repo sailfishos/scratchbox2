@@ -75,15 +75,23 @@ do-all: $(targets)
 # Don't erase these files if make is interrupted while refreshing them.
 .PRECIOUS: $(OBJDIR)/config.status
 .NOTPARALLEL: $(DIST_FILES)
-$(DIST_FILES): $(SRCDIR)/configure $(SRCDIR)/config.mak.in
+# Use a proxy timestamp file here since config.mak and config.h
+# don't update unless their contents change when the dependencies
+# that generate them change, avoid repeated rebuilds after changing
+# files such as configure.ac e.g. after checking out a new branch
+$(DIST_FILES): $(OBJDIR)/stamp-mak
+$(OBJDIR)/stamp-mak: $(SRCDIR)/configure $(SRCDIR)/config.mak.in
 	$(OBJDIR)/config.status --recheck
+	echo > $(OBJDIR)/stamp-mak
 
 $(SRCDIR)/configure: $(SRCDIR)/configure.ac
 	cd $(SRCDIR); \
 	./autogen.sh
 
-$(OBJDIR)/include/config.h: $(SRCDIR)/include/config.h.in $(OBJDIR)/config.status
-	$(OBJDIR)/config.status config.h
+$(OBJDDIR)/include/config.h: $(OBJDIR)/stamp-h
+$(OBJDIR)/stamp-h: $(SRCDIR)/include/config.h.in $(OBJDIR)/config.status
+	$(OBJDIR)/config.status include/config.h
+	echo > $(OBJDIR)/stamp-h
 
 $(OBJDIR)/include/scratchbox2_version.h: $(OBJDIR)/config.mak
 	mkdir -p $(OBJDIR)/include
@@ -209,9 +217,11 @@ ifeq ($(OS),Linux)
 endif
 
 CLEAN_FILES += $(targets) \
+				$(SRCDIR)/stamp-h \
 				$(OBJDIR)/include/config.h \
 				$(OBJDIR)/include/scratchbox2_version.h
 DISTCLEAN_FILES +=	$(DIST_FILES) \
+					$(OBJDIR)/stamp-mak \
 					$(OBJDIR)/config.log \
 					$(SRCDIR)/configure \
 					$(SRCDIR)/include/config.h.in

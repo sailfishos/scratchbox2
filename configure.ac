@@ -15,6 +15,9 @@ AC_CONFIG_AUX_DIR([build-aux])
 #AC_CONFIG_SRCDIR([src/libfakechroot.c])
 AC_CONFIG_HEADERS([include/config.h])
 AC_CONFIG_FILES([config.mak])
+dnl Generate timestamp so that configure output files timestamps are in sync
+AC_CONFIG_FILES([stamp-h], [echo timestamp > stamp-h])
+AC_CONFIG_FILES([stamp-mak], [echo timestamp > stamp-mak])
 AC_PROG_CC
 AC_PROG_CXX
 

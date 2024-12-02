@@ -5,11 +5,13 @@
  * Licensed under LGPL version 2.1, see top level LICENSE file for details.
  */
 
-#include "mapping.h"
-#include "sb2.h"
+#include <config.h>
+
+#include <mapping.h>
+#include <sb2.h>
+
 #include "libsb2.h"
 #include "exported.h"
-
 #include "sb2_execs.h"
 
 /* A very straightforward conversion from Lua:

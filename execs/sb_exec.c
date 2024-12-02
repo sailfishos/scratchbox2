@@ -93,6 +93,10 @@
  * (there are some minor execptions, see the code for further details)
 */
 
+#include <config.h>
+
+#include <elf.h>
+#include <mapping.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -109,19 +113,15 @@
 #include <sys/user.h>
 #include <sys/mman.h>
 
-#include <config.h>
 #include <sb2.h>
-#include <mapping.h>
-#include <elf.h>
+#include <sb2_stat.h>
+#include <sb2_vperm.h>
+#include <processclock.h>
+#include <rule_tree.h>
 
 #include "libsb2.h"
 #include "exported.h"
-#include "rule_tree.h"
-#include "processclock.h"
-
 #include "sb2_execs.h"
-#include "sb2_stat.h"
-#include "sb2_vperm.h"
 
 #ifndef ARRAY_SIZE
 # define ARRAY_SIZE(array) (sizeof (array) / sizeof ((array)[0]))

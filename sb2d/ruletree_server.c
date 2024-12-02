@@ -17,6 +17,8 @@
  * memory-mapped file is an atomic operation.
 */
 
+#include <config.h>
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>

@@ -21,6 +21,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 */
 
+#include <config.h>
+
 #include "sb2.h"
 #include "sb2_stat.h"
 #include "sb2_vperm.h"

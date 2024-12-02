@@ -5,6 +5,8 @@
  * Licensed under LGPL version 2.1, see top level LICENSE file for details.
  */
 
+#include <config.h>
+
 #include <unistd.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -30,11 +32,12 @@
 #include <sys/file.h>
 #include <assert.h>
 
-#include "mapping.h"
-#include "sb2.h"
-#include "rule_tree.h"
-#include "sb2_network.h"
-#include "sb2_vperm.h"
+#include <mapping.h>
+#include <sb2.h>
+#include <rule_tree.h>
+#include <sb2_network.h>
+#include <sb2_vperm.h>
+
 #include "libsb2.h"
 #include "exported.h"
 

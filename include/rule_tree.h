@@ -18,6 +18,8 @@
 #ifndef SB2_RULETREE_H__
 #define SB2_RULETREE_H__
 
+#include <stdint.h>
+
 /* object offset must be an unsigned type: */
 typedef uint32_t ruletree_object_offset_t;
 

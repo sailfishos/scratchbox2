@@ -25,16 +25,18 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 */
 
+#include <config.h>
+
 #include <stdio.h>
 #include <unistd.h>
-#include <config.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <signal.h>
+
 #include "libsb2.h"
 #include "exported.h"
 
-/* mkstemp() modifies "template". This locates the part which should be 
+/* mkstemp() modifies "template". This locates the part which should be
  * modified, and copies the modification back from mapped buffer (which
  * was modified by the real function) to callers buffer.
 */

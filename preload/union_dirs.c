@@ -6,6 +6,8 @@
  * Licensed under LGPL version 2.1, see top level LICENSE file for details.
  */
 
+#include <config.h>
+
 #include <unistd.h>
 #include <stdint.h>
 #include <stdio.h>

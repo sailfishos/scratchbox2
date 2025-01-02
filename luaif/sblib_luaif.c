@@ -10,21 +10,22 @@
  * Interfaces to sblib functions from Lua.
 */
 
+#include <config.h>
+
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
-
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <ctype.h>
 
-#include "mapping.h"
-#include "sb2.h"
-#include "sb2_network.h"
+#include <mapping.h>
+#include <sblib_luaif.h>
+#include <sb2.h>
+#include <sb2_network.h>
+
 #include "libsb2.h"
 #include "exported.h"
-
-#include "sblib_luaif.h"
 
 /* "sb.log": interface from lua to the logging system.
  * Parameters:

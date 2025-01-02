@@ -2,6 +2,8 @@
  * from glibc's sysdep/gnu/glob64.c.
 */
 
+#include <config.h>
+
 // Apple doesn't have 64bit dirent?
 #ifndef __APPLE__
 

@@ -14,14 +14,18 @@
  *      { dir = "/directory/path", exec_policy_name = "policyname" }
 */
 
-#include "mapping.h"
-#include "sb2.h"
-#include "libsb2.h"
-#include "exported.h"
+#include <config.h>
 
 #include <sys/mman.h>
 
+#include <mapping.h>
+#include <sb2.h>
+
+#include "libsb2.h"
+#include "exported.h"
 #include "sb2_execs.h"
+
+
 
 /* FIXME: This is currently a slightly modified copy of ruletree_test_path_match()
  *    

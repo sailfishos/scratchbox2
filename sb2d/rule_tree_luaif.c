@@ -4,6 +4,7 @@
  *
  * Licensed under LGPL version 2.1, see top level LICENSE file for details.
  */
+#include <config.h>
 
 #include <unistd.h>
 #include <stdio.h>
@@ -37,10 +38,9 @@
 
 #include <mapping.h>
 #include <sb2.h>
+#include <rule_tree.h>
 
-#include "rule_tree.h"
 #include "rule_tree_lua.h"
-
 
 /* ensure that the rule tree has been mapped. */
 static int lua_sb_attach_ruletree(lua_State *l)

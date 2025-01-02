@@ -12,6 +12,7 @@
  * should be started (see description of the algorithm in sb_exec.c)
  * (this also typically adds, deletes, or modifies arguments whenever needed)
 */
+#include <config.h>
 
 #if 0
 #include <unistd.h>
@@ -39,14 +40,13 @@
 #include <sys/file.h>
 #include <assert.h>
 #endif
-
-#include "mapping.h"
-#include "sb2.h"
-#include "libsb2.h"
-#include "exported.h"
-
 #include <sys/mman.h>
 
+#include <mapping.h>
+#include <sb2.h>
+
+#include "libsb2.h"
+#include "exported.h"
 #include "sb2_execs.h"
 
 static int add_elements_to_argv(

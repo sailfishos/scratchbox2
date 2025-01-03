@@ -4,14 +4,14 @@
 TOPDIR = $(CURDIR)
 OBJDIR = $(TOPDIR)
 SRCDIR = $(TOPDIR)
-VPATH = $(SRCDIR)
+VPATH = $(SRCDIR):$(OBJDIR)
 
 MACH := $(shell uname -m)
 OS := $(shell uname -s)
 
 ifeq ($(OS),Linux)
 LIBSB2_LDFLAGS = -Wl,-soname=$(LIBSB2_SONAME) \
-		-Wl,--version-script=preload/export.map
+		-Wl,--version-script=$(OBJDIR)/preload/export.map
 
 SHLIBEXT = so
 else
@@ -107,10 +107,11 @@ do-all: $(targets)
 		echo $(PACKAGE_VERSION) > .version; \
 	fi)
 
-include/scratchbox2_version.h: .version Makefile
-	echo "/* Automatically generated file. Do not edit. */" >include/scratchbox2_version.h
-	echo '#define SCRATCHBOX2_VERSION "'`cat .version`'"' >>include/scratchbox2_version.h
-	echo '#define LIBSB2_SONAME "'$(LIBSB2_SONAME)'"' >>include/scratchbox2_version.h
+$(OBJDIR)/include/scratchbox2_version.h: .version Makefile
+	mkdir -p $(OBJDIR)/include
+	echo "/* Automatically generated file. Do not edit. */" >$(OBJDIR)/include/scratchbox2_version.h
+	echo '#define SCRATCHBOX2_VERSION "'`cat .version`'"' >>$(OBJDIR)/include/scratchbox2_version.h
+	echo '#define LIBSB2_SONAME "'$(LIBSB2_SONAME)'"' >>$(OBJDIR)/include/scratchbox2_version.h
 
 regular: .configure .version
 	@$(MAKE) -f $(SRCDIR)/Makefile --include-dir=$(SRCDIR) SRCDIR=$(SRCDIR) do-all

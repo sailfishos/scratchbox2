@@ -142,8 +142,8 @@ attach_session()
 
 save_session()
 {
-	printf "%s" "Session description: "
-	read session_descr
+	. $SBOX_SESSION_DIR/sb2-session.conf
+	read -p "Session description: " session_descr
 	write_session_info "$session_descr"
 }
 
@@ -180,24 +180,15 @@ set_env_var()
 	shift
 	value="$*"
 
-	if [ $inside_sb2 -eq 1 ]; then
-		mkdir -p "$SBOX_SESSION_DIR/env_vars"
-		echo "$varname=\"$value\"" >$SBOX_SESSION_DIR/env_vars/$varname
-	else
-		die "'sb2-session setenv' must be used inside existing session!"
-	fi
+	mkdir -p "$SBOX_SESSION_DIR/env_vars"
+	echo "$varname=\"$value\"" >$SBOX_SESSION_DIR/env_vars/$varname
 }
 
 show_env_vars()
 {
-	if [ $inside_sb2 -eq 1 ]; then
-		count=$(find "$SBOX_SESSION_DIR/env_vars" -print x | wc -c )
-		if [ "$count" -gt 0 ]; then
-			cat "$SBOX_SESSION_DIR"/env_vars/*
-		fi
-	else
-		die "'sb2-session showenv' must be used inside existing session!"
-	fi
+	for $f in $(ls "$SBOX_SESSION_DIR"/env_vars/* 2>/dev/null) ; do
+		cat $f
+	done
 }
 
 if [ $# -lt 1 ]; then
@@ -224,28 +215,12 @@ case "$command" in
 		usage
 		;;
 	attach)
-		if [ $inside_sb2 -ne 0 ]; then
-			printf "%s" "'attach' command cannot be run from inside "
-			echo "sb2 session"
-			exit 1
-		fi
+		[ $inside_sb2 -eq 0 ] || die "'attach' command cannot be run from inside sb2 session"
 		attach_session "${@}"
 		;;
 
 	save)
-		#
-		# Validate that we really are inside active sb2
-		# session before.  Otherwise it is hard to save
-		# it.
-		#
-		if [ $inside_sb2 -ne 1 ]; then
-			printf "%s" "'save' command can only be run from inside "
-			echo "sb2 session"
-			exit 1
-		fi
-
-		. $SBOX_SESSION_DIR/sb2-session.conf
-
+		[ $inside_sb2 -eq 1 ] || die "'save' command can only be run from inside sb2 session"
 		save_session
 		;;
 
@@ -254,20 +229,17 @@ case "$command" in
 		;;
 
 	delete)
-		if [ $inside_sb2 -ne 0 ]; then
-			printf "%s" "'delete' command cannot be run from inside "
-			echo "sb2 session"
-			exit 1
-		fi
-
+		[ $inside_sb2 -eq 0 ] || die "'delete' command cannot be run from inside sb2 session"
 		delete_session "$1"
 		;;
 
 	setenv)
+		[ $inside_sb2 -eq 1 ] || die "'setenv' must be used inside existing session!"
 		set_env_var "${@}"
 		;;
 
 	showenv)
+		[ $inside_sb2 -eq 1 ] || die "'showenv' must be used inside existing session!"
 		show_env_vars
 		;;
 

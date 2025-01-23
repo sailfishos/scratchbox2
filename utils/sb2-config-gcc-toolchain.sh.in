@@ -31,7 +31,7 @@ Options:
     -A arch           manually override target architecture
     -h                print this help
     -m mapping_mode   target uses mapping_mode as default mode
-    -S SBOX_DATADIR       define value for SBOX_DIR
+    -S SBOX_DATADIR   define value for SBOX_DIR
     -R TARGET_ROOT    define value for SBOX_TARGET_ROOT
     -V                this toolchain is a secondary toolchain,
                       tools require version numbers in pathnames
@@ -162,29 +162,29 @@ esac
 # ---------- Check parameters
 
 if [ -z "$SBOX_DATADIR" ]; then
-    SBOX_DATADIR=@datadir@
+	SBOX_DATADIR=@datadir@
 fi
 
 if [ -z "$TARGET" ]; then
-        echo "Error: no target given"
-        exit 1
+	echo "Error: no target given"
+	exit 1
 fi
 
 SBOX_CONFIG_DIR=~/.scratchbox2/$TARGET/sb2.config.d 
 
 if [ -z "$SBOX_TARGET_ROOT" ]; then
-        echo "Error: no target_root given"
-        exit 1
+	echo "Error: no target_root given"
+	exit 1
 fi
 
 if [ ! -d $SBOX_TARGET_ROOT ]; then
-        echo "Error: Target root directory does not exist"
-        exit 1
+	echo "Error: Target root directory does not exist"
+	exit 1
 fi
 
 if [ -z "$MAPPING_MODE" ]; then
-        echo "Error: no mapping mode given"
-        exit 1
+	echo "Error: no mapping mode given"
+	exit 1
 fi
 
 if [ ! -d $SBOX_DATADIR/scratchbox2/modes/$MAPPING_MODE ]; then

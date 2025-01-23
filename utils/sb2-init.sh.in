@@ -306,7 +306,7 @@ mkdir -p $HOME/.scratchbox2/$TARGET
 
 SBOX_CONFIG_DIR=~/.scratchbox2/$TARGET/sb2.config.d 
 if [ ! -d $SBOX_CONFIG_DIR ]; then
-        mkdir $SBOX_CONFIG_DIR 
+	mkdir $SBOX_CONFIG_DIR 
 fi
 log_config_action "sb2-init $SBOX_INIT_ORIG_ARGS"
 
@@ -357,7 +357,7 @@ case "$ARCH" in
 	i686*) ;;
 	amd64*) ;;
 	x86_64*) ;;
-        aarch64*) ;;
+	aarch64*) ;;
 	*)
 		echo "Unsupported target architecture: '$ARCH'"
 		echo "You must add support for it into execs/sb_exec.c"
@@ -514,12 +514,12 @@ fi
 if [ $SB2INIT_WITH_LOCALES = 1 ]; then
 	if [ -n "$SB2INIT_TOOLS_ROOT" ]; then
 		$SBOX_BINDIR/sb2 -t $TARGET \
-		    $SBOX_DATADIR/scratchbox2/scripts/sb2-generate-locales -T
+			$SBOX_DATADIR/scratchbox2/scripts/sb2-generate-locales -T
 	fi
 
 	if [ -z "$SB2INIT_CPUTRANSP" ]; then
 		$SBOX_BINDIR/sb2 -t $TARGET \
-		    $SBOX_DATADIR/scratchbox2/scripts/sb2-generate-locales
+			$SBOX_DATADIR/scratchbox2/scripts/sb2-generate-locales
 	fi
 fi
 

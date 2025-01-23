@@ -64,14 +64,14 @@ list_targets()
 		exit 1
 	fi
 	for f in $list; do
-	    if [ $all_targets -ge 1 ]; then
-		echo "$(basename "$(dirname $f)")"
-	    else
-		. "$f"
-		if [ -d "$SBOX_TARGET_ROOT" ]; then
-		    echo "$(basename "$(dirname $f)")"
+		if [ $all_targets -ge 1 ]; then
+			echo "$(basename "$(dirname $f)")"
+		else
+			. "$f"
+			if [ -d "$SBOX_TARGET_ROOT" ]; then
+				echo "$(basename "$(dirname $f)")"
+			fi
 		fi
-	    fi
 	done
 }
 
@@ -162,7 +162,7 @@ unsetenv_var()
 showenv_vars()
 {
 	if [ -d $SBOX_CONFIG_DIR/env_vars ]; then
-	    count=$(find "$SBOX_SESSION_DIR/env_vars" -print x | wc -c )
+		count=$(find "$SBOX_SESSION_DIR/env_vars" -print x | wc -c )
 		if [ "$count" -gt 0 ]; then
 			for i in $SBOX_CONFIG_DIR/env_vars/*; do
 				if [ -s "$i" ]; then

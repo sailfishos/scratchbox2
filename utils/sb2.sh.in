@@ -85,11 +85,11 @@ exit_error()
 {
 	echo "sb2: Error: $*"
 	if [ ! -z "$SBOX_SESSION_DIR" ]; then
-	    if [ -z "$OPT_DONT_DELETE_SESSION" ]; then
-		rm -rf $SBOX_SESSION_DIR
-	    else
-		echo "sb2: Session directory not deleted ($SBOX_SESSION_DIR)"
-	    fi
+		if [ -z "$OPT_DONT_DELETE_SESSION" ]; then
+			rm -rf $SBOX_SESSION_DIR
+		else
+			echo "sb2: Session directory not deleted ($SBOX_SESSION_DIR)"
+		fi
 	fi
 	exit 1
 }
@@ -179,7 +179,7 @@ add_auto_rules_to_mapping_rules()
 		if [ -f $SBOX_SESSION_DIR/rules_auto/$amm_base.usr_bin.lua ]; then
 			# add the generated rules to the beginning of the rule file
 			cat $SBOX_SESSION_DIR/rules_auto/$amm_base.usr_bin.lua $ammf \
-			    >$SBOX_SESSION_DIR/rules/$amm_base.NEW
+				> $SBOX_SESSION_DIR/rules/$amm_base.NEW
 			mv $SBOX_SESSION_DIR/rules/$amm_base.NEW $ammf
 		fi
 	done
@@ -220,7 +220,7 @@ load_configuration()
 	. ~/.scratchbox2/$SBOX_TARGET/sb2.config
 
 	if [ ! -d "$SBOX_TARGET_ROOT" ]; then
-	    exit_error "Cannot access target root '$SBOX_TARGET_ROOT', aborting."
+		exit_error "Cannot access target root '$SBOX_TARGET_ROOT', aborting."
 	fi
 
 	if [ ! -d "$SBOX_DATADIR/scratchbox2/modes/$SBOX_MAPMODE" ]; then
@@ -239,7 +239,7 @@ load_configuration()
 	# link for the /var/run symlink. it might already be there if
 	# this is a restored session
 	if [ ! -L "$SBOX_SESSION_DIR/run" ]; then
-	    ln -s $SBOX_TARGET_ROOT/run $SBOX_SESSION_DIR/run
+		ln -s $SBOX_TARGET_ROOT/run $SBOX_SESSION_DIR/run
 	fi
 
 	# older sb2.config files had values for the Debian
@@ -266,7 +266,7 @@ load_configuration()
 	# check if we need to upgrade configuration:
 	if [ -z "$OPT_DONT_UPGRADE_CONFIGURATION" ]; then
 		if [ ! -f ~/.scratchbox2/$SBOX_TARGET/sb2.config.d/config-stamp.20 ]; then
-            if ! $SBOX_DIR/share/scratchbox2/scripts/sb2-upgrade-config $SBOX_TARGET; then
+			if ! $SBOX_DIR/share/scratchbox2/scripts/sb2-upgrade-config $SBOX_TARGET; then
 				echo "Failed to upgrade configuration files" >&2
 				exit 1
 			fi
@@ -447,7 +447,7 @@ sboxify_environment()
 	else
 		PATH=$SBOX_MODE_PATH
 	fi
-        export PATH
+	export PATH
 
 	# LD_PRELOAD will be set to SBOX_LIBSB2 by sb2-monitor.
 
@@ -755,7 +755,7 @@ check_qemu_features()
 	# big-endian architectures where both are supported
 	#
 	test_output=$(sed -n '/Linux CPU/s/.* \([a-zA-Z0-9]*\) emulation)/\1/p' \
-		      $SBOX_SESSION_DIR/qemu_help)
+		$SBOX_SESSION_DIR/qemu_help)
 	if [ -n "$test_output" ]; then
 		case "$test_output" in
 		arm)
@@ -908,16 +908,16 @@ locate_shell()
 guess_ld_so()
 {
 	local prefix="$1"
-    local ld_so_conf=$prefix/lib/ld-linux.so.2
-    if [ "$(getconf LONG_BIT)" -ge 64 ] ; then
-        # 64-bit architecture all append the name of the arch to the same of
-        # ld.so
-        ld_so_conf_base=ld-linux-$(uname -m).so.2
-        for libdir in $sbox_libdirs; do
-            if [ -r $prefix/$libdir/$ld_so_conf ] ; then
-                ld_so_conf=$prefix/$libdir/$ld_so_conf_base
-            fi
-        done
+	local ld_so_conf=$prefix/lib/ld-linux.so.2
+	if [ "$(getconf LONG_BIT)" -ge 64 ] ; then
+		# 64-bit architecture all append the name of the arch to the same of
+		# ld.so
+		ld_so_conf_base=ld-linux-$(uname -m).so.2
+		for libdir in $sbox_libdirs; do
+			if [ -r $prefix/$libdir/$ld_so_conf ] ; then
+				ld_so_conf=$prefix/$libdir/$ld_so_conf_base
+			fi
+		done
 	fi
 	printf "$ld_so_conf"
 }
@@ -953,28 +953,28 @@ write_libsb2_and_ld_so_state_to_exec_config()
 
     sbox_dir_2=""
 
-    for liblocation in $sbox_liblocations ; do
-	    if [ -d $rootdir$liblocation ]; then
-            # assume the prefix is under libdir: ../libdir
-            liblocation=${liblocation%/*}
-		    sbox_dir_2=$rootdir${liblocation%/*}
-            sbox_libdir=$rootdir$liblocation
-            if [ -z "$libsb2_path" ]; then
-		        libsb2_path=$rootdir$liblocation/$SBOX_LIBSB2
-		        libsb2_dirname=""
-	        fi
-            break
-        fi
-    done
+	for liblocation in $sbox_liblocations ; do
+		if [ -d $rootdir$liblocation ]; then
+			# assume the prefix is under libdir: ../libdir
+			liblocation=${liblocation%/*}
+			sbox_dir_2=$rootdir${liblocation%/*}
+			sbox_libdir=$rootdir$liblocation
+			if [ -z "$libsb2_path" ]; then
+				libsb2_path=$rootdir$liblocation/$SBOX_LIBSB2
+				libsb2_dirname=""
+			fi
+			break
+		fi
+	done
 
 
 	if [ -f $libsb2_path ]; then
 		libsb2_dir=$(dirname $libsb2_path)
 		echo "-- $libsb2_path" >>$SBOX_SESSION_DIR/exec_config.lua
 		echo "$libsb2_dir_varname=\"$libsb2_dir\"" \
-		    >>$SBOX_SESSION_DIR/exec_config.lua
+			>> $SBOX_SESSION_DIR/exec_config.lua
 		echo "$sb2_installed_varname=true" \
-		    >>$SBOX_SESSION_DIR/exec_config.lua
+			>> $SBOX_SESSION_DIR/exec_config.lua
 		ld_so_found="yes"
 	else
 		echo "$sb2_installed_varname=false" >>$SBOX_SESSION_DIR/exec_config.lua
@@ -1110,10 +1110,10 @@ write_locale_and_gconv_paths_to_exec_config()
 	if [ -n "$locale_path" ]; then
 		echo "$locale_path_varname=\"$locale_path\"" |
 			sed -e 's/=":/="/' \
-		    >> $SBOX_SESSION_DIR/exec_config.lua
+			>> $SBOX_SESSION_DIR/exec_config.lua
 	else
 		echo "$locale_path_varname=nil" \
-		    >> $SBOX_SESSION_DIR/exec_config.lua
+			>> $SBOX_SESSION_DIR/exec_config.lua
 	fi
 
 	#------------ gconv:
@@ -1129,10 +1129,10 @@ write_locale_and_gconv_paths_to_exec_config()
 	if [ -n "$gconv_path" ]; then
 		echo "$gconv_path_varname=\"$gconv_path\"" |
 			sed -e 's/=":/="/' \
-		    >> $SBOX_SESSION_DIR/exec_config.lua
+			>> $SBOX_SESSION_DIR/exec_config.lua
 	else
 		echo "$gconv_path_varname=nil" \
-		    >> $SBOX_SESSION_DIR/exec_config.lua
+			>> $SBOX_SESSION_DIR/exec_config.lua
 	fi
 
 }
@@ -1217,7 +1217,7 @@ END
 			target_basename=$(basename $SBOX_CLONED_TARGET_ROOT)
 		else
 			if [ -z $SBOX_TARGET_ROOT ]; then
-			    exit_error "SBOX_TARGET_ROOT empty, valid target not found"
+				exit_error "SBOX_TARGET_ROOT empty, valid target not found"
 			fi
 			target_basename=$(basename $SBOX_TARGET_ROOT)
 		fi
@@ -1339,7 +1339,7 @@ get_SBOX_SESSION_DIR_from_file()
 	fi
 
 	if [ ! -d "$SBOX_SESSION_DIR" ] || \
-	     [ ! -f $SBOX_SESSION_DIR/.joinable-session ]; then
+		[ ! -f $SBOX_SESSION_DIR/.joinable-session ]; then
 		exit_error "Session '$SBOX_SESSION_DIR' does not exist"
 	fi
 	# else the session seems to be valid.
@@ -1392,7 +1392,7 @@ initialize_new_sb2_session()
 {
 	# Create a new session
 	if [ -n "$SBOX_WRITE_SESSION_INFO_TO_FILE" ] && \
-	    [ -f "$SBOX_WRITE_SESSION_INFO_TO_FILE" ]; then
+		[ -f "$SBOX_WRITE_SESSION_INFO_TO_FILE" ]; then
 		exit_error "File '$SBOX_WRITE_SESSION_INFO_TO_FILE' already exists."
 	fi
 
@@ -1402,7 +1402,7 @@ initialize_new_sb2_session()
 	else
 		# Create session directories
 		date_and_time_now=$(date +%Y%m%d-%H%M%S)
-        if ! SBOX_SESSION_DIR=$(mktemp -d /tmp/sb2-$USER-$date_and_time_now.XXXXXX) ; then
+		if ! SBOX_SESSION_DIR=$(mktemp -d /tmp/sb2-$USER-$date_and_time_now.XXXXXX) ; then
 			exit_error "Failed to create directory for session (problems with /tmp ?)"
 		fi
 	fi
@@ -1516,34 +1516,34 @@ link_wrappers_for_mapmode()
 			mkdir $SBOX_SESSION_DIR/wrappers.$w_mode
 
 			if [ "$SBOX_WRAPPERS" = 'ALL' ]; then
-                for wrapper in $SBOX_DATADIR/scratchbox2/wrappers/* ; do
-                    if [ -e $wrapper ]; then
-				        ln -s $wrapper \
-					       $SBOX_SESSION_DIR/wrappers.$w_mode
-                    fi
-                done
-                # Pick the first liblocation found any link wrappers
-                # to the session
-                for wrapper_dir in $sbox_liblocations ; do
-                    if [ -e $wrapper_dir ] ; then
-                        for wrapper in $wrapper_dir/* ; do
-                            if [ -e $wrapper ] ; then
-				                ln -s $wrapper \
-					               $SBOX_SESSION_DIR/wrappers.$w_mode
-                            fi
-                        done
-                        break
-                    fi
-                done
+				for wrapper in $SBOX_DATADIR/scratchbox2/wrappers/* ; do
+					if [ -e $wrapper ]; then
+						ln -s $wrapper \
+						$SBOX_SESSION_DIR/wrappers.$w_mode
+					fi
+				done
+				# Pick the first liblocation found any link wrappers
+				# to the session
+				for wrapper_dir in $sbox_liblocations ; do
+					if [ -e $wrapper_dir ] ; then
+						for wrapper in $wrapper_dir/* ; do
+							if [ -e $wrapper ] ; then
+								ln -s $wrapper \
+									$SBOX_SESSION_DIR/wrappers.$w_mode
+							fi
+						done
+						break
+					fi
+				done
 			else
 				for ammw in $SBOX_WRAPPERS; do
 					wrapper_found=nil
 					for wrapper_dir in $SBOX_DATADIR/scratchbox2 \
-                                       $sbox_liblocations \
-									   ; do
+									$sbox_liblocations \
+									; do
 						if [ -f $wrapper_dir/wrappers/$ammw ]; then
 							ln -s $wrapper_dir/wrappers/$ammw \
-							   $SBOX_SESSION_DIR/wrappers.$w_mode
+								$SBOX_SESSION_DIR/wrappers.$w_mode
 							wrapper_found=t
 							break
 						fi

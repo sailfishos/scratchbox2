@@ -349,16 +349,18 @@ clone_target_root_dir_from()
 	echo "Copying target root from $source_directory..."
 	# cp -Rp does not preserve hard links, but cpio does
 
-	if ! (cd $source_directory; find . -depth -print |
-			  cpio -pamd $SBOX_SESSION_DIR/target_root) ; then
+	if ! (cd $source_directory; find . -depth -print \
+		| cpio -pamd $SBOX_SESSION_DIR/target_root)
+	then
 		exit_error "Failed to clone target_root"
 	fi
 	# There is a bug in gnu cpio: timestamps of directories
 	# will not be set correctly on the first run,
 	# but they will be corrected by another round:
 
-	if ! (cd $source_directory; find . -depth -type d -print |
-			  cpio -pamd $SBOX_SESSION_DIR/target_root) ; then
+	if ! (cd $source_directory; find . -depth -type d -print \
+		| cpio -pamd $SBOX_SESSION_DIR/target_root)
+	then
 		exit_error "Failed to fix directory permissions in target_root clone"
 	fi
 	#
@@ -1338,8 +1340,8 @@ get_SBOX_SESSION_DIR_from_file()
 		exit_error "'$file' is not a valid SB2 session information file"
 	fi
 
-	if [ ! -d "$SBOX_SESSION_DIR" ] || \
-		[ ! -f $SBOX_SESSION_DIR/.joinable-session ]; then
+	if [ ! -d "$SBOX_SESSION_DIR" ] \
+	|| [ ! -f $SBOX_SESSION_DIR/.joinable-session ]; then
 		exit_error "Session '$SBOX_SESSION_DIR' does not exist"
 	fi
 	# else the session seems to be valid.
@@ -1391,8 +1393,8 @@ add_map_mode()
 initialize_new_sb2_session()
 {
 	# Create a new session
-	if [ -n "$SBOX_WRITE_SESSION_INFO_TO_FILE" ] && \
-		[ -f "$SBOX_WRITE_SESSION_INFO_TO_FILE" ]; then
+	if [ -n "$SBOX_WRITE_SESSION_INFO_TO_FILE" ] \
+	&& [ -f "$SBOX_WRITE_SESSION_INFO_TO_FILE" ]; then
 		exit_error "File '$SBOX_WRITE_SESSION_INFO_TO_FILE' already exists."
 	fi
 
@@ -1753,12 +1755,16 @@ if [ -n "$SBOX_LOG_AND_GRAPH_DIR" ]; then
 		# First try to activate it directly
 		touch $SBOX_LOG_AND_GRAPH_DIR/acct-data
 		if ! $SBOX_BINDIR/sb2-show acct_on \
-			 $SBOX_LOG_AND_GRAPH_DIR/acct-data 2>/dev/null; then
+			$SBOX_LOG_AND_GRAPH_DIR/acct-data \
+			2> /dev/null
+		then
 			if [ -z "$SBOX_QUIET" ];  then
 				echo "WARNING: Can't activate process accounting. Retrying with 'sudo', password may be needed."
 			fi
 			if ! sudo $SBOX_BINDIR/sb2-show acct_on \
-				 $SBOX_LOG_AND_GRAPH_DIR/acct-data 2>/dev/null; then
+				$SBOX_LOG_AND_GRAPH_DIR/acct-data \
+				2> /dev/null
+			then
 				if [ -z "$SBOX_QUIET" ];  then
 					echo "WARNING: Failed to activate process accounting. Acct data won't be included in the graphs."
 				fi
@@ -1913,10 +1919,13 @@ if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 	if ! SB2_DEFAULT_NETWORK_MODE="$SBOX_DEFAULT_NETWORK_MODE" \
 		SB2_ALL_NET_MODES="$SB2_ALL_NET_MODES" \
 		SB2_ALL_MODES="$SB2_INTERNAL_MAPMODES" \
-		sb2d -s $SBOX_SESSION_DIR -p $SBOX_SESSION_DIR/sb2d.pid \
+		sb2d \
+			-s $SBOX_SESSION_DIR \
+			-p $SBOX_SESSION_DIR/sb2d.pid \
 			-l - $SB2D_OPTIONS \
-			>$SBOX_SESSION_DIR/sb2d.out \
-			2>$SBOX_SESSION_DIR/sb2d.err ; then
+		> $SBOX_SESSION_DIR/sb2d.out \
+		2> $SBOX_SESSION_DIR/sb2d.err
+	then
 		grep ERROR $SBOX_SESSION_DIR/sb2d.out
 		cat $SBOX_SESSION_DIR/sb2d.err
 		exit_error "startup of sb2d failed."

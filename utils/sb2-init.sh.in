@@ -214,7 +214,8 @@ configure_toolchains()
 			-C "$SB2INIT_SBOX_EXTRA_CROSS_COMPILER_ARGS" \
 			-L "$SB2INIT_SBOX_EXTRA_CROSS_LD_ARGS" \
 			-- \
-			$compiler_path ; then
+			$compiler_path
+		then
 			log_config_action "sb2-init: failed to configure $compiler_path"
 			echo "Failed to configure $compiler_path"
 			exit 1

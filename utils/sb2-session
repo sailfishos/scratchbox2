@@ -150,15 +150,13 @@ save_session()
 list_sessions()
 {
 	for s in $session_save_dir/session.* ; do
-		if [ -e $s ] ; then
-			session_file=$(basename $s)
-			session_descr=$( grep SBOX_SESSION_DESCRIPTION $s | \
-								 sed 's/SBOX_SESSION_DESCRIPTION="\([^"]*\)"/\1/' )
-			session_target=$( grep SBOX_TARGET $s | \
-								  sed 's/SBOX_TARGET=\([^"]*\)/\1/' )
-			printf "%s\t%s\t%s\n" "$session_file" "$session_target" \
-				   "$session_descr"
-		fi
+		[ -e "$s" ] || continue
+		session_file=$(basename $s)
+		session_descr=$( grep SBOX_SESSION_DESCRIPTION $s \
+						| sed 's/SBOX_SESSION_DESCRIPTION="\([^"]*\)"/\1/' )
+		session_target=$( grep SBOX_TARGET $s \
+						| sed 's/SBOX_TARGET=\([^"]*\)/\1/' )
+		printf "%s\t%s\t%s\n" "$session_file" "$session_target" "$session_descr"
 	done
 }
 

@@ -1503,57 +1503,47 @@ link_wrappers_for_mapmode()
 {
 	w_mode=$1
 
-	if [ -d $SBOX_SESSION_DIR/wrappers.$w_mode ]; then
-		# already done
-		return
-	fi
+	[ -d $SBOX_SESSION_DIR/wrappers.$w_mode ] && return # already done
 
-	if [ -f $SBOX_SESSION_DIR/modes/$w_mode/sb2rc ]; then
-		# Get list of wrappers:
-		SBOX_WRAPPERS=""
-		. $SBOX_SESSION_DIR/modes/$w_mode/sb2rc wrapper_list
-		if [ "$SBOX_WRAPPERS" != '' ]; then
-			mkdir $SBOX_SESSION_DIR/wrappers.$w_mode
+	[ -f $SBOX_SESSION_DIR/modes/$w_mode/sb2rc ] || return
 
-			if [ "$SBOX_WRAPPERS" = 'ALL' ]; then
-				for wrapper in $SBOX_DATADIR/scratchbox2/wrappers/* ; do
-					if [ -e $wrapper ]; then
-						ln -s $wrapper \
-						$SBOX_SESSION_DIR/wrappers.$w_mode
-					fi
-				done
-				# Pick the first liblocation found any link wrappers
-				# to the session
-				for wrapper_dir in $sbox_liblocations ; do
-					if [ -e $wrapper_dir ] ; then
-						for wrapper in $wrapper_dir/* ; do
-							if [ -e $wrapper ] ; then
-								ln -s $wrapper \
-									$SBOX_SESSION_DIR/wrappers.$w_mode
-							fi
-						done
-						break
-					fi
-				done
-			else
-				for ammw in $SBOX_WRAPPERS; do
-					wrapper_found=nil
-					for wrapper_dir in $SBOX_DATADIR/scratchbox2 \
-									$sbox_liblocations \
-									; do
-						if [ -f $wrapper_dir/wrappers/$ammw ]; then
-							ln -s $wrapper_dir/wrappers/$ammw \
-								$SBOX_SESSION_DIR/wrappers.$w_mode
-							wrapper_found=t
-							break
-						fi
-					done
-					if [ $wrapper_found = nil ] ; then
-						exit_error "There is no wrapper for $ammw"
-					fi
-				done
+	# Get list of wrappers:
+	SBOX_WRAPPERS=""
+	. $SBOX_SESSION_DIR/modes/$w_mode/sb2rc wrapper_list
+
+	[ "$SBOX_WRAPPERS" != '' ] || return
+
+	mkdir $SBOX_SESSION_DIR/wrappers.$w_mode
+
+	if [ "$SBOX_WRAPPERS" = 'ALL' ]; then
+		for wrapper in $SBOX_DATADIR/scratchbox2/wrappers/* ; do
+			[ -e $wrapper ] || continue
+			ln -s $wrapper $SBOX_SESSION_DIR/wrappers.$w_mode
+		done
+		# Pick the first liblocation found any link wrappers
+		# to the session
+		for wrapper_dir in $sbox_liblocations ; do
+			[ -e $wrapper_dir ] || continue
+			for wrapper in $wrapper_dir/* ; do
+				if [ -e $wrapper ] ; then
+					ln -s $wrapper $SBOX_SESSION_DIR/wrappers.$w_mode
+				fi
+			done
+			break
+		done
+	else
+		for ammw in $SBOX_WRAPPERS; do
+			wrapper_found=nil
+			for wrapper_dir in $SBOX_DATADIR/scratchbox2 $sbox_liblocations; do
+				[ -f $wrapper_dir/wrappers/$ammw ] || continue
+				ln -s $wrapper_dir/wrappers/$ammw $SBOX_SESSION_DIR/wrappers.$w_mode
+				wrapper_found=t
+				break
+			done
+			if [ $wrapper_found = nil ] ; then
+				exit_error "There is no wrapper for $ammw"
 			fi
-		fi
+		done
 	fi
 }
 

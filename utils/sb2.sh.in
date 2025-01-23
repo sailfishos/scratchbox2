@@ -224,7 +224,7 @@ load_configuration()
 	fi
 
 	if [ ! -d "$SBOX_DATADIR/scratchbox2/modes/$SBOX_MAPMODE" ]; then
-		exit_error "Configure mode doesn't '$SBOX_MAPMODE' for target doesn't exist, aborting."
+		exit_error "Configure mode '$SBOX_MAPMODE' for target doesn't exist, aborting."
 	fi
 
 	LD_LIBRARY_PATH=$saved_LD_LIBRARY_PATH

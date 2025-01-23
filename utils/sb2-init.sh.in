@@ -223,10 +223,10 @@ configure_toolchains()
 	done
 }
 
-if [ -z "$SBOXDATA_DIR" ]; then
+if [ -z "$SBOX_DATADIR" ]; then
 	SBOX_DATADIR=@datadir@
 fi
-if [ -z "$SBOXBIN_DIR" ]; then
+if [ -z "$SBOX_BINDIR" ]; then
 	SBOX_BINDIR=@bindir@
 fi
 

@@ -104,8 +104,8 @@ END
 
 die()
 {
-	echo $1
-	exit $2
+	echo $1 >&2
+	exit 1
 }
 
 attach_session()
@@ -126,14 +126,14 @@ attach_session()
 		if [ "$count" -eq 1 ]; then
 			session_file=$( ls $session_save_dir/session.* )
 		elif [ "$count" -eq 0 ]; then
-			die "No saved sessions available!" 1
+			die "No saved sessions available!"
 		else
-			die "You must specify session as parameter!" 1
+			die "You must specify session as parameter!"
 		fi
 	else
 		session_file="$session_save_dir/$session"
 		if [ ! -e "$session_file" ]; then
-			die "Given session '$session' doesn't exist!" $?
+			die "Given session '$session' doesn't exist!"
 		fi
 	fi
 
@@ -166,7 +166,7 @@ delete_session()
 
 	[ -z "$session" ] && usage
 	if [ ! -e "$session_save_dir/$session" ]; then
-		die "Given session '$session' doesn't exist!" $?
+		die "Given session '$session' doesn't exist!"
 	fi
 
 	sb2 -D "$session_save_dir/$session"
@@ -184,7 +184,7 @@ set_env_var()
 		mkdir -p "$SBOX_SESSION_DIR/env_vars"
 		echo "$varname=\"$value\"" >$SBOX_SESSION_DIR/env_vars/$varname
 	else
-		die "'sb2-session setenv' must be used inside existing session!" $?
+		die "'sb2-session setenv' must be used inside existing session!"
 	fi
 }
 
@@ -196,7 +196,7 @@ show_env_vars()
 			cat "$SBOX_SESSION_DIR"/env_vars/*
 		fi
 	else
-		die "'sb2-session showenv' must be used inside existing session!" $?
+		die "'sb2-session showenv' must be used inside existing session!"
 	fi
 }
 
@@ -209,7 +209,7 @@ shift
 
 if [ ! -e "$session_save_dir" ]; then
 	/bin/mkdir $session_save_dir 2>/dev/null ||
-	    die "unable to create session save directory: $saved_sessions_dir" $rc
+	    die "unable to create session save directory: $saved_sessions_dir"
 fi
 
 if [ -z "$SBOX_SESSION_DIR" ]; then
@@ -272,5 +272,5 @@ case "$command" in
 		;;
 
 	*)
-		die "invalid command: $command" 1
+		die "invalid command: $command"
 esac

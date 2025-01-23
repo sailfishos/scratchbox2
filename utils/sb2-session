@@ -142,8 +142,9 @@ attach_session()
 
 save_session()
 {
-	printf "%s" "Session description: "
-	read session_descr
+	. $SBOX_SESSION_DIR/sb2-session.conf
+	printf "Session description: "
+	read -r session_descr
 	write_session_info "$session_descr"
 }
 
@@ -181,21 +182,13 @@ set_env_var()
 	shift
 	value="$*"
 
-	if [ $inside_sb2 -eq 1 ]; then
-		mkdir -p "$SBOX_SESSION_DIR/env_vars"
-		echo "$varname=\"$value\"" >$SBOX_SESSION_DIR/env_vars/$varname
-	else
-		die "'sb2-session setenv' must be used inside existing session!"
-	fi
+	mkdir -p "$SBOX_SESSION_DIR/env_vars"
+	echo "$varname=\"$value\"" >$SBOX_SESSION_DIR/env_vars/$varname
 }
 
 show_env_vars()
 {
-	if [ $inside_sb2 -eq 1 ]; then
-		find "$SBOX_SESSION_DIR/env_vars" -type f cat {} \;
-	else
-		die "'sb2-session showenv' must be used inside existing session!"
-	fi
+    find "$SBOX_SESSION_DIR/env_vars" -type f cat {} \;
 }
 
 if [ $# -lt 1 ]; then
@@ -216,30 +209,25 @@ else
 	inside_sb2=1
 fi
 
+case $command in
+    attach|delete|setenv|showenv)
+	[ $inside_sb2 -eq 0 ] || \
+	    die "'$command' command cannot be run from inside sb2 session"
+	;;
+esac
+
 # validate that target binary really exists, otherwise sb2-show fails
 case "$command" in
 	help)
 		usage
 		;;
 	attach)
-		if [ $inside_sb2 -ne 0 ]; then
-		    die "'attach' command cannot be run from inside sb2 session"
-		fi
 		attach_session "${@}"
 		;;
 
 	save)
-		#
-		# Validate that we really are inside active sb2
-		# session before.  Otherwise it is hard to save
-		# it.
-		#
-		if [ $inside_sb2 -ne 1 ]; then
-		    die "'save' command can only be run from inside sb2 session"
-		fi
-
-		. $SBOX_SESSION_DIR/sb2-session.conf
-
+		[ $inside_sb2 -eq 1 ] \
+			|| die "'save' command can only be run from inside sb2 session"
 		save_session
 		;;
 
@@ -248,10 +236,6 @@ case "$command" in
 		;;
 
 	delete)
-		if [ $inside_sb2 -ne 0 ]; then
-		    die "'delete' command cannot be run from inside sb2 session"
-		fi
-
 		delete_session "$1"
 		;;
 

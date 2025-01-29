@@ -1,0 +1,27 @@
+# EditorConfig configuration to set basic indentation across editors
+# Also applies to codereview's on common forges such as Github.
+
+root = true
+
+[*]
+end_of_line = lf
+insert_final_newline = true
+indent_size = 8
+indent_style = tab
+
+[*.{c,h}]
+charset = utf-8
+trim_trailing_whitespace = true
+
+[Makefile]
+indent_style = tab
+
+[*.{sh,lua}]
+indent_style = tab
+indent_size = 4
+tab_width = 4
+trim_trailing_whitespace = true
+
+[*.spec]
+indent_style = space
+indent_size = 4

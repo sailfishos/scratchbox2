@@ -43,7 +43,7 @@ $(D)/libsb2.$(SHLIBEXT): LIBS := -ldl $(LIBSB2_LIBS)
 targets := $(targets) $(D)/libsb2.$(SHLIBEXT)
 
 $(D)/libsb2.o $(D)/sb_l10n.o: preload/exported.h
-$(D)/exported.h $(D)/ldexportlist: preload/wrappers.c
+$(D)/exported.h: preload/wrappers.c
 $(D)/wrappers.c: preload/interface.master preload/gen-interface.pl
 	$(MKOUTPUTDIR)
 	$(P)PERL
@@ -66,7 +66,7 @@ $(D)/privatewrappers.c: preload/interface.private preload/gen-interface.pl
 		-E preload/privatewrappers.h \
 		<$(SRCDIR)/preload/interface.private
 
-generated := preload/wrappers.c preload/exported.h preload/ldexportlist
+generated := preload/wrappers.c preload/exported.h
 .PRECIOUS: $(generated)
 
 CLEAN_FILES += $(generated)

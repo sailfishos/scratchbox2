@@ -18,7 +18,7 @@ aclocal.*
 *.a
 config.mak
 preload/exported.h
-preload/ldexportlist
+preload/export.map
 preload/wrappers.c
 obj-32
 obj-64
@@ -29,5 +29,4 @@ utils/sb2-interp-wrapper
 .version
 preload/privatewrappers.c
 preload/privatewrappers.h
-preload/export.map
 include/scratchbox2_version.h

@@ -675,7 +675,7 @@ GATE: int statx(int dirfd, const char *__restrict pathname, int flags, \
 #endif
 
 #ifdef HAVE_STAT64
-WRAP: int stat64(const char *file_name, struct stat64 *buf) : map(file_name) class(STAT) \
+GATE: int stat64(const char *file_name, struct stat64 *buf) : map(file_name) class(STAT) \
         create_nomap_nolog_version
 #endif
 

@@ -702,6 +702,7 @@ int fchmodat_gate(int *result_errno_ptr,
 		mode | forced_owner_rights, flags);
 	if (res != 0) {
 		e = errno;
+		*result_errno_ptr = e;
 	}
 	/* finalize. */
 	res = vperm_chmod_done_update_state(result_errno_ptr,
@@ -741,6 +742,7 @@ int fchmod_gate(int *result_errno_ptr,
 	res = (*real_fchmod_ptr)(fd, mode | forced_owner_rights);
 	if (res != 0) {
 		e = errno;
+		*result_errno_ptr = e;
 	}
 	res = vperm_chmod_done_update_state(result_errno_ptr,
 		realfnname, res, e,
@@ -780,6 +782,7 @@ int chmod_gate(int *result_errno_ptr,
 		mode | forced_owner_rights);
 	if (res != 0) {
 		e = errno;
+		*result_errno_ptr = e;
 	}
 	res = vperm_chmod_done_update_state(result_errno_ptr,
 		realfnname, res, e,

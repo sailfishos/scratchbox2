@@ -1151,7 +1151,6 @@ long syscall_gate(
 	long (*real_syscall_ptr)(long number, ...),
 	const char *realfnname, long number, va_list ap)
 {
-	(void)realfnname;
 	long ret = 0;
 
 	switch (number) {
@@ -1161,20 +1160,27 @@ my $syscallgate_c_buffer_function_body = "";
 
 my $syscallgate_c_buffer_function_bottom = <<"END";
         default: {
+		long arg1 = va_arg(ap, long);
+		long arg2 = va_arg(ap, long);
+		long arg3 = va_arg(ap, long);
+		long arg4 = va_arg(ap, long);
+		long arg5 = va_arg(ap, long);
+		long arg6 = va_arg(ap, long);
                 SB_LOG(SB_LOGLEVEL_NOISE2,
-                       "%s gate: calling unmapped syscall(%s)",
+                       "%s gate: calling unmapped syscall(%i)",
                         realfnname, number);
 
+
 		/* FIXME: Note sure why no temporary
-		   	  variables are needed here. */
+		   variables are needed here. */
                 ret = real_syscall_ptr(number,
-                                       va_arg(ap, long),
-                                       va_arg(ap, long),
-                                       va_arg(ap, long),
-                                       va_arg(ap, long),
-                                       va_arg(ap, long),
-                                       va_arg(ap, long));
-				       va_end(ap);
+                                       arg1,
+                                       arg2,
+                                       arg3,
+                                       arg4,
+                                       arg5,
+                                       arg6);
+
                 break;
         }
 	};
@@ -1490,7 +1496,7 @@ sub command_wrap_or_gate {
 			    "\tcase $syscall: {\n";
 			$syscallgate_c_buffer_function_body .=
 			    "\t\tSB_LOG(SB_LOGLEVEL_NOISE, \n"
-			    . "\t\t\t\"%s gate: calling mapped syscall(%s) "
+			    . "\t\t\t\"%s gate: calling mapped syscall(%i) "
 			    . "to %s\", \n"
                             . "\t\t\trealfnname, number, "
 			    . "\"$fn_name\""
@@ -1502,8 +1508,6 @@ sub command_wrap_or_gate {
 			    "\t\tret = $fn_name("
 			    .join(",\n\t\t\t     ", @syscall_arguments)
 			    . ");\n";
-			$syscallgate_c_buffer_function_body .=
-			    "\t\tva_end(ap);\n";
 			$syscallgate_c_buffer_function_body .=
 			    "\t\tbreak;\n"
 			    . "\t}";

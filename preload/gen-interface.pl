@@ -1151,8 +1151,8 @@ long syscall_gate(
 	long (*real_syscall_ptr)(long number, ...),
 	const char *realfnname, long number, va_list ap)
 {
-	(void)realfnname;
 	long ret = 0;
+	(void)realfnname;
 
 	switch (number) {
 END
@@ -1161,20 +1161,28 @@ my $syscallgate_c_buffer_function_body = "";
 
 my $syscallgate_c_buffer_function_bottom = <<"END";
         default: {
+		long arg1 = va_arg(ap, long);
+		long arg2 = va_arg(ap, long);
+		long arg3 = va_arg(ap, long);
+		long arg4 = va_arg(ap, long);
+		long arg5 = va_arg(ap, long);
+		long arg6 = va_arg(ap, long);
+		va_end(ap);
                 SB_LOG(SB_LOGLEVEL_NOISE2,
                        "%s gate: calling unmapped syscall(%s)",
-                        realfnname, number);
+                        __func__, number);
+
 
 		/* FIXME: Note sure why no temporary
-		   	  variables are needed here. */
+		   variables are needed here. */
                 ret = real_syscall_ptr(number,
-                                       va_arg(ap, long),
-                                       va_arg(ap, long),
-                                       va_arg(ap, long),
-                                       va_arg(ap, long),
-                                       va_arg(ap, long),
-                                       va_arg(ap, long));
-				       va_end(ap);
+                                       arg1,
+                                       arg2,
+                                       arg3,
+                                       arg4,
+                                       arg5,
+                                       arg6);
+
                 break;
         }
 	};
@@ -1492,7 +1500,7 @@ sub command_wrap_or_gate {
 			    "\t\tSB_LOG(SB_LOGLEVEL_NOISE, \n"
 			    . "\t\t\t\"%s gate: calling mapped syscall(%s) "
 			    . "to %s\", \n"
-                            . "\t\t\trealfnname, number, "
+                            . "\t\t\t__func__, number, "
 			    . "\"$fn_name\""
 			    .");\n";
 			$syscallgate_c_buffer_function_body .=

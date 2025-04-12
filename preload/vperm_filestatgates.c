@@ -227,7 +227,6 @@ int __fxstatat_gate(int *result_errno_ptr,
 	int	res;
 
 	res = (*real___fxstatat_ptr)(ver, dirfd, mapped_filename->mres_result_path, buf, flags);
-	*result_errno_ptr = errno;
 	if (res == 0) {
 		i_virtualize_struct_stat(realfnname, buf, NULL);
 	} else {
@@ -248,6 +247,23 @@ int __fxstatat64_gate(int *result_errno_ptr,
 	int	res;
 
 	res = (*real___fxstatat64_ptr)(ver, dirfd, mapped_filename->mres_result_path, buf64, flags);
+	if (res == 0) {
+		i_virtualize_struct_stat(realfnname, NULL, buf64);
+	} else {
+		*result_errno_ptr = errno;
+	}
+	return(res);
+}
+
+int stat64_gate(int *result_errno_ptr,
+	int (*real_stat64_ptr)(const char *file_name, struct stat64 *buf64),
+        const char *realfnname,
+	const mapping_results_t *mapped_filename,
+	struct stat64 *buf64)
+{
+	int res;
+
+	res = (*real_stat64_ptr)(mapped_filename->mres_result_path, buf64);
 	if (res == 0) {
 		i_virtualize_struct_stat(realfnname, NULL, buf64);
 	} else {
@@ -354,7 +370,7 @@ int fchownat_gate(int *result_errno_ptr,
 				res = -1;
 			}
 		} else {
-			*result_errno_ptr = errno;
+			*result_errno_ptr = e;
 		}
 	}
 	SB_LOG(SB_LOGLEVEL_DEBUG, "fchownat: returns %d", res);
@@ -395,7 +411,7 @@ int chown_gate(int *result_errno_ptr,
 				res = -1;
 			}
 		} else {
-			*result_errno_ptr = errno;
+			*result_errno_ptr = e;
 		}
 	}
 	SB_LOG(SB_LOGLEVEL_DEBUG, "chown: returns %d", res);
@@ -436,7 +452,7 @@ int lchown_gate(int *result_errno_ptr,
 				*result_errno_ptr = EPERM;
 			}
 		} else {
-			*result_errno_ptr = errno;
+			*result_errno_ptr = e;
 		}
 	}
 	SB_LOG(SB_LOGLEVEL_DEBUG, "lchown: returns %d", res);
@@ -477,7 +493,7 @@ int fchown_gate(int *result_errno_ptr,
 				*result_errno_ptr = EPERM;
 			}
 		} else {
-			*result_errno_ptr = errno;
+			*result_errno_ptr = e;
 		}
 	}
 	SB_LOG(SB_LOGLEVEL_DEBUG, "fchown: returns %d", res);
@@ -646,9 +662,12 @@ static int vperm_chmod_done_update_state(
 			vperm_chmod(realfnname, &statbuf, mode, suid_sgid_bits);
 			res = 0;
 		} else { /* real fn didn't work, and can't stat */
-			*result_errno_ptr = e;
 			res = -1;
 		}
+	}
+	if (res < 0) {
+		/* Always set result errno on failure */
+		*result_errno_ptr = e;
 	}
 	return(res);
 }
@@ -665,7 +684,7 @@ int fchmodat_gate(int *result_errno_ptr,
 	int		res;
 	struct stat64	statbuf;
 	mode_t		suid_sgid_bits;
-	int		e;
+	int		e = 0;
 	int		forced_owner_rights = 0;
 	int		has_stat = 0;
 	int		return_zero_now = 0;
@@ -684,7 +703,9 @@ int fchmodat_gate(int *result_errno_ptr,
 	/* try the real function */
 	res = (*real_fchmodat_ptr)(dirfd, mapped_filename->mres_result_path,
 		mode | forced_owner_rights, flags);
-	e = errno;
+	if (res < 0) {
+		e = errno;
+	}
 	/* finalize. */
 	res = vperm_chmod_done_update_state(result_errno_ptr,
 		realfnname, res, e,
@@ -704,7 +725,7 @@ int fchmod_gate(int *result_errno_ptr,
 	int		res;
 	struct stat64	statbuf;
 	mode_t		suid_sgid_bits;
-	int		e;
+	int		e = 0;
 	int		forced_owner_rights = 0;
 	int		has_stat = 0;
 	int		return_zero_now = 0;
@@ -721,7 +742,9 @@ int fchmod_gate(int *result_errno_ptr,
 	if (return_zero_now) return(0);
 
 	res = (*real_fchmod_ptr)(fd, mode | forced_owner_rights);
-	e = errno;
+	if (res < 0) {
+		e = errno;
+	}
 	res = vperm_chmod_done_update_state(result_errno_ptr,
 		realfnname, res, e,
 		fd, NULL/*no mapped_filename*/, 0/*no flags*/,
@@ -740,7 +763,7 @@ int chmod_gate(int *result_errno_ptr,
 	int		res;
 	struct stat64	statbuf;
 	mode_t		suid_sgid_bits;
-	int		e;
+	int		e = 0;
 	int		forced_owner_rights = 0;
 	int		has_stat = 0;
 	int		return_zero_now = 0;
@@ -758,7 +781,9 @@ int chmod_gate(int *result_errno_ptr,
 
 	res = (*real_chmod_ptr)(mapped_filename->mres_result_path,
 		mode | forced_owner_rights);
-	e = errno;
+	if (res < 0) {
+		e = errno;
+	}
 	res = vperm_chmod_done_update_state(result_errno_ptr,
 		realfnname, res, e,
 		AT_FDCWD, mapped_filename, 0/*flags:follow symlinks*/,
@@ -1110,13 +1135,11 @@ int mkdir_gate(int *result_errno_ptr,
 	mode_t mode)
 {
 	int res;
-	int e;
 	int forced_owner_rights = 0;
 
 	vperm_mkdir_prepare(realfnname, mode, &forced_owner_rights);	
 	res = (*real_mkdir_ptr)(mapped_pathname->mres_result_path,
 		mode | forced_owner_rights);
-	e = errno;
 
 	if (res == 0) {
 		/* directory was created */
@@ -1125,7 +1148,7 @@ int mkdir_gate(int *result_errno_ptr,
 		if (forced_owner_rights)
 			vperm_mkdir_finalize(realfnname, AT_FDCWD, mapped_pathname, mode, forced_owner_rights);
 	} else {
-		*result_errno_ptr = e;
+		*result_errno_ptr = errno;
 	}
 	return (res);
 }
@@ -1138,12 +1161,10 @@ int mkdirat_gate(int *result_errno_ptr,
 	mode_t mode)
 {
 	int res;
-	int e;
 	int forced_owner_rights = 0;
 
 	vperm_mkdir_prepare(realfnname, mode, &forced_owner_rights);	
 	res = (*real_mkdirat_ptr)(dirfd, mapped_pathname->mres_result_path, mode);
-	e = errno;
 
 	if (res == 0) {
 		/* directory was created */
@@ -1152,7 +1173,7 @@ int mkdirat_gate(int *result_errno_ptr,
 		if (forced_owner_rights)
 			vperm_mkdir_finalize(realfnname, dirfd, mapped_pathname, mode, forced_owner_rights);
 	} else {
-		*result_errno_ptr = e;
+		*result_errno_ptr = errno;
 	}
 	return (res);
 }
@@ -1277,9 +1298,9 @@ static int vperm_do_open(
 		open_2_ptr, open_2va_ptr, openat_3_ptr, open_3va_ptr, creat_ptr,
 		fopen_ptr, freopen_ptr, file_ptr, file_mode,
 		dirfd, mapped_pathname->mres_result_path, flags, modebits);
-	open_errno = errno;
 
 	if (res_fd < 0) {
+		open_errno = errno;
 		/* open failed. If running as simulated root,
 		 * try tricks.. */
 		if (uid_or_gid_is_virtual &&
@@ -1326,7 +1347,9 @@ static int vperm_do_open(
 								creat_ptr,  fopen_ptr, freopen_ptr, file_ptr, file_mode,
 								dirfd, mapped_pathname->mres_result_path,
 								flags, modebits);
-							open_errno = errno;
+							if (res_fd < 0) {
+								open_errno = errno;
+							}
 							/* Hopefully the file is open now.
 							 * in any case restore orig. mode */
 							fchmodat_nomap_nolog(dirfd,
@@ -1363,7 +1386,7 @@ static int vperm_do_open(
 		}
 	}
 	if (res_fd < 0) {
-		*result_errno_ptr = errno;
+		*result_errno_ptr = open_errno;
 	}
 	return (res_fd);
 }

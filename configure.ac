@@ -3,13 +3,21 @@
 
 
 AC_PREREQ([2.59])
-AC_INIT([sb2],[1.99b],[lle@rahina.org])
+AC_INIT([SB2],
+        m4_esyscmd([build-aux/git-version-gen --prefix '' .tarball-version]),
+        [https://docs.sailfishos.org/Develop/Collaborate],
+        [scratchbox2],
+        [https://github.com/sailfishos/scratchbox2])
+AC_CONFIG_AUX_DIR([build-aux])
 #AC_CANONICAL_TARGET
 #AM_INIT_AUTOMAKE
 #AM_MAINTAINER_MODE
 #AC_CONFIG_SRCDIR([src/libfakechroot.c])
 AC_CONFIG_HEADERS([include/config.h])
 AC_CONFIG_FILES([config.mak])
+dnl Generate timestamp so that configure output files timestamps are in sync
+AC_CONFIG_FILES([stamp-h], [echo timestamp > stamp-h])
+AC_CONFIG_FILES([stamp-mak], [echo timestamp > stamp-mak])
 AC_PROG_CC
 AC_PROG_CXX
 
@@ -231,9 +239,15 @@ freebsd*)
 esac
 
 AC_C_BIGENDIAN()
-
 AC_SUBST(WORDS_BIGENDIAN, ${WORDS_BIGENDIAN})
-AC_SUBST(PREFIX, ${prefix})
+
+AC_SUBST(prefix, ${prefix})
+AC_SUBST(exec_prefix, ${exec_prefix})
+AC_SUBST(bindir, ${bindir})
+AC_SUBST(libdir, ${libdir})
+AC_SUBST(datarootdir, ${datarootdir})
+AC_SUBST(datadir, ${datadir})
+
 AC_SUBST(CC, ${CC})
 AC_SUBST(CXX, ${CXX})
 AC_SUBST(CFLAGS, ${CFLAGS})

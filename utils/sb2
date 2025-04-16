@@ -861,19 +861,20 @@ check_ld_so_features()
 	ld_so_rpath_prefix_flag_works="false"
 	ld_so_nodefaultdirs_flag_works="false"
 
-	# Executing ld.so without any arguments should print 
-	# usage information to stderr:
-	test_argv0_opt=$($ld_so_path 2>&1 | grep 'argv0 STRING')
+	# If ld.so does not support --help fallback to old no-args help output
+        local ld_so_help=$(($ld_so_path --help || $ld_so_path) 2>&1)
+
+	test_argv0_opt=$(echo "$ld_so_help" | grep 'argv0 STRING')
 	if [ -n "$test_argv0_opt" ]; then
 		# description about --argv0 exists!
 		ld_so_argv_flag_works="true"
 	fi
-	test_rpath_prefix_opt=$($ld_so_path 2>&1 | grep 'rpath-prefix PREFIX')
+	test_rpath_prefix_opt=$(echo "$ld_so_help" | grep 'rpath-prefix PREFIX')
 	if [ -n "$test_rpath_prefix_opt" ]; then
 		# description about --rpath-prefix exists!
 		ld_so_rpath_prefix_flag_works="true"
 	fi
-	test_nodefaultdirs_opt=$($ld_so_path 2>&1 | grep 'nodefaultdirs')
+	test_nodefaultdirs_opt=$(echo "$ld_so_help" | grep 'nodefaultdirs')
 	if [ -n "$test_nodefaultdirs_opt" ]; then
 		# description about --nodefaultdirs exists!
 		ld_so_nodefaultdirs_flag_works="true"

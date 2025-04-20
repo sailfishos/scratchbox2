@@ -20,17 +20,20 @@
  * for every TCP packet (see "NETWORKING MODES" in sb2(1))
 */
 
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
+#include <config.h>
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <ctype.h>
 
-#include "mapping.h"
-#include "sb2.h"
-#include "sb2_network.h"
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
+
+#include <mapping.h>
+#include <sb2.h>
+#include <sb2_network.h>
+
 #include "libsb2.h"
 #include "exported.h"
 

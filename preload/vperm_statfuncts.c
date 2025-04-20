@@ -5,15 +5,18 @@
  * Licensed under LGPL version 2.1, see top level LICENSE file for details.
  */
 
+#include <config.h>
+
 #include <errno.h>
 #include <stdint.h>
 #include <string.h>
 #include <sys/sysmacros.h>
-#include "sb2.h"
-#include "sb2_stat.h"
-#include "sb2_vperm.h"
 
-#include "rule_tree.h"
+#include <sb2.h>
+#include <sb2_stat.h>
+#include <sb2_vperm.h>
+#include <rule_tree.h>
+
 #include "libsb2.h"
 #include "exported.h"
 
@@ -116,7 +119,7 @@ int real_fstat64(int fd, struct stat64 *statbuf)
 
 /* return 0 if not modified, positive if something was virtualized.
  * only one of {buf,bufx,buf64} should be set; set the other ones to NULL */
-int i_virtualize_struct_stat_internal(
+static int i_virtualize_struct_stat_internal(
 	const char *realfnname
 	, struct stat *buf
 	, struct stat64 *buf64

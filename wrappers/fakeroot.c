@@ -8,6 +8,8 @@
  * SB2 session, by using SB2's features.
 */
 
+#include <config.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>

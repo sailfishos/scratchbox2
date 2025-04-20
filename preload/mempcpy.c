@@ -30,6 +30,8 @@ PORTABILITY
 
 	*/
 
+#include <config.h>
+
 //#include <_ansi.h>
 #include <stddef.h>
 #include <limits.h>

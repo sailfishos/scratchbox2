@@ -20,11 +20,13 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 */
+#include <config.h>
 
-#include "sb2.h"
+#include <sb2.h>
+#include <sb2_vperm.h>
+
 #include "libsb2.h"
 #include "exported.h"
-#include "sb2_vperm.h"
 
 
 static struct vperm_uids_gids_s {

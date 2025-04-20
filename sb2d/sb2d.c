@@ -17,6 +17,7 @@
  * memory-mapped file is an atomic operation.
 */
 
+#include <config.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -35,6 +36,7 @@
 
 #include "sb2_server.h"
 #include "rule_tree_lua.h"
+
 
 /* globals */
 

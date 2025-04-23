@@ -293,12 +293,13 @@ void sblog_vprintf_line_to_logfile(
 	va_list		ap)
 {
 	char	tstamp[LOG_TIMESTAMP_BUFSIZE];
-	char	logmsg[LOG_MSG_MAXLEN];
+	char	*logmsg = NULL;
 	char	finalmsg[LOG_LINE_BUFSIZE];
 	int	msglen;
 	char	*forbidden_chrp;
 	char	optional_src_location[LOG_SRCLOCATION_MAXLEN];
 	char	*levelname = NULL;
+
 
 	if (sb_loglevel__ == SB_LOGLEVEL_uninitialized) sblog_init();
 
@@ -315,15 +316,16 @@ void sblog_vprintf_line_to_logfile(
 	}
 
 	/* next, print the log message to a buffer: */
-	msglen = vsnprintf(logmsg, sizeof(logmsg), format, ap);
+	msglen = vasprintf(&logmsg, format, ap);
 
 	if (msglen < 0) {
 		/* OOPS. should log an error message, but this is the
 		 * logger... can't do it */
 		logmsg[0] = '\0';
 	} else if (msglen > (int)sizeof(logmsg)) {
+		/* FIXME: Is this required or should it otherwise be prevented */
 		/* message was truncated. logmsg[LOG_MSG_MAXLEN-1] is '\0' */
-		logmsg[LOG_MSG_MAXLEN-3] = logmsg[LOG_MSG_MAXLEN-2] = '.';
+		logmsg[msglen-3] = logmsg[msglen-2] = '.';
 	}
 
 	/* post-format the log message.
@@ -404,6 +406,7 @@ void sblog_vprintf_line_to_logfile(
 				optional_src_location);
 		}
 	}
+	free(logmsg);
 
 	write_to_logfile(finalmsg, strlen(finalmsg));
 }

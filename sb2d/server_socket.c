@@ -133,7 +133,7 @@ int receive_command_from_server_socket(struct sockaddr_un *client_address,
 	if (FD_ISSET(server_socket, &in_set)) {
 		received_msg_size = recvfrom(server_socket, command, sizeof(*command), 0,
 			(struct sockaddr*)client_address, &addrlen);
-		SB_LOG(SB_LOGLEVEL_DEBUG, "recvfrom => %d (%s)", 
+		SB_LOG(SB_LOGLEVEL_DEBUG, "recvfrom => %d (%s)",
 			(int)received_msg_size, client_address->sun_path);
 		if (received_msg_size <= 0) {
 			perror(progname);
@@ -167,7 +167,7 @@ int receive_command_from_server_socket(struct sockaddr_un *client_address,
 						__func__, ie->name);
 					if (!strcmp(ie->name, "ssock")) {
 						SB_LOG(SB_LOGLEVEL_DEBUG,
-							"%s: server socket has been deleted.",
+							"%s: server socket %s has been deleted.",
 							__func__, ie->name);
 						return(SOCKET_DELETED);
 					}
@@ -182,4 +182,3 @@ int receive_command_from_server_socket(struct sockaddr_un *client_address,
 	}
 	return(RECEIVE_FAILED_TRY_AGAIN);
 }
-

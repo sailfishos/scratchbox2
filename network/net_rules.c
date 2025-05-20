@@ -25,6 +25,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <ctype.h>
+#include <inttypes.h>
 
 #include <lua.h>
 #include <lualib.h>
@@ -33,9 +34,11 @@
 #include <mapping.h>
 #include <sb2.h>
 #include <sb2_network.h>
+#include <rule_tree.h>
 
 #include "libsb2.h"
 #include "exported.h"
+
 
 /* ========== find & execute a network rule for given address: ========== */
 
@@ -274,7 +277,7 @@ static ruletree_net_rule_t *find_net_rule(
 		}
 
 		/* Lua:
-		 *	
+		 *
 		 *        if rule and rule.port and rule.port ~= orig_port then
 		 *                rule = nil
 		 *        end
@@ -325,7 +328,7 @@ static ruletree_net_rule_t *find_net_rule(
 				continue;
 			}
 		}
-		
+
 		/* Lua:
 		 *        if rule and rule.address then
 		 *                res,msg = sb.test_net_addr_match(addr_type,
@@ -358,11 +361,11 @@ static ruletree_net_rule_t *find_net_rule(
 		*/
 		if (rule->rtree_net_rules) {
 			SB_LOG(SB_LOGLEVEL_NOISE,
-				"%s: [%d] => more rules @%d", __func__, rule->rtree_net_rules);
+				"%s: [%d] => more rules @"PRIu32, __func__, rule->rtree_net_rules);
 			return (find_net_rule(rule->rtree_net_rules, realfnname,
 				addr_type, orig_dst_addr, orig_port, binary_name));
 		}
-		
+
 		/* Lua:
 		 *          if rule then
 		 *                return rule
@@ -390,7 +393,7 @@ static int apply_net_rule(
 	int *result_port)
 {
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s", __func__);
-	
+
 	/*	if rule.new_port then
 	 *		dst_port = rule.new_port
 	 *		sb.log("debug", "network port set to "..
@@ -402,7 +405,7 @@ static int apply_net_rule(
 		SB_LOG(SB_LOGLEVEL_NOISE, "%s: port = %d",
 			__func__, rule->rtree_net_new_port);
 	}
-	
+
 	/*	if rule.new_address then
 	 *		dst_addr = rule.new_address
 	 *		sb.log("debug", "network addr set to "..
@@ -425,7 +428,7 @@ static int apply_net_rule(
 	 *			return "EPERM", orig_dst_addr, orig_port,
 	 *				rule.log_level, rule.log_msg
 	 *		end
-	 *		return "OK", dst_addr, dst_port, 
+	 *		return "OK", dst_addr, dst_port,
 	 *				rule.log_level, rule.log_msg
 	 *	else
 	 *		if not rule.deny then
@@ -460,7 +463,7 @@ static int apply_net_rule(
 }
 
 /* Returns:
- *  - nonzero: value for errno, result_addr_buf and *result_port 
+ *  - nonzero: value for errno, result_addr_buf and *result_port
  *    contain unknown values
  *  - zero: address was mapped, results in result_addr_buf and *result_port
 */
@@ -553,4 +556,3 @@ int sb2show__map_network_addr__(
 	*addr_bufp = strdup(result_buf);
 	return(res);
 }
-

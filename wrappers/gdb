@@ -6,7 +6,7 @@
 # Licensed under GPL version 2
 
 prog="$0"
-progbase=`basename $0`
+progbase=$(basename $0)
 
 error_not_inside_sb2()
 {
@@ -39,7 +39,7 @@ fi
 # gets called.
 #
 cat > $SBOX_SESSION_DIR/gdbinit << EOF
-def sb2-prepare
+define sb2-prepare
 	set breakpoint pending on
 	tbreak _dl_debug_state
 	set breakpoint pending off

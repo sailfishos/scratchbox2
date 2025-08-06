@@ -99,16 +99,16 @@ ruletree_object_offset_t append_struct_to_ruletree_file(void *ptr, size_t size, 
 
 	hdrp->rtree_obj_magic = SB2_RULETREE_MAGIC;
 	hdrp->rtree_obj_type = type;
-	
+
 	if (ruletree_ctx.rtree_ruletree_fd >= 0) {
-		location = lseek(ruletree_ctx.rtree_ruletree_fd, 0, SEEK_END); 
+		location = lseek(ruletree_ctx.rtree_ruletree_fd, 0, SEEK_END);
 		if (write(ruletree_ctx.rtree_ruletree_fd, ptr, size) < (int)size) {
 			SB_LOG(SB_LOGLEVEL_ERROR,
-				"Failed to append a struct (%d bytes) to the rule tree", size);
+				"Failed to append a struct (%lu bytes) to the rule tree", size);
 		}
-		if (ruletree_ctx.rtree_ruletree_hdr_p) 
+		if (ruletree_ctx.rtree_ruletree_hdr_p)
 			ruletree_ctx.rtree_ruletree_hdr_p->rtree_file_size =
-				lseek(ruletree_ctx.rtree_ruletree_fd, 0, SEEK_END); 
+				lseek(ruletree_ctx.rtree_ruletree_fd, 0, SEEK_END);
 	}
 	return(location);
 }
@@ -172,7 +172,7 @@ int create_ruletree_file(const char *ruletree_path,
 		return(-1);
 	}
 
-	if (lseek(ruletree_ctx.rtree_ruletree_fd, 0, SEEK_END) != 0) { 
+	if (lseek(ruletree_ctx.rtree_ruletree_fd, 0, SEEK_END) != 0) {
 		SB_LOG(SB_LOGLEVEL_DEBUG, "create_ruletree_file: file is not empty");
 		return(-1);
 	}
@@ -189,7 +189,7 @@ int create_ruletree_file(const char *ruletree_path,
 		SB2_RULETREE_OBJECT_TYPE_FILEHDR);
 
 	if (mmap_ruletree(&hdr) < 0) return(-1);
-	
+
 	return(0);
 }
 
@@ -341,7 +341,7 @@ ruletree_object_offset_t append_string_to_ruletree_file(const char *str)
 	}
 	if (ruletree_ctx.rtree_ruletree_hdr_p)
 		ruletree_ctx.rtree_ruletree_hdr_p->rtree_file_size =
-			lseek(ruletree_ctx.rtree_ruletree_fd, 0, SEEK_END); 
+			lseek(ruletree_ctx.rtree_ruletree_fd, 0, SEEK_END);
 	return(location);
 }
 
@@ -370,13 +370,13 @@ ruletree_object_offset_t ruletree_objectlist_create_list(uint32_t size)
 	wr_result = write(ruletree_ctx.rtree_ruletree_fd, a, list_size_in_bytes);
 	if ((wr_result == -1) || ((size_t)wr_result < list_size_in_bytes)) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
-			"Failed to append a list (%d items, %d bytes) to the rule tree", 
+			"Failed to append a list (%d items, %lu bytes) to the rule tree",
 			size, list_size_in_bytes);
 		location = 0; /* return error */
 	}
 	if (ruletree_ctx.rtree_ruletree_hdr_p)
 		ruletree_ctx.rtree_ruletree_hdr_p->rtree_file_size =
-			lseek(ruletree_ctx.rtree_ruletree_fd, 0, SEEK_END); 
+			lseek(ruletree_ctx.rtree_ruletree_fd, 0, SEEK_END);
 	SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_objectlist_create_list: location=%d", location);
 	return(location);
 }
@@ -490,7 +490,7 @@ static ruletree_object_offset_t ruletree_find_bintree_entry(
 		SB_LOG(SB_LOGLEVEL_NOISE3,
 			"ruletree_find_bintree_entry: check @%d",
 			node_offs);
-		
+
 		if ((bintrp->rtree_bt_key1 == key1) &&
 		    (bintrp->rtree_bt_key2 == key2)) {
 			SB_LOG(SB_LOGLEVEL_NOISE3,
@@ -622,14 +622,14 @@ static ruletree_object_offset_t ruletree_create_inodestat(
 /* Inode number is the primary key to the bintree
  * (device number is the secondary key), but
  * sometimes inode allocation may be done somewhat
- * sequentially. For a slightly better balancing 
+ * sequentially. For a slightly better balancing
  * of the tree, reverse some bits of the key:
  * This algorithm takes the lowest 8 bits, reverses
  * them, and the result will be in bits 32..39 or
  * "k" below (rest of bits in "k" are copies of the
  * original bits or zero, those cause no harm here)
  *
- * For detailed explanation, see 
+ * For detailed explanation, see
  * http://graphics.stanford.edu/~seander/bithacks.html#ReverseByteWith64Bits
 */
 static uint64_t ino_to_key(uint64_t ino)
@@ -644,7 +644,7 @@ static ruletree_object_offset_t	inodestats_bintree_root = 0;
 
 /* in: "handle" contains the keys
  * out: istat_struct has been filled, if a matching node was found.
- *	in any case, "handle" has been updated so that 
+ *	in any case, "handle" has been updated so that
  *      ruletree_set_inodestat() can be called later to add/update
  *	a istat_struct.
  * returns 0 if OK, negative if not found. */
@@ -656,7 +656,7 @@ int ruletree_find_inodestat(
 	ruletree_inodestat_t	*fsptr;
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
-		"ruletree_find_inodestat (dev=%lld,ino=%lld,key=%llX)",
+		"ruletree_find_inodestat (dev=%lld,ino=%lld,key=%lu)",
 			(long long)handle->rfh_dev,
 			(long long)handle->rfh_ino,
 			ino_to_key(handle->rfh_ino));
@@ -675,7 +675,7 @@ int ruletree_find_inodestat(
 		inodestats_bintree_root, &handle->rfh_last_visited_node,
 		&handle->rfh_last_result);
 	if (!handle->rfh_offs) return(-1);
-		
+
 	bintrp = offset_to_ruletree_object_ptr(handle->rfh_offs,
 			SB2_RULETREE_OBJECT_TYPE_BINTREE);
 	if (!bintrp) return(-1);
@@ -689,7 +689,7 @@ int ruletree_find_inodestat(
 }
 
 /* set/add a inodestat structure to the binary tree.
- * ruletree_find_inodestat() must be called beforehand to 
+ * ruletree_find_inodestat() must be called beforehand to
  * fill "handle" (unless adding the very first node)
  *
  * returns 0 or offset to new binary tree root. */
@@ -698,7 +698,7 @@ ruletree_object_offset_t ruletree_set_inodestat(
 	inodesimu_t			*istat_struct)
 {
 	SB_LOG(SB_LOGLEVEL_NOISE,
-		"ruletree_set_inodestat (dev=%lld,ino=%lld,key=%llX))",
+		"ruletree_set_inodestat (dev=%lld,ino=%lld,key=%lu))",
 			(long long)handle->rfh_dev,
 			(long long)handle->rfh_ino,
 			ino_to_key(handle->rfh_ino));
@@ -919,7 +919,7 @@ static ruletree_object_offset_t ruletree_find_catalog_entry(
 
 		entry_name = offset_to_ruletree_string_ptr(ep->rtree_cat_name_offs,
 			&entry_name_len);
-		if (entry_name && 
+		if (entry_name &&
 		    (name_len == entry_name_len) &&
 		    !strcmp(name, entry_name)) {
 			/* found! */
@@ -975,7 +975,7 @@ static ruletree_catalog_entry_t *ruletree_catalog_add_or_find_object(
 				first_catalog_entry_offs, object_name, 0, &object_cat_entry);
 		}
 		return(object_cat_entry);
-	} 
+	}
 	/* else there is nothing in the catalog, add object */
 	if (parent_cat_entry) {
 		/* a subcatalog */
@@ -1270,4 +1270,3 @@ int ruletree_to_memory(void)
 	}
         return (attach_result);
 }
-

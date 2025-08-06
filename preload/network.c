@@ -2,7 +2,7 @@
  * network.c -- Network API of the scratchbox2 preload library
  *
  * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
- * parts contributed by 
+ * parts contributed by
  * 	Riku Voipio <riku.voipio@movial.com>
  *	Toni Timonen <toni.timonen@movial.com>
  * Copyright (C) 2010,2011 Nokia Corporation.
@@ -186,12 +186,12 @@ static int map_sockaddr_in(
 				output_addr->mapped_sockaddr_in.sin_port = htons(mapped_port);
 				output_addr->mapped_sockaddr_in.sin_addr = ina;
 				output_addr->mapped_sockaddr.sa_family = AF_INET;
-				
+
 				snprintf(output_addr->mapped_printable_dst_addr,
 					sizeof(output_addr->mapped_printable_dst_addr),
 					"AF_INET %s:%d", mapped_dst_addr, mapped_port);
 				return(0); /* ok to use this address */
-			case 0: 
+			case 0:
 				SB_LOG(SB_LOGLEVEL_ERROR,
 					"%s: IPv4 address mapping returned an "
 					"illegal string (inet_pton() can't convert it;"
@@ -287,12 +287,12 @@ static int map_sockaddr_in6(
 				output_addr->mapped_sockaddr_in6.sin6_port = htons(mapped_port);
 				output_addr->mapped_sockaddr_in6.sin6_addr = ina6;
 				output_addr->mapped_sockaddr.sa_family = AF_INET6;
-				
+
 				snprintf(output_addr->mapped_printable_dst_addr,
 					sizeof(output_addr->mapped_printable_dst_addr),
 					"AF_INET6 [%s]:%d", mapped_dst_addr, mapped_port);
 				return(0); /* ok to use this address */
-			case 0: 
+			case 0:
 				SB_LOG(SB_LOGLEVEL_ERROR,
 					"%s: IPv6 address mapping returned an "
 					"illegal string (inet_pton() can't convert it;"

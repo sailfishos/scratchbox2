@@ -2,7 +2,7 @@
  * libsb2 -- misc. GATE fucntions of the scratchbox2 preload library
  *
  * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
- * parts contributed by 
+ * parts contributed by
  * 	Riku Voipio <riku.voipio@movial.com>
  *	Toni Timonen <toni.timonen@movial.com>
  *	Lauri T. Aarnio
@@ -132,7 +132,7 @@ SB_LOG(SB_LOGLEVEL_DEBUG, "GETCWD: '%s'", sbox_path);
 			strncpy(buf, sbox_path, size);
 			free(sbox_path);
 		} else {
-			/* buf==NULL: real getcwd() used malloc() to 
+			/* buf==NULL: real getcwd() used malloc() to
 			 * allocate cwd (some implementations) [or the
 			 * behavior may be unspecified (posix definition)]
 			 * Assume memory was allocated, because the real
@@ -283,7 +283,7 @@ char *realpath_gate(
 				rp = resolved;
 				free(sbox_path);
 			} else {
-				/* resolved was null - assume that glibc 
+				/* resolved was null - assume that glibc
 				 * allocated memory */
 				free(rp);
 				rp = sbox_path;
@@ -294,7 +294,7 @@ char *realpath_gate(
 	return(rp);
 }
 
-/* gate for 
+/* gate for
  *     char *__realpath_chk (__const char *__restrict __name,
  *		char *__restrict __resolved, size_t __resolvedlen)
  * (__realpath_chk is yet another ugly trick from the creators of glibc)
@@ -310,7 +310,7 @@ char *__realpath_chk_gate(
 {
 	char *sbox_path = NULL;
 	char *rp;
-	
+
 	errno = *result_errno_ptr; /* restore to orig.value */
 	if ((rp = (*real__realpath_chk_ptr)(mapped_name->mres_result_path,
 		__resolved,__resolvedlen)) == NULL) {
@@ -328,7 +328,7 @@ char *__realpath_chk_gate(
 				rp = __resolved;
 				free(sbox_path);
 			} else {
-				/* resolved was null - assume that glibc 
+				/* resolved was null - assume that glibc
 				 * allocated memory */
 				free(rp);
 				rp = sbox_path;
@@ -454,7 +454,7 @@ int glob_gate(
 	if (test_if_address_is_in_glibc(realfnname, real_glob_ptr) == 0) {
 		/* glob() is not in glibc, use that directly.
 		 * Don't map the pattern; since glob() is somewhere else,
-		 * it is expected to use opendir(), stat(), etc from 
+		 * it is expected to use opendir(), stat(), etc from
 		 * glibc and those calls will be directed to us
 		 * => we'll do pathmapping later.
 		*/
@@ -466,12 +466,12 @@ int glob_gate(
 	/* else glob() is in glibc, and must be replaced completely
 	 * (uses a modified copy, copied from glibc) */
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: pattern='%s' gl_offs=%d, flags=0x%X",
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: pattern='%s' gl_offs=%lu, flags=0x%X",
 		realfnname, pattern, pglob->gl_offs, flags);
 	errno = *result_errno_ptr; /* restore to orig.value */
 	rc = do_glob(pattern, flags, errfunc, pglob);
 	*result_errno_ptr = errno;
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: returns %d (gl_pathc=%d)",
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: returns %d (gl_pathc=%lu)",
 		realfnname, rc, pglob->gl_pathc);
 	for (i=0; i < pglob->gl_pathc; i++) {
 		char *cp = pglob->gl_pathv[i + pglob->gl_offs];
@@ -479,7 +479,7 @@ int glob_gate(
 			realfnname, i, cp ? cp : "<NULL>");
 	}
 #endif
-	
+
 	return rc;
 }
 
@@ -510,7 +510,7 @@ int glob64_gate(
 	if (test_if_address_is_in_glibc(realfnname, real_glob64_ptr) == 0) {
 		/* glob64() is not in glibc, use that directly.
 		 * Don't map the pattern; since glob64() is somewhere else,
-		 * it is expected to use opendir(), stat(), etc from 
+		 * it is expected to use opendir(), stat(), etc from
 		 * glibc and those calls will be directed to us
 		 * => we'll do pathmapping later.
 		*/
@@ -522,12 +522,12 @@ int glob64_gate(
 	/* else glob64() needs to be replaced;
 	 * use a modified copy (copied from glibc) */
 
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: pattern='%s' gl_offs=%d, flags=0x%X",
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: pattern='%s' gl_offs=%lu, flags=0x%X",
 		realfnname, pattern, pglob->gl_offs, flags);
 	errno = *result_errno_ptr; /* restore to orig.value */
 	rc = do_glob64(pattern, flags, errfunc, pglob);
 	*result_errno_ptr = errno;
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: returns %d (gl_pathc=%d)",
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: returns %d (gl_pathc=%lu)",
 		realfnname, rc, pglob->gl_pathc);
 	for (i=0; i < pglob->gl_pathc; i++) {
 		char *cp = pglob->gl_pathv[i + pglob->gl_offs];
@@ -669,18 +669,51 @@ pid_t wait_gate(int *result_errno_ptr,
 	return(p);
 }
 
-pid_t waitpid_gate(int *result_errno_ptr,
-	pid_t (*real_waitpid_ptr)(pid_t pid, int *status, int options),
-        const char *realfnname, pid_t pid, int *status, int options)
+pid_t wait3_gate(int *result_errno_ptr,
+                 pid_t (*real_wait3_ptr)(int *wstatus, int options,
+                                         struct rusage *rusage),
+                 const char *realfnname, int *wstatus, int options,
+                 struct rusage *rusage)
 {
-	pid_t	p;
-	int	wstatus;
+        pid_t p;
+        int wstatus_always;
 
-	errno = *result_errno_ptr;
-	if (!status) status = &wstatus;
-	p = (*real_waitpid_ptr)(pid, status, options);
-	*result_errno_ptr = errno;
-	if(p > 1) log_wait_result(realfnname, p, *status);
-	return(p);
+        errno = *result_errno_ptr;
+        if(!wstatus) wstatus = &wstatus_always;
+        p = (*real_wait3_ptr)(wstatus, options, rusage);
+        *result_errno_ptr = errno;
+        if(p != -1) log_wait_result(realfnname, p, *wstatus);
+        return p;
 }
 
+pid_t wait4_gate(int *result_errno_ptr,
+                 pid_t (*real_wait4_ptr)(pid_t pid, int *wstatus, int options,
+                                         struct rusage *rusage),
+                 const char *realfnname, pid_t pid, int *wstatus, int options,
+                 struct rusage *rusage)
+{
+        pid_t p;
+        int wstatus_always;
+
+        errno = *result_errno_ptr;
+        if(!wstatus) wstatus = &wstatus_always;
+        p = (*real_wait4_ptr)(pid, wstatus, options, rusage);
+        *result_errno_ptr = errno;
+        if(p != -1) log_wait_result(realfnname, p, *wstatus);
+        return p;
+}
+
+pid_t waitpid_gate(int *result_errno_ptr,
+	pid_t (*real_waitpid_ptr)(pid_t pid, int *wstatus, int options),
+        const char *realfnname, pid_t pid, int *wstatus, int options)
+{
+	pid_t	p;
+	int	wstatus_always;
+
+	errno = *result_errno_ptr;
+	if (!wstatus) wstatus = &wstatus_always;
+	p = (*real_waitpid_ptr)(pid, wstatus, options);
+	*result_errno_ptr = errno;
+	if(p > 1) log_wait_result(realfnname, p, *wstatus);
+	return(p);
+}

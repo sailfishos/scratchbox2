@@ -13,13 +13,13 @@
  *     - The log message. If the original message contains tabs and/or
  *       newlines, those will be filtered out.
  *     - Optionally, source file name and line number.
- * 2) Simple format minimizes varying information and makes it easier to 
+ * 2) Simple format minimizes varying information and makes it easier to
  *    compare log files from different runs. Fields are:
  *     - Log level
  *     - Process name
  *     - The message
  *     - Optionally, source file name and line number.
- *    Simple format can be enabled by setting environment variable 
+ *    Simple format can be enabled by setting environment variable
  *    "SBOX_MAPPING_LOGFORMAT" to "simple".
  *
  * Note that logfiles are used by at least two other components
@@ -208,7 +208,7 @@ void sblog_init_level_logfile_format(const char *opt_level, const char *opt_logf
 		    sbox_orig_binary_name &&
 		    strcmp(sbox_exec_name, sbox_orig_binary_name)) {
 			/* this is an interpreter, running a script.
-			 * set .sbl_binary_name to 
+			 * set .sbl_binary_name to
 			 * scriptbasename{interpreterbasename}
 			*/
 			char *cp;
@@ -265,7 +265,7 @@ void sblog_init_level_logfile_format(const char *opt_level, const char *opt_logf
 			" [] "
 			"ppid=%d <%s> (%s) ----------%s",
 			getppid(),
-			sbox_exec_name ? 
+			sbox_exec_name ?
 				sbox_exec_name : "",
 			sbox_active_exec_policy_name ?
 				sbox_active_exec_policy_name : "",
@@ -293,8 +293,8 @@ void sblog_vprintf_line_to_logfile(
 	va_list		ap)
 {
 	char	tstamp[LOG_TIMESTAMP_BUFSIZE];
-	char	logmsg[LOG_MSG_MAXLEN];
-	char	finalmsg[LOG_LINE_BUFSIZE];
+        char	logmsg[LOG_MSG_MAXLEN] = {'\0'};
+        char	finalmsg[LOG_LINE_BUFSIZE];
 	int	msglen;
 	char	*forbidden_chrp;
 	char	optional_src_location[LOG_SRCLOCATION_MAXLEN];
@@ -364,18 +364,18 @@ void sblog_vprintf_line_to_logfile(
 	case SB_LOGLEVEL_NOTICE:	levelname = "NOTICE"; break;
 	/* default is to pass level info as numbers */
 	}
-	
+
 	if (sb_log_state.sbl_simple_format) {
 		/* simple format. No timestamp or pid, this makes
 		 * it easier to compare logfiles.
 		*/
 		if(levelname) {
 			snprintf(finalmsg, sizeof(finalmsg), "(%s)\t%s\t%s%s\n",
-				levelname, sb_log_state.sbl_binary_name, 
+				levelname, sb_log_state.sbl_binary_name,
 				logmsg, optional_src_location);
 		} else {
 			snprintf(finalmsg, sizeof(finalmsg), "(%d)\t%s\t%s%s\n",
-				level, sb_log_state.sbl_binary_name, 
+				level, sb_log_state.sbl_binary_name,
 				logmsg, optional_src_location);
 		}
 	} else {
@@ -394,12 +394,12 @@ void sblog_vprintf_line_to_logfile(
 		/* full format */
 		if(levelname) {
 			snprintf(finalmsg, sizeof(finalmsg), "%s (%s)\t%s%s\t%s%s\n",
-				tstamp, levelname, sb_log_state.sbl_binary_name, 
+				tstamp, levelname, sb_log_state.sbl_binary_name,
 				process_and_thread_id, logmsg,
 				optional_src_location);
 		} else {
 			snprintf(finalmsg, sizeof(finalmsg), "%s (%d)\t%s%s\t%s%s\n",
-				tstamp, level, sb_log_state.sbl_binary_name, 
+				tstamp, level, sb_log_state.sbl_binary_name,
 				process_and_thread_id, logmsg,
 				optional_src_location);
 		}

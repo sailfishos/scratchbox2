@@ -1,11 +1,6 @@
-/* Copied from glibc-2.7 to Scratchbox 2,
- * from glibc's sysdep/gnu/glob64.c.
+/* Copied from glibc-2.27 to Scratchbox 2,
+ * from glibc's sysdeps/gnu/glob64.c.
 */
-
-#include <config.h>
-
-// Apple doesn't have 64bit dirent?
-#ifndef __APPLE__
 
 #include <dirent.h>
 #include <glob.h>
@@ -15,10 +10,8 @@
 #define __readdir(dirp) __readdir64 (dirp)
 
 #define glob_t glob64_t
-#if 0
 #define glob(pattern, flags, errfunc, pglob) \
   glob64 (pattern, flags, errfunc, pglob)
-#endif
 #define globfree(pglob) globfree64 (pglob)
 
 #undef stat
@@ -30,7 +23,8 @@
 
 #define COMPILE_GLOB64  1
 
-#include "glob.c"
+#include "glob.c" /* SB2 */
 
-#endif
-
+/* SB2
+ * libc_hidden_def (glob64)
+ */

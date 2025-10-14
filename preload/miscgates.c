@@ -341,7 +341,7 @@ char *__realpath_chk_gate(
 
 
 /* "SB2_WRAP_GLOB" needs to be defined on systems where the C library
- * is not based on glibc (or not compatible with glob() from glibc 2.7)
+ * is not based on glibc (or not compatible with glob() from glibc 2.27)
 */
 #ifdef SB2_WRAP_GLOB
 static char *check_and_prepare_glob_pattern(

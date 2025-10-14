@@ -1,6 +1,6 @@
 Summary:	Scratchbox2 crosscompiling environment
 License:	LGPLv2
-URL:		https://git.sailfishos.org/mer-core/scratchbox2
+URL:		https://github.com/sailfishos/scratchbox2
 Name:		scratchbox2
 Version:	2.3.90+git58
 Release:	0

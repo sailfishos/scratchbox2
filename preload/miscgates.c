@@ -275,7 +275,7 @@ char *realpath_gate(
 	}
 	*result_errno_ptr = errno;
 	if (*rp != '\0') {
-		sbox_path = scratchbox_reverse_path(realfnname, rp,
+		scratchbox_reverse_path(realfnname, rp,
 				SB2_INTERFACE_CLASS_REALPATH);
 		if (sbox_path) {
 			if (resolved) {
@@ -320,7 +320,7 @@ char *__realpath_chk_gate(
 	}
 	*result_errno_ptr = errno;
 	if (*rp != '\0') {
-		sbox_path = scratchbox_reverse_path(realfnname, rp,
+		scratchbox_reverse_path(realfnname, rp,
 				SB2_INTERFACE_CLASS_REALPATH);
 		if (sbox_path) {
 			if (__resolved) {
@@ -356,14 +356,17 @@ static char *check_and_prepare_glob_pattern(
 	 * log the mapped pattern (NOTICE level) if it was mapped
 	*/
 	if (*pattern == '/') { /* if absolute path in pattern.. */
-		mapped__pattern = sbox_map_path(realfnname, pattern,
-			NULL/*RO-flag*/, 0/*flags*/,
+		mapping_results_t res;
+
+		clear_mapping_results_struct(&res);
+		sbox_map_path(realfnname, pattern,
+			0/*flags*/, &res,
 			SB2_INTERFACE_CLASS_GLOB);
-		if (!strcmp(mapped__pattern, pattern)) {
-			/* no change */
-			free(mapped__pattern);
-			return(NULL);
+		if (!strcmp(res.mres_result_path, pattern)) {
+			/* Mapped OK */
+			mapped__pattern = strdup(res.mres_result_path);
 		}
+		free_mapping_results(&res);
 		SB_LOG(SB_LOGLEVEL_NOTICE, "%s: mapped pattern '%s' => '%s'",
 			realfnname, pattern, mapped__pattern);
 	}

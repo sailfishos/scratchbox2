@@ -146,11 +146,13 @@ GATE: FTSENT *fts_read(FTS *ftsp)
 GATE: FTSENT *fts_children(FTS *ftsp, int options)
 #endif
 
+#ifndef SB2_WRAP_GLOB
 GATE: int glob (const char *pattern, int flags, \
 	int (*errfunc) (const char *, int), glob_t *pglob) :
 #ifdef HAVE_GLOB64
 GATE: int glob64 (const char *pattern, int flags, \
 	int (*errfunc) (const char *, int), glob64_t *pglob) :
+#endif
 #endif
 
 GATE: int system (const char *line) :
@@ -677,6 +679,15 @@ GATE: int statx(int dirfd, const char *__restrict pathname, int flags, \
 #ifdef HAVE_STAT64
 GATE: int stat64(const char *file_name, struct stat64 *buf) : map(file_name) class(STAT) \
         create_nomap_nolog_version
+#endif
+
+#ifdef SB2_WRAP_GLOB
+WRAP: int glob (const char *pattern, int flags, \
+	int (*errfunc) (const char *, int), glob_t *pglob) :
+#ifdef HAVE_GLOB64
+WRAP: int glob64 (const char *pattern, int flags, \
+	int (*errfunc) (const char *, int), glob64_t *pglob) :
+#endif
 #endif
 
 -- symlink and symlinkat:

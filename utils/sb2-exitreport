@@ -93,7 +93,10 @@ if [ -s "$SBOX_MAPPING_LOGFILE" ]; then
 			if [ -z "$SBOX_QUIET" ];  then
 				echo "Messages from sb2:"
 			fi
-			cat $SBOX_MAPPING_LOGFILE
+			# There can be hundreds of thousands of near-identical
+			# file mapping warnings, so let's deduplicate them first.
+			# This can reduce the 'WARNING' line count by over 98%.
+			cat $SBOX_MAPPING_LOGFILE | awk '!seen[gensub(/\[[[:digit:]\/-]+]/, "", 1)]++'
 			;;
 		(*)
 			# Larger log (maybe a debug log)

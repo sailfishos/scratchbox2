@@ -39,6 +39,7 @@ Scratchbox2 man pages.
 %autosetup
 
 %build
+export CFLAGS="$CFLAGS -DSB2_WRAP_GLOB"
 ./autogen.sh
 %configure
 touch .configure

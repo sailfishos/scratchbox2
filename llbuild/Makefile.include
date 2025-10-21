@@ -1,4 +1,4 @@
-# ll build system
+# ll build system -*- makefile -*-
 #
 # Copyright (C) 2006-2007 Lauri Leukkunen <lle@rahina.org>
 #
@@ -27,8 +27,16 @@ _LL_BUILD_MAKEFILE_INCLUDE=1
 # this is here to enforce a sensible default target
 __kicker_target: all
 
+# Define .WAIT also .PHONY no-op for older version of GNU Make
+.PHONY: .WAIT
 
 TOPDIR := $(CURDIR)
+edit := sed \
+	-e 's|@prefix[@]|$(prefix)|g' \
+	-e 's|@bindir[@]|$(bindir)|g' \
+	-e 's|@libdir[@]|$(libdir)|g' \
+	-e 's|@datadir[@]|$(datadir)|g' \
+	-e 's|@configure_input[@]|Generated from $@.sh.in; do not edit by hand.|g'
 
 # a useful function to expand paths
 define O
@@ -41,15 +49,17 @@ endef
 define import_dir
 	subdirs := 
 	subdirs-y :=
-	objects :=
-	objects-y :=
+	objs :=
+	objs-y :=
 	D := $(1)
 	$(shell mkdir -p $(1))
-	include $(1)/Makefile
-	dep_files := $$(wildcard $(1)/.*.d)
-	include $(dep_files)
-	all_objects := $$(all_objects) $$(patsubst %,$(1)/%,$$(objects))
-	all_objects := $$(all_objects) $$(patsubst %,$(1)/%,$$(objects-y))
+	include $(SRCDIR)/$(1)/Makefile
+	deps := $(join $(subst ./, $(D)/, $(dir $(objs))), $(patsubst %,.%.d,$(notdir $(objs))))
+	objs-y := $(join $(subst ./, $(D)/, $(dir $(objs))), $(notdir $(objs)))
+	objs-all := $(objs-all) \
+		$(patsubst %,$(OBJDIR)/%,$(objs-y))
+	deps-all := $(deps-all) $(patsubst %,$(OBJDIR)/%,$(deps))
+	include $(wildcard $(deps))
 	subdirs := $$(subdirs) $$(subdirs-y)
 	tmp := $$(patsubst %,$(1)/%,$$(subdirs))
 	perkele := $$(foreach dir,$$(tmp),$$(eval $$(call import_dir,$$(dir))))
@@ -58,8 +68,9 @@ endef
 $(foreach dir,$(subdirs),$(eval $(call import_dir,$(dir))))
 
 
-all_objects += $(foreach t,$(extra_targets),$($(t)))
+objs-all += $(foreach t,$(extra_targets),$($(t)))
 
+CLEAN_FILES += $(deps-all)
 
 ifdef V
 Q = 
@@ -107,6 +118,11 @@ built-in.o:: %.o
 
 %:: %.o
 
+%:: %.sh.in
+	$(Q)rm -f $(@) $(@).tmp
+	$(Q)$(edit) $(<) > $(OBJDIR)/$(@).tmp
+	$(Q)chmod +x,a-w $(@).tmp
+	$(Q)mv $(@).tmp $(@)
 
 define ll_clean
 	$(Q)rm -rf $(CLEAN_FILES)

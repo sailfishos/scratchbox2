@@ -28,7 +28,7 @@
 
 
 /* FIXME: This is currently a slightly modified copy of ruletree_test_path_match()
- *    
+ *
  * Returns min.path length if a match is found, otherwise returns -1 */
 static int test_path_match(const char *full_path, size_t full_path_len,
 	uint32_t selector_type, ruletree_object_offset_t selector_offs)
@@ -39,10 +39,10 @@ static int test_path_match(const char *full_path, size_t full_path_len,
 	uint32_t	selector_len;
 
 	if (!selector_type || !full_path) {
-		SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_test_path_match fails"); 
+		SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_test_path_match fails");
 		return(-1);
 	}
-	SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_test_path_match (%s), type=%d", 
+	SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_test_path_match (%s), type=%d",
 		full_path, selector_type);
 
 	selector = offset_to_ruletree_string_ptr(selector_offs,
@@ -91,7 +91,7 @@ static int test_path_match(const char *full_path, size_t full_path_len,
 	}
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
-		"%s: '%s' (%u), '%s' (%u) => %d (%s)",
+		"%s: '%s' (%lu), '%s' (%u) => %d (%s)",
 		__func__, full_path, full_path_len, selector, selector_len, result, match_type);
 	return(result);
 }
@@ -157,4 +157,3 @@ const char *find_exec_policy_name(const char *mapped_path, const char *virtual_p
 		__func__, modename);
 	return(NULL);
 }
-

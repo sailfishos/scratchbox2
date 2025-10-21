@@ -55,10 +55,10 @@ static int ruletree_test_path_match(const char *full_path, size_t full_path_len,
 	uint32_t	selector_len;
 
 	if (!rp || !full_path) {
-		SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_test_path_match fails"); 
+		SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_test_path_match fails");
 		return(-1);
 	}
-	SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_test_path_match (%s), type=%d", 
+	SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_test_path_match (%s), type=%d",
 		full_path, rp->rtree_fsr_selector_type);
 
 	selector = offset_to_ruletree_string_ptr(rp->rtree_fsr_selector_offs,
@@ -109,7 +109,7 @@ static int ruletree_test_path_match(const char *full_path, size_t full_path_len,
 	}
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
-		"ruletree_test_path_match '%s' (%u), '%s' (%u) => %d (%s)",
+		"ruletree_test_path_match '%s' (%lu), '%s' (%u) => %d (%s)",
 		full_path, full_path_len, selector, selector_len, result, match_type);
 	return(result);
 }
@@ -231,7 +231,7 @@ ruletree_object_offset_t ruletree_get_rule_list_offs(
 
 	if (!fwd_rule_list_offs || !rev_rule_list_offs) {
 		const char *modename = sbox_session_mode;
-		
+
 		if (!modename)
 			modename = ruletree_catalog_get_string("MODES", "#default");
 		if (!modename) {
@@ -302,7 +302,7 @@ ruletree_object_offset_t ruletree_get_mapping_requirements(
 	free(abs_virtual_source_path_string);
 
 	STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "");
-	return (rule_offs); 
+	return (rule_offs);
 }
 
 /* returns an allocated buffer */
@@ -476,7 +476,7 @@ static char *execute_std_action(
 	case SB2_RULETREE_FSRULE_ACTION_MAP_TO:
 		cp = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs, NULL);
 		return(execute_map_to(abs_clean_virtual_path, "map_to", cp));
-		
+
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY:
 		cp = offset_to_ruletree_string_ptr(action->rtree_fsr_action_offs, NULL);
 		SB_LOG(SB_LOGLEVEL_DEBUG,
@@ -538,7 +538,7 @@ static char *execute_std_action(
 					str_offs = ruletree_objectlist_get_item(union_dir_list_offs, i);
 					src_paths[i] = offset_to_ruletree_string_ptr(str_offs, NULL);
 					SB_LOG(SB_LOGLEVEL_DEBUG,
-						"execute_std_action: union_dir src_path[%d]: %s", 
+						"execute_std_action: union_dir src_path[%d]: %s",
 						i, src_paths[i]);
 				}
 				union_dir_result = prep_union_dir(abs_clean_virtual_path,
@@ -594,7 +594,7 @@ static char *ruletree_execute_conditional_actions(
 		/* "rule_selector" is the rule which matched, and
 		 * brought us here (so it contains "dir","prefix"
 		 * or "path").
-		 * Each member in the "actions" array is a 
+		 * Each member in the "actions" array is a
                  * candidate for the rule which will be applied,
 		 * i.e. a suitable member from that array gives
 		 * instructions about what to do next */
@@ -608,7 +608,7 @@ static char *ruletree_execute_conditional_actions(
 
 				cond_str = offset_to_ruletree_string_ptr(action_cand_p->rtree_fsr_condition_offs, NULL);
 				SB_LOG(SB_LOGLEVEL_NOISE, "Condition test '%s'", cond_str);
-				
+
 				switch (action_cand_p->rtree_fsr_condition_type) {
 				case SB2_RULETREE_FSRULE_CONDITION_IF_ENV_VAR_IS_NOT_EMPTY:
 					if (!cond_str) continue;	/* continue if no env.var.name */
@@ -616,14 +616,14 @@ static char *ruletree_execute_conditional_actions(
 					if (!evp || !*evp) continue; /* continue if empty */
 					SB_LOG(SB_LOGLEVEL_NOISE, "Condition test: env.var was not empty");
 					break;	/* else test passed. */
-					
+
 				case SB2_RULETREE_FSRULE_CONDITION_IF_ENV_VAR_IS_EMPTY:
 					if (!cond_str) continue;	/* continue if no env.var.name */
 					evp = getenv(cond_str);
 					if (evp && *evp) continue; /* continue if not empty */
 					SB_LOG(SB_LOGLEVEL_NOISE, "Condition test: env.var was empty");
 					break;	/* else test passed. */
-				
+
 				case SB2_RULETREE_FSRULE_CONDITION_IF_ACTIVE_EXEC_POLICY_IS:
 					if (!cond_str ||
 					    !sbox_active_exec_policy_name ||
@@ -735,7 +735,7 @@ static char *ruletree_execute_conditional_actions(
 	 * Lua code) */
 	*errormsgp = "End of conditional action list";
 	return (NULL);
-			
+
     unimplemented_action_error:
 	SB_LOG(SB_LOGLEVEL_ERROR,
 		"Internal error: ruletree_execute_conditional_actions: Encountered "
@@ -809,7 +809,7 @@ char *ruletree_translate_path(
 			flagsp, exec_policy_name_ptr, errormsgp,
 			rule);
 		break;
-	
+
 	default:
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"ruletree_translate_path: Unknown action code %d",
@@ -844,4 +844,3 @@ char *ruletree_translate_path(
 	STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, host_path);
 	return(host_path);
 }
-

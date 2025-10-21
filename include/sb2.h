@@ -54,7 +54,7 @@ struct sb2context {
 
 /* Library interface version string:
  *
- * Originally, This version string was used to check that the lua scripts offer 
+ * Originally, This version string was used to check that the lua scripts offer
  * what the C files expect, and v.v.
  * Now, when lua is not anymore included in libsb2, it is only used
  * to identify the C interface (e.g. for sb2-show), and to locate
@@ -79,9 +79,9 @@ struct sb2context {
  * * Differences between "63" and "62"
  *   - sb_find_exec_policy() has been removed.
  * * Differences between "65" and "63"
- *   - The Lua side of the mapping engine now returns "flags" (bitmask) 
+ *   - The Lua side of the mapping engine now returns "flags" (bitmask)
  *     to the C code; functions used to return separate booleans.
- *   - (Additionally, due to a previous bugfix in path_exists(), forcing 
+ *   - (Additionally, due to a previous bugfix in path_exists(), forcing
  *     the library to be upgraded is a good thing to do in any case!)
  * * Differences between "66" and "65"
  *   - LD_PRELOAD and LD_LIBRARY_PATH environment variables
@@ -130,7 +130,7 @@ struct sb2context {
  * * New in version "96":
  *   - uint32 and boolean types in ruletree + related interf.functions
  * * New in version "97":
- *   - "sblib.*" functions 
+ *   - "sblib.*" functions
  * * New in version "98":
  *   - Lua fucntion sbox_execve_preprocess() was removed
  *     exec preprocessing code is now implemented in C)
@@ -154,7 +154,7 @@ struct sb2context {
  *     not directly related to Lua/C interface: Rule tree
  *     header was changed (vrs 6).
  * * 126:
- *     sbox_map_network_addr() and sb.test_net_addr_match() 
+ *     sbox_map_network_addr() and sb.test_net_addr_match()
  *     were removed.
  * * 127:
  *     exec postprocessing is completely implemented in C,
@@ -234,7 +234,7 @@ extern int sblog_level_name_to_number(const char *level_str);
 extern void sblog_vprintf_line_to_logfile(const char *file, int line,
 	int level, const char *format, va_list ap);
 extern void sblog_printf_line_to_logfile(const char *file, int line,
-	int level, const char *format,...);
+	int level, const char *format,...) __attribute__ ((format(printf, 4, 5)));
 
 extern int sb_loglevel__; /* do not access directly */
 extern int sb_log_initial_pid__; /* current PID will be recorded here

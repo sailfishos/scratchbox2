@@ -11,6 +11,7 @@ objs := wrappers.o privatewrappers.o \
 	fdpathdb.o procfs.o mempcpy.o \
 	union_dirs.o \
 	system.o \
+	syscalls.o \
 	sb2context.o
 
 ifeq ($(shell uname -s),Linux)

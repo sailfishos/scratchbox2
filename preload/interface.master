@@ -111,6 +111,8 @@ GATE: int execve (const char *filename, char *const argv [], char *const envp[])
 GATE: int execvp (const char *file, char *const argv [])
 GATE: int execvpe(const char *file, char *const argv[], char *const envp[])
 
+GATE: long syscall(long number, ...) : pass_va_list
+
 GATE: int posix_spawn (pid_t *pid, const char *path, \
                        const posix_spawn_file_actions_t *file_actions, \
                        const posix_spawnattr_t *attrp, \

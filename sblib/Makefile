@@ -12,7 +12,7 @@ sblib/libsblib.a: override CFLAGS := $(CFLAGS) $(LUA_CFLAGS) -O2 -g -fPIC -Wall 
 sblib/libsblib.a: override LDFLAGS := $(LDFLAGS)
 sblib/libsblib.a: override LIBS := 
 
-sblib/sb_log.o: include/scratchbox2_version.h
+sblib/sb_log.o: $(OBJDIR)/include/scratchbox2_version.h
 
 targets := $(targets) $(D)/libsblib.a
 

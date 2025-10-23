@@ -32,7 +32,7 @@
  * - a _host path_ is a path that refers to the real filesystem
  *   (i.e. a mapped path)
  *
- * - a _real path_ is an absolute path where none of components is a 
+ * - a _real path_ is an absolute path where none of components is a
  *   symbolic link and it does not have any . or .. inside
  *   (see realpath(3) for details).
  *   NOTE that within Scratchbox 2 we may have both "host realpaths"
@@ -113,7 +113,7 @@ void remove_dots_from_path_list(struct path_entry_list *listp)
 	}
 	while (work) {
 		SB_LOG(SB_LOGLEVEL_NOISE2,
-			"remove_dots: work=0x%X examine '%s'",
+			"remove_dots: work=0x%lu examine '%s'",
 			(unsigned long int)work, work?work->pe_path_component:"");
 
 		if ((work->pe_path_component[0] == '.') &&
@@ -224,7 +224,7 @@ int clean_dotdots_from_path(
 
 	if ((work == NULL) || is_clean_path(abs_path) < 2) goto done;
 
-	/* step 2: 
+	/* step 2:
 	 * remove all ".." componets where the previous component
 	 * is already known to be a real directory (well, actually
 	 * known to be something else than a symlink)
@@ -265,7 +265,7 @@ int clean_dotdots_from_path(
 
 	if (path_has_nontrivial_dotdots == 0) goto done;
 
-	/* step 3: 
+	/* step 3:
 	 * remove all remaining ".." componets.
 	 * the previous component might be a symlink, so
 	 * path resolution must be done.
@@ -288,7 +288,7 @@ int clean_dotdots_from_path(
 			} else {
 				/* else parent is the root directory;
 				 * abs_path_to_parent is now empty,
-				 * get flags from the parent (this 
+				 * get flags from the parent (this
 				 * will get the "absolute" flag, among
 				 * other things) */
 				abs_path_to_parent.pl_flags = abs_path->pl_flags;
@@ -379,7 +379,7 @@ int clean_dotdots_from_path(
 
 				/* restart from the beginning of the new path: */
 				return(clean_dotdots_from_path(ctx, abs_path));
-			} 
+			}
 
 			SB_LOG(SB_LOGLEVEL_NOISE,
 				"clean_dotdots_from_path: <3>:same='%s'",
@@ -619,7 +619,7 @@ static ruletree_object_offset_t sb_path_resolution(
 		SB_LOG(SB_LOGLEVEL_NOISE, "path_resolution: test if symlink [%d] '%s'",
 			component_index, prefix_mapping_result_host_path);
 
-		if ((virtual_path_work_ptr->pe_flags & 
+		if ((virtual_path_work_ptr->pe_flags &
 		     (PATH_FLAGS_IS_SYMLINK | PATH_FLAGS_NOT_SYMLINK)) == 0) {
 			/* status unknow.
 			 * determine if "prefix_mapping_result_host_path" is a symbolic link.
@@ -806,8 +806,8 @@ static ruletree_object_offset_t sb_path_resolution_resolve_symlink(
 
 	if (virtual_path_work_ptr->pe_next) {
 		/* path has components after the symlink:
-		 * duplicate remaining path, it needs to 
-		 * be attached to symlink contents. 
+		 * duplicate remaining path, it needs to
+		 * be attached to symlink contents.
 		*/
 		rest_of_virtual_path = duplicate_path_entries_until(
 			NULL, virtual_path_work_ptr->pe_next);
@@ -823,7 +823,7 @@ static ruletree_object_offset_t sb_path_resolution_resolve_symlink(
 		/* absolute symlink.
 		 * This is easy: just join the symlink
 		 * and rest of path (+optional chroot prefix),
-		 * and further mapping operations will take 
+		 * and further mapping operations will take
 		 * care of the rest.
 		*/
 		struct path_entry *symlink_entries = NULL;
@@ -892,7 +892,7 @@ static ruletree_object_offset_t sb_path_resolution_resolve_symlink(
 				virtual_path_work_ptr->pe_prev,
 				virtual_source_path_list->pl_first);
 		} else {
-			/* else parent directory = rootdir, 
+			/* else parent directory = rootdir,
 			 * dirnam_entries=NULL signifies that. */
 			dirnam_entries = NULL;
 		}
@@ -979,7 +979,7 @@ static int get_and_check_host_cwd(
 		 * In this case the path can not be mapped.
 		 *
 		 * Added 2009-01-16: This actually happens sometimes;
-		 * there are configure scripts that find out MAX_PATH 
+		 * there are configure scripts that find out MAX_PATH
 		 * the hard way. So, if this process has already
 		 * logged this error, we'll suppress further messages.
 		 * [decided to add this check after I had seen 3686
@@ -997,7 +997,7 @@ static int get_and_check_host_cwd(
 	SB_LOG(SB_LOGLEVEL_DEBUG, "host cwd=%s", host_cwd);
 	return(0);
 }
-	
+
 /* ========== Mapping & path resolution, internal implementation: ========== */
 
 /* path_list is relative in the beginning;
@@ -1021,7 +1021,7 @@ static int relative_virtual_path_to_abs_path(
 	SB_LOG(SB_LOGLEVEL_DEBUG,
 		"relative_virtual_path_to_abs_path: converting to abs.path cwd=%s",
 		host_cwd);
-	
+
 	/* reversing of paths is expensive...try if a previous
 	 * result can be used, and call the reversing logic only if
 	 * CWD has been changed.
@@ -1072,7 +1072,7 @@ static int relative_virtual_path_to_abs_path(
 	path_list->pl_first = append_path_entries(
 		cwd_entries, path_list->pl_first);
 	path_list->pl_flags |= cwd_flags & ~PATH_FLAGS_HAS_TRAILING_SLASH;
-#if 0	
+#if 0
 	SB_LOG(SB_LOGLEVEL_DEBUG,
 		"relative_virtual_path_to_abs_path: abs.path is '%s'",
 		*abs_virtual_path_buffer_p);
@@ -1223,7 +1223,7 @@ char *sbox_virtual_path_to_abs_virtual_path(
 	return(result);
 }
 
-/* make sure to use disable_mapping(m); 
+/* make sure to use disable_mapping(m);
  * to prevent recursive calls to this function.
  * Returns results in *res.
  */
@@ -1392,7 +1392,7 @@ void sbox_map_path_internal__c_engine(
 			SB_LOG(SB_LOGLEVEL_ERROR,
 				"%s: conversion to absolute path failed "
 				"(can't map '%s')", __func__, mapping_result);
-			res->mres_error_text = 
+			res->mres_error_text =
 				"mapping failed; failed to make absolute path";
 			goto forget_mapping;
 		}
@@ -1427,7 +1427,7 @@ void sbox_map_path_internal__c_engine(
 				"%s: path resolution failed [%s]",
 				__func__, func_name);
 			mapping_result = NULL;
-			res->mres_error_text = 
+			res->mres_error_text =
 				"mapping failed; path resolution path failed";
 		} else {
 			int	flags;
@@ -1607,5 +1607,3 @@ char *sbox_reverse_path_internal__c_engine(
 
 	return (result_virtual_path);
 }
-
-

@@ -60,7 +60,7 @@ struct path_entry *append_path_entries(
 	struct path_entry *new_entries)
 {
 	struct path_entry *work = head;
-	
+
 	if (!head) return(new_entries);
 
 	/* move work to point to last component of "head" */
@@ -123,7 +123,7 @@ char *path_entries_to_string_until(
 	if (flags & PATH_FLAGS_HAS_TRAILING_SLASH) {
 		char *cp = buf;
 		/* point to last char in buf */
-		while (*cp && cp[1]) cp++; 
+		while (*cp && cp[1]) cp++;
 		if (*cp != '/') strcat(buf, "/");
 	}
 
@@ -273,7 +273,7 @@ struct path_entry *duplicate_path_entries_until(
 		new->pe_next = NULL;
 		dest_path_ptr = new;
 		SB_LOG(SB_LOGLEVEL_NOISE3,
-			"dup: entry 0x%X '%s'",
+			"dup: entry 0x%lu '%s'",
 			(unsigned long int)dest_path_ptr, new->pe_path_component);
 		if (duplicate_until_this_component == source_path) break;
 		source_path = source_path->pe_next;
@@ -446,4 +446,3 @@ char *clean_and_log_fs_mapping_result(
 	}
 	return (cleaned_host_path);
 }
-

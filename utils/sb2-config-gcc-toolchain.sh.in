@@ -5,22 +5,14 @@
 # Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 # Licensed under GPL version 2
 
-my_path=$_
-if [ $(basename $my_path) != $(basename $0) ]; then
-	my_path=$0
-	if [ $(basename $my_path) = $my_path ]; then
-		my_path=$(which $my_path)
-	fi
-fi
-
-function log_config_action()
+log_config_action()
 {
-	tstamp=`/bin/date '+%Y-%m-%d %H:%M:%S'`
+	tstamp=$(/bin/date '+%Y-%m-%d %H:%M:%S')
 	echo "$tstamp	$*" >>$SBOX_CONFIG_DIR/CONFIG-LOG
 }
 
 # Get the original arguments that were specified to sb2-init from
-function usage()
+usage()
 {
 	cat <<EOF
 sb2-config-gcc-toolchain - Configure a cross-gcc compiler for SB2
@@ -39,7 +31,7 @@ Options:
     -A arch           manually override target architecture
     -h                print this help
     -m mapping_mode   target uses mapping_mode as default mode
-    -S SBOX_DIR       define value for SBOX_DIR
+    -S SBOX_DATADIR   define value for SBOX_DIR
     -R TARGET_ROOT    define value for SBOX_TARGET_ROOT
     -V                this toolchain is a secondary toolchain,
                       tools require version numbers in pathnames
@@ -49,12 +41,12 @@ EOF
 	exit 2
 }
 
-function write_gcc_config()
+write_gcc_config()
 {
 	gcc_version=$1
 
 	if [ -n "$gcc_version" ] ; then
-		gcc_version_id=`echo $gcc_version | sed -e 's/[^0-9a-zA-Z]/_/g'`
+		gcc_version_id=$(echo $gcc_version | sed -e 's/[^0-9a-zA-Z]/_/g')
 	fi
 
 	SBOX_TARGET_TOOLCHAIN_DIR=$(dirname "$SBOX_CROSS_GCC_DIR")
@@ -125,14 +117,14 @@ EOF
 # It is possible to set SB2_GCC_INIT_ID externally (for example, if
 # another program is used to initialize the system)
 SB2_GCC_INIT_ORIG_ARGS="$*"
-SB2_GCC_INIT_TIME=`date +%Y-%m-%d_%H:%M:%S`
+SB2_GCC_INIT_TIME=$(date +%Y-%m-%d_%H:%M:%S)
 if [ -z "$SB2_GCC_INIT_ID" ]; then
 	SB2_GCC_INIT_ID="user '$USER'"
 fi
 
 SBOX_EXTRA_CROSS_COMPILER_ARGS=""
 
-if [ -z "$*" ]; then
+if [ $# -eq 0 ]; then
 	usage
 fi
 
@@ -148,7 +140,7 @@ do
 	(m) MAPPING_MODE=$OPTARG ;;
 	(C) SBOX_EXTRA_CROSS_COMPILER_ARGS="$SBOX_EXTRA_CROSS_COMPILER_ARGS $OPTARG " ;;
 	(L) SBOX_EXTRA_CROSS_LD_ARGS="$SBOX_EXTRA_CROSS_LD_ARGS $OPTARG " ;;
-	(S) SBOX_DIR=$OPTARG ;;
+	(S) SBOX_DATADIR=$OPTARG ;;
 	(R) SBOX_TARGET_ROOT=$OPTARG ;;
 	(V) SECONDARY_COMPILER=yes ;;
 	(v) verbose=yes ;;
@@ -159,8 +151,8 @@ shift $(($OPTIND - 1))
 
 case "$1" in
 *:*)	# Has a path to specs
-	GCC=`echo $1 | cut -d : -f 1`
-	GCC_SPECS=`echo $1 | cut -d : -f 2`
+	GCC=$(echo $1 | cut -d : -f 1)
+	GCC_SPECS=$(echo $1 | cut -d : -f 2)
 	;;
 *)	GCC=$1
 	GCC_SPECS=""
@@ -169,8 +161,8 @@ esac
 
 # ---------- Check parameters
 
-if [ -z "$SBOX_DIR" ]; then
-	SBOX_DIR=$(readlink -f $(dirname $(readlink -f $my_path))/..)
+if [ -z "$SBOX_DATADIR" ]; then
+	SBOX_DATADIR=@datadir@
 fi
 
 if [ -z "$TARGET" ]; then
@@ -195,7 +187,7 @@ if [ -z "$MAPPING_MODE" ]; then
         exit 1
 fi
 
-if [ ! -d $SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE ]; then
+if [ ! -d $SBOX_DATADIR/scratchbox2/modes/$MAPPING_MODE ]; then
 	echo "Invalid mapping mode: $MAPPING_MODE"
 	exit 1
 fi
@@ -219,15 +211,14 @@ case "$GCC_SPECS" in
 	exit 1
 esac
 
-GCC_FULLPATH=$(which $GCC)
 # test that gcc exists and can be executed
-if [ $? != 0 ]; then
+if ! GCC_FULLPATH=$(which $GCC); then
 	echo "$GCC doesn't exist"
 	exit 1
 fi
 
 SBOX_CROSS_GCC_DIR=$(dirname $(which $GCC))
-if [ $GCC -v > /dev/null 2>&1 != 0 ]; then
+if ! $GCC -v > /dev/null 2>&1; then
 	echo "Invalid compiler specified: $GCC"
 	exit 1
 fi
@@ -243,11 +234,11 @@ case "$(basename $GCC)" in
 	;;
 esac
 
-SBOX_CROSS_GCC_VERSION=`$GCC -dumpversion`
+SBOX_CROSS_GCC_VERSION=$($GCC -dumpversion)
 
 # Create a version string with two digits
-SBOX_CROSS_GCC_SHORTVERSION=`echo $SBOX_CROSS_GCC_VERSION |
-	sed -e 's/^\([0-9][0-9]*\.[0-9][0-9]*\)\..*/\1/'`
+SBOX_CROSS_GCC_SHORTVERSION=$(echo $SBOX_CROSS_GCC_VERSION |
+	sed -e 's/^\([0-9][0-9]*\.[0-9][0-9]*\)\..*/\1/')
 
 GCC_TARGET=$($GCC -dumpmachine)
 
@@ -286,21 +277,21 @@ fi
 SBOX_CROSS_GCC_SPECS_FILE=""
 SBOX_EXTRA_CROSS_COMPILER_STDINC=""
 
-# FIXME: SBOX_CROSS_GCC_SPECS_FILE may point to $SBOX_DIR/share/scratchbox2/modes
+# FIXME: SBOX_CROSS_GCC_SPECS_FILE may point to $SBOX_DATADIR/scratchbox2/modes
 # after this. It should point to a session-specific location, but we don't have any
 # mechanism for that currently.
 if [ -n "$GCC_SPECS" ]; then
 	# the file was specified on the command line
 	SBOX_CROSS_GCC_SPECS_FILE="$GCC_SPECS"
 # else try to locate a specs file which was provided with gcc
-elif [ -f $SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_VERSION-specs-$ARCH ]; then
-	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_VERSION-specs-$ARCH"
-elif [ -f $SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_VERSION-specs ]; then
-	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_VERSION-specs"
-elif [ -f $SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_SHORTVERSION-specs ]; then
-	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_SHORTVERSION-specs"
-elif [ -f $SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-specs ]; then
-	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DIR/share/scratchbox2/modes/$MAPPING_MODE/gcc-specs"
+elif [ -f $SBOX_DATADIR/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_VERSION-specs-$ARCH ]; then
+	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DATADIR/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_VERSION-specs-$ARCH"
+elif [ -f $SBOX_DATADIR/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_VERSION-specs ]; then
+	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DATADIR/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_VERSION-specs"
+elif [ -f $SBOX_DATADIR/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_SHORTVERSION-specs ]; then
+	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DATADIR/scratchbox2/modes/$MAPPING_MODE/gcc-$SBOX_CROSS_GCC_SHORTVERSION-specs"
+elif [ -f $SBOX_DATADIR/scratchbox2/modes/$MAPPING_MODE/gcc-specs ]; then
+	SBOX_CROSS_GCC_SPECS_FILE="$SBOX_DATADIR/scratchbox2/modes/$MAPPING_MODE/gcc-specs"
 else
 	SBOX_EXTRA_CROSS_COMPILER_STDINC="-I/usr/include"
 fi
@@ -313,7 +304,7 @@ SBOX_EXTRA_CROSS_COMPILER_ARGS="$SBOX_EXTRA_CROSS_COMPILER_ARGS -L@SBOX_TARGET_R
 # usage ("gcc -E -Wno-poison-system-directories" is not a reliable way for
 # testing this; instead check if ld has the related flag)
 # Ensure its bin directory is in PATH to prevent "unable to find 'ld'" error.
-txt=`PATH="$(dirname $GCC_FULLPATH):$PATH" $GCC_FULLPATH -Wl,--help | grep no-poison-system-directories`
+txt=$(PATH="$(dirname $GCC_FULLPATH):$PATH" $GCC_FULLPATH -Wl,--help | grep no-poison-system-directories)
 case "$txt" in
 	(*no-poison-system-directories*)	# option is available
 		SBOX_EXTRA_CROSS_COMPILER_ARGS="$SBOX_EXTRA_CROSS_COMPILER_ARGS -Wno-poison-system-directories"

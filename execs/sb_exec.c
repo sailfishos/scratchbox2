@@ -6,15 +6,15 @@
  */
 
 /* This file contains the "exec core" of SB2; Being able to alter
- * how the execl(), execve(), etc. exec-class functions are handled 
+ * how the execl(), execve(), etc. exec-class functions are handled
  * is one of the most important features of SB2.
  *
  * Brief description of the algorithm follows:
- * 
+ *
  * 0. When an application wants to execute another program, it makes a call
  *    to one of execl(), execle(), execlp(), execv(), execve(), execvp(),
  *    posix_spawn() or posix_spawnp().
- *    That call will be handled by one of the gate functions in 
+ *    That call will be handled by one of the gate functions in
  *    preload/libsb2.c. Eventually, the gate function will call "do_exec()"
  *    from this file; do_exec() calls prepare_exec() and that is the place
  *    where everything interesting happens:
@@ -23,13 +23,13 @@
  *    as Lua code, and also known as the argv&envp mangling code).
  *    The purpose of the preprocessing phase is to determine WHAT FILE needs
  *    to be executed. And that might well be something else than what the
- *    application requested: For example, an attempt to run /usr/bin/gcc might 
+ *    application requested: For example, an attempt to run /usr/bin/gcc might
  *    be replaced by a path to the cross compiler (e.g. /some/path/to/cross-gcc)
  *    Arguments may also be added, deleted, or modified during preprocessing.
  *
  * 2. Second, prepare_exec() needs to determine WHERE THE FILE IS. It makes a
- *    call the regular path mapping engine of SB2 to get a real path to 
- *    the program. (For example, "/bin/ls" might be replaced by 
+ *    call the regular path mapping engine of SB2 to get a real path to
+ *    the program. (For example, "/bin/ls" might be replaced by
  *    "/opt/tools_root/bin/ls" by the path mapping engine).
  *    This step involves applying the path mapping Lua code (A notable
  *    side-effect of that is that the Lua code also returns an "execution
@@ -42,15 +42,15 @@
  *    file. Based on the type of the file, prepare_exec() will do one of the
  *    following:
  *
- *    4a. For scripts (files starting with #!), script interpreter name 
+ *    4a. For scripts (files starting with #!), script interpreter name
  *        will be read from the file, mapped by exec_map_script_interpreter()
  *	  (in exec_map_script_interp.c), and once the interpreter
- *	  location has been found, the parameters will be processed again by 
+ *	  location has been found, the parameters will be processed again by
  *	  prepare_exec().
  *        This solution supports location- and exec policy based mapping
  *	  of the script interpreter.
  *
- *    4b. For native binaries, an additional call to an exec postprocessing 
+ *    4b. For native binaries, an additional call to an exec postprocessing
  *        function will be made, because the type of the file is not enough
  *        to spefify the environment that needs to be used for the file:
  *        This is the place where the "exec policy" rules (determined by step
@@ -60,7 +60,7 @@
  *         - native binaries that are compiled for the host system can
  *           be started directly (for example, the sb2-show command that
  *           belongs to SB2's utilities)
- *         - an exception: host's binaries which have SUID, SGID or 
+ *         - an exception: host's binaries which have SUID, SGID or
  *           special capabilities need to be started by invoking the
  *           dynamic linker explicitly (otherwise this LD_PRELOAD library
  *           won't be loaded, etc)
@@ -68,7 +68,7 @@
  *           dynamic libraries from a different place (e.g.
  *           "/opt/tools_root/bin/ls" may need to use libraries from
  *           "/opt/tools_root/lib", instead of using them from "/lib").
- *           This is implemented by making an explicit call to the 
+ *           This is implemented by making an explicit call to the
  *           dynamic loader (ld.so) to start the program, with additional
  *           options for ld.so.
  *         - if the target architecture is the same as the host architecture,
@@ -150,9 +150,9 @@
 # error Unsupported host CPU architecture
 #endif
 
-#ifndef EM_AARCH64 
-#define EM_AARCH64	183 
-#endif 
+#ifndef EM_AARCH64
+#define EM_AARCH64	183
+#endif
 
 struct target_info {
 	char name[8];
@@ -400,17 +400,17 @@ static enum binary_type inspect_binary(const char *filename,
 			goto _out;
 		}
 
-		if (sb1_bug_emulation_mode && 
+		if (sb1_bug_emulation_mode &&
 		    strchr(sb1_bug_emulation_mode,'x')) {
-			/* the old scratchbox didn't have the x-bit check, so 
-			 * having R-bit set was enough to exec a file. That is 
-			 * of course wrong, but unfortunately there are now 
-			 * lots of packages out there that have various scripts 
+			/* the old scratchbox didn't have the x-bit check, so
+			 * having R-bit set was enough to exec a file. That is
+			 * of course wrong, but unfortunately there are now
+			 * lots of packages out there that have various scripts
 			 * with wrong permissions.
-			 * We'll provide a compatibility mode, so that broken 
+			 * We'll provide a compatibility mode, so that broken
 			 * packages can be built.
 			 *
-			 * an 'x' in the env.var. means that we should not 
+			 * an 'x' in the env.var. means that we should not
 			 * worry about x-bits when checking exec parmissions
 			*/
 			if (access_nomap_nolog(filename, R_OK) < 0) {
@@ -421,12 +421,12 @@ static enum binary_type inspect_binary(const char *filename,
 				errno = saved_errno;
 				goto _out;
 			}
-			SB_LOG(SB_LOGLEVEL_WARNING, 
+			SB_LOG(SB_LOGLEVEL_WARNING,
 				"X permission missing, but exec enabled by"
 				" SB1 bug emulation mode ('%s')", filename);
 		} else {
 			/* The normal case:
-			 * can't execute it. Possible errno codes from access() 
+			 * can't execute it. Possible errno codes from access()
 			 * are all possible from execve(), too, so there is no
 			 * need to convert errno.
 			*/
@@ -631,7 +631,7 @@ static int prepare_hashbang(
 	new_argv = calloc(argc + 3, sizeof(char *));
 
 	/* skip any initial whitespace following "#!" */
-	for (i = 2; (hashbang[i] == ' ' 
+	for (i = 2; (hashbang[i] == ' '
 			|| hashbang[i] == '\t') && i < c; i++)
 		;
 
@@ -668,7 +668,7 @@ static int prepare_hashbang(
 	}
 	new_argv[n] = NULL;
 
-	/* Now we need to update __SB2_ORIG_BINARYNAME to point to 
+	/* Now we need to update __SB2_ORIG_BINARYNAME to point to
 	 * the unmapped script interpreter (exec_map_script_interpreter
 	 * may change it again (not currently, but in the future)
 	*/
@@ -679,7 +679,7 @@ static int prepare_hashbang(
 	exec_policy_handle_t     eph = find_exec_policy_handle(exec_policy_name);
 	int c_mapping_result_code;
 	const char *c_new_exec_policy_name = NULL;
-	
+
 	c_mapping_result_code = exec_map_script_interpreter(eph, exec_policy_name,
 		interpreter, interp_arg, *mapped_file,
 		orig_file, new_argv, &c_new_exec_policy_name, &mapped_interpreter);
@@ -752,7 +752,7 @@ static int prepare_hashbang(
 	    mapped_binaryname);
 	free(mapped_binaryname);
 	free(tmp);
-	
+
 	SB_LOG(SB_LOGLEVEL_DEBUG, "prepare_hashbang(): interpreter=%s,"
 			"mapped_interpreter=%s", interpreter,
 			mapped_interpreter);
@@ -857,7 +857,7 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 	/* SBOX_SESSION_* is now preserved properly (these are practically
 	 * read-only variables now)
 	*/
-	
+
 	/* if we have LD_PRELOAD env var set, make sure the new my_envp
 	 * has it as well
 	 */
@@ -900,7 +900,7 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 				has_sbox_session_dir = 1;
 				if (strcmp(*p+sbox_session_dir_varname_len+1,
 					sbox_session_dir)) {
-						SB_LOG(SB_LOGLEVEL_WARNING, 
+						SB_LOG(SB_LOGLEVEL_WARNING,
 							"Detected attempt to set %s,"
 							" restored to %s",
 							*p, sbox_session_dir);
@@ -913,7 +913,7 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 				has_sbox_mapping_method = 1;
 				if (strcmp(*p+sbox_mapping_method_varname_len+1,
 					sbox_mapping_method)) {
-						SB_LOG(SB_LOGLEVEL_WARNING, 
+						SB_LOG(SB_LOGLEVEL_WARNING,
 							"Detected attempt to set %s,"
 							" restored to %s",
 							*p, sbox_mapping_method);
@@ -933,12 +933,12 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 	 * it is usually a consequency of complete reset of the environment.
 	 * Just restore those. */
 	if (!has_sbox_session_dir) {
-		SB_LOG(SB_LOGLEVEL_NOTICE, 
+		SB_LOG(SB_LOGLEVEL_NOTICE,
 			"Detected attempt to clear SBOX_SESSION_DIR, "
 				"restored to %s", sbox_session_dir);
 	}
 	if (sbox_mapping_method && !has_sbox_mapping_method) {
-		SB_LOG(SB_LOGLEVEL_NOTICE, 
+		SB_LOG(SB_LOGLEVEL_NOTICE,
 			"Detected attempt to clear SBOX_MAPPING_METHOD, "
 				"restored to %s", sbox_mapping_method);
 	}
@@ -1143,12 +1143,12 @@ static char **prepare_envp_for_do_exec(const char *orig_file,
 
 /* compare vectors of strings and log if there are any changes.
  * TO BE IMPROVED: a more clever algorithm would be nice, something
- * that would log only the modified parts... now this displays 
- * everything if something was changed, which easily creates 
+ * that would log only the modified parts... now this displays
+ * everything if something was changed, which easily creates
  * a *lot* of noise if SB_LOGLEVEL_NOISE is enabled.
 */
-static void compare_and_log_strvec_changes(const char *vecname, 
-	char *const *orig_strv, char *const *new_strv) 
+static void compare_and_log_strvec_changes(const char *vecname,
+	char *const *orig_strv, char *const *new_strv)
 {
 	char *const *ptr2old = orig_strv;
 	char *const *ptr2new = new_strv;
@@ -1165,20 +1165,20 @@ static void compare_and_log_strvec_changes(const char *vecname,
 		strv_modified = 1;
 	}
 	if (strv_modified) {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "%s[] was modified", vecname); 
+		SB_LOG(SB_LOGLEVEL_DEBUG, "%s[] was modified", vecname);
 		if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_NOISE)) {
 			int	i;
-			for (i = 0, ptr2new = new_strv; 
+			for (i = 0, ptr2new = new_strv;
 			    *ptr2new;
 			    i++, ptr2new++) {
-				SB_LOG(SB_LOGLEVEL_NOISE, 
+				SB_LOG(SB_LOGLEVEL_NOISE,
 					"[%d]='%s'", i,
 					*ptr2new);
 			}
 		}
 	} else {
-		SB_LOG(SB_LOGLEVEL_NOISE, 
-			"%s[] was not modified", vecname); 
+		SB_LOG(SB_LOGLEVEL_NOISE,
+			"%s[] was not modified", vecname);
 	}
 }
 
@@ -1235,7 +1235,7 @@ static void change_environment_variable(
 
 		SB_LOG(SB_LOGLEVEL_DEBUG, "Changed: %s", new_value_buf);
 	} else {
-		SB_LOG(SB_LOGLEVEL_DEBUG, "Failed to change %s%s", 
+		SB_LOG(SB_LOGLEVEL_DEBUG, "Failed to change %s%s",
 			var_prefix, new_value);
 	}
 }
@@ -1337,7 +1337,7 @@ static int exec_policy_force_cpu_transparency(const char *exec_policy_name,
 		return 0;
 
 	exec_flags = EXEC_POLICY_GET_UINT32(eph, exec_flags);
-	SB_LOG(SB_LOGLEVEL_DEBUG, "exec_policy: %s, exec_flags: %u",
+	SB_LOG(SB_LOGLEVEL_DEBUG, "exec_policy: %s, exec_flags: %" PRIu32,
 		exec_policy_name, exec_flags);
 
 	if (!(exec_flags & SB2_EXEC_FLAGS_FORCE_CPU_TRANSPARENCY))
@@ -1419,7 +1419,7 @@ static int prepare_exec(const char *exec_fn_name,
 	tmp = strdup(orig_file);
 	binaryname = strdup(basename(tmp)); /* basename may modify *tmp */
 	free(tmp);
-	
+
 	my_file = strdup(orig_file);
 
 	my_argv = duplicate_argv(orig_argv);
@@ -1475,7 +1475,7 @@ static int prepare_exec(const char *exec_fn_name,
 			ret = -1;
 			goto out;
 		}
-			
+
 		free_mapping_results(&mapping_result);
 
 		SB_LOG(SB_LOGLEVEL_DEBUG,
@@ -1713,13 +1713,13 @@ int do_exec(int *result_errno_ptr,
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"EXEC/Orig.args: %s : %s", orig_file, buf);
 			free(buf);
-		
+
 			/* create a copy of intended environment for logging,
 			 * before preprocessing */
 			my_envp_copy = prepare_envp_for_do_exec(orig_file,
 				binaryname, orig_envp);
 		}
-		
+
 		new_envp = prepare_envp_for_do_exec(orig_file, binaryname, orig_envp);
 
 		r = prepare_exec(exec_fn_name, NULL/*exec_policy_name: not yet known*/,
@@ -1917,4 +1917,3 @@ char *sb2show__binary_type__(const char *filename)
 	}
 	return(strdup(result));
 }
-

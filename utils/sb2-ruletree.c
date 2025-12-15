@@ -62,7 +62,7 @@ int open_nomap_nolog(const char *pathname, int flags, ...)
 	return open(pathname, flags, mode);
 }
 
-char *sbox_session_dir = NULL; /* Fake var, referenced by the library=>must have something*/ 
+char *sbox_session_dir = NULL; /* Fake var, referenced by the library=>must have something*/
 
 /* -------------------- */
 
@@ -87,7 +87,7 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 	if (print_ruletree_offsets) {
 		if (rule_dumped[offs]) {
 			print_indent(indent + 1);
-			printf("[ => @ %u]\n", offs);
+			printf("[ => @ %" PRI_SB_RTOO "]\n", offs);
 			return;
 		}
 	}
@@ -95,7 +95,7 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 
 	print_indent(indent);
 	if (print_ruletree_offsets) {
-		printf("{ Rule[%u]:\n", (unsigned)offs);
+		 printf("{ Rule[%u]:\n", (unsigned)offs);
 	} else {
 		printf("{ Rule:\n");
 	}
@@ -201,7 +201,7 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 		       printf("dlopen ");
 		printf(")\n");
 	}
-	
+
 	if (rule->rtree_fsr_binary_name) {
 		const char *bin_name = offset_to_ruletree_string_ptr(rule->rtree_fsr_binary_name, NULL);
 		print_indent(indent+1);
@@ -219,26 +219,26 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 	switch (rule->rtree_fsr_action_type) {
 	case SB2_RULETREE_FSRULE_ACTION_FALLBACK_TO_OLD_MAPPING_ENGINE:
 		printf("FALLBACK_TO_OLD_MAPPING_ENGINE\n");
-		break;	
+		break;
 	case SB2_RULETREE_FSRULE_ACTION_PROCFS:
 		printf("sb2_procfs_mapper\n");
-		break;	
+		break;
 	case SB2_RULETREE_FSRULE_ACTION_UNION_DIR:
 #if 0
 		printf("union_dir => rule->rtree_fsr_rule_list_link\n");
 #endif
 		printf("\n");
 		rule_list_link_label = "union_dir";
-		break;	
+		break;
 	case SB2_RULETREE_FSRULE_ACTION_USE_ORIG_PATH:
 		printf("use_orig_path\n");
-		break;	
+		break;
 	case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH:
 		printf("force_orig_path\n");
-		break;	
+		break;
 	case SB2_RULETREE_FSRULE_ACTION_FORCE_ORIG_PATH_UNLESS_CHROOT:
 		printf("force_orig_path_unless_chroot\n");
-		break;	
+		break;
 	case SB2_RULETREE_FSRULE_ACTION_REPLACE_BY:
 		printf("replace_by '%s'\n",
 			offset_to_ruletree_string_ptr(rule->rtree_fsr_action_offs, NULL));
@@ -298,7 +298,7 @@ static void dump_rules(ruletree_object_offset_t offs, int indent)
 
 	if (rule->rtree_fsr_rule_list_link) {
 		print_indent(indent+1);
-		printf("%s (%u) = {\n", rule_list_link_label, rule->rtree_fsr_rule_list_link);
+		printf("%s (%" PRI_SB_RTOO ") = {\n", rule_list_link_label, rule->rtree_fsr_rule_list_link);
 		dump_objectlist(rule->rtree_fsr_rule_list_link, indent + 2);
 		print_indent(indent+1);
 		printf("}\n");
@@ -315,7 +315,7 @@ static void dump_exec_selection_rules(ruletree_object_offset_t offs, int indent)
 	if (print_ruletree_offsets) {
 		if (rule_dumped[offs]) {
 			print_indent(indent + 1);
-			printf("[ => @ %u]\n", offs);
+			printf("[ => @ %" PRI_SB_RTOO "]\n", offs);
 			return;
 		}
 	}
@@ -352,7 +352,7 @@ static void dump_exec_pp_rules(ruletree_object_offset_t offs, int indent)
 	if (print_ruletree_offsets) {
 		if (rule_dumped[offs]) {
 			print_indent(indent + 1);
-			printf("[ => @ %u]\n", offs);
+			printf("[ => @ %" PRI_SB_RTOO "]\n", offs);
 			return;
 		}
 	}
@@ -407,7 +407,7 @@ static void dump_net_rules(ruletree_object_offset_t offs, int indent)
 	if (print_ruletree_offsets) {
 		if (rule_dumped[offs]) {
 			print_indent(indent + 1);
-			printf("[ => @ %u]\n", offs);
+			printf("[ => @ %" PRI_SB_RTOO "]\n", offs);
 			return;
 		}
 	}
@@ -493,7 +493,7 @@ static void dump_objectlist(ruletree_object_offset_t list_offs, int indent)
 	if (print_ruletree_offsets) {
 		printf("{ list[%u], size=%u:\n", (unsigned)list_offs, list_size);
 	} else {
-		printf("{ list, size=%u:\n", list_size);
+		printf("{ list, size=%" PRIu32 ":\n", list_size);
 	}
 
 	for (i = 0; i < list_size; i++) {
@@ -571,7 +571,9 @@ static void dump_bintree(ruletree_object_offset_t tree_offs, int indent,
 		if (print_ruletree_offsets) {
 			printf("[%u]", (unsigned)tree_offs);
 		}
-		printf(", key=(%llu,%llu) less=%u, more=%u, value @%u\n",
+		printf(", key=(%llu,%llu) less=%" PRI_SB_RTOO
+		       ", more=%" PRI_SB_RTOO
+		       ", value @%" PRI_SB_RTOO "\n",
 			(long long unsigned int)bthdr->rtree_bt_key1,
 			(long long unsigned int)bthdr->rtree_bt_key2,
 			bthdr->rtree_bt_link_less, bthdr->rtree_bt_link_more,
@@ -613,7 +615,7 @@ static void print_ruletree_object_type(ruletree_object_offset_t obj_offs)
 		uint32_t *uip;
 
 		if (print_ruletree_offsets) {
-			printf("@%u: ", obj_offs);
+			printf("@%" PRI_SB_RTOO ": ", obj_offs);
 		}
 		switch (hdr->rtree_obj_type) {
 		case SB2_RULETREE_OBJECT_TYPE_FILEHDR:
@@ -648,19 +650,19 @@ static void print_ruletree_object_type(ruletree_object_offset_t obj_offs)
 					printf("INODESTAT: dev=%lld ino=%lld act=0x%X",
 						(long long)fsp->rtree_inode_simu.inodesimu_dev,
 						(long long)fsp->rtree_inode_simu.inodesimu_ino, a);
-					if (a & RULETREE_INODESTAT_SIM_UID) 
+					if (a & RULETREE_INODESTAT_SIM_UID)
 						printf(" uid=%d",
 							(int)fsp->rtree_inode_simu.inodesimu_uid);
-					if (a & RULETREE_INODESTAT_SIM_GID) 
+					if (a & RULETREE_INODESTAT_SIM_GID)
 						printf(" gid=%d",
 							(int)fsp->rtree_inode_simu.inodesimu_gid);
-					if (a & RULETREE_INODESTAT_SIM_MODE) 
+					if (a & RULETREE_INODESTAT_SIM_MODE)
 						printf(" mode=0%o",
 							(int)fsp->rtree_inode_simu.inodesimu_mode);
-					if (a & RULETREE_INODESTAT_SIM_SUIDSGID) 
+					if (a & RULETREE_INODESTAT_SIM_SUIDSGID)
 						printf(" suid_sgid=0%o",
 							(int)fsp->rtree_inode_simu.inodesimu_suidsgid);
-					if (a & RULETREE_INODESTAT_SIM_DEVNODE) 
+					if (a & RULETREE_INODESTAT_SIM_DEVNODE)
 						printf(" device_type=0%o rdev=0x%llX",
 							(int)fsp->rtree_inode_simu.inodesimu_devmode,
 							(long long)fsp->rtree_inode_simu.inodesimu_rdev);
@@ -672,7 +674,7 @@ static void print_ruletree_object_type(ruletree_object_offset_t obj_offs)
 		case SB2_RULETREE_OBJECT_TYPE_UINT32:
 			uip = ruletree_get_pointer_to_uint32(obj_offs);
 			if (uip)
-				printf("UINT32 %u (0x%X)", *uip, *uip);
+				printf("UINT32 %" PRIu32 " (0x%X)", *uip, *uip);
 			else
 				printf("UINT32 <none; got NULL pointer>");
 			break;
@@ -735,7 +737,7 @@ static void dump_catalog(ruletree_object_offset_t catalog_offs, const char *cata
 	if (print_ruletree_offsets) {
 		if (rule_dumped[catalog_offs]) {
 			print_indent(indent);
-			printf("[ => Catalog @ %u '%s']\n", catalog_offs, catalog_name);
+			printf("[ => Catalog @ %" PRI_SB_RTOO " '%s']\n", catalog_offs, catalog_name);
 			return;
 		}
 	}
@@ -743,14 +745,14 @@ static void dump_catalog(ruletree_object_offset_t catalog_offs, const char *cata
 
 	print_indent(indent);
 	if (print_ruletree_offsets) {
-		printf("Catalog @ %u '%s':\n", catalog_offs, catalog_name);
+		printf("Catalog @ %" PRI_SB_RTOO " '%s':\n", catalog_offs, catalog_name);
 	} else {
 		printf("Catalog '%s':\n", catalog_name);
 	}
 
 	catalog = offset_to_ruletree_object_ptr(catalog_offs,
 		SB2_RULETREE_OBJECT_TYPE_CATALOG);
-	
+
 	if (!catalog) {
 		print_indent(indent+1);
 		printf("[empty]\n");
@@ -805,7 +807,7 @@ static void dump_catalog(ruletree_object_offset_t catalog_offs, const char *cata
 	}
 	print_indent(indent);
 	if (print_ruletree_offsets) {
-		printf("End of Catalog @ %u '%s'.\n", catalog_offs, catalog_name);
+		printf("End of Catalog @ %" PRI_SB_RTOO " '%s'.\n", catalog_offs, catalog_name);
 	} else {
 		printf("End of Catalog '%s'.\n", catalog_name);
 	}
@@ -857,4 +859,3 @@ int main(int argc, char *argv[])
 	}
 	return(0);
 }
-

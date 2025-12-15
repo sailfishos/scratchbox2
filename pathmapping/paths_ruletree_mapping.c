@@ -109,7 +109,7 @@ static int ruletree_test_path_match(const char *full_path, size_t full_path_len,
 	}
 
 	SB_LOG(SB_LOGLEVEL_NOISE,
-		"ruletree_test_path_match '%s' (%zu), '%s' (%u) => %d (%s)",
+		"ruletree_test_path_match '%s' (%zu), '%s' (%" PRIu32 ") => %d (%s)",
 		full_path, full_path_len, selector, selector_len, result, match_type);
 	return(result);
 }

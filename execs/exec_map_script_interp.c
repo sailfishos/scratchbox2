@@ -19,7 +19,7 @@
  * Same result code as Lua returned, the return value:
  *  0: argv / envp were modified; mapped_interpreter was set
  *  1: argv / envp were not modified; mapped_interpreter was set
- *  2: argv / envp were not modified; caller should call ordinary path 
+ *  2: argv / envp were not modified; caller should call ordinary path
  *      mapping to find the interpreter
  *  -1: deny exec.
 */
@@ -35,7 +35,7 @@ int exec_map_script_interpreter(
 	char	   **mapped_interpreter_p)
 {
 	const char		*log_level = NULL;
-	uint32_t /*FIXME*/	rule_list_offs = 0;
+	ruletree_object_offset_t  rule_list_offs = 0;
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: interp=%s, interp_arg=%s policy=%s ", __func__,
 		interpreter, (interp_arg?interp_arg:""), exec_policy_name);
@@ -91,5 +91,3 @@ int exec_map_script_interpreter(
          * use ordinary path mapping to find it */
 	return(2);
 }
-
-

@@ -62,7 +62,7 @@ ruletree_object_offset_t add_exec_preprocessing_rule_to_ruletree(
 	ruletree_exec_preprocessing_rule_t new_rule;
 
 	memset(&new_rule, 0, sizeof(new_rule));
-	
+
 	if (binary_name) {
 		new_rule.rtree_xpr_binary_name_offs = append_string_to_ruletree_file(binary_name);
 	}
@@ -78,9 +78,9 @@ ruletree_object_offset_t add_exec_preprocessing_rule_to_ruletree(
 
 	rule_location = append_struct_to_ruletree_file(&new_rule, sizeof(new_rule),
 		SB2_RULETREE_OBJECT_TYPE_EXEC_PP_RULE);
-	
+
 	SB_LOG(SB_LOGLEVEL_DEBUG,
-		"Added exec preprocessing rule: %s @ %u",
+		"Added exec preprocessing rule: %s @ %" PRI_SB_RTOO,
 			binary_name, rule_location);
 
 	return(rule_location);
@@ -96,7 +96,7 @@ ruletree_object_offset_t add_exec_policy_selection_rule_to_ruletree(
 	ruletree_exec_policy_selection_rule_t new_rule;
 
 	memset(&new_rule, 0, sizeof(new_rule));
-	
+
 	new_rule.rtree_xps_type = ruletype;
 	new_rule.rtree_xps_flags = flags;
 	if (selector) {
@@ -108,11 +108,10 @@ ruletree_object_offset_t add_exec_policy_selection_rule_to_ruletree(
 
 	rule_location = append_struct_to_ruletree_file(&new_rule, sizeof(new_rule),
 		SB2_RULETREE_OBJECT_TYPE_EXEC_SEL_RULE);
-	
+
 	SB_LOG(SB_LOGLEVEL_DEBUG,
-		"Added exec policy selection rule @ %u",
+		"Added exec policy selection rule @ %" PRI_SB_RTOO,
 			rule_location);
 
 	return(rule_location);
 }
-

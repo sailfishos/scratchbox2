@@ -76,16 +76,19 @@ void *offset_to_ruletree_object_ptr(ruletree_object_offset_t offs, uint32_t requ
 	ruletree_object_hdr_t	*hdrp = offset_to_raw_ruletree_ptr(offs);
 
 	if (!hdrp) {
-		SB_LOG(SB_LOGLEVEL_NOISE3, "%s: no hdrp @%u", __func__, offs);
+		SB_LOG(SB_LOGLEVEL_NOISE3, "%s: no hdrp @%" PRI_SB_RTOO,
+		       __func__, offs);
 		return(NULL);
 	}
 	if (hdrp->rtree_obj_magic != SB2_RULETREE_MAGIC) {
-		SB_LOG(SB_LOGLEVEL_NOISE3, "%s: wrong magic 0x%X @%u", __func__,
-			hdrp->rtree_obj_magic, offs);
+		SB_LOG(SB_LOGLEVEL_NOISE3,
+		       "%s: wrong magic 0x%X @%" PRI_SB_RTOO,
+		       __func__, hdrp->rtree_obj_magic, offs);
 		return(NULL);
 	}
 	if (required_type && (required_type != hdrp->rtree_obj_type)) {
-		SB_LOG(SB_LOGLEVEL_NOISE3, "%s: wrong type (req=0x%X, was 0x%X, @%u)",
+		SB_LOG(SB_LOGLEVEL_NOISE3,
+		       "%s: wrong type (req=0x%X, was 0x%X, @%" PRI_SB_RTOO ")",
 			__func__, required_type, hdrp->rtree_obj_type, offs);
 		return(NULL);
 	}
@@ -389,7 +392,9 @@ int ruletree_objectlist_set_item(
 	ruletree_objectlist_t		*listhdr;
 	ruletree_object_offset_t	*a;
 
-	SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_objectlist_set_item(%d,%d,%d)", list_offs, n, value);
+	SB_LOG(SB_LOGLEVEL_NOISE, "ruletree_objectlist_set_item("
+	       "%" PRI_SB_RTOO ",%" PRIu32 ",%" PRI_SB_RTOO ")",
+	       list_offs, n, value);
 	if (!ruletree_ctx.rtree_ruletree_hdr_p) return (-1);
 	listhdr = offset_to_ruletree_object_ptr(list_offs,
 		SB2_RULETREE_OBJECT_TYPE_OBJECTLIST);
@@ -907,7 +912,7 @@ static ruletree_object_offset_t ruletree_find_catalog_entry(
 	}
 
 	SB_LOG(SB_LOGLEVEL_NOISE3,
-		"ruletree_find_catalog_entry from catalog @ %u)", catalog_offs);
+		"ruletree_find_catalog_entry from catalog @ %" PRI_SB_RTOO ")", catalog_offs);
 	entry_location = catalog_offs;
 	name_len = strlen(name);
 
@@ -925,7 +930,7 @@ static ruletree_object_offset_t ruletree_find_catalog_entry(
 		    !strcmp(name, entry_name)) {
 			/* found! */
 			SB_LOG(SB_LOGLEVEL_NOISE3,
-				"Found entry '%s' @ %u)", name, entry_location);
+				"Found entry '%s' @ %" PRI_SB_RTOO ")", name, entry_location);
 			*entry_ptr = ep;
 			return(entry_location);
 		}
@@ -1235,7 +1240,7 @@ ruletree_object_offset_t add_net_rule_to_ruletree(
 	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: ", __func__);
 	rule_location = append_struct_to_ruletree_file(rule, sizeof(*rule),
                 SB2_RULETREE_OBJECT_TYPE_NET_RULE);
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: done, @%u", __func__, rule_location);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: done, @%" PRI_SB_RTOO , __func__, rule_location);
         return(rule_location);
 }
 

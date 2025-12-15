@@ -67,7 +67,7 @@ static int add_elements_to_argv(
 
 		str_offs = ruletree_objectlist_get_item(add_tbl_offs, j);
 		str = offset_to_ruletree_string_ptr(str_offs, NULL);
-		
+
 		argv[add_idx] = strdup(str);
 		SB_LOG(SB_LOGLEVEL_NOISE,
 			"%s: add from %s to argv[%d] = '%s'",
@@ -163,7 +163,7 @@ static ruletree_exec_preprocessing_rule_t *find_exec_preprocessing_rule(
 				if (execpp_rule->rtree_xpr_binary_name_offs) {
 					const char *rule_bin_name;
 					uint32_t rule_bin_name_len;
-					
+
 					rule_bin_name = offset_to_ruletree_string_ptr(
 						execpp_rule->rtree_xpr_binary_name_offs,
 						&rule_bin_name_len);
@@ -219,7 +219,7 @@ int apply_exec_preprocessing_rules(char **file, char ***argv, char ***envp)
 				(use_gcc_rules ? "gcc" : "misc"));
 
 			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"%s: argvmods rules @%u, use_gcc_rules=%d",
+				"%s: argvmods rules @%" PRI_SB_RTOO ", use_gcc_rules=%d",
 				__func__, argvmods_rules_offs, use_gcc_rules);
                 }
 	}
@@ -387,4 +387,3 @@ int apply_exec_preprocessing_rules(char **file, char ***argv, char ***envp)
 
 	return(0);
 }
-

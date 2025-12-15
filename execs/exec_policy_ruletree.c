@@ -37,7 +37,7 @@ exec_policy_handle_t     find_exec_policy_handle(const char *policyname)
 
 	eph.exec_policy_offset = ruletree_catalog_vget(v);
 	SB_LOG(SB_LOGLEVEL_DEBUG,
-		"%s: Handle for (%s,%s) = %u", __func__,
+		"%s: Handle for (%s,%s) = %" PRI_SB_RTOO , __func__,
 		v[1], v[2], eph.exec_policy_offset);
 	return(eph);
 }
@@ -75,7 +75,7 @@ int exec_policy_get_boolean(exec_policy_handle_t eph,
 			eph.exec_policy_offset, b_name);
 		uip = ruletree_get_pointer_to_boolean(offs);
                 SB_LOG(SB_LOGLEVEL_NOISE,
-                        "%s: @%u = *%p = %d o=%zu",
+                        "%s: @%" PRI_SB_RTOO " = *%p = %d o=%zu",
 			__func__, offs, uip, (uip ? *uip : 999), fldoffs);
                 return(uip ? * uip : 0);
 	}
@@ -93,7 +93,7 @@ int exec_policy_get_uint32(exec_policy_handle_t eph,
 			eph.exec_policy_offset, u_name);
 		uip = ruletree_get_pointer_to_uint32(offs);
 		SB_LOG(SB_LOGLEVEL_NOISE,
-			"%s: @%u = *%p = %u o=%zu",
+			"%s: @%" PRI_SB_RTOO " = *%p = %" PRIu32 " o=%zu",
 			__func__, offs, uip, (uip ? *uip : 0), fldoffs);
 		return(uip ? *uip : 0);
 	}
@@ -109,7 +109,7 @@ ruletree_object_offset_t exec_policy_get_rules(exec_policy_handle_t eph,
 		offs = ruletree_catalog_find_value_from_catalog(
 			eph.exec_policy_offset, r_name);
                 SB_LOG(SB_LOGLEVEL_NOISE,
-                        "%s: @%u o=%zu", __func__, offs, fldoffs);
+                        "%s: @%" PRI_SB_RTOO " o=%zu", __func__, offs, fldoffs);
                 return(offs);
 	}
 	return(0);

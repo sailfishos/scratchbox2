@@ -150,7 +150,7 @@ char *custom_map_abstract_path(
 		rule_list_offs, &ctx, &abs_virtual_source_path_list,
 		&min_path_len, NULL/*call_translate_for_all_p*/,
 		SB2_INTERFACE_CLASS_EXEC);
-	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: rule_offs = %u", __func__, rule_offs);
+	SB_LOG(SB_LOGLEVEL_DEBUG, "%s: rule_offs = %" PRI_SB_RTOO, __func__, rule_offs);
 
 	if (rule_offs) {
 		const char 	*errormsg = NULL;
@@ -300,7 +300,7 @@ end:
 	res->mres_readonly = 0;
 }
 
-/* this maps the path and then leaves "rule" and "exec_policy" to the stack, 
+/* this maps the path and then leaves "rule" and "exec_policy" to the stack,
  * because exec post-processing needs them
 */
 void sbox_map_path_for_exec(
@@ -355,4 +355,3 @@ void	force_path_to_mapping_result(mapping_results_t *res, const char *path)
 	res->mres_virtual_cwd = NULL;
 	res->mres_errno = 0;
 }
-

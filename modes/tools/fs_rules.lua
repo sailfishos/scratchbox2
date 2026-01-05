@@ -18,7 +18,7 @@ end
 -- that happens to be the root directory.
 if sbox_workdir == "/" then
 	-- FIXME. There should be a way to skip a rule...
-	unmapped_workdir = "/XXXXXX" 
+	unmapped_workdir = "/XXXXXX"
 else
 	unmapped_workdir = sbox_workdir
 end
@@ -27,7 +27,7 @@ end
 -- location (our dpkg-checkbuilddeps wrapper needs that)
 var_lib_dpkg_status_actions = {
 	{ if_env_var_is_not_empty = "SBOX_TOOLS_MODE_VAR_LIB_DPKG_STATUS_LOCATION",
-	  replace_by_value_of_env_var = "SBOX_TOOLS_MODE_VAR_LIB_DPKG_STATUS_LOCATION", 
+	  replace_by_value_of_env_var = "SBOX_TOOLS_MODE_VAR_LIB_DPKG_STATUS_LOCATION",
 	  protection = readonly_fs_if_not_root},
 
 	-- Else use the default location
@@ -45,6 +45,8 @@ tools_in_subdir_mapping_rules = {
 		 readonly = true},
 		{dir = "/usr/lib/libsb2", use_orig_path = true,
 		 readonly = true},
+		{dir = "/usr/lib64/libsb2", use_orig_path = true,
+		 protection = readonly_fs_always},
 
 		-- tools_root should not be mapped twice.
 		{prefix = tools_root, use_orig_path = true, readonly = true},
@@ -94,7 +96,7 @@ tools_in_subdir_mapping_rules = {
 
 		-- -----------------------------------------------
 
-		-- "policy-rc.d" checks if scratchbox-version exists, 
+		-- "policy-rc.d" checks if scratchbox-version exists,
 		-- to detect if it is running inside scratchbox..
 		{prefix = "/scratchbox/etc/scratchbox-version",
 		 replace_by = "/usr/share/scratchbox2/version",

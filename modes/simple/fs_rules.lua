@@ -22,6 +22,9 @@ simple_rules_usr = {
 		 use_orig_path = true, readonly = true},
 		{dir = "/usr/lib/libsb2", use_orig_path = true,
 		 readonly = true},
+		{dir = "/usr/lib64/libsb2", use_orig_path = true,
+		 protection = readonly_fs_always},
+
 
 		-- Qemu only:
 		{binary_name = qemu_binary_name,
@@ -99,4 +102,3 @@ fs_mapping_rules = {
 		{path = "/", use_orig_path = true},
 		{prefix = "/", map_to = tools}
 }
-

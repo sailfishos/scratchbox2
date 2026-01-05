@@ -21,7 +21,7 @@ end
 -- that happens to be the root directory.
 if sbox_workdir == "/" then
 	-- FIXME. There should be a way to skip a rule...
-	unmapped_workdir = "/XXXXXX" 
+	unmapped_workdir = "/XXXXXX"
 else
 	unmapped_workdir = sbox_workdir
 end
@@ -200,6 +200,9 @@ emulate_mode_rules_usr = {
 		-- /usr/lib/libsb2/wrappers/*, etc.
 		{dir = "/usr/lib/libsb2", use_orig_path = true,
 		 protection = readonly_fs_always},
+		-- same for lib64
+		{dir = "/usr/lib64/libsb2", use_orig_path = true,
+		 protection = readonly_fs_always},
 
 		{dir = "/usr/lib/gcc", actions = test_first_tools_then_target_default_is_tools},
 
@@ -271,7 +274,7 @@ emulate_mode_rules_scratchbox1 = {
 		{ dir = "/targets", map_to = sb1_compat_dir,
 		  protection = readonly_fs_if_not_root},
 
-		-- "policy-rc.d" checks if scratchbox-version exists, 
+		-- "policy-rc.d" checks if scratchbox-version exists,
 		-- to detect if it is running inside scratchbox..
 		{prefix = "/scratchbox/etc/scratchbox-version",
 		 replace_by = "/usr/share/scratchbox2/version",
@@ -325,12 +328,12 @@ emulate_mode_rules = {
 		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
 		 protection = readonly_fs_always},
 
-		-- 
+		--
 		-- Scratchbox 1 compatibility rules:
 		{dir = "/scratchbox", rules = emulate_mode_rules_scratchbox1},
 		{dir = "/targets", rules = emulate_mode_rules_scratchbox1},
 
-		-- 
+		--
 		{prefix = "/tmp", replace_by = tmp_dir_dest},
 
 		{dir = "/dev", rules = import_from_fs_rule_library("dev")},
@@ -399,4 +402,3 @@ else
         -- No tools_root.
 	fs_mapping_rules = emulate_mode_rules
 end
-

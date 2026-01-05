@@ -3,7 +3,7 @@
 -- Copyright (c) 2009 Nokia Corporation.
 -- Licensed under MIT license.
 --
--- "accel" mode = build accelerator mode, to be used for software 
+-- "accel" mode = build accelerator mode, to be used for software
 -- development & building when the rootstrap and the tools are "twins":
 -- Built from the same sources, but tools contains native binaries while
 -- the rootstrap contains target binaries.
@@ -157,7 +157,7 @@ devel_mode_rules_bin = {
 
 		{path = "/bin/ps",
 		 use_orig_path = true, readonly = true},
-	
+
 		-- "pwd" from "coreutils" uses a built-in replacement
 		-- for getcwd(), which does not work with sb2, because
 		-- the path mapping means that ".." does not necessarily
@@ -231,15 +231,15 @@ devel_mode_rules_usr_bin = {
 		{path = "/usr/bin/localedef", map_to = target_root,
 		 readonly = true},
 
-		-- "chrpath" comes from target, too, but we haven't 
+		-- "chrpath" comes from target, too, but we haven't
 		-- verified what happens if it was used from tools.
 		{path = "/usr/bin/chrpath", map_to = target_root,
 		 readonly = true},
 
 		-- 19. perl & python:
 		-- 	processing depends on SBOX_REDIRECT_IGNORE,
-		--	SBOX_REDIRECT_FORCE and 
-		--	name of the current exec policy. 
+		--	SBOX_REDIRECT_FORCE and
+		--	name of the current exec policy.
 		--	(these are real prefixes, version number may
 		--	be included in the name (/usr/bin/python2.5 etc))
 		{prefix = "/usr/bin/perl", actions = perl_bin_test},
@@ -281,6 +281,10 @@ devel_mode_rules_usr_lib = {
 
 		-- wrappers etc.
 		{dir = "/usr/lib/libsb2", force_orig_path = true},
+		-- same for lib64
+		{dir = "/usr/lib64/libsb2", use_orig_path = true,
+		 protection = readonly_fs_always},
+
 
 		-- If a program from tools loads plugins,
 		-- they should be dlopened from tools as well.
@@ -466,7 +470,7 @@ devel_mode_rules_scratchbox1 = {
 		 log_level = "warning",
 		 readonly = true, virtual_path = true},
 
-		-- "policy-rc.d" checks if scratchbox-version exists, 
+		-- "policy-rc.d" checks if scratchbox-version exists,
 		-- to detect if it is running inside scratchbox..
 		{prefix = "/scratchbox/etc/scratchbox-version",
 		 replace_by = "/usr/share/scratchbox2/version",
@@ -537,7 +541,7 @@ fs_mapping_rules = {
 		-- -----------------------------------------------
 		-- 30. /lib/*
 
-		-- 
+		--
 		-- terminfo search path is by default:
 		-- /etc/terminfo, /lib/terminfo and /usr/share/terminfo
 		-- we map these depending on active exec policy.
@@ -610,4 +614,3 @@ fs_mapping_rules = {
 		-- Default = Host, R/W access
 		{prefix = "/", use_orig_path = true}
 }
-

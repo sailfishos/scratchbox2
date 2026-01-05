@@ -153,7 +153,7 @@ emulate_mode_rules_bin = {
 		 func_class = FUNC_CLASS_EXEC,
 		 actions = accelerated_program_actions},
 		-- end of rpm rules
-		
+
 		{name = "/bin default rule", dir = "/bin", map_to = target_root,
 		 protection = readonly_fs_if_not_root}
 }
@@ -367,7 +367,7 @@ emulate_mode_rules_usr_bin = {
 		 actions=accelerated_program_actions},
 		{path="/usr/bin/yes",
 		 actions=accelerated_program_actions},
-		 
+
 		{path="/usr/bin/localedef",
 		 func_class = FUNC_CLASS_EXEC,
 		 actions=accelerated_program_actions},
@@ -487,6 +487,9 @@ emulate_mode_rules_usr = {
 		-- /usr/lib/libsb2/wrappers/*, etc.
 		{dir = "/usr/lib/libsb2", use_orig_path = true,
 		 protection = readonly_fs_always},
+		-- same for lib64
+		{dir = "/usr/lib64/libsb2", use_orig_path = true,
+		 protection = readonly_fs_always},
 
 		{dir = "/usr/lib/gcc", actions = test_first_tools_then_target_default_is_tools},
 
@@ -573,7 +576,7 @@ emulate_mode_rules_home = {
 
 emulate_mode_rules_opt = {
 		-- for rpmlint:
-		{dir = "/opt/testing", 
+		{dir = "/opt/testing",
 		 actions = test_first_tools_then_target_default_is_tools},
 		--
 
@@ -616,7 +619,7 @@ emulate_mode_rules = {
 		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
 		 protection = readonly_fs_always},
 
-		-- 
+		--
 		{dir = "/tmp", replace_by = tmp_dir_dest},
 
 		{dir = "/dev", rules = import_from_fs_rule_library("dev")},
@@ -689,4 +692,3 @@ else
         -- No tools_root.
 	fs_mapping_rules = emulate_mode_rules
 end
-

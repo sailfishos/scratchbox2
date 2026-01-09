@@ -92,6 +92,16 @@
 
 #include "pathmapping.h" /* get private definitions of this subsystem */
 
+/* shallow_copy_ctx(), helper function to make a non-const shallow copy
+ * of a const path_mapping_context_t pointer data.
+ */
+path_mapping_context_t shallow_copy_ctx(const path_mapping_context_t *ctx);
+path_mapping_context_t shallow_copy_ctx(const path_mapping_context_t *ctx) {
+    path_mapping_context_t *ctx2 = ((path_mapping_context_t *)ctx);
+    path_mapping_context_t ctx_copy = *ctx2;
+    return ctx_copy;
+}
+
 /* remove_dots_from_path_list(), "easy" path cleaning:
  * - all dots, i.e. "." as components, can be safely removed,
  *   BUT if the last component is a dot, then the path will be
@@ -176,14 +186,13 @@ int clean_dotdots_from_path(
 {
 	struct path_entry *work;
 	int	path_has_nontrivial_dotdots = 0;
-	path_mapping_context_t ctx2;
 
 	/* Don't propagate pmc_dont_resolve_final_symlink flag
 	 * to further recursive path resolution:
 	 * we need to resolve final symlink before ".." component.
 	 * Also, path before ".." must be an existing directory.
 	 */
-	ctx2 = *ctx;
+	path_mapping_context_t ctx2 = shallow_copy_ctx(ctx);
 	ctx2.pmc_dont_resolve_final_symlink = 0;
 	ctx2.pmc_file_must_exist = 1;
 	ctx2.pmc_must_be_directory = 1;
@@ -442,7 +451,6 @@ static ruletree_object_offset_t sb_path_resolution(
 	int	call_translate_for_all = 0;
 	int	abs_virtual_source_path_has_trailing_slash;
 	ruletree_object_offset_t	rule_offs = 0;
-	path_mapping_context_t		ctx2;
 
 	if (!abs_virtual_clean_source_path_list) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
@@ -508,7 +516,7 @@ static ruletree_object_offset_t sb_path_resolution(
 		}
 	}
 	/* switch to a new context structure. */
-	ctx2 = *ctx;
+	path_mapping_context_t ctx2 = shallow_copy_ctx(ctx);
 	ctx2.pmc_ruletree_offset = rule_offs;
 	ctx = &ctx2;
 
@@ -539,7 +547,7 @@ static ruletree_object_offset_t sb_path_resolution(
 	/* (the source path is clean.) */
 	{
 		char	*clean_virtual_path_prefix_tmp = NULL;
-		path_mapping_context_t	ctx_copy = *ctx;
+		path_mapping_context_t ctx_copy = shallow_copy_ctx(ctx);
 		const char *errormsg = NULL;
 
 		ctx_copy.pmc_binary_name = "PATH_RESOLUTION";
@@ -719,7 +727,7 @@ static ruletree_object_offset_t sb_path_resolution(
 				 * not at the prefix...
 				*/
 				char *virtual_path_prefix_to_map;
-				path_mapping_context_t	ctx_copy = *ctx;
+				path_mapping_context_t ctx_copy = shallow_copy_ctx(ctx);
 				const char *errormsg = NULL;
 
 				ctx_copy.pmc_binary_name = "PATH_RESOLUTION/2";
@@ -1556,7 +1564,7 @@ char *sbox_reverse_path_internal__c_engine(
         if (rule_offs != 0) {
 		int result_flags = 0;
 		const char *exec_policy_name = NULL;
-		path_mapping_context_t  ctx2 = *ctx;
+		path_mapping_context_t ctx2 = shallow_copy_ctx(ctx);
 
 		ctx2.pmc_ruletree_offset = rule_offs;
 

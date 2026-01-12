@@ -1,0 +1,23 @@
+#+TITLE: Notes to improve test cases
+
+* TODO Take libsb2 from build root
+  :PROPERTIES:
+  :CREATED:  [2026-01-12 Mon 20:21]
+  :END:
+  Either via a custom sb2 script or on an option in the script.
+
+* TODO Create temporary target to avoid possible errors
+  :PROPERTIES:
+  :CREATED:  [2026-01-12 Mon 20:22]
+  :END:
+
+* TODO Run test with makefile/test-suite
+  :PROPERTIES:
+  :CREATED:  [2026-01-12 Mon 20:22]
+  :END:
+
+* Useful links
+  :PROPERTIES:
+  :CREATED:  [2026-01-12 Mon 22:18]
+  :END:
+  - [[https://www.pixelbeat.org/docs/coreutils-testing.html][How the GNU coreutils are tested]]

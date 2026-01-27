@@ -40,6 +40,7 @@ PKG_CHECK_VAR(LUA_LIBDIR, [lua], [libdir],
 
 # Checks for header files.
 AC_HEADER_DIRENT
+AC_STRUCT_DIRENT_D_TYPE
 AC_CHECK_HEADERS([ \
 fcntl.h \
 fts.h \

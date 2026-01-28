@@ -301,7 +301,7 @@ static int diff_strvecs(char **orig_vec, char **new_vec,
 				printf("%15s: %s\n", "unmodified", *op);
 			op++, np++;
 		} else {
-			const char *cp = strchr(*op,'=');
+			char *cp = strchr(*op,'=');
 			int namelen = 0;
 
 			if (cp) namelen = cp - *op;

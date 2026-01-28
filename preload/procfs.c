@@ -164,7 +164,7 @@ static char *symlink_for_exe_path(
 	mkdir_nomap_nolog(pathbuf, 0755);
 
 	for (cp=exe_path; cp && *cp; ) {
-		char	*next_slash = strchr(cp+1, '/');
+		const char *next_slash = strchr(cp+1, '/');
 
 		/* This algorithm is not too efficient (first copies
 		 * everything, then cuts it), but usually "exe_path"

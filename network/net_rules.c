@@ -61,7 +61,7 @@ static int compare_ipv4_addrs(const char *address, const char *address_pattern)
 	 * - "1.2.3.0/24" requires that the network part matches.
 	*/
 	if (isdigit(*address_pattern)) {
-		char *s_mask = NULL;
+		const char *s_mask = NULL;
 
 		s_mask = strchr(address_pattern, '/');
 		if (s_mask) {
@@ -143,7 +143,7 @@ static int compare_ipv6_addrs(const char *address, const char *address_pattern)
 		 * - "3fff:ffff:8:9" requires an exact match
 		 * - "3fff:ffff::8:9/32" requires that the network part matches.
 		*/
-		char *s_mask = NULL;
+		const char *s_mask = NULL;
 
 		s_mask = strchr(address_pattern, '/');
 		if (s_mask) {

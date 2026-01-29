@@ -54,7 +54,7 @@ static uid_t	v_real_egid = 0;
 
 static void initialize_simulated_ids(void)
 {
-	const char	*cp;
+	char	*cp;
 	int		i1,i2,i3,i4;
 
 	if (vperm_simulated_ids.initialized) return;

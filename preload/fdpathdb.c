@@ -182,8 +182,22 @@ static void fdpathdb_register_mapping_result(const char *realfnname,
 
 		if (res->mres_virtual_cwd) {
 			/* good, virtual CWD is available */
-			if(asprintf(&abs_virtual_path, "%s/%s",
-			    res->mres_virtual_cwd, pathname) < 0) {
+
+			if(*pathname && !strcmp(pathname,".")) {
+				/* Don't append '/.' after the already expanded path.
+				 * '.' --> '/path/to/here' is correct
+				 * '.' --> '/path/to/here/.' is wrong
+				 */
+				SB_LOG(SB_LOGLEVEL_NOISE,
+					"fdpathdb_register_mapping_result:"
+					" not appending '/.'");
+				if(asprintf(&abs_virtual_path, "%s",
+					res->mres_virtual_cwd) < 0) {
+					/* asprintf failed */
+					abort();
+				}
+			} else if(asprintf(&abs_virtual_path, "%s/%s",
+				res->mres_virtual_cwd, pathname) < 0) {
 				/* asprintf failed */
 				abort();
 			}

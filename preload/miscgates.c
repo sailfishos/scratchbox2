@@ -356,14 +356,17 @@ static char *check_and_prepare_glob_pattern(
 	 * log the mapped pattern (NOTICE level) if it was mapped
 	*/
 	if (*pattern == '/') { /* if absolute path in pattern.. */
-		mapped__pattern = sbox_map_path(realfnname, pattern,
-			NULL/*RO-flag*/, 0/*flags*/,
+		mapping_results_t res;
+
+		clear_mapping_results_struct(&res);
+		sbox_map_path(realfnname, pattern,
+			0/*flags*/, &res,
 			SB2_INTERFACE_CLASS_GLOB);
-		if (!strcmp(mapped__pattern, pattern)) {
-			/* no change */
-			free(mapped__pattern);
-			return(NULL);
+		if (!strcmp(res.mres_result_path, pattern)) {
+			/* Mapped OK */
+			mapped__pattern = strdup(res.mres_result_path);
 		}
+		free_mapping_results(&res);
 		SB_LOG(SB_LOGLEVEL_NOTICE, "%s: mapped pattern '%s' => '%s'",
 			realfnname, pattern, mapped__pattern);
 	}
@@ -378,6 +381,7 @@ static char *check_and_prepare_glob_pattern(
  *         0 if it isn't,
  *        -1 if the testing failed (may or may not be in glibc)
 */
+#ifndef SB2_WRAP_GLOB
 static int test_if_address_is_in_glibc(const char *sym_name, void *ptr)
 {
 	Dl_info	dli;
@@ -439,16 +443,6 @@ int glob_gate(
 	glob_t *pglob)
 {
 	int rc;
-#ifdef SB2_WRAP_GLOB
-	char *mapped__pattern;
-
-	mapped__pattern = check_and_prepare_glob_pattern(realfnname, pattern);
-	errno = *result_errno_ptr; /* restore to orig.value */
-	rc = (*real_glob_ptr)(mapped__pattern ? mapped__pattern : pattern,
-		flags, errfunc, pglob);
-	*result_errno_ptr = errno;
-	if (mapped__pattern) free(mapped__pattern);
-#else
 	unsigned int	i;
 
 	if (test_if_address_is_in_glibc(realfnname, real_glob_ptr) == 0) {
@@ -478,7 +472,6 @@ int glob_gate(
 		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: [%d='%s']",
 			realfnname, i, cp ? cp : "<NULL>");
 	}
-#endif
 	
 	return rc;
 }
@@ -495,16 +488,6 @@ int glob64_gate(
 	glob64_t *pglob)
 {
 	int rc;
-#ifdef SB2_WRAP_GLOB
-	char *mapped__pattern;
-
-	mapped__pattern = check_and_prepare_glob_pattern(realfnname, pattern);
-	errno = *result_errno_ptr; /* restore to orig.value */
-	rc = (*real_glob64_ptr)(mapped__pattern ? mapped__pattern : pattern,
-		flags, errfunc, pglob);
-	*result_errno_ptr = errno;
-	if (mapped__pattern) free(mapped__pattern);
-#else
 	unsigned int i;
 
 	if (test_if_address_is_in_glibc(realfnname, real_glob64_ptr) == 0) {
@@ -517,7 +500,6 @@ int glob64_gate(
 		SB_LOG(SB_LOGLEVEL_INFO, "%s: using the real function", realfnname);
 		rc = (*real_glob64_ptr)(pattern, flags, errfunc, pglob);
 		*result_errno_ptr = errno;
-		return(rc);
 	}
 	/* else glob64() needs to be replaced;
 	 * use a modified copy (copied from glibc) */
@@ -534,12 +516,61 @@ int glob64_gate(
 		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: [%d='%s']",
 			realfnname, i, cp ? cp : "<NULL>");
 	}
-#endif
 
 	return rc;
 }
 #endif
+#endif
 
+#ifdef SB2_WRAP_GLOB
+int glob_gate(
+	int *result_errno_ptr,
+	int (*real_glob_ptr)(const char *pattern, int flags,
+		int (*errfunc) (const char *,int), glob_t *pglob),
+	const char *realfnname,
+	const char *pattern, /* has been mapped */
+	int flags,
+	int (*errfunc) (const char *,int),
+	glob_t *pglob)
+{
+	int rc;
+	char *mapped__pattern;
+
+	mapped__pattern = check_and_prepare_glob_pattern(realfnname, pattern);
+	errno = *result_errno_ptr; /* restore to orig.value */
+	rc = (*real_glob_ptr)(mapped__pattern ? mapped__pattern : pattern,
+		flags, errfunc, pglob);
+	*result_errno_ptr = errno;
+	if (mapped__pattern) free(mapped__pattern);
+
+	return rc;
+}
+
+#ifdef HAVE_GLOB64
+int glob64_gate(
+	int *result_errno_ptr,
+	int (*real_glob64_ptr)(const char *pattern,
+		int flags, int (*errfunc) (const char *,int), glob64_t *pglob),
+	const char *realfnname,
+	const char *pattern, /* has been mapped */
+	int flags,
+	int (*errfunc) (const char *,int),
+	glob64_t *pglob)
+{
+	int rc;
+	char *mapped__pattern;
+
+	mapped__pattern = check_and_prepare_glob_pattern(realfnname, pattern);
+	errno = *result_errno_ptr; /* restore to orig.value */
+	rc = (*real_glob64_ptr)(mapped__pattern ? mapped__pattern : pattern,
+		flags, errfunc, pglob);
+	*result_errno_ptr = errno;
+	if (mapped__pattern) free(mapped__pattern);
+
+	return rc;
+}
+#endif
+#endif
 
 int uname_gate(
 	int *result_errno_ptr,

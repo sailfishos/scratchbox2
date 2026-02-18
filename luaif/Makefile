@@ -12,8 +12,5 @@ luaif/libluaif.a: override LDFLAGS := $(LDFLAGS)
 luaif/libluaif.a: override LIBS := $(LUA_LIBS)
 
 
-luaif/sb_log.o: $(OBJDIR)/include/scratchbox2_version.h
-
-
 targets := $(targets) $(D)/libluaif.a
 

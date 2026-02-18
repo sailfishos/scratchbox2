@@ -59,13 +59,13 @@ $(D)/sb2-interp-wrapper: $(D)/sb2-interp-wrapper.o preload/libsb2.$(SHLIBEXT)
 	$(P)LD
 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ldl
 
-scripts = \
-	sb2 \
-	sb2-config \
-	sb2-config-gcc-toolchain \
-	sb2-init \
-	sb2-upgrade-config
+scripts = $(call O, \
+		sb2 \
+		sb2-config \
+		sb2-config-gcc-toolchain \
+		sb2-init \
+		sb2-upgrade-config)
 
+$(scripts): SEDFLAGS := -e's|@LIBSB2_SONAME[@]|$(LIBSB2_SONAME)|g'
 
-
-targets := $(targets) $(D)/sb2-show $(D)/sb2-monitor $(D)/sb2-ruletree $(call O,$(scripts))
+targets := $(targets) $(D)/sb2-show $(D)/sb2-monitor $(D)/sb2-ruletree $(scripts)

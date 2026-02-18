@@ -5,7 +5,7 @@
 # "sb2" script, the command-line interface to Scratchbox 2.
 #
 
-SBOX_LIBSB2="libsb2.so.1"
+SBOX_LIBSB2=@LIBSB2_SONAME@
 
 # Show version.
 # (called to process a command-line option)
@@ -923,7 +923,7 @@ guess_ld_so()
 	printf "$ld_so_conf"
 }
 
-# Locate libsb2.so.1 library which must be used; Several
+# Locate libsb2.so.<sover> library which must be used; Several
 # possible locations are checked. Tools/target need to get the libsb2.so
 # library from a "neutral" place so that it would be possible to
 # upgrade/downgrade any component (tools,target_roots or sb2 itself)
@@ -1164,11 +1164,11 @@ END
 		tools_basename=$(basename $SBOX_TOOLS_ROOT)
 		write_ld_library_path_replacement_to_exec_config \
 			$SBOX_TOOLS_ROOT conf_tools_ld_so_library_path \
-			~/.scratchbox2/libsb2/tools/$target_basename/$library_interface/libsb2.so.1 \
-			~/.scratchbox2/libsb2/tools/$library_interface/libsb2.so.1 \
-			$SBOX_DIR/lib/libsb2/tools/$tools_basename/$library_interface/libsb2.so.1 \
-			$SBOX_DIR/lib/libsb2/tools/$library_interface/libsb2.so.1 \
-			$SBOX_TOOLS_ROOT/usr/lib/libsb2/libsb2.so.1
+			~/.scratchbox2/libsb2/tools/$target_basename/$library_interface/$SBOX_LIBSB2 \
+			~/.scratchbox2/libsb2/tools/$library_interface/$SBOX_LIBSB2 \
+			$SBOX_DIR/lib/libsb2/tools/$tools_basename/$library_interface/$SBOX_LIBSB2 \
+			$SBOX_DIR/lib/libsb2/tools/$library_interface/$SBOX_LIBSB2 \
+			$SBOX_TOOLS_ROOT/usr/lib/libsb2/$SBOX_LIBSB2
 
 		write_libsb2_and_ld_so_state_to_exec_config \
 			$SBOX_TOOLS_ROOT \
@@ -1224,11 +1224,11 @@ END
 
 		write_ld_library_path_replacement_to_exec_config \
 			$SBOX_TARGET_ROOT conf_target_ld_so_library_path \
-			~/.scratchbox2/libsb2/targets/$target_basename/$library_interface/libsb2.so.1 \
-			~/.scratchbox2/libsb2/targets/$library_interface/libsb2.so.1 \
-			$SBOX_DIR/lib/libsb2/targets/$target_basename/$library_interface/libsb2.so.1 \
-			$SBOX_DIR/lib/libsb2/targets/$library_interface/libsb2.so.1 \
-			$SBOX_TARGET_ROOT/usr/lib/libsb2/libsb2.so.1
+			~/.scratchbox2/libsb2/targets/$target_basename/$library_interface/$SBOX_LIBSB2 \
+			~/.scratchbox2/libsb2/targets/$library_interface/$SBOX_LIBSB2 \
+			$SBOX_DIR/lib/libsb2/targets/$target_basename/$library_interface/$SBOX_LIBSB2 \
+			$SBOX_DIR/lib/libsb2/targets/$library_interface/$SBOX_LIBSB2 \
+			$SBOX_TARGET_ROOT/usr/lib/libsb2/$SBOX_LIBSB2
 
 		write_libsb2_and_ld_so_state_to_exec_config \
 			$SBOX_TARGET_ROOT \
@@ -2035,7 +2035,7 @@ SBOX_CONFIG_DIR=$HOME/.scratchbox2/$SBOX_TARGET/sb2.config.d
 
 #
 # We need to start "trampoline" that is run under
-# influence of libsb2.so.1; "sb2-show start" is used for that.
+# influence of libsb2.so.<SOVER>; "sb2-show start" is used for that.
 # The "trampoline" program is halfway in the new session
 # (e.g. exec policy is empty, etc). But when it exec's shell, we can
 # be sure that all mappings and exec rules are in place.

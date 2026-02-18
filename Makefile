@@ -33,7 +33,7 @@ CXX = g++
 LD = ld
 PACKAGE_VERSION =
 PACKAGE_NAME =
-LIBSB2_SONAME = "libsb2.so.1"
+LIBSB2_SONAME =
 LLBUILD ?= $(SRCDIR)/llbuild
 PROTOTYPEWARNINGS=-Wmissing-prototypes -Wstrict-prototypes
 
@@ -135,12 +135,6 @@ $(OBJDIR)/include/config.h: $(OBJDIR)/stamp-h
 $(OBJDIR)/stamp-h: $(SRCDIR)/include/config.h.in $(OBJDIR)/config.status
 	$(OBJDIR)/config.status include/config.h
 	echo > $(OBJDIR)/stamp-h
-
-$(OBJDIR)/include/scratchbox2_version.h: $(OBJDIR)/config.mak
-	mkdir -p $(OBJDIR)/include
-	echo "/* Automatically generated file. Do not edit. */" >$(OBJDIR)/include/scratchbox2_version.h
-	echo '#define SCRATCHBOX2_VERSION "'$(PACKAGE_VERSION)'"' >>$(OBJDIR)/include/scratchbox2_version.h
-	echo '#define LIBSB2_SONAME "'$(LIBSB2_SONAME)'"' >>$(OBJDIR)/include/scratchbox2_version.h
 
 gcc_bins = addr2line ar as cc c++ c++filt cpp g++ gcc gcov gdb gdbtui gprof ld nm objcopy objdump ranlib rdi-stub readelf run size strings strip
 host_prefixed_gcc_bins = $(foreach v,$(gcc_bins),host-$(v))

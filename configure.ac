@@ -239,6 +239,13 @@ freebsd*)
 	;;
 esac
 
+dnl Define the soname of the preloader based of the version set in [AC_INIT]
+AC_DEFUN([SB2_PRELOADER_SONAME],
+	["[lib]m4_tolower(AC_PACKAGE_NAME)[.so.][$(echo ${PACKAGE_VERSION} |cut -d. -f1)]"])
+
+AC_SUBST(LIBSB2_SONAME, SB2_PRELOADER_SONAME)
+AC_DEFINE_UNQUOTED(LIBSB2_SONAME, SB2_PRELOADER_SONAME, AC_PACKAGE_NAME preloader so-name)
+
 AC_C_BIGENDIAN()
 AC_SUBST(WORDS_BIGENDIAN, ${WORDS_BIGENDIAN})
 

@@ -36,6 +36,7 @@ do_subst = sed \
 	-e 's|@bindir[@]|$(bindir)|g' \
 	-e 's|@libdir[@]|$(libdir)|g' \
 	-e 's|@datadir[@]|$(datadir)|g' \
+	$(SEDFLAGS) \
 	-e 's|@configure_input[@]|Generated from $@.sh.in; do not edit by hand.|g'
 
 # a useful function to expand paths

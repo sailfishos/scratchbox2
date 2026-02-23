@@ -35,6 +35,15 @@ BuildArch: noarch
 %description docs
 Scratchbox2 man pages.
 
+%ifarch %{ix86}
+# Workaround crashes in libsb2 for programs compiled with non-default
+# the stack boundary i.e , such as 3.  only happens on x86_32.
+# Examples are: busybox and potentially valgrind.
+# (the latter doesn't work fully in sb2.)
+# Can be removed with GCC 15. See: JB#63809
+%global optflags %(echo %{optflags} | sed 's|-msse2||')
+%endif
+
 %prep
 %autosetup
 # Tell autoconf the package version
@@ -46,16 +55,18 @@ echo %{version} > .tarball-version
 %build
 ./autogen.sh
 # FIXME: switch to vpath macros once we have them
-mkdir -p build
-%global _configure ../configure
+%define build_dir %{_builddir}/build-%{_arch}
+%define source_dir %{_builddir}%{?buildsubdir:/%{buildsubdir}}
+mkdir -p %{build_dir}
+%global _configure %{source_dir}/configure
 (
-    cd build
+    cd %{build_dir}
     %configure
 )
-%make_build -C build -f ../Makefile
+%make_build -C %{build_dir} -f %{source_dir}/Makefile
 
 %install
-%make_install -C build -f ../Makefile
+%make_install -C %{build_dir} -f %{source_dir}/Makefile
 
 install -D -m 644 utils/sb2.bash %{buildroot}/etc/bash_completion.d/sb2.bash
 

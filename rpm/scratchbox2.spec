@@ -5,7 +5,9 @@ Name:		scratchbox2
 Version:	2.3.90+git58
 Release:	0
 Source:		%{name}-%{version}.tar.gz
+%if 0%{?!suse_version:1}
 ExclusiveArch:	%{ix86} %{x86_64} x86_64
+%endif
 BuildRequires:	make
 BuildRequires:	autoconf
 BuildRequires:	pkgconfig(lua)

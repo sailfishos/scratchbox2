@@ -144,6 +144,9 @@
 # define HOST_ELF_MACHINE_64 EM_X86_64
 #elif defined(__ia64__)
 # define HOST_ELF_MACHINE_64 EM_IA_64
+#elif defined(__arm__) || defined(__aarch64__)
+# define HOST_ELF_MACHINE_32 EM_ARM
+# define HOST_ELF_MACHINE_64 EM_AARCH64
 #elif defined(__powerpc__)
 # define HOST_ELF_MACHINE_32 EM_PPC
 #else

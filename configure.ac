@@ -50,6 +50,7 @@ PKG_CHECK_VAR(LUA_LIBDIR, [lua], [libdir],
 AC_HEADER_DIRENT
 AC_STRUCT_DIRENT_D_TYPE
 AC_CHECK_HEADERS([ \
+elf.h \
 fcntl.h \
 fts.h \
 ftw.h \

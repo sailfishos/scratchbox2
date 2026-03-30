@@ -150,10 +150,6 @@
 # error Unsupported host CPU architecture
 #endif
 
-#ifndef EM_AARCH64
-#define EM_AARCH64	183
-#endif
-
 struct target_info {
 	char name[8];
 	uint16_t machine;

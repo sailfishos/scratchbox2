@@ -66,6 +66,8 @@ scripts = $(call O, \
 		sb2-init \
 		sb2-upgrade-config)
 
-$(scripts): SEDFLAGS := -e's|@LIBSB2_SONAME[@]|$(LIBSB2_SONAME)|g'
+$(scripts): SEDFLAGS := -e's|@LIBSB2_SONAME[@]|$(LIBSB2_SONAME)|g' \
+			-e's|@LIBSB2_SOMAJOR[@]|$(LIBSB2_SOMAJOR)|g' \
+			-e's|@LIBSB2_NAME[@]|$(LIBSB2_NAME)|g'
 
 targets := $(targets) $(D)/sb2-show $(D)/sb2-monitor $(D)/sb2-ruletree $(scripts)

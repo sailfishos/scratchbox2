@@ -21,9 +21,9 @@ end
 default_exec_policy = {
 	name = "Default",
 
-	native_app_ld_preload_suffix = host_ld_preload,
+	native_app_ld_preload_suffix = conf_target_ld_preload_libsb2,
 
-	native_app_ld_library_path_prefix = 
+	native_app_ld_library_path_prefix =
 		host_ld_library_path_prefix ..
 		host_ld_library_path_libsb2,
 	native_app_ld_library_path_suffix = host_ld_library_path_suffix,
@@ -34,4 +34,3 @@ default_exec_policy = {
 all_exec_policies = {
 	default_exec_policy,
 }
-

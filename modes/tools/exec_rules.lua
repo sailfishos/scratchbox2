@@ -14,7 +14,7 @@ rule_file_interface_version = "203"
 
 default_exec_policy = {
 	name = "Default",
-	native_app_ld_preload_suffix = host_ld_preload,
+	native_app_ld_preload_suffix = conf_tools_ld_preload_libsb2,
 }
 
 -- For binaries from tools_root:
@@ -69,4 +69,3 @@ all_exec_policies = {
 	exec_policy_tools,
 	default_exec_policy,
 }
-

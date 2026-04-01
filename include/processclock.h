@@ -1,4 +1,5 @@
-/* Copyright (C) 2012 Nokia Corporation.
+/*
+ * SPDX-FileCopyrightText: Copyright (C) 2012 Nokia Corporation.
  * Author: Lauri T. Aarnio
 */
 

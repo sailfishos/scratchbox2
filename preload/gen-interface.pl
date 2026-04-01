@@ -2,8 +2,8 @@
 #
 # gen-wrappers.pl -- an interface generator for scratchbox2 preload library
 #
-# Copyright (C) 2007 Lauri T. Aarnio
-# Copyright (C) 2020 Open Mobile Platform LLC.
+# SPDX-FileCopyrightText: Copyright (C) 2007 Lauri T. Aarnio
+# SPDX-FileCopyrightText: Copyright (C) 2020 Open Mobile Platform LLC.
 #
 #
 # This script is an interface generator for scratchbox 2. Based on

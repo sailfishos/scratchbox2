@@ -5,8 +5,10 @@
 #   version check in load_configuration() of "sb2".
 # - Should not be called directly from the command line!
 #
-# Copyright (C) 2009 Nokia Corporation.
-# Licensed under GPL version 2
+# SPDX-FileCopyrightText: Copyright (c) 2009 Nokia Corporation.
+#
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
 
 SBOX_DATADIR=@datadir@
 SBOX_DIR=@prefix@

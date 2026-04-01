@@ -1,13 +1,13 @@
 /*
- * Copyright (C) 2011 Nokia Corporation.
+ * SPDX-FileCopyrightText: Copyright (C) 2011 Nokia Corporation.
  * Author: Lauri T. Aarnio
  *
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
 /* Rule tree server: Library support routines.
  *
- * the daemon is using the very same logger etc. routines 
+ * the daemon is using the very same logger etc. routines
  * as what are used by the preload library (libsb2),
  * but is executed without libsb2 library (outside of
  * the session)

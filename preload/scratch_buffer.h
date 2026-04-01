@@ -3,6 +3,12 @@
  * added from glibc's include/scratch_buffer.h:
 */
 
+/*
+   SPDX-FileCopyrightText: Copyright (C) 2016-2025 Free Software Foundation, Inc.
+
+   SPDX-License-Identifier: LGPL-2.1-or-later WITH GCC-exception-2.0
+*/
+
 /* Variable-sized buffer with on-stack default allocation.
    Copyright (C) 2015-2025 Free Software Foundation, Inc.
    This file is part of the GNU C Library.

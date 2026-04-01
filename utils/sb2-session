@@ -2,15 +2,17 @@
 #
 # sb2-session - interactive session management for scratchbox2
 #
+# SPDX-FileCopyrightText: Copyright (C) 2009 Mika Westerberg
+#
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
 # This script can be used to save existing sessions even when
 # sb2 was started without specifying '-S' -option.  This is
 # usefull in cases where you have cloned target and installed
 # some packages there and don't want it to go away when you
 # exit sb2.
 #
-# Copyright (C) 2009 Mika Westerberg
-# Licensed under GPL version 2
-#
+
 prog="$0"
 progbase=$(basename $prog)
 session_save_dir="$HOME/.scratchbox2/saved_sessions"

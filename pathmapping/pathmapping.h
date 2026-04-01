@@ -1,11 +1,12 @@
 /*
- * Copyright (C) 2010 Nokia Corporation.
- * Portion Copyright (C) Lauri Leukkunen <lle@rahina.org>
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
- * Author: Lauri T. Aarnio
- *
  * This file contians private defitions and interfaces of sb2's
  * pathmapping subsystem.
+ *
+ * SPDX-FileCopyrightText: Copyright (C) 2010 Nokia Corporation.
+ * SPDX-FileCopyrightText: Portion Copyright (C) Lauri Leukkunen <lle@rahina.org>
+ * Author: Lauri T. Aarnio
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
 #ifndef __PATHMAPPING_INTERNAL_H

@@ -1,11 +1,10 @@
-/* Copyright (c) 2011 Nokia Corporation.
- * Author: Lauri T. Aarnio
- *
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
-*/
-
 /* Fakeroot wrapper: Emulate the "fakeroot" command within
  * SB2 session, by using SB2's features.
+ *
+ * SPDX-FileCopyrightText: Copyright (c) 2011 Nokia Corporation.
+ * Author: Lauri T. Aarnio
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
 #include <config.h>

@@ -1,5 +1,7 @@
--- Copyright (C) 2012 Nokia Corporation.
--- Licensed under MIT license.
+--
+-- SPDX-FileCopyrightText:  Copyright (C) 2012 Nokia Corporation.
+-- SPDX-License-Identifier: MIT
+--
 
 -- Rule file interface version, mandatory.
 --

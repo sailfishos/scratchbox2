@@ -1,9 +1,11 @@
 #!/bin/bash
 # sb2-config-debian - configure Debian build settings for SB2
 #
-# Copyright (c) 2009 Nokia Corporation.
-# Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
-# Licensed under GPL version 2
+# SPDX-FileCopyrightText: Copyright (c) 2009 Nokia Corporation.
+# SPDX-FileCopyrightText: Copyright (c) 2007 Lauri Leukkunen <lle@rahina.org>
+#
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
 
 # NOTE: sb2-upgrade-config may call this before a new config has
 # been stamped, so "sb2" must be invoked with "-u" always from

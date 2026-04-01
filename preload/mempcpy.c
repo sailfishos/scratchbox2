@@ -1,4 +1,10 @@
 /*
+   SPDX-FileCopyrightText: Copyright (C) 2003,2004 Free Software Foundation, Inc.
+
+   SPDX-License-Identifier: LGPL-2.1-or-later WITH GCC-exception-2.0
+*/
+
+/*
 FUNCTION
         <<mempcpy>>---copy memory regions and return end pointer
 

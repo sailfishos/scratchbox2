@@ -1,8 +1,8 @@
 /*
- * Copyright (C) 2012 Nokia Corporation.
+ * SPDX-FileCopyrightText: Copyright (C) 2012 Nokia Corporation.
  * Author: Lauri T. Aarnio
  *
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include <config.h>

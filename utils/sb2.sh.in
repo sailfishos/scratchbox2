@@ -1,8 +1,10 @@
 #!/bin/bash
-# Copyright (c) 2006,2007 Lauri Leukkunen <lle@rahina.org>
-# Copyright (c) 2021      Jolla Ltd.
-# License: GPL-2.0
+#
 # "sb2" script, the command-line interface to Scratchbox 2.
+#
+# SPDX-FileCopyrightText: Copyright (c) 2006,2007 Lauri Leukkunen <lle@rahina.org>
+# SPDX-FileCopyrightText: Copyright (c) 2021      Jolla Ltd.
+# SPDX-License-Identifier: GPL-2.0-or-later
 #
 
 SBOX_LIBSB2_SONAME=@LIBSB2_SONAME@

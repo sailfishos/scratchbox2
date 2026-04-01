@@ -1,6 +1,10 @@
 #!/bin/bash
-# sb2-build-libtool - Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
-# Licensed under GPL version 2
+# sb2-build-libtool - Build libtool for use within sb2
+#
+# SPDX-FileCopyrightText: Copyright (c) 2007 Lauri Leukkunen <lle@rahina.org>
+#
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
 
 prog="$0"
 progbase=`basename $0`

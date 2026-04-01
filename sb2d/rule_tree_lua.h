@@ -1,5 +1,6 @@
-/* Copyright (C) 2011 Nokia Corporation.
+/* SPDX-FileCopyrightText: Copyright (C) 2011 Nokia Corporation.
  * Author: Lauri T. Aarnio
+ * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
 #ifndef SB2_RULETREE_LUA_H__

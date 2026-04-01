@@ -1,10 +1,11 @@
 /*
- * Copyright (C) 2011 Nokia Corporation.
+ * Mapping rule maintenance routines.
  *
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
+ * SPDX-FileCopyrightText: Copyright (C) 2011 Nokia Corporation.
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
-/* Mapping rule maintenance routines. */
 
 #include <unistd.h>
 #include <stdio.h>

@@ -1,9 +1,9 @@
--- Copyright (c) 2012 Nokia Corporation.
--- Author: Lauri T. Aarnio
--- Licensed under MIT license.
---
 -- Common config for the "obs-deb-build" mode;
 -- based on "obs-rpm-build+pp", but intended for building .deb packages
+--
+-- SPDX-FileCopyrightText:  Copyright (c) 2012 Nokia Corporation.
+-- Author: Lauri T. Aarnio
+-- SPDX-License-Identifier: MIT
 --
 -- ***************************************************
 -- NOTE: This is experimental, untested mapping mode!!

@@ -17,7 +17,7 @@
 --
 -- Syntax of this file is explained in "gen-interface.pl".
 --
--- Copyright (C) 2009 Nokia Corporation.
+-- SPDX-FileCopyrightText: Copyright (C) 2009 Nokia Corporation.
 -- Author: Lauri T. Aarnio
 
 LOGLEVEL: SB_LOGLEVEL_NOISE

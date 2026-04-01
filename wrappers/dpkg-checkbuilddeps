@@ -1,16 +1,16 @@
 #!/bin/bash
 #
-# Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
+# dpkg-checkbuilddeps wrapper for SB2.
+#
+# SPDX-FileCopyrightText: Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
 #
 # Redesigned/refactored by Lauri T. Aarnio;
 #	Portion Copyright (c) 2008 Nokia Corporation.
 #	All rights reserved.
 #
-# Licensed under GPL version 2
+# SPDX-License-Identifier: GPL-2.0-or-later
 #
 # -------------------
-#
-# dpkg-checkbuilddeps wrapper for SB2.
 #
 # ENVIRONMENT VARIABLES:
 # - set SBOX_CHECKBUILDDEPS_VERBOSE to non-empty value to get

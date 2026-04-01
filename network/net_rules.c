@@ -1,13 +1,12 @@
 /*
- * Copyright (c) 2011,2012 Nokia Corporation.
- * Author: Lauri T. Aarnio
- * Portion Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
- *
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
- *
  * ----------------
- *
  * networking rule engine.
+ *
+ * SPDX-FileCopyrightText: Copyright (c) 2011,2012 Nokia Corporation.
+ * Author: Lauri T. Aarnio
+ * SPDX-FileCopyrightText: Portion Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * This is a very straightforward conversion from Lua; old
  * Lua code is even preserved in the comments below.

@@ -1,9 +1,9 @@
 #!/usr/bin/perl
 #
-# Copyright (c) 2009 Nokia Corporation. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2009 Nokia Corporation.
 # Author: Lauri T. Aarnio;
 #
-# Licensed under GPL version 2
+# SPDX-License-Identifier: GPL-2.0-or-later
 #
 # -------------------
 # "Mechanics" of the new dpkg-checkbuilddeps dependency checker.

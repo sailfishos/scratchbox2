@@ -1,8 +1,8 @@
 /*
- * Copyright (C) 2011 Nokia Corporation.
+ * SPDX-FileCopyrightText: Copyright (C) 2011 Nokia Corporation.
  * Author: Lauri T. Aarnio
  *
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
 /* sb2d, the rule tree server:
@@ -72,7 +72,7 @@ static void load_and_execute_lua_file(const char *filename)
                 exit(EXIT_FAILURE);
 	case LUA_ERRSYNTAX:
                 errmsg = lua_tostring(sb2d_lua, -1);
-		fprintf(stderr, "Syntax error in %s (%s)\n", filename, 
+		fprintf(stderr, "Syntax error in %s (%s)\n", filename,
 			(errmsg?errmsg:""));
 		exit(EXIT_FAILURE);
 	case LUA_ERRMEM:
@@ -148,7 +148,7 @@ static void initialize_lua(void)
 			"%s: asprintf failed to allocate memory", __func__);
 		return;
 	}
-		
+
 	SB_LOG(SB_LOGLEVEL_INFO, "Loading '%s'", main_lua_script);
 
 	sb2d_lua = luaL_newstate();
@@ -197,7 +197,7 @@ char *execute_init2_script(void)
 			"%s: asprintf failed to allocate memory", __func__);
 		return(NULL);
 	}
-		
+
 	SB_LOG(SB_LOGLEVEL_INFO, "Loading '%s'", init2_script);
 
 	load_and_execute_lua_file(init2_script);
@@ -337,12 +337,11 @@ int main(int argc, char *argv[])
 		} else {
 			write_pid_to_file(getpid(), pid_file);
 		}
-		
-		/* enter the server loop. 
+
+		/* enter the server loop.
 		 * ruletree_server() returns when the socket has been
 		 * deleted and it is time to shut down. */
 		ruletree_server();
 	}
 	return(0);
 }
-

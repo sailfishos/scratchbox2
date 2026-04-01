@@ -1,5 +1,5 @@
-/* sb2-monitor:
- *
+/*
+ * sb2-monitor:
  * This is used to wrap the commands started by the "sb2" script,
  * wait for results, and then start a log analyzer to print out
  * statistics after the command has finished.
@@ -15,10 +15,10 @@
  * "built in" to the signal system. All of this can be described as
  * yet another best-effort game..
  *
- *
- * Copyright (c) 2008 Nokia Corporation. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (C) 2008 Nokia Corporation.
  * Author: Lauri T. Aarnio
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
 #include <config.h>

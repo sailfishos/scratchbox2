@@ -1,11 +1,11 @@
--- Copyright (c) 2011 Nokia Corporation.
--- Author: Lauri T. Aarnio
---
--- Licensed under MIT license.
-
 -- "online_privatenets" networking rules:
 -- Allow to private address spaces and local host,
 -- deny other destinations.
+--
+-- SPDX-FileCopyrightText: Copyright (c) 2011 Nokia Corporation.
+-- Author: Lauri T. Aarnio
+--
+-- SPDX-License-Identifier: MIT
 
 net_rule_file_interface_version = "100"
 ---------------------------------------

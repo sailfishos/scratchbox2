@@ -1,9 +1,4 @@
 /*
- * Copyright (c) 2008 Nokia Corporation.
- * Author: Lauri T. Aarnio
- *
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
- *
  * ----------------
  *
  * /proc simulation for SB2.
@@ -16,6 +11,11 @@
  *       to the binary itself.
  *
  * (all other files under /proc are used directly)
+ *
+ * SPDX-FileCopyrightText: Copyright (c) 2008 Nokia Corporation.
+ * Author: Lauri T. Aarnio
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
 #include <sys/types.h>

@@ -1,5 +1,7 @@
-/* Copyright (C) 2011 Nokia Corporation.
+/* SPDX-FileCopyrightText: Copyright (C) 2011 Nokia Corporation.
  * Author: Lauri T. Aarnio
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
 /* A Rule Tree is a shared-memory repository of mapping-

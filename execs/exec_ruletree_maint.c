@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2011 Nokia Corporation.
+ * SPDX-FileCopyrightText: Copyright (C) 2011 Nokia Corporation.
  *
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 /* Exec rule maintenance routines. */

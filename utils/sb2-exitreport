@@ -2,9 +2,12 @@
 #
 # This script will be started by sb2-monitor after "everything has been done"
 #
-# Copyright (c) 2008 Nokia Corporation. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2008 Nokia Corporation. All rights reserved.
 # Author: Lauri T. Aarnio
-# Licensed under LGPL version 2.1, see top level LICENSE file for details.
+#
+# SPDX-License-Identifier: LGPL-2.1-or-later
+#
+
 
 # exit_reason is one of
 #   - "exit" = Normal exit, detected by sb2-monitor

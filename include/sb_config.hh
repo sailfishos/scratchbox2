@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2004, 2005 Nokia
+ * SPDX-FileCopyrightText:  Copyright (c) 2004, 2005 Nokia
  * Author: Timo Savola <tsavola@movial.fi>
  *
- * Licensed under GPL, see COPYING for details.
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 #include <map>

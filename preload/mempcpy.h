@@ -1,3 +1,9 @@
+/*
+   SPDX-FileCopyrightText: Copyright (C) 2003,2004 Free Software Foundation, Inc.
+
+   SPDX-License-Identifier: LGPL-2.1-or-later WITH GCC-exception-2.0
+*/
+
 /* Copy memory area and return pointer after last written byte.
    Copyright (C) 2003, 2004 Free Software Foundation, Inc.
 

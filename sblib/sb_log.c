@@ -1,8 +1,8 @@
 /* Error + trace + debug logging routines for SB2.
  *
- * Copyright (C) 2007 Lauri T. Aarnio
+ * SPDX-FileCopyrightText: Copyright (C) 2007 Lauri T. Aarnio
  *
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 /* Two log formats are supported:

@@ -1,13 +1,13 @@
 /*
- * Copyright (C) 2011 Nokia Corporation.
+ * dump contents from the memory-mapped rule tree.
+ * this is a debugging tool for developers.
+ *
+ * SPDX-FileCopyrightText: Copyright (C) 2011 Nokia Corporation.
  * Author: Lauri T. Aarnio
  *
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
-*/
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ */
 
-/* dump contents from the memory-mapped rule tree.
- * this is a debugging tool for developers.
-*/
 
 #include <stdio.h>
 #include <stdint.h>

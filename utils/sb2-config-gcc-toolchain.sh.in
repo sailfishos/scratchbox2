@@ -1,9 +1,10 @@
 #!/bin/bash
 # sb2-config-gcc-toolchain - configure a cross-gcc compiler for SB2
 #
-# Copyright (c) 2008 Nokia Corporation.
-# Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
-# Licensed under GPL version 2
+# SPDX-FileCopyrightText: Copyright (c) 2008 Nokia Corporation.
+# SPDX-FileCopyrightText: Copyright (c) 2007 Lauri Leukkunen <lle@rahina.org>
+#
+# SPDX-License-Identifier: GPL-2.0-or-later
 
 log_config_action()
 {

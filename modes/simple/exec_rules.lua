@@ -1,9 +1,9 @@
--- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
--- Licensed under MIT license.
---
 -- "simple" mode, to be used for software development & building
 -- (as the name says, this is the simple solution; See/use the "devel"
 -- mode when a more full-featured environment is needed)
+--
+-- SPDX-FileCopyrightText:  Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
+-- SPDX-License-Identifier: MIT
 
 -- Rule file interface version, mandatory.
 --

@@ -1,10 +1,11 @@
--- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
--- Copyright (C) 2007 Nokia Corporation.
--- Licensed under MIT license.
-
 -- "nomap" mapping mode: Does not map any paths anywhere, but still pushes
 -- all paths thru SB2's path mapping logic, handles execs, etc.
+
+-- SPDX-FileCopyrightText:  Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
+-- SPDX-FileCopyrightText:  Copyright (C) 2007 Nokia Corporation.
 --
+-- SPDX-License-Identifier: MIT
+
 -- This is useful for benchmarking, debugging (SB2's logs are available, if
 -- needed), and of course this makes SB2 fully symmetric because now SB2
 -- can be used both for cross-compiling and for native builds! :-) ;-)

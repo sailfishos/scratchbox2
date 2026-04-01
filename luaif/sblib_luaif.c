@@ -1,9 +1,9 @@
 /*
- * Copyright (c) 2011 Nokia Corporation.
+ * SPDX-FileCopyrightText: Copyright (c) 2011 Nokia Corporation.
  * Author: Lauri T. Aarnio
- * Portion Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
+ * SPDX-FileCopyrightText: Portion Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
  *
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * ----------------
  *

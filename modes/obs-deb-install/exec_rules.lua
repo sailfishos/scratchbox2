@@ -1,6 +1,6 @@
--- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
--- Copyright (C) 2011 Nokia Corporation.
--- Licensed under MIT license.
+-- SPDX-FileCopyrightText:  Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
+-- SPDX-FileCopyrightText:  Copyright (C) 2011 Nokia Corporation.
+-- SPDX-License-Identifier: MIT
 
 -- ***************************************************
 -- NOTE: This is experimental, untested mapping mode!!
@@ -70,6 +70,7 @@ local exec_policy_target = {
 	native_app_gconv_path = conf_target_gconv_path,
 
 	native_app_ld_preload_suffix = conf_target_ld_preload_libsb2,
+
 }
 
 --

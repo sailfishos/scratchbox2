@@ -1,3 +1,8 @@
+--
+-- SPDX-FileCopyrightText: Copyright (C) 2013-2022 Jolla Ltd
+--
+-- SPDX-License-Identifier: MIT
+
 -- Rule file interface version, mandatory.
 --
 fs_rule_lib_interface_version = "105"

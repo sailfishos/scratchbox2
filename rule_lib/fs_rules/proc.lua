@@ -1,9 +1,9 @@
--- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
--- Copyright (C) 2012 Nokia Corporation.
--- Licensed under MIT license.
-
 -- Rule file interface version, mandatory.
 --
+-- SPDX-FileCopyrightText: Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
+-- SPDX-FileCopyrightText: Copyright (C) 2012 Nokia Corporation.
+-- SPDX-License-Identifier: MIT
+
 fs_rule_lib_interface_version = "105"
 ----------------------------------
 

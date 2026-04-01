@@ -2,11 +2,13 @@
  * libsb2 -- mkstemp(), mktemp() etc. GATEs and postprocessors
  *           of the scratchbox2 preload library
  *
- * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
- * parts contributed by 
- * 	Riku Voipio <riku.voipio@movial.com>
- *	Toni Timonen <toni.timonen@movial.com>
- *	Lauri T. Aarnio
+ * SPDX-FileCopyrightText:  Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
+ * parts contributed by
+ * SPDX-FileCopyrightText:  Riku Voipio <riku.voipio@movial.com>
+ * SPDX-FileCopyrightText:  Toni Timonen <toni.timonen@movial.com>
+ * SPDX-FileCopyrightText:  Lauri T. Aarnio
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
 /*

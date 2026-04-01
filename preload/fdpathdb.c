@@ -3,8 +3,10 @@
  *		 (correct implementation of openat(), faccessat(), etc. requires
  *		 that pathnames can be easily found for open file descriptors)
  *
- * Copyright (C) 2008 Nokia Corporation.
+ * SPDX-FileCopyrightText: Copyright (C) 2008 Nokia Corporation.
  * Author: Lauri T. Aarnio
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public

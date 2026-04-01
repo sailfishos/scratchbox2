@@ -1,14 +1,13 @@
-/*
- * Copyright (C) 2011 Nokia Corporation.
- * Author: Lauri T. Aarnio
- *
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
-*/
-
 /* Rule tree client-side library:
  * To be used from inside an active SB2 session for
  * connecting to sb2d, the rule tree db server process.
+ *
+ * SPDX-FileCopyrightText: Copyright (C) 2011 Nokia Corporation.
+ * Author: Lauri T. Aarnio
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
 */
+
 
 #include <stdio.h>
 #include <stdint.h>

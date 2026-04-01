@@ -4,9 +4,10 @@
 /* libsb2callers: Macros for creating functions for calling
  * routines from libsb2, which may not be available.
  *
- * Copyright (c) 2008 Nokia Corporation. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2008 Nokia Corporation. All rights reserved.
  * Author: Lauri T. Aarnio
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
 extern void *libsb2_handle;

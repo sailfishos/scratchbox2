@@ -5,9 +5,10 @@
 # stdout. Additionally, various details can be requested by command line
 # options (see descriptions below).
 #
-# Copyright (c) 2007 Nokia Corporation. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2007 Nokia Corporation.
 # Author: Lauri T. Aarnio
-# Licensed under LGPL version 2.1, see top level LICENSE file for details.
+#
+# SPDX-License-Identifier: LGPL-2.1-or-later
 
 use strict;
 use Data::Dumper;

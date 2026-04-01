@@ -1,10 +1,11 @@
--- Copyright (c) 2011 Nokia Corporation.
--- Author: Lauri T. Aarnio
---
--- Licensed under MIT license.
-
 -- "localhost" networking rules: Allow to local host, deny other destinations.
 -- Changes INADDR_ANY to 127.0.0.1.
+--
+-- SPDX-FileCopyrightText: Copyright (c) 2011 Nokia Corporation.
+-- Author: Lauri T. Aarnio
+--
+-- SPDX-License-Identifier: MIT
+
 
 net_rule_file_interface_version = "100"
 ---------------------------------------

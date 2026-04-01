@@ -5,6 +5,12 @@
  * full description of the problem in glob.c(). 2009-01-16/LTA
 */
 
+/*
+   SPDX-FileCopyrightText: Copyright (C) 1991,92,95,96,97,98,2000,2001 Free Software Foundation, Inc.
+
+   SPDX-License-Identifier: LGPL-2.1-or-later WITH GCC-exception-2.0
+*/
+
 /* Copyright (C) 1991,92,95,96,97,98,2000,2001 Free Software Foundation, Inc.
 
    The GNU C Library is free software; you can redistribute it and/or

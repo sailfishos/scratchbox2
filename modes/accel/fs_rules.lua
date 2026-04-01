@@ -1,12 +1,14 @@
--- Author: Lauri T. Aarnio
--- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
--- Copyright (c) 2009 Nokia Corporation.
--- Licensed under MIT license.
---
 -- "accel" mode = build accelerator mode, to be used for software
 -- development & building when the rootstrap and the tools are "twins":
 -- Built from the same sources, but tools contains native binaries while
 -- the rootstrap contains target binaries.
+--
+-- SPDX-FileCopyrightText: Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
+-- SPDX-FileCopyrightText: Copyright (c) 2009 Nokia Corporation.
+-- Author: Lauri T. Aarnio
+--
+-- SPDX-License-Identifier: MIT
+--
 
 
 -- Rule file interface version, mandatory.

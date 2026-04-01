@@ -1,9 +1,10 @@
 /*
- * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
- * Portion Copyright (c) 2008 Nokia Corporation.
  * (symlink- and path resolution code refactored by Lauri T. Aarnio at Nokia)
  *
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
+ * SPDX-FileCopyrightText: Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
+ * SPDX-FileCopyrightText: Portion Copyright (c) 2008 Nokia Corporation.
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * ----------------
  *

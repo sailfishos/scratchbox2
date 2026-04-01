@@ -1,8 +1,10 @@
 /*
  * libsb2 -- chroot() simulation.
  *
- * Copyright (C) 2012 Nokia Corporation.
+ * SPDX-FileCopyrightText: Copyright (C) 2012 Nokia Corporation.
  * Author: Lauri T. Aarnio
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
 /*

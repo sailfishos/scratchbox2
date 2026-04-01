@@ -1,9 +1,9 @@
--- Copyright (c) 2012 Nokia Corporation.
--- Author: Lauri T. Aarnio
--- Licensed under MIT license.
---
 -- Common config for the "obs-deb-install" mode
 -- (based on "obs-rpm-install")
+--
+-- SPDX-FileCopyrightText: Copyright (c) 2012 Nokia Corporation.
+-- Author: Lauri T. Aarnio
+-- SPDX-License-Identifier: MIT
 
 -- ***************************************************
 -- NOTE: This is experimental, untested mapping mode!!

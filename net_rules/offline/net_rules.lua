@@ -1,9 +1,9 @@
--- Copyright (c) 2011 Nokia Corporation.
+-- "offline" networking rules: deny everything.
+--
+-- SPDX-FileCopyrightText: Copyright (c) 2011 Nokia Corporation.
 -- Author: Lauri T. Aarnio
 --
--- Licensed under MIT license.
-
--- "offline" networking rules: deny everything.
+-- SPDX-License-Identifier: MIT
 
 net_rule_file_interface_version = "100"
 ---------------------------------------

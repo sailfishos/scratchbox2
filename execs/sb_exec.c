@@ -1,8 +1,10 @@
 /*
- * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
- * Copyright (C) 2020 Open Mobile Platform LLC.
+ * sb_exec -- SB2 execution core
  *
- * Licensed under LGPL version 2.1
+ * SPDX-FileCopyrightText: Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
+ * SPDX-FileCopyrightText: Copyright (C) 2020 Open Mobile Platform LLC.
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 /* This file contains the "exec core" of SB2; Being able to alter

@@ -1,5 +1,5 @@
--- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
--- Licensed under MIT license.
+-- SPDX-FileCopyrightText: Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
+-- SPDX-License-Identifier: MIT
 
 -- Rule file interface version, mandatory.
 --

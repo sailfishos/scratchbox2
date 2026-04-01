@@ -1,4 +1,4 @@
-# Copyright (C) 2006 Lauri Leukkunen
+# SPDX-FileCopyrightText: Copyright (C) 2006 Lauri Leukkunen
 # Based on the configure.ac script from fakechroot package
 
 

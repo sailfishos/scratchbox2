@@ -1,8 +1,9 @@
--- Copyright (C) 2008 Lauri Leukkunen <lle@rahina.org>
--- Copyright (C) 2008 Nokia Corporation.
--- Licensed under MIT license.
-
 -- "tools" mapping mode: Almost everything maps to tools_root.
+
+-- SPDX-FileCopyrightText:  Copyright (C) 2008 Lauri Leukkunen <lle@rahina.org>
+-- SPDX-FileCopyrightText:  Copyright (C) 2008 Nokia Corporation.
+-- SPDX-License-Identifier: MIT
+
 
 -- Rule file interface version, mandatory.
 --

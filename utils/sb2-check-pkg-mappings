@@ -5,9 +5,9 @@
 # dpkg-checkbuilddeps uses this to builds a new temporary "status" file of
 # all usable packages.
 #
-# Copyright (c) 2008 Nokia Corporation. All rights reserved.
-# Author: Lauri T. Aarnio
-# Licensed under LGPL version 2.1, see top level LICENSE file for details.
+# SPDX-FileCopyrightText: Copyright (c) 2008 Nokia Corporation.
+#
+# SPDX-License-Identifier: GPL-2.0-or-later
 
 usage()
 {

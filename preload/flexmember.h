@@ -3,6 +3,12 @@
  * added from glibc's posix/flexmember.h:
 */
 
+/*
+   SPDX-FileCopyrightText: Copyright (C) 2016-2025 Free Software Foundation, Inc.
+
+   SPDX-License-Identifier: LGPL-2.1-or-later WITH GCC-exception-2.0
+*/
+
 /* Sizes of structs with flexible array members.
 
    Copyright 2016-2025 Free Software Foundation, Inc.

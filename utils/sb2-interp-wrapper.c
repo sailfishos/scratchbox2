@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Movial
+ * SPDX-FileCopyrightText: Copyright (C) 2008 Movial
  * Authors: Timo Savola <tsavola@movial.fi>
  *
  * The purpose of this program is to wrap a shell (or any) script invocation so

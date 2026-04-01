@@ -122,22 +122,24 @@ attach_session()
 		# No session id given.  This means that there should
 		# only be one session and we should use that.
 		#
-		count=$( ls $session_save_dir/session.* 2>/dev/null | wc -l )
-		if [ "$count" -eq 1 ]; then
-			session_file=$( ls $session_save_dir/session.* )
-		elif [ "$count" -eq 0 ]; then
+		count=
+		for s in $session_save_dir/session.* ; do
+			session_file=$s
+			count=$((count + 1))
+		done
+
+		if [ "$count" -eq 0 ]; then
 			die "No saved sessions available!" 1
 		else
 			die "You must specify session as parameter!" 1
 		fi
 	else
 		session_file="$session_save_dir/$session"
-		if [ ! -e "$session_file" ]; then
-			die "Given session '$session' doesn't exist!" $?
-		fi
+		[ ! -e "$session_file" ] || \
+			die "Given session '$session' doesn't exist!"
 	fi
 
-	exec sb2 -J $session_file $*
+	exec sb2 -J $session_file "$@"
 }
 
 save_session()

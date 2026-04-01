@@ -70,7 +70,7 @@ mkdir -p %{build_dir}
 %install
 %make_install -C %{build_dir} -f %{source_dir}/Makefile
 
-install -D -m 644 utils/sb2.bash %{buildroot}/etc/bash_completion.d/sb2.bash
+install -D -m 644 utils/sb2.bash %{buildroot}/%{_datadir}/bash-completion/completions/sb2
 
 %check
 # Rpmlint suggest to add it even thou we don't
@@ -80,7 +80,8 @@ install -D -m 644 utils/sb2.bash %{buildroot}/etc/bash_completion.d/sb2.bash
 %{_bindir}/sb2*
 %dir %{_datadir}/scratchbox2
 %{_datadir}/scratchbox2/*
-%config %{_sysconfdir}/bash_completion.d/sb2.bash
+%dir %{_datadir}/bash-completion/completions
+%{_datadir}/bash-completion/completions/sb2
 
 %files docs
 %doc /usr/share/man/man1/*

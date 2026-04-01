@@ -916,7 +916,8 @@ check_ld_so_features()
 	ld_so_nodefaultdirs_flag_works="false"
 
 	# If ld.so does not support --help fallback to old no-args help output
-        local ld_so_help=$(($ld_so_path --help || $ld_so_path) 2>&1)
+        local ld_so_help
+	ld_so_help=$( ($ld_so_path --help || $ld_so_path) 2>&1)
 
 	test_argv0_opt=$(echo "$ld_so_help" | grep 'argv0 STRING')
 	if [ -n "$test_argv0_opt" ]; then

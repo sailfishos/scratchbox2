@@ -1,5 +1,5 @@
 Summary:	Crosscompiling environment
-License:	LGPLv2
+License:	LGPL-2.1-or-later AND GPL-2.0-or-later AND MIT
 URL:		https://github.com/sailfishos/scratchbox2
 Name:		scratchbox2
 Version:	2.3.90+git58
@@ -26,6 +26,7 @@ Scratchbox2 crosscompiling environment
 
 %package -n libsb2
 Summary: Scratchbox2 preload library
+License: LGPL-2.1-or-later
 
 %description -n libsb2
 Scratchbox2 preload library.
@@ -77,6 +78,7 @@ install -D -m 644 utils/sb2.bash %{buildroot}/%{_datadir}/bash-completion/comple
 # have any checks so far
 
 %files
+%license LICENSE.GPL2 LICENSE.MIT LICENSE.LGPL2.1
 %{_bindir}/sb2*
 %dir %{_datadir}/scratchbox2
 %{_datadir}/scratchbox2/*
@@ -88,5 +90,6 @@ install -D -m 644 utils/sb2.bash %{buildroot}/%{_datadir}/bash-completion/comple
 %doc /usr/share/man/man7/*
 
 %files -n libsb2
+%license LICENSE.LGPL2.1
 %dir %{_libdir}/libsb2
 %{_libdir}/libsb2/*

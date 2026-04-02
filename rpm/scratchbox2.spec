@@ -86,8 +86,8 @@ install -D -m 644 utils/sb2.bash %{buildroot}/%{_datadir}/bash-completion/comple
 %{_datadir}/bash-completion/completions/sb2
 
 %files docs
-%doc /usr/share/man/man1/*
-%doc /usr/share/man/man7/*
+%doc %{_mandir}/man1/*
+%doc %{_mandir}/man7/*
 
 %files -n libsb2
 %license LICENSE.LGPL2.1

@@ -21,6 +21,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -32,6 +33,7 @@
 #include <string.h>
 #include <dirent.h>
 
+// FIXME: this should be included earlier
 #include <config.h>
 
 #ifdef __APPLE__
@@ -320,6 +322,55 @@ static void read_env_vars_from_dir(const char *envdir)
 		}
 		closedir(ed);
 	}
+}
+
+static bool contains_libsb2(const char *ldpreload)
+{
+	const char *libsb2s[] =  {"libsb2.so", "foo.so"};
+
+	for (int i = 0; i < 2; i++) {
+		if (strstr(ldpreload, libsb2s[i]) != NULL)
+			return true;
+	}
+
+	return false;
+}
+
+#include <sys/utsname.h>
+
+const char* expand_libsb2(const char *preload);
+
+const char* expand_libsb2(const char *preload)
+{
+	char* match = NULL;
+	const char *needle = "$PLATFORM";
+	const int needle_len = strlen(needle);
+	const int haystack_len = strlen(preload);
+
+	match = strstr(preload, "$PLATFORM");
+	if (match == NULL)
+		return preload;
+
+	/* Use libsb2 target arch here */
+	struct utsname* uname_uts = NULL;
+	uname(uname_uts);
+
+/* FIXME: match with sb_exec logic
+   get HOST_ELF_MACHINE or similar matching target
+   i.e. look for any arch which can match a target
+   mostly to handle x86_32 which has to many variants.
+   Maybe just that is a good option.
+
+   after that replace that result in preload.
+
+   Replicate the same logic in the building of libsb2
+ */
+
+
+
+
+
+	return preload;
 }
 
 static int file_is_empty(const char *filename)

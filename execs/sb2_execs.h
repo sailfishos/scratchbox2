@@ -12,6 +12,7 @@
 #define __EXEC_INTERNAL_H
 
 #include <stddef.h>
+#include <elf.h>
 #include "rule_tree.h"
 
 extern int apply_exec_preprocessing_rules(char **file, char ***argv, char ***envp);
@@ -73,6 +74,24 @@ struct binary_info {
 	int has_capabilities; /* flag */
 };
 
+#if defined(__i386__) || defined(__x86_64__)
+/*
+ * We support exec'ing 64-bit programs from 32-bit programs
+ * as tools distribution might be 32-bit even in 64-bit machine.
+ */
+# define HOST_ELF_MACHINE_32 EM_386
+# define HOST_ELF_MACHINE_64 EM_X86_64
+#elif defined(__ia64__)
+# define HOST_ELF_MACHINE_64 EM_IA_64
+#elif defined(__arm__) || defined(__aarch64__)
+# define HOST_ELF_MACHINE_32 EM_ARM
+# define HOST_ELF_MACHINE_64 EM_AARCH64
+#elif defined(__powerpc__)
+# define HOST_ELF_MACHINE_32 EM_PPC
+#else
+# error Unsupported host CPU architecture
+#endif
+
 #define exec_policy_handle_is_valid(eph) ((eph).exec_policy_offset != 0)
 
 /* Use CPU transparency even if binaries are compatible with host */
@@ -109,11 +128,11 @@ extern int exec_map_script_interpreter(
 	exec_policy_handle_t    eph,
 	const char *exec_policy_name,
 	const char *interpreter,
-	const char *interp_arg, 
+	const char *interp_arg,
 	const char *mapped_script_filename,
 	const char *orig_script_filename,
 	char    **argv,
-	const char **new_exec_policy_p, 
+	const char **new_exec_policy_p,
         char       **mapped_interpreter_p);
 
 extern int exec_postprocess_native_executable(
@@ -149,4 +168,3 @@ extern int exec_postprocess_host_static_executable(
         const char ***set_envp);
 
 #endif /* __EXEC_INTERNAL_H */
-

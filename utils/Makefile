@@ -66,7 +66,7 @@ scripts = $(call O, \
 		sb2-init \
 		sb2-upgrade-config)
 
-$(scripts): SEDFLAGS := -e's|@LIBSB2_SONAME[@]|$(LIBSB2_SONAME)|g' \
+$(scripts): SEDFLAGS := -e's|@LIBSB2_SONAME_QUOTED[@]|$(LIBSB2_SONAME_QUOTED)|g' \
 			-e's|@LIBSB2_SOMAJOR[@]|$(LIBSB2_SOMAJOR)|g' \
 			-e's|@LIBSB2_NAME[@]|$(LIBSB2_NAME)|g'
 

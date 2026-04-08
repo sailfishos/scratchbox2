@@ -14,8 +14,14 @@ SBOX_LIBSB2_NAME=@LIBSB2_NAME@
 
 # Solves the chicken and egg issue:
 # What came first lisb2 or lisb2 choosing which lisb2 should be used?
+# NOTE: We disable the check warning below as we want any variables
+#       to be expand by ld.so.
+# shellcheck disable=SC2016
+SBOX_LIBSB2_SONAME='@LIBSB2_SONAME_QUOTED@'
 
-SBOX_LIBSB2_SONAME=@LIBSB2_SONAME@
+
+# old
+SBOX_LIBSB2_SONAME_OLD=@LIBSB2_SONAME_OLD@
 
 # Define lisb2 per target or tooling exec policy.
 # These variables aren't used during execution but are later for logging.
@@ -641,25 +647,18 @@ create_gcc_conf_file_for_session()
 # in reverse order.
 find_libsb2_candidate()
 {
-	libsb2_prime="$1"
+	libsb2="$1"
 	shift
 
 	while [ $# -gt 0 ] ; do
-		local IFS="
-"
-		for f in "$1/$libsb2_prime" \
-				 $( printf '%s\n' \
-					   "$1"/${SBOX_LIBSB2_NAME}.[0-9]| \
-					    sort -r); do
-			# We assume that the single digit after the so ^
-			# file's name matches the soname.
-			# That's cheaper then calling readelf here.
-			local IFS=
-			if [ -e "$f" ] ; then
-				echo "$f"
-				return
-			fi
-		done
+		# We assume that the single digit after the so ^
+		# file's name matches the soname.
+		# That's cheaper then calling readelf here.
+		local IFS=
+		if [ -e "$1/$libsb2" ] ; then
+			echo "$f"
+			return
+		fi
 		shift
 	done
 
@@ -694,7 +693,7 @@ write_ld_library_path_replacement_to_exec_config()
 	# call find_libsb2_candidates.
 
 	if [ $# -gt 0 ] ; then
-		libsb2_path=$(find_libsb2_candidate $SBOX_LIBSB2_SONAME \
+		libsb2_path=$(find_libsb2_candidate $SBOX_LIBSB2_SONAME_OLD \
 						    "$@")
 		if [ -n "$libsb2_path" ] ; then
 			# IMPORTANT: $libsb2_dirname and $libsb2_path
@@ -1025,14 +1024,12 @@ write_libsb2_and_ld_so_state_to_exec_config()
 
 		if [ -z "$libsb2_path" ]; then
 			libsb2_path=$(find_libsb2_candidate \
-					      $SBOX_LIBSB2_SONAME \
+					      $SBOX_LIBSB2_SONAME_OLD \
 					      "$rootdir$liblocation")
 			# if libsb2_path wasn't set before then we have
 			# to try to find lisb2 until reach the end
 			# of possible matches
 			[ -n "$libsb2_path" ] || continue
-			# libsb2_dirname=$(dirname "$libsb2_path")
-			SBOX_LIBSB2=$(basename "$libsb2_path")
 		fi
 
 		# assume the prefix is under libdir: ../libdir
@@ -1053,7 +1050,7 @@ write_libsb2_and_ld_so_state_to_exec_config()
 
 	if [ -f "$libsb2_path" ]; then
 		libsb2_dir=$(dirname $libsb2_path)
-		libsb2_soname=$(basename $libsb2_path)
+		libsb2_soname=$(basename $libsb2_path):"$SBOX_LIBSB2_SONAME"
 		echo "$libsb2_soname_varname=\"$libsb2_soname\"" \
 		     >>$SBOX_SESSION_DIR/exec_config.lua
 		echo "$libsb2_dir_varname=\"$libsb2_dir\"" \

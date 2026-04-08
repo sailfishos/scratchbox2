@@ -1,3 +1,5 @@
+%define sover 2
+
 Summary:	Crosscompiling environment
 License:	LGPL-2.1-or-later AND GPL-2.0-or-later AND MIT
 URL:		https://github.com/sailfishos/scratchbox2
@@ -19,16 +21,19 @@ Requires:		lua-luaposix
 BuildRequires:	lua-posix
 Requires:		lua-posix
 %endif
-Requires:		libsb2 = %{version}-%{release}
+Requires:		libsb2_%{sover} = %{version}-%{release}
 
 %description
 Scratchbox2 crosscompiling environment
 
-%package -n libsb2
+%package -n libsb2_%{sover}
 Summary: Scratchbox2 preload library
 License: LGPL-2.1-or-later
+Provides: libsb2 = %{version}
+Obsoletes: libsb2 < %{version}
 
-%description -n libsb2
+
+%description -n libsb2_%{sover}
 Scratchbox2 preload library.
 
 %package docs
@@ -89,7 +94,7 @@ install -D -m 644 utils/sb2.bash %{buildroot}/%{_datadir}/bash-completion/comple
 %doc %{_mandir}/man1/*
 %doc %{_mandir}/man7/*
 
-%files -n libsb2
+%files -n libsb2_%{sover}
 %license LICENSE.LGPL2.1
 %dir %{_libdir}/libsb2
 %{_libdir}/libsb2/*

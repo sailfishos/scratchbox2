@@ -123,52 +123,106 @@ static const char *get_users_ld_library_path(const char **orig_env)
 	return(NULL);
 }
 
+const char* machine_to_arch(uint16_t machine);
+const char *machine_to_arch(uint16_t machine) {
+	switch (machine) {
+	case (EM_ARM):     return "arm";
+	case (EM_MIPS):    return "mips";
+	case (EM_PPC):     return "ppc";
+	case (EM_SH):      return "sh";
+	case (EM_X86_64):  return "x86_64";
+	case (EM_386):     return "i386";
+	case (EM_AARCH64): return "aarch64";
+	default:           return NULL;
+	}
+}
+
+void machine_to_preloader_platform(char **preloader, int machine);
+
+void machine_to_preloader_platform(char **preloader, int machine) {
+	if (!*preloader || !**preloader) {
+		return;
+	}
+
+	const char *needle = "$PLATFORM";
+	const char *arch = machine_to_arch(machine);
+	char *match = strstr(*preloader, needle);
+
+	if (!match || !arch) {
+		return;
+	}
+
+	const int needle_len = strlen(needle);
+	assert((int) strlen(arch) < needle_len);
+	char *cursor = *preloader;
+	const int arch_len = strlen(arch);
+	int match_len = 0;
+
+	char *result = calloc(strlen(*preloader), sizeof(char));
+	char *dest = result;
+
+	do {
+		match_len = match - cursor;
+
+		strncpy(dest, cursor, match_len);
+		dest = dest + match_len;
+
+		strcpy(dest, arch);
+		dest = dest + arch_len;
+
+		match = match + needle_len;
+		cursor = match;
+	} while ((match = strstr(cursor, needle)));
+
+	strcat(dest, cursor);
+	free(*preloader);
+	*preloader = result;
+}
+
 static void setenv_native_app_ld_preload(
 	exec_policy_handle_t	eph,
-	struct strv_s *new_envp)
+	struct strv_s *new_envp, const struct binary_info *info)
 {
 	const char *new_path = NULL;
 	const char *native_app_ld_preload = NULL;
 
 	native_app_ld_preload = EXEC_POLICY_GET_STRING(eph, native_app_ld_preload);
+
 	if (native_app_ld_preload) {
 		new_path = native_app_ld_preload;
 	} else {
-		const char *native_app_ld_preload_prefix = NULL;
-		const char *native_app_ld_preload_suffix = NULL;
-		const char *libpath = get_users_ld_preload(new_envp->strv_orig_v);
+		const char *prefix = EXEC_POLICY_GET_STRING(eph, native_app_ld_preload_prefix);
+		const char *suffix = EXEC_POLICY_GET_STRING(eph, native_app_ld_preload_suffix);
 
-		native_app_ld_preload_prefix = EXEC_POLICY_GET_STRING(eph,
-			native_app_ld_preload_prefix);
-		native_app_ld_preload_suffix = EXEC_POLICY_GET_STRING(eph,
-			native_app_ld_preload_suffix);
-		if (native_app_ld_preload_prefix ||
-		    native_app_ld_preload_suffix) {
-#define str_not_empty(s) ((s) && *(s))
+		if (prefix ||suffix) {
 			char *cp;
+			char *prefix_exp = strdup(prefix && *prefix ? prefix : "");
+			char *suffix_exp = strdup(suffix && *suffix ? suffix : "");
+
+			machine_to_preloader_platform(&prefix_exp, info->machine);
+			machine_to_preloader_platform(&suffix_exp, info->machine);
+
+			const char *libpath = get_users_ld_preload(new_envp->strv_orig_v);
+
 			if (libpath) {
 				assert(asprintf(&cp, "LD_PRELOAD=%s%s%s%s%s",
-					(str_not_empty(native_app_ld_preload_prefix) ?
-					 native_app_ld_preload_prefix : ""), /* 1 */
-					(str_not_empty(native_app_ld_preload_prefix) ? ":" : ""), /* 2 */
-					libpath, /* 3 */
-					(str_not_empty(libpath) && str_not_empty(native_app_ld_preload_suffix) ?
-					 ":" : ""), /* 4 */
-					(str_not_empty(native_app_ld_preload_suffix) ?
-					 native_app_ld_preload_suffix : "") /* 5 */
-					) > 0);	
+					/* 1 */ prefix_exp,
+					/* 2 */ (*prefix_exp ? ":" : ""),
+					/* 3 */ libpath,
+					/* 4 */ (*libpath && *suffix_exp ? ":" : ""),
+					/* 5 */ suffix_exp
+					) > 0);
 			} else {
 				/* no libpath */
 				assert(asprintf(&cp, "LD_PRELOAD=%s%s%s",
-					(str_not_empty(native_app_ld_preload_prefix) ?
-					 native_app_ld_preload_prefix : ""), /* 1 */
-					(str_not_empty(native_app_ld_preload_prefix) &&
-					 str_not_empty(native_app_ld_preload_suffix) ? ":" : ""), /* 2 */
-					(str_not_empty(native_app_ld_preload_suffix) ?
-					 native_app_ld_preload_suffix : "") /* 3 */
-					) > 0);	
+					/* 1 */ prefix_exp,
+					/* 2 */ (*prefix_exp && *suffix_exp ? ":" : ""),
+					/* 3 */ suffix_exp
+					) > 0);
 			}
 			new_path = cp;
+			free(prefix_exp);
+			free(suffix_exp);
 		} else {
 			new_path = NULL;
 		}
@@ -260,7 +314,7 @@ static void setenv_native_app_ld_library_path(
 					 ":" : ""), /* 4 */
 					(str_not_empty(native_app_ld_library_path_suffix) ?
 					 native_app_ld_library_path_suffix : "") /* 5 */
-					) > 0);	
+					) > 0);
 			} else {
 				/* no libpath */
 				assert(asprintf(&cp, "LD_LIBRARY_PATH=%s%s%s",
@@ -270,7 +324,7 @@ static void setenv_native_app_ld_library_path(
 					 str_not_empty(native_app_ld_library_path_suffix) ? ":" : ""), /* 2 */
 					(str_not_empty(native_app_ld_library_path_suffix) ?
 					 native_app_ld_library_path_suffix : "") /* 3 */
-					) > 0);	
+					) > 0);
 			}
 			new_path = cp;
 		} else {
@@ -321,7 +375,7 @@ static int exec_postprocess_prepare(
 			__func__);
 		return(1);
 	}
-	
+
 	{
 		const char		*log_level = NULL;
 
@@ -386,7 +440,7 @@ int exec_postprocess_native_executable(
 	struct strv_s		new_envp;
 	struct strv_s		new_argv;
 
-	/* Prepare. For the new argv, allocate room for 
+	/* Prepare. For the new argv, allocate room for
 	 * for optional new entries, needed if indirect startup:
 	 *  1) ld.so path
 	 *  2) "--rpath-prefix" or  "--inhibit-rpath"
@@ -426,7 +480,7 @@ int exec_postprocess_native_executable(
 
 	/* Lua:
 	 *	if (exec_policy.native_app_ld_so ~= nil) then
-	 *		-- we need to use ld.so for starting the binary, 
+	 *		-- we need to use ld.so for starting the binary,
 	 *		-- instead of starting it directly:
 	 *		new_mapped_file = exec_policy.native_app_ld_so
 	 *		table.insert(new_argv, exec_policy.native_app_ld_so)
@@ -449,7 +503,7 @@ int exec_postprocess_native_executable(
 			 * to live without those. But it is still better than
 			 * the alternative, loosing LD_PRELOAD..
 			*/
-			if (info->pt_interp) {	
+			if (info->pt_interp) {
 				char *pt_interp_copy = strdup(info->pt_interp);
 				SB_LOG(SB_LOGLEVEL_DEBUG,
 					"%s: No native_app_ld_so, SUID/SGID binary, "
@@ -471,7 +525,7 @@ int exec_postprocess_native_executable(
 	} else {
 		const char *native_app_ld_so_rpath_prefix = NULL;
 
-		/* we need to use ld.so for starting the binary, 
+		/* we need to use ld.so for starting the binary,
 		 * instead of starting it directly: */
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"%s: native_app_ld_so='%s'",
@@ -482,7 +536,7 @@ int exec_postprocess_native_executable(
 
 		/* Ignore RPATH and RUNPATH information:
 		 * This will prevent accidental use of host's libraries,
-		 * if the binary has been set to use RPATHs. 
+		 * if the binary has been set to use RPATHs.
 		 * (it would be nice if we could log warnings about them,
 		 * but currently there is no easy way to do that)
 		 *
@@ -517,12 +571,12 @@ int exec_postprocess_native_executable(
 		/*
 		 * NOTE/WARNING: The default ld.so (ld-linux.so) will loose
 		 * argv[0], when the binary is executed by ld.so's
-		 * command line (which we will be doing). It will always copy 
+		 * command line (which we will be doing). It will always copy
 		 * the filename to argv[0].
 		 *
 		 * We now have a patch for ld.so which introduces a new
 		 * option, "--argv0 argument", and a flag is used to tell
-		 * if a patched ld.so is available (the "sb2" script finds 
+		 * if a patched ld.so is available (the "sb2" script finds
 		 * that out during startup phase).
 		 *
 		 * Lua:
@@ -562,8 +616,9 @@ int exec_postprocess_native_executable(
 	 *		updated_args = 1
 	 *	end
 	*/
-	setenv_native_app_ld_library_path(eph, &new_envp); 
-	setenv_native_app_ld_preload(eph, &new_envp);
+
+	setenv_native_app_ld_library_path(eph, &new_envp);
+	setenv_native_app_ld_preload(eph, &new_envp, info);
 
 	/* When exec_policy contains field 'native_app_locale_path' we
 	 * need to set environment variables $LOCPATH (and $NLSPATH) to
@@ -626,7 +681,7 @@ int exec_postprocess_native_executable(
 			add_string_to_strv(&new_envp, cp);
 		}
 	}
-		
+
 	/* add rest of orig.env. to new_new */
 	{
 		int i;
@@ -784,7 +839,7 @@ static int exec_postprocess_qemu(
 	namev_in_ruletree[1] = conf_cputransparency_name;
 	namev_in_ruletree[2] = NULL; /* this will be varied below */
 	namev_in_ruletree[3] = NULL;
-	
+
 	/* get number of additional argv elements for Qemu: */
 	namev_in_ruletree[2] = "qemu_argv";
 	qemu_argv_list_offs = ruletree_catalog_vget(namev_in_ruletree);
@@ -811,7 +866,7 @@ static int exec_postprocess_qemu(
 			}
 		}
 	}
-	
+
 	/* Preparations.
 	 * Following arguments may be added for Qemu, so reserve
 	 * additional argv slots:
@@ -941,12 +996,12 @@ static int exec_postprocess_qemu(
 	 *			for i = 1, #envp do
 	 *				-- drop LD_TRACE_* from target environment
 	 *				if string.match(envp[i], "^LD_TRACE_.*") then
-	 *					-- .. and move to qemu command line 
+	 *					-- .. and move to qemu command line
 	 *					table.insert(new_argv, "-E")
 	 *					table.insert(new_argv, envp[i])
 	 *				elseif string.match(envp[i], "^__SB2_LD_PRELOAD=.*") then
 	 *					-- FIXME: This will now drop application's
-	 *					-- LD_PRELOAD. This is not really what should 
+	 *					-- LD_PRELOAD. This is not really what should
 	 *					-- be done... To Be Fixed.
 	 *				else
 	 *					table.insert(new_envp, envp[i])
@@ -969,7 +1024,7 @@ static int exec_postprocess_qemu(
 			case 'N':
 			case 'L':
 				/* drop GCONV_PATH, NLSPATH and LOCPATH
-				 * completely */ 
+				 * completely */
 				if (matches_gconv_path_nlspath_or_locpath(orig_env_var)) {
 					continue;
 				}
@@ -986,7 +1041,7 @@ static int exec_postprocess_qemu(
 				if (!strncmp(orig_env_var, sb2_ld_preload_prefix,
 					sb2_ld_preload_prefix_len)) {
 					/* FIXME: This will now drop application's
-					 * LD_PRELOAD. This is not really what should 
+					 * LD_PRELOAD. This is not really what should
 					 * be done... To Be Fixed.
 					*/
 					continue;
@@ -1005,7 +1060,7 @@ static int exec_postprocess_qemu(
 			case 'N':
 			case 'L':
 				/* drop GCONV_PATH, NLSPATH and LOCPATH
-				 * completely */ 
+				 * completely */
 				if (matches_gconv_path_nlspath_or_locpath(orig_env[i])) {
 					continue;
 				}
@@ -1028,13 +1083,13 @@ static int exec_postprocess_qemu(
 	 *		end
 	 *		new_envp, hack_envp = hack_envp, nil
 	*/
-	
+
 	/*
 	 *		-- libsb2 will replace LD_PRELOAD and LD_LIBRARY_PATH
 	 *		-- env.vars, we don't need to worry about what the
 	 *		-- application will see in those - BUT we need
 	 *		-- to set those variables for Qemu itself.
-	 *		-- Fortunately that is easy: 
+	 *		-- Fortunately that is easy:
 	 *		local qemu_ldlibpath
 	 *		local qemu_ldpreload
 	 *		if conf_cputransparency.qemu_ld_library_path == "" then
@@ -1064,14 +1119,14 @@ static int exec_postprocess_qemu(
 				"%s: No qemu_ld_library_path, using host's ld_library_path (%s)",
 				__func__, conf_cputransparency_name);
 			qemu_ldlibpath = ruletree_catalog_get_string("config", "host_ld_library_path");
-			assert(asprintf(&cp, "LD_LIBRARY_PATH=%s", qemu_ldlibpath) > 0);	
+			assert(asprintf(&cp, "LD_LIBRARY_PATH=%s", qemu_ldlibpath) > 0);
 		} else {
 			/* qemu_ldlibpath has LD_LIBRARY_PATH= prefix */
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"%s: set ld_library_path (%s) = %s",
 				__func__, conf_cputransparency_name, qemu_ldlibpath);
 			cp = strdup(qemu_ldlibpath);
-		} 
+		}
 		add_string_to_strv(&new_envp, cp);
 
 		/* LD_PRELOAD */
@@ -1082,14 +1137,14 @@ static int exec_postprocess_qemu(
 				"%s: No qemu_ld_preload, using host's ld_preload (%s)",
 				__func__, conf_cputransparency_name);
 			qemu_ldpreload = ruletree_catalog_get_string("config", "host_ld_preload");
-			assert(asprintf(&cp, "LD_PRELOAD=%s", qemu_ldpreload) > 0);	
+			assert(asprintf(&cp, "LD_PRELOAD=%s", qemu_ldpreload) > 0);
 		} else {
 			/* qemu_ldpreload has LD_PRELOAD= prefix */
 			SB_LOG(SB_LOGLEVEL_DEBUG,
 				"%s: set ld_preload (%s) = %s",
 				__func__, conf_cputransparency_name, qemu_ldpreload);
 			cp = strdup(qemu_ldpreload);
-		} 
+		}
 		add_string_to_strv(&new_envp, cp);
 	}
 
@@ -1206,7 +1261,7 @@ int exec_postprocess_host_static_executable(
 	hp = ruletree_catalog_get_string("config", "host_ld_library_path");
 	assert(asprintf(&cp, "LD_LIBRARY_PATH=%s", hp) > 0);
 	add_string_to_strv(&new_envp, cp);
-	
+
 	hp = ruletree_catalog_get_string("config", "host_ld_preload");
 	assert(asprintf(&cp, "LD_PRELOAD=%s", hp) > 0);
 	add_string_to_strv(&new_envp, cp);

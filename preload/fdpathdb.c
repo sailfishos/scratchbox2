@@ -108,7 +108,7 @@ static void fdpathdb_register_mapped_path(
 			path = orig_path;
 		} else {
 			/* Oops. Should not come here; "orig_path"
-			 * should be absolute. But if it isn't, 
+			 * should be absolute. But if it isn't,
 			 * try to use mapped_path. */
 			if (*mapped_path == '/') {
 				path = mapped_path;
@@ -198,7 +198,7 @@ static void fdpathdb_register_mapping_result(const char *realfnname,
 			free(abs_virtual_path);
 		} else {
 			/* virtual path is relative, and it can't
-			 * be converted to absolute. 
+			 * be converted to absolute.
 			 * fdpathdb_register_mapped_path() will try to
 			 * use the mapped path instead.
 			*/

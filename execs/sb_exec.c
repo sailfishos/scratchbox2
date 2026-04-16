@@ -137,23 +137,6 @@
 # error Invalid __BYTE_ORDER
 #endif
 
-#if defined(__i386__) || defined(__x86_64__)
-/*
- * We support exec'ing 64-bit programs from 32-bit programs
- * as tools distribution might be 32-bit even in 64-bit machine.
- */
-# define HOST_ELF_MACHINE_32 EM_386
-# define HOST_ELF_MACHINE_64 EM_X86_64
-#elif defined(__ia64__)
-# define HOST_ELF_MACHINE_64 EM_IA_64
-#elif defined(__arm__) || defined(__aarch64__)
-# define HOST_ELF_MACHINE_32 EM_ARM
-# define HOST_ELF_MACHINE_64 EM_AARCH64
-#elif defined(__powerpc__)
-# define HOST_ELF_MACHINE_32 EM_PPC
-#else
-# error Unsupported host CPU architecture
-#endif
 
 struct target_info {
 	char name[8];
@@ -168,6 +151,7 @@ static const struct target_info target_table[] = {
 	{ "ppc",	EM_PPC,		ELFDATA2MSB,	0 },
 	{ "sh",		EM_SH, 		ELFDATA2LSB,	1 },
 	{ "x86_64",	EM_X86_64,	ELFDATA2LSB,	0 },
+	{ "i386",	EM_386,	        ELFDATA2LSB,	0 },
         { "aarch64",    EM_AARCH64,     ELFDATA2LSB,    1 },
 };
 

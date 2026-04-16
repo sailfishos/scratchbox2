@@ -59,7 +59,7 @@ if there are more than one saved sessions, then:
 	% sb2-session list
 	session.XXXX	TARGET_ARM	My Comment
 	session.YYYY	TARGET_ARM	My Comment 2
-	session.ZZZZ	TARGET_MIPS	
+	session.ZZZZ	TARGET_MIPS
 	% sb2-session attach session.YYYY
 
 Here we pass '-eR' to sb2 and we only have one saved session:
@@ -99,7 +99,7 @@ END
 
 	#
 	# Make the session "joinable".  This keeps sb2
-	# from removing the session directory. 
+	# from removing the session directory.
 	#
 	touch $SBOX_SESSION_DIR/.joinable-session
 }
@@ -124,7 +124,7 @@ attach_session()
 		# No session id given.  This means that there should
 		# only be one session and we should use that.
 		#
-		count=
+		count=0
 		for s in $session_save_dir/session.* ; do
 			session_file=$s
 			count=$((count + 1))

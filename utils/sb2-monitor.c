@@ -21,6 +21,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -32,6 +33,7 @@
 #include <string.h>
 #include <dirent.h>
 
+// FIXME: this should be included earlier
 #include <config.h>
 
 #ifdef __APPLE__

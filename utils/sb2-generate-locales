@@ -39,7 +39,7 @@ generate_localization_files()
 	gendir=$2
 	force=$3
 
-	if [ -d $gendir ]; then
+	if [ -d "$gendir" ]; then
 		if [ $force -eq 0 ]; then
 			return
 		fi

@@ -156,7 +156,7 @@ fi
 add_pkg_to_status_file()
 {
 	if [ $check_all_pkgs = "yes" ]; then
-		if [ -f $status_file ]; then
+		if [ -f "$status_file" ]; then
 			echo >>$status_file
 		fi
 		dpkg -s $pkg >>$status_file

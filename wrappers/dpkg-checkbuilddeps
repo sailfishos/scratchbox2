@@ -118,7 +118,7 @@ function check_host_pkg()
 		# No, the package has not been aproved to be used from the host.
 
 		# first check if this requirement should be ignored completely:
-		if [ -f $cfgfile_host_ignored_pkgs ]
+		if [ -f "$cfgfile_host_ignored_pkgs" ]
 		then
 			# ignorelist exists
 			g=`grep "^$pkgname\$" $cfgfile_host_ignored_pkgs`
@@ -161,7 +161,7 @@ function check_host_pkg()
 	fi
 
 	# not installed. Test if this can be ignored.
-	if [ -f $cfgfile_host_ignored_pkgs ]
+	if [ -f "$cfgfile_host_ignored_pkgs" ]
 	then
 		g=`grep "^$pkgname\$" $cfgfile_host_ignored_pkgs`
 		if [ -n "$g" ]
@@ -203,7 +203,7 @@ function check_gcc_dependency()
 		for gcc_conf_file in \
 			$HOME/.scratchbox2/$sbox_target/sb2.config.d/gcc*.config.sh
 		do
-			if [ -f $gcc_conf_file ]; then
+			if [ -f "$gcc_conf_file" ]; then
 				. $gcc_conf_file
 				short_vrs="g??-$SBOX_CROSS_GCC_SHORTVERSION"
 				full_vrs="g??-$SBOX_CROSS_GCC_VERSION"
@@ -414,7 +414,7 @@ function compare_target_and_host_results_with_new_tool()
 	host_accepted=`grep -v "#" $cfgfile_host_accepted_pkgs`
 
 	host_ignored=""
-	if [ -f $cfgfile_host_ignored_pkgs ]
+	if [ -f "$cfgfile_host_ignored_pkgs" ]
 	then
 		# ignorelist exists
 		host_ignored=`grep -v "#" $cfgfile_host_ignored_pkgs`

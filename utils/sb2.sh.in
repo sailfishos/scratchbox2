@@ -152,7 +152,7 @@ write_rules_to_session_dir()
 END
 	
 	for f in $input_files; do
-		if [ -r $f ]; then
+		if [ -r "$f" ]; then
 			echo "-- [ $f ]" >>$output_file_name
 			cat $f >>$output_file_name
 		else
@@ -746,7 +746,7 @@ write_ld_library_path_replacement_to_exec_config()
 		colon=":"
 	fi
 	for l in $liblocations; do
-		if [ -d $rootdir$l ]; then
+		if [ -d "$rootdir$l" ]; then
 			ldpathvalue="$ldpathvalue$colon$rootdir$l"
 			colon=":"
 		fi
@@ -978,7 +978,7 @@ guess_ld_so()
 		# ld.so
 		ld_so_conf_base=ld-linux-$(uname -m | sed -e 's/_/-/').so.2
 		for libdir in $sbox_libdirs; do
-			if [ -r $prefix/$libdir/$ld_so_conf_base ] ; then
+			if [ -r "$prefix/$libdir/$ld_so_conf_base" ] ; then
 				ld_so_conf=$prefix/$libdir/$ld_so_conf_base
 			fi
 		done
@@ -1068,7 +1068,7 @@ write_libsb2_and_ld_so_state_to_exec_config()
 
 	# First try if the default linker can be used
 	ld_so_candidate="$(guess_ld_so $rootdir)"
-	if [ -f $ld_so_candidate ]; then
+	if [ -f "$ld_so_candidate" ]; then
 		check_ld_so_features $rootdir $ld_so_candidate
 		if [ "$ld_so_argv_flag_works" != "true" ]; then
 			# the default ld.so does not support --argv0.
@@ -1112,7 +1112,7 @@ write_libsb2_and_ld_so_state_to_exec_config()
 		# know its version.
 		#
 		ld_so_candidate2="$(guess_ld_so $libsb2_dirname)"
-		if [ -L $ld_so_candidate2 ]; then
+		if [ -L "$ld_so_candidate2" ]; then
 			ld_so_candidate2=$(readlink -f $ld_so_candidate2)
 			# check also that it has --argv0 support
 			check_ld_so_features $rootdir $ld_so_candidate2
@@ -1234,7 +1234,7 @@ END
 END
 
 	for liblocation in $sbox_liblocations ; do
-		if [ -d $liblocation ] ; then
+		if [ -d "$liblocation" ] ; then
 			break
 		fi
 	done
@@ -1302,7 +1302,7 @@ END
 		if [ -n "$SBOX_CLONED_TARGET_ROOT" ]; then
 			target_basename=$(basename $SBOX_CLONED_TARGET_ROOT)
 		else
-			if [ -z $SBOX_TARGET_ROOT ]; then
+			if [ -z "$SBOX_TARGET_ROOT" ]; then
 			    exit_error "SBOX_TARGET_ROOT empty, valid target not found"
 			fi
 			target_basename=$(basename $SBOX_TARGET_ROOT)

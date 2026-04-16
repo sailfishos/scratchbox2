@@ -20,7 +20,7 @@ show_existing_config_info()
 	echo "Already initialized targets:"
 	echo
 	for f in $HOME/.scratchbox2/*/sb2.config; do
-		if [ -f $f ]; then
+		if [ -f "$f" ]; then
 			SBOX_CONFIG_VERSION=0
 			. $f
 			has_targets="yes"

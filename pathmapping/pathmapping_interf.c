@@ -247,8 +247,11 @@ void sbox_map_path_at(
 		res->mres_readonly = 1;
 		return;
 	}
-        if (*virtual_path == '\0') {
-		goto end;
+	if (*virtual_path == '\0') {
+		// FIXME Is this a result of an error earlier or benign?
+		res->mres_result_buf = res->mres_result_path = strdup(virtual_path);
+		res->mres_readonly = 0;
+		return;
 	}
 
 	if ((*virtual_path == '/')
@@ -267,35 +270,33 @@ void sbox_map_path_at(
 	/* relative to something else than CWD */
 	dirfd_path = fdpathdb_find_path(dirfd);
 
-	if (dirfd_path) {
-		/* pathname found */
-		char *virtual_abs_path_at_fd = NULL;
-
-		if (asprintf(&virtual_abs_path_at_fd, "%s/%s", dirfd_path, virtual_path) < 0) {
-			/* asprintf failed */
-			abort();
-		}
-		SB_LOG(SB_LOGLEVEL_DEBUG,
-			"Synthetic path for %s(%d,'%s') => '%s'",
-			func_name, dirfd, virtual_path, virtual_abs_path_at_fd);
-
-		fwd_map_path(
-			(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
-			func_name,
-			virtual_abs_path_at_fd, flags, 0/*exec_mode*/, classmask, res);
-		free(virtual_abs_path_at_fd);
-
+	if (!dirfd_path) {
+		/* name not found. Can't do much here, log a warning and return
+		 * the original relative path. That will work if we are lucky, but
+		 * not always..  */
+		SB_LOG(SB_LOGLEVEL_WARNING, "Path not found for FD %d, for %s(%s)",
+			dirfd, func_name, virtual_path);
+		res->mres_result_buf = res->mres_result_path = strdup(virtual_path);
+		res->mres_readonly = 0;
 		return;
 	}
 
-end:
-	/* name not found. Can't do much here, log a warning and return
-	 * the original relative path. That will work if we are lucky, but
-	 * not always..  */
-	SB_LOG(SB_LOGLEVEL_WARNING, "Path not found for FD %d, for %s(%s)",
-		dirfd, func_name, virtual_path);
-	res->mres_result_buf = res->mres_result_path = strdup(virtual_path);
-	res->mres_readonly = 0;
+	/* pathname found */
+	char *virtual_abs_path_at_fd = NULL;
+
+	if (asprintf(&virtual_abs_path_at_fd, "%s/%s", dirfd_path, virtual_path) < 0) {
+		/* asprintf failed */
+		abort();
+	}
+	SB_LOG(SB_LOGLEVEL_DEBUG,
+		"Synthetic path for %s(%d,'%s') => '%s'",
+		func_name, dirfd, virtual_path, virtual_abs_path_at_fd);
+
+	fwd_map_path(
+		(sbox_binary_name ? sbox_binary_name : "UNKNOWN"),
+		func_name,
+		virtual_abs_path_at_fd, flags, 0/*exec_mode*/, classmask, res);
+	free(virtual_abs_path_at_fd);
 }
 
 /* this maps the path and then leaves "rule" and "exec_policy" to the stack,

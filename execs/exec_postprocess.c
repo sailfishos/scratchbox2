@@ -131,7 +131,7 @@ const char *machine_to_arch(uint16_t machine) {
 	case (EM_PPC):     return "ppc";
 	case (EM_SH):      return "sh";
 	case (EM_X86_64):  return "x86_64";
-	case (EM_386):     return "i386";
+	case (EM_386):     return "i486"; // Note: not "i386"
 	case (EM_AARCH64): return "aarch64";
 	default:           return NULL;
 	}

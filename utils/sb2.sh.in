@@ -1199,9 +1199,9 @@ write_locale_and_gconv_paths_to_exec_config()
 
 	#------------ gconv:
 	gconv_path=""
-	for rootdir_gconvs in "$SBOX_LIBDIR $rootdir/usr/lib/gconv" \
-		"$rootdir/usr/share/gconv"
+	for libdir in $sbox_libdirs
 	do
+		rootdir_gconvs=$rootdir/$libdir/gconv
 		if [ -d "$rootdir_gconvs" ]; then
 			gconv_path="$gconv_path:$rootdir_gconvs"
 		fi

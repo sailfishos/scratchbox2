@@ -693,8 +693,10 @@ write_ld_library_path_replacement_to_exec_config()
 	# call find_libsb2_candidates.
 
 	if [ $# -gt 0 ] ; then
-		libsb2_path=$(find_libsb2_candidate $SBOX_LIBSB2_SONAME_OLD \
-						    "$@")
+		libsb2_path=$(find_libsb2_candidate $SBOX_LIBSB2_SONAME_OLD "$@")
+		if [ -z "$libsb2_path" ] ; then
+			libsb2_path=$(find_libsb2_candidate $SBOX_LIBSB2_SONAME "$@")
+		fi
 		if [ -n "$libsb2_path" ] ; then
 			# IMPORTANT: $libsb2_dirname and $libsb2_path
 			# will be used by
@@ -1020,16 +1022,17 @@ write_libsb2_and_ld_so_state_to_exec_config()
 
 	for liblocation in $sbox_liblocations ; do
 		[ -d $rootdir$liblocation ] || continue
-
 		if [ -z "$libsb2_path" ]; then
-			libsb2_path=$(find_libsb2_candidate \
-					      $SBOX_LIBSB2_SONAME_OLD \
-					      "$rootdir$liblocation")
-			# if libsb2_path wasn't set before then we have
-			# to try to find lisb2 until reach the end
-			# of possible matches
-			[ -n "$libsb2_path" ] || continue
+			libsb2_path=$(find_libsb2_candidate $SBOX_LIBSB2_SONAME_OLD "$rootdir$liblocation")
 		fi
+		if [ -z "$libsb2_path" ]; then
+			libsb2_path=$(find_libsb2_candidate $SBOX_LIBSB2_SONAME "$rootdir$liblocation")
+		fi
+
+		# if libsb2_path wasn't set before then we have
+		# to try to find lisb2 until reach the end
+		# of possible matches
+		[ -n "$libsb2_path" ] || continue
 
 		# assume the prefix is under libdir: ../libdir
 		# should be essentially $rootdir/usr:

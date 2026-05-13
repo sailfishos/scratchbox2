@@ -9,7 +9,8 @@ AC_INIT([SB2],
         [scratchbox2],
         [https://github.com/sailfishos/scratchbox2])
 AC_CONFIG_AUX_DIR([build-aux])
-#AC_CANONICAL_TARGET
+AC_CONFIG_MACRO_DIR([m4])
+AC_CANONICAL_TARGET
 #AM_INIT_AUTOMAKE
 #AM_MAINTAINER_MODE
 #AC_CONFIG_SRCDIR([src/libfakechroot.c])
@@ -238,6 +239,19 @@ freebsd*)
 	AC_MSG_ERROR(Failed to identify xattr style for your host)
 	;;
 esac
+
+
+DYNAMIC_LIB_SUFFIX='.so'
+AC_DEFINE_UNQUOTED([DYNAMIC_LIB_SUFFIX], ["${DYNAMIC_LIB_SUFFIX}"], [Extension for dynamic libraries])
+
+
+AC_SUBST([LIBSB2_NAME], [lib]m4_tolower(AC_PACKAGE_NAME))
+AC_DEFINE_UNQUOTED([LIBSB2_NAME], ["${LIBSB2_NAME}"], AC_PACKAGE_NAME preloader name)
+
+AC_SUBST([LIBSB2_SOVER], [1])
+AC_DEFINE_UNQUOTED([LIBSB2_SOVER], ["${LIBSB2_SOVER}"] , preloader sover)
+
+LIBSB2_CONFIG
 
 AC_C_BIGENDIAN()
 AC_SUBST(WORDS_BIGENDIAN, ${WORDS_BIGENDIAN})

@@ -1,18 +1,18 @@
 /* sb2-monitor:
  *
- * This is used to wrap the commands started by the "sb2" script, 
- * wait for results, and then start a log analyzer to print out 
+ * This is used to wrap the commands started by the "sb2" script,
+ * wait for results, and then start a log analyzer to print out
  * statistics after the command has finished.
  *
  * Basically, this starts the command as a child process,
  * waits until the command completes (relaying signals to the child)
  * and finally calls an external script.
  *
- * In practise, it is easy to say that this "relays signals" but 
+ * In practise, it is easy to say that this "relays signals" but
  * implementing that requires some tricks - see comments below.
  * Also note that a signal proxy is not possible with 100%
  * accuracy due to process groups and other oddities that have been
- * "built in" to the signal system. All of this can be described as 
+ * "built in" to the signal system. All of this can be described as
  * yet another best-effort game..
  *
  *
@@ -20,6 +20,8 @@
  * Author: Lauri T. Aarnio
  * Licensed under LGPL version 2.1, see top level LICENSE file for details.
 */
+
+#include <config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,8 +33,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <dirent.h>
-
-#include <config.h>
 
 #ifdef __APPLE__
  #include <signal.h>
@@ -55,10 +55,10 @@ static const char *progname;
 
 static void usage_exit(const char *errmsg, int exitstatus)
 {
-	if (errmsg) 
+	if (errmsg)
 		fprintf(stderr, "%s: Error: %s\n", progname, errmsg);
 
-	fprintf(stderr, 
+	fprintf(stderr,
 		"\n%s: Usage:\n"
 		"\t%s [options_for_%s] -- [envvar=val [...]] command [parameters]\n"
 		"\nOptions:\n"
@@ -90,7 +90,7 @@ static void set_process_group(pid_t new_pgrp)
 /* Signal handler, which relays the signal sent by kill() or sigqueue()
  * to the child process.
  *
- * this is a bit tricky since we are trying to act as an accurate 
+ * this is a bit tricky since we are trying to act as an accurate
  * signal bridge: There are some signals that are usually generated
  * by an execeptional condition (like SIGILL, SIGFPE and SIGSEGV),
  * signals that originate from timers, etc.
@@ -111,7 +111,7 @@ static void signal_handler(int sig, siginfo_t *info, void *ptr)
 	case SIGILL: case SIGFPE: case SIGSEGV:
 		if ((info->si_code != SI_USER) &&
 		   (info->si_code != SI_QUEUE)) {
-			/* OOPS, the signal is a real, fatal, deadly 
+			/* OOPS, the signal is a real, fatal, deadly
 			 * that must not be ignored. */
 			DEBUG_MSG("Deadly signal\n");
 			exit(250);
@@ -133,14 +133,14 @@ static void signal_handler(int sig, siginfo_t *info, void *ptr)
 			 * stopping ourselves..the story continues below..
 			*/
 			set_process_group(original_process_group);
-			
+
 			raise(SIGSTOP);
 			return;
 		} else {
 			DEBUG_MSG("SIGCHLD: other\n");
 		}
 		break;
-	
+
 	case SIGCONT:
 		/* ...need to continue. When this process was stopped,
 		 * the process group was changed (above) and now it needs
@@ -153,7 +153,7 @@ static void signal_handler(int sig, siginfo_t *info, void *ptr)
 	}
 
 	if (info->si_code == SI_QUEUE) {
-		DEBUG_MSG("signal %d => sending it to %d by sigqueue\n", 
+		DEBUG_MSG("signal %d => sending it to %d by sigqueue\n",
 			sig, (int)child_pid);
 #ifndef __APPLE__
 		sigqueue(child_pid, sig, info->si_value);
@@ -161,11 +161,11 @@ static void signal_handler(int sig, siginfo_t *info, void *ptr)
 		kill(child_pid, sig);
 #endif
 	} else if (info->si_code == SI_USER) {
-		DEBUG_MSG("signal %d => sending it to %d by kill\n", 
+		DEBUG_MSG("signal %d => sending it to %d by kill\n",
 			sig, (int)child_pid);
 		kill(child_pid, sig);
 	} else {
-		DEBUG_MSG("signal %d: si_code is %d, ignored\n", 
+		DEBUG_MSG("signal %d: si_code is %d, ignored\n",
 			sig, info->si_code);
 	}
 }
@@ -190,7 +190,7 @@ static void initialize_signal_handler(int sig)
 /* Set up signal handlers for all signals that can be caught. */
 static void catch_all_signals(void)
 {
-	/* order here tries to follows the numerical order of signals 
+	/* order here tries to follows the numerical order of signals
 	 * on Linux (see signal(7)) and Mac OS X (see signal(2))
 	*/
 	initialize_signal_handler(SIGHUP); /* 1 */
@@ -254,7 +254,7 @@ static void read_env_vars_from_dir(const char *envdir)
 	const char *ld_lib_path = "LD_LIBRARY_PATH";
 
 	DEBUG_MSG("read_env_vars_from_dir(%s)\n", envdir);
-	
+
 	ed = opendir(envdir);
 	if (ed) {
 		while(1) {
@@ -308,7 +308,7 @@ static void read_env_vars_from_dir(const char *envdir)
 						DEBUG_MSG("unset '%s'\n", ent->d_name);
 						unsetenv(ent->d_name);
 					}
-					
+
 				} else {
 					fprintf(stderr, "Warning: value of target-specific "
 						"env.var '%s' is too big (not used)\n",
@@ -350,7 +350,7 @@ int main(int argc, char *argv[])
 	char	*pgrpfile = NULL;
 
 	progname = argv[0];
-	
+
 	while ((opt = getopt(argc, argv, "L:x:X:dhe:gG:")) != -1) {
 		switch (opt) {
 		case 'L': sbox_libsb2 = optarg; break;
@@ -365,7 +365,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (optind >= argc) 
+	if (optind >= argc)
 		usage_exit("Wrong number of parameters", 1);
 
 	if (command_to_exec_at_end && command_to_exec_at_end_conditionally) {
@@ -403,7 +403,7 @@ int main(int argc, char *argv[])
 	case -1: /* fork failed */
 		usage_exit("fork failed", 1);
 		break;
-		
+
 	case 0: /* child - the worker process */
 		/* child remains in the original process group.. */
 		DEBUG_MSG("child started\n");
@@ -489,13 +489,13 @@ int main(int argc, char *argv[])
 	 * no fdwalk() that are available in other systems (solaris, etc)
 	*/
 
-	/* The process group must be changed. 
+	/* The process group must be changed.
 	 * failing to do so would duplicate all signals sent to the process
 	 * group, because there doesn't seem to be any way to detect if
-	 * the signal signal was sent to a process group or directly to 
+	 * the signal signal was sent to a process group or directly to
 	 * the process itself => this program just forwards all signals..
 	 *
-	 * Note that the PID of this process is very likely already in use as 
+	 * Note that the PID of this process is very likely already in use as
 	 * a process group (for example, if "sb2" was started from a shell,
 	 * the shell has usually created a new process group using the PID
 	 * of the new process), so we'll have to create a new PGID. A safe way
@@ -509,7 +509,7 @@ int main(int argc, char *argv[])
 	new_process_group = fork();
 	switch (new_process_group) {
 	case -1:
-		/* ARGH! fork should not fail, not now. 
+		/* ARGH! fork should not fail, not now.
 		 * can't do anything else than fail completely */
 		kill(SIGTERM, child_pid);
 		usage_exit("fork failed", 1);
@@ -530,7 +530,7 @@ int main(int argc, char *argv[])
 		close(child2_to_master_pipe_fds[0]); /* close R-end */
 		close(master_to_child2_pipe_fds[1]); /* close W-end */
 
-		/* process group has been created and changed, 
+		/* process group has been created and changed,
 		 * let the parent continue by writing a byte. */
 		if (write(child2_to_master_pipe_fds[1], "a", 1) == 1) {
 			while (read(master_to_child2_pipe_fds[0], &ch, 1) > 0);
@@ -550,17 +550,17 @@ int main(int argc, char *argv[])
 	*/
 	if (read(child2_to_master_pipe_fds[0], &ch, 1) < 1) {
 		DEBUG_MSG("failed fo synchronize with the 2nd child\n");
-	} 
+	}
 
 	/* close R-end of the pipe. After this there is no need to
 	 * do anything considering the second child, it will die away
-	 * when the parent process dies and the W-end of the pipe is 
+	 * when the parent process dies and the W-end of the pipe is
 	 * closed automatically.
 	*/
 	close(master_to_child2_pipe_fds[0]);
 
 	set_process_group(new_process_group); /* finally, change process group! */
-	
+
 	/* now catch all signals that are sent to this PID,
 	 * but since the process group was just changed, this won't catch
 	 * those signals that were sent to that process group being used by
@@ -637,4 +637,3 @@ int main(int argc, char *argv[])
 	}
 	exit(resultcode);
 }
-

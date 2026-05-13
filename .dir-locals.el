@@ -8,5 +8,7 @@
 	    (lsp-enable-indentation . nil)))
  (lua-mode . ((tab-width . 4)))
  (rpm-spec-mode . ((indent-tabs-mode . nil)))
+ (autoconf-mode . ((indent-tabs-mode . nil)
+		   (tab-width . 2)))
  (sh-mode . ((sh-basic-offset . 4)
 	     (tab-width . 4))))

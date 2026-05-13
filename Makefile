@@ -19,21 +19,13 @@ datadir = $(datarootdir)
 
 OS := $(shell uname -s)
 
-ifeq ($(OS),Linux)
-LIBSB2_LDFLAGS = -Wl,-soname=$(LIBSB2_SONAME) \
-		-Wl,--version-script=$(OBJDIR)/preload/export.map
-
-SHLIBEXT = so
-else
-SHLIBEXT = dylib
-endif
 
 CC = gcc
 CXX = g++
 LD = ld
 PACKAGE_VERSION =
 PACKAGE_NAME =
-LIBSB2_SONAME = "libsb2.so.1"
+LIBSB2_SONAME =
 LLBUILD ?= $(SRCDIR)/llbuild
 PROTOTYPEWARNINGS=-Wmissing-prototypes -Wstrict-prototypes
 
@@ -135,12 +127,6 @@ $(OBJDIR)/include/config.h: $(OBJDIR)/stamp-h
 $(OBJDIR)/stamp-h: $(SRCDIR)/include/config.h.in $(OBJDIR)/config.status
 	$(OBJDIR)/config.status include/config.h
 	echo > $(OBJDIR)/stamp-h
-
-$(OBJDIR)/include/scratchbox2_version.h: $(OBJDIR)/config.mak
-	mkdir -p $(OBJDIR)/include
-	echo "/* Automatically generated file. Do not edit. */" >$(OBJDIR)/include/scratchbox2_version.h
-	echo '#define SCRATCHBOX2_VERSION "'$(PACKAGE_VERSION)'"' >>$(OBJDIR)/include/scratchbox2_version.h
-	echo '#define LIBSB2_SONAME "'$(LIBSB2_SONAME)'"' >>$(OBJDIR)/include/scratchbox2_version.h
 
 gcc_bins = addr2line ar as cc c++ c++filt cpp g++ gcc gcov gdb gdbtui gprof ld nm objcopy objdump ranlib rdi-stub readelf run size strings strip
 host_prefixed_gcc_bins = $(foreach v,$(gcc_bins),host-$(v))
@@ -250,7 +236,7 @@ install: install-noarch
 	$(Q)install -d -m 755 $(DESTDIR)$(libdir)/libsb2
 	$(Q)install -d -m 755 $(DESTDIR)$(libdir)/libsb2/wrappers
 	$(Q)install -m 755 $(OBJDIR)/wrappers/fakeroot $(DESTDIR)$(libdir)/libsb2/wrappers/fakeroot
-	$(Q)install -m 755 $(OBJDIR)/preload/libsb2.$(SHLIBEXT) $(DESTDIR)$(libdir)/libsb2/libsb2.so.$(PACKAGE_VERSION)
+	$(Q)install -m 755 $(OBJDIR)/preload/libsb2.$(SHLIBEXT) $(DESTDIR)$(libdir)/libsb2/$(LIBSB2_SONAME_WEXT).$(SHLIBEXT).$(PACKAGE_VERSION)
 	$(Q)install -m 755 $(OBJDIR)/utils/sb2dctl $(DESTDIR)$(libdir)/libsb2/sb2dctl
 	$(Q)install -m 755 $(OBJDIR)/utils/sb2-show $(DESTDIR)$(bindir)/sb2-show
 	$(Q)install -m 755 $(OBJDIR)/utils/sb2-monitor $(DESTDIR)$(bindir)/sb2-monitor

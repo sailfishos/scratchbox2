@@ -28,6 +28,8 @@
  * summaries.
 */
 
+#include <config.h>
+
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -45,10 +47,8 @@
 #include <sys/statvfs.h>
 
 #include <sb2.h>
-#include <config.h>
 
 #include "exported.h"
-#include "scratchbox2_version.h"
 
 /* -------- Config: buffer sizes: */
 
@@ -261,7 +261,7 @@ void sblog_init_level_logfile_format(const char *opt_level, const char *opt_logf
 		 *       without making a corresponding change to the script!
 		*/
 		SB_LOG(SB_LOGLEVEL_INFO,
-			 "---------- Starting (" SCRATCHBOX2_VERSION ")"
+			 "---------- Starting (" PACKAGE_VERSION ")"
 			" [] "
 			"ppid=%d <%s> (%s) ----------%s",
 			getppid(),

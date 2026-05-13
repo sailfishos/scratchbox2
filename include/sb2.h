@@ -252,8 +252,6 @@ extern int sb_log_initial_pid__; /* current PID will be recorded here
 		} \
 	} while (0)
 
-#define LIBSB2 "libsb2.so.1"
-
 extern int sb2_global_vars_initialized__;
 extern void sb2_initialize_global_variables(void);
 extern char *sbox_session_dir;

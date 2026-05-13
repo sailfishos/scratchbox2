@@ -5,7 +5,10 @@
 # "sb2" script, the command-line interface to Scratchbox 2.
 #
 
-SBOX_LIBSB2="libsb2.so.1"
+SBOX_LIBSB2_SONAME=@LIBSB2_SONAME@
+
+SBOX_LIBSB2_NAME=@LIBSB2_NAME@
+SBOX_LIBSB2_SOVER=@LIBSB2_SOVER@
 
 # Show version.
 # (called to process a command-line option)
@@ -150,12 +153,12 @@ locate_target_nsswitch_conf()
 {
 	__SB2_BINARYNAME="sb2:LocatingNsswitchConf" \
 	sb2-monitor \
-		-L $SBOX_LIBSB2 -- $SBOX_BINDIR/sb2-show \
+		-L $SBOX_LIBSB2_SONAME -- $SBOX_BINDIR/sb2-show \
 		which /etc/nsswitch.conf \
 		>$SBOX_SESSION_DIR/path_to_nsswitch.conf
 	__SB2_BINARYNAME="sb2:LocatingNscdSocket" \
 	sb2-monitor \
-		-L $SBOX_LIBSB2 -- $SBOX_BINDIR/sb2-show \
+		-L $SBOX_LIBSB2_SONAME -- $SBOX_BINDIR/sb2-show \
 		which /var/run/nscd/socket \
 		>$SBOX_SESSION_DIR/path_to_nscd_socket.conf
 	read -r NSSWITCH_CONF_PATH < $SBOX_SESSION_DIR/path_to_nsswitch.conf
@@ -499,16 +502,22 @@ initialize_sb_logging()
 			echo "#SBOX_MAPMODE=$SBOX_MAPMODE" >>$MAPPING_LOGFILE
 
 			if [ -z "$SBOX_QUIET" ];  then
-				echo "Running scratchbox with these settings:"
-				echo "SBOX_LIBSB2 = $SBOX_LIBSB2"
+				cat <<EOF
+Initializing scratchbox session with these settings:
+SBOX_LIBSB2_SONAME = $SBOX_LIBSB2_SONAME
+EOF
 				if [ -n "$SBOX_TOOLS_ROOT" ]; then
-					echo "SBOX_TOOLS_ROOT = $SBOX_TOOLS_ROOT"
+					cat <<EOF
+SBOX_TOOLS_ROOT = $SBOX_TOOLS_ROOT
+EOF
 				fi
-				echo "SBOX_TARGET_ROOT = $SBOX_TARGET_ROOT"
-				echo "SBOX_MAPPING_LOGFILE = $SBOX_MAPPING_LOGFILE"
-				echo "SBOX_MAPPING_LOGLEVEL = $SBOX_MAPPING_LOGLEVEL"
-				echo "SBOX_SESSION_DIR = $SBOX_SESSION_DIR"
-				echo
+				cat <<EOF
+SBOX_TARGET_ROOT = $SBOX_TARGET_ROOT
+SBOX_MAPPING_LOGFILE = $SBOX_MAPPING_LOGFILE
+SBOX_MAPPING_LOGLEVEL = $SBOX_MAPPING_LOGLEVEL
+SBOX_SESSION_DIR = $SBOX_SESSION_DIR"
+
+EOF
 			fi
 		fi
 
@@ -605,6 +614,23 @@ create_gcc_conf_file_for_session()
 	done
 }
 
+# find_libsb2_candidate():
+#
+# Find libsb2 in a list of candidates.
+find_libsb2_candidate()
+{
+	while [ $# -gt 0 ] ; do
+		for f in "$1"/"$LIBSB2_NAME"* ; do
+			if [ -f "$f" ] ; then
+				echo "$f"
+				return
+			fi
+		done
+		shift
+	done
+	return 1
+}
+
 # write_ld_library_path_replacement_to_exec_config():
 #
 # Create replacement for LD_LIBRARY_PATH and write it to the created config
@@ -619,27 +645,18 @@ write_ld_library_path_replacement_to_exec_config()
 	rootdir=$1
 	varname=$2
 	shift 2
-	libsb2_candidates="$@"
 
 	# Build replacement for LD_LIBRARY_PATH:
 
 	# ---- Step 1. Location of libsb2.so
 	libsb2_dirname=""
 	libsb2_path=""
-	if [ -n "$libsb2_candidates" ]
-	then
-		for l in $libsb2_candidates
-		do
-			if [ -f $l ]
-			then
-				# IMPORTANT: $libsb2_dirname and $libsb2_path
-				# will be used by
-				# write_libsb2_and_ld_so_state_to_exec_config()
-				libsb2_dirname=$(dirname $l)
-				libsb2_path=$l
-				break
-			fi
-		done
+
+	# NOTE: Determine libsb2 $SBOX_LIBSB2 here.
+	# call find_libsb2_candidates.
+	libsb2_path=$(find_libsb2_candidate "$@")
+	if [ -n "$libsb2_path" ] ; then
+		libsb2_dirname=$(dirname $libsb2_path)
 	fi
 
 	# ---- Step 2. Directories under $rootdir
@@ -717,7 +734,7 @@ check_qemu_features()
 	# use ld.so and libraries from tools)
 	if ! __SB2_BINARYNAME="sb2:CheckingQemuExec" \
 		 sb2-monitor \
-		-L $SBOX_LIBSB2 -- $SBOX_BINDIR/sb2-show \
+		-L $SBOX_LIBSB2_SONAME -- $SBOX_BINDIR/sb2-show \
 		-- exec-cmdline \
 		$qemu_path $qemu_options \
 		>$SBOX_SESSION_DIR/qemu_cmdline
@@ -729,7 +746,7 @@ check_qemu_features()
 	read qemu_cmdline < $SBOX_SESSION_DIR/qemu_cmdline
 	__SB2_BINARYNAME="sb2:CheckingQemuFeatures" \
 	sb2-monitor \
-		-L $SBOX_LIBSB2 -- \
+		-L $SBOX_LIBSB2_SONAME -- \
 		$qemu_cmdline -h \
 		>$SBOX_SESSION_DIR/qemu_help
 	# we don't test the exit status here, qemu -h returns with a non-zero
@@ -879,7 +896,7 @@ check_ld_so_features()
 locate_shell()
 {
 	__SB2_BINARYNAME="sb2:TestingBash" sb2-monitor \
-		-L $SBOX_LIBSB2 -- $SBOX_BINDIR/sb2-show \
+		-L $SBOX_LIBSB2_SONAME -- $SBOX_BINDIR/sb2-show \
 		which /bin/bash \
 		>$SBOX_SESSION_DIR/path_to_shell.conf
 	read -r SHELL_PATH < $SBOX_SESSION_DIR/path_to_shell.conf
@@ -888,7 +905,7 @@ locate_shell()
 		SHELL=/bin/bash
 	else
 		__SB2_BINARYNAME="sb2:LocatingShell" sb2-monitor \
-			-L $SBOX_LIBSB2 -- $SBOX_BINDIR/sb2-show \
+			-L $SBOX_LIBSB2_SONAME -- $SBOX_BINDIR/sb2-show \
 			which /bin/sh \
 			>$SBOX_SESSION_DIR/path_to_shell.conf
 		# Default to /bin/sh
@@ -906,6 +923,7 @@ locate_shell()
 #
 # Used during initialization stage 1 (while setting
 # up the environment, which can't be used yet)
+# FIXME: Use sb2-show here to guess ld based on ELF interpreter of a chosen executable.
 guess_ld_so()
 {
 	local prefix="$1"
@@ -957,21 +975,29 @@ write_libsb2_and_ld_so_state_to_exec_config()
 
 	for liblocation in $sbox_liblocations ; do
 		[ -d $rootdir$liblocation ] || continue
-		# assume the prefix is under libdir: ../libdir
-		liblocation=${liblocation%/*}
-		sbox_dir_2=$rootdir${liblocation%/*}
-		sbox_libdir=$rootdir$liblocation
+
 		if [ -z "$libsb2_path" ]; then
-			libsb2_path=$rootdir$liblocation/$SBOX_LIBSB2
+			libsb2_path=$(find_libsb2_candidate "$rootdir$liblocation")
+			# if libsb2_path wasn't set before then we have
+			# to try to find lisb2 until reach the end
+			# of possible matches
+			[ -n "$libsb2_path" ] || continue
 			libsb2_dirname=""
 		fi
+
+		# assume the prefix is under libdir: ../libdir
+		# should be essentially $rootdir/usr:
+		liblocation=${liblocation%/*}
+		sbox_dir_2=$rootdir${liblocation%/*}
+
 		break
 	done
 
+	# call find_libsb2_candidates. again here.
+	# either after or replacing the loop above.
 
-	if [ -f $libsb2_path ]; then
+	if [ -n "$libsb2_path" ]; then
 		libsb2_dir=$(dirname $libsb2_path)
-		echo "-- $libsb2_path" >>$SBOX_SESSION_DIR/exec_config.lua
 		echo "$libsb2_dir_varname=\"$libsb2_dir\"" \
 		     >>$SBOX_SESSION_DIR/exec_config.lua
 		# backwards compatibility
@@ -1168,11 +1194,14 @@ END
 		tools_basename=$(basename $SBOX_TOOLS_ROOT)
 		write_ld_library_path_replacement_to_exec_config \
 			$SBOX_TOOLS_ROOT conf_tools_ld_so_library_path \
-			~/.scratchbox2/libsb2/tools/$target_basename/$library_interface/libsb2.so.1 \
-			~/.scratchbox2/libsb2/tools/$library_interface/libsb2.so.1 \
-			$SBOX_DIR/lib/libsb2/tools/$tools_basename/$library_interface/libsb2.so.1 \
-			$SBOX_DIR/lib/libsb2/tools/$library_interface/libsb2.so.1 \
-			$SBOX_TOOLS_ROOT/usr/lib/libsb2/libsb2.so.1
+			~/.scratchbox2/libsb2/tools/$target_basename/$library_interface/$SBOX_LIBSB2_NAME \
+			~/.scratchbox2/libsb2/tools/$library_interface/$SBOX_LIBSB2_NAME \
+			$SBOX_DIR/lib/libsb2/tools/$tools_basename/$library_interface/$SBOX_LIBSB2_NAME \
+			$SBOX_DIR/lib/libsb2/tools/$library_interface/$SBOX_LIBSB2_NAME
+		# FIXME: These paths should use $SBOX_LIBDIR
+		#        but first the tools bit-with would
+		#        have to be determined
+		SBOX_LIBSB2_SONAME_TOOLS=$SBOX_LISB2
 
 		write_libsb2_and_ld_so_state_to_exec_config \
 			$SBOX_TOOLS_ROOT \
@@ -1229,11 +1258,15 @@ END
 
 		write_ld_library_path_replacement_to_exec_config \
 			$SBOX_TARGET_ROOT conf_target_ld_so_library_path \
-			~/.scratchbox2/libsb2/targets/$target_basename/$library_interface/libsb2.so.1 \
-			~/.scratchbox2/libsb2/targets/$library_interface/libsb2.so.1 \
-			$SBOX_DIR/lib/libsb2/targets/$target_basename/$library_interface/libsb2.so.1 \
-			$SBOX_DIR/lib/libsb2/targets/$library_interface/libsb2.so.1 \
-			$SBOX_TARGET_ROOT/usr/lib/libsb2/libsb2.so.1
+			~/.scratchbox2/libsb2/targets/$target_basename/$library_interface/$SBOX_LIBSB2_NAME \
+			~/.scratchbox2/libsb2/targets/$library_interface/$SBOX_LIBSB2_NAME \
+			$SBOX_DIR/lib/libsb2/targets/$target_basename/$library_interface/$SBOX_LIBSB2_NAME \
+			$SBOX_DIR/lib/libsb2/targets/$library_interface/$SBOX_LIBSB2_NAME \
+			$SBOX_TARGET_ROOT/usr/lib/libsb2/$SBOX_LIBSB2_NAME
+		# FIXME: These paths should use $SBOX_LIBDIR
+		#        but first the targets bit-with would
+		#        have to be determined
+
 
 		write_libsb2_and_ld_so_state_to_exec_config \
 			$SBOX_TARGET_ROOT \
@@ -1825,7 +1858,8 @@ fi
 if [ -n "$VPERM_ROOT_PRIVILEGE_FLAG" ]; then
 	export SBOX_VPERM_IDS="$SBOX_VPERM_IDS,$VPERM_ROOT_PRIVILEGE_FLAG"
 fi
-SBOX_LD_PRELOAD="$SBOX_LIBSB2"
+# FIXME: This seems to be unused
+SBOX_LD_PRELOAD="$SBOX_LIBSB2_SONAME"
 
 if [ -n "$SBOX_FORCED_TOOLS_ROOT" ]; then
 	if [ ! -d "$SBOX_FORCED_TOOLS_ROOT" ]; then
@@ -2041,7 +2075,7 @@ SBOX_CONFIG_DIR=$HOME/.scratchbox2/$SBOX_TARGET/sb2.config.d
 
 #
 # We need to start "trampoline" that is run under
-# influence of libsb2.so.1; "sb2-show start" is used for that.
+# influence of libsb2.so.<SOVER>; "sb2-show start" is used for that.
 # The "trampoline" program is halfway in the new session
 # (e.g. exec policy is empty, etc). But when it exec's shell, we can
 # be sure that all mappings and exec rules are in place.
@@ -2055,15 +2089,16 @@ if [ $# -gt 0 ] || [ "$STDIN" = true ]; then
 	# Use an array to preserve spaces in original arguments:
 	declare -a orig_args_array
 	orig_args_array=("$@")
+
 	exec sb2-monitor $OPTS_FOR_SB2_MONITOR \
-		-L $SBOX_LIBSB2 \
+		-L $SBOX_LIBSB2_SONAME \
 		-X $SBOX_DATADIR/scratchbox2/scripts/sb2-exitreport \
 		-e $SBOX_CONFIG_DIR/env_vars \
 		-- \
 		$SBOX_BINDIR/sb2-show start -- $binary "${orig_args_array[@]}"
 else
 	exec sb2-monitor $OPTS_FOR_SB2_MONITOR \
-		-L $SBOX_LIBSB2 \
+		-L $SBOX_LIBSB2_SONAME \
 		-X $SBOX_DATADIR/scratchbox2/scripts/sb2-exitreport \
 		-e $SBOX_CONFIG_DIR/env_vars \
 		-- \

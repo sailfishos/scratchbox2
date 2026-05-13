@@ -8,6 +8,8 @@
 /* sb2dctl, A tool for sending commands to sb2d.
 */
 
+#include <config.h>
+
 #include <stdio.h>
 #include <unistd.h>
 #include <ctype.h>
@@ -36,7 +38,6 @@
 #include "libsb2.h"
 
 #include "exported.h"
-#include "scratchbox2_version.h"
 #include "libsb2callers.h"
 
 void *libsb2_handle = NULL;
@@ -146,8 +147,8 @@ int main(int argc, char *argv[])
 /* This program is directly linked to the RPC routines
  * (because they are hidden in libsb2, and could not be used otherwise).
  * The RPC routines want some wrappers for *_nomap_nolog functions,
- * these will use the ordinary functions... a side-effect is that the 
- * network addresses are subject to mapping operations here. 
+ * these will use the ordinary functions... a side-effect is that the
+ * network addresses are subject to mapping operations here.
  * Fortunately that won't happen in the usual case when the RPC
  * functions are used inside libsb2.
 */
@@ -175,4 +176,3 @@ int chmod_nomap_nolog(const char *path, mode_t mode)
 {
 	return(chmod(path, mode));
 }
-

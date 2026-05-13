@@ -15,6 +15,7 @@ objs := wrappers.o privatewrappers.o \
 
 ifeq ($(shell uname -s),Linux)
 LIBSB2_LDFLAGS = -Wl,-soname=$(LIBSB2_SONAME) \
+		-rdynamic \
 		-Wl,--version-script=$(OBJDIR)/preload/export.map
 
 # DO NOT add any libraries that depend on libpthread to

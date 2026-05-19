@@ -946,8 +946,9 @@ write_libsb2_and_ld_so_state_to_exec_config()
 	ld_so_path_varname=$4
 	ld_so_supports_argv0_varname=$5
 	libsb2_dir_varname=$6
-	ld_so_supports_rpath_prefix_varname=$7
-	ld_so_supports_nodefaultdirs_varname=$8
+	libsb2_ld_preload_varname=$7
+	ld_so_supports_rpath_prefix_varname=$8
+	ld_so_supports_nodefaultdirs_varname=$9
 
 	# Check if ld.so can be used from $rootdir by 
 	# checking that libsb2 has been installed to tools
@@ -972,6 +973,9 @@ write_libsb2_and_ld_so_state_to_exec_config()
 		libsb2_dir=$(dirname $libsb2_path)
 		echo "-- $libsb2_path" >>$SBOX_SESSION_DIR/exec_config.lua
 		echo "$libsb2_dir_varname=\"$libsb2_dir\"" \
+		     >>$SBOX_SESSION_DIR/exec_config.lua
+		# backwards compatibility
+		echo "$libsb2_ld_preload_varname=\"$SBOX_LIBSB2_NAME.so.$SBOX_LIBSB2_SOVER\"" \
 		    >>$SBOX_SESSION_DIR/exec_config.lua
 		echo "$sb2_installed_varname=true" \
 		    >>$SBOX_SESSION_DIR/exec_config.lua
@@ -1175,6 +1179,7 @@ END
 			conf_tools_sb2_installed conf_tools_sbox_dir \
 			conf_tools_ld_so conf_tools_ld_so_supports_argv0 \
 			conf_tools_libsb2_dir \
+			conf_tools_ld_preload_libsb2 \
 			conf_tools_ld_so_supports_rpath_prefix \
 			conf_tools_ld_so_supports_nodefaultdirs
 
@@ -1235,6 +1240,7 @@ END
 			conf_target_sb2_installed conf_target_sbox_dir \
 			conf_target_ld_so conf_target_ld_so_supports_argv0 \
 			conf_target_libsb2_dir \
+			conf_target_ld_preload_libsb2 \
 			conf_target_ld_so_supports_rpath_prefix \
 			conf_target_ld_so_supports_nodefaultdirs
 
@@ -1259,8 +1265,8 @@ END
 
 	cat <<END >>$SBOX_SESSION_DIR/exec_config.lua
 
-host_ld_preload_libsb2="$SBOX_LIBSB2"
-host_ld_preload="$SBOX_LD_PRELOAD"
+-- for backwards compability
+host_ld_preload="${SBOX_LIBSB2_SONAME}"
 host_ld_library_path_prefix="$HOST_LD_LIBRARY_PATH_PREFIX"
 host_ld_library_path_libsb2="$HOST_LD_LIBRARY_PATH_LIBSB2"
 host_ld_library_path_suffix="$HOST_LD_LIBRARY_PATH_SUFFIX"

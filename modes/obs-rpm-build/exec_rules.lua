@@ -10,9 +10,18 @@ rule_file_interface_version = "203"
 
 -- Exec policy rules.
 
+host_script_interp_rules = {
+	name = "Exec policy interpt host",
+	{prefix = "/", map_to = "/" --[[host--]]}
+}
+
 exec_policy_host = {
 	name = "Host",
 	native_app_ld_preload_suffix = host_ld_preload_libsb2,
+	script_log_level = "debug",
+	script_log_message = "SCRIPT from host",
+	script_interpreter_rules = host_script_interp_rules,
+	script_set_argv0_to_mapped_interpreter = true,
 }
 
 exec_policy_toolchain = {

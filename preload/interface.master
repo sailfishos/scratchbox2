@@ -83,6 +83,13 @@ EXPORT: int sb2show__map_network_addr__(const char *binary_name, \
 	const char *dst_addr, int port, char **addr_bufp, int *new_portp)
 EXPORT: char *sb2__ruletree_rpc__init2__(void)
 EXPORT: void sb2__ruletree_rpc__ping__(void)
+EXPORT: void sb2_initialize_global_variables(void)
+
+-- Functions by the sb2 lua modules
+EXPORT: char *scratchbox_reverse_path(const char *func_name, \
+	const char *abs_host_path, uint32_t classmask)
+EXPORT: void sbox_map_path(const char *func_name, const char *virtual_path, \
+	uint32_t flags, mapping_results_t *res, uint32_t classmask)
 
 --    FIXME: The following two functions do not have anything to do with path
 --    remapping. Instead the implementations in libsb2.c prevent locking of

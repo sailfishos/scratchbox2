@@ -188,6 +188,7 @@ install-noarch: all
 	$(Q)install -m 755 $(SRCDIR)/utils/sb2-build-libtool $(DESTDIR)$(bindir)/sb2-build-libtool
 	$(Q)install -m 755 $(SRCDIR)/utils/sb2-start-qemuserver $(DESTDIR)$(bindir)/sb2-start-qemuserver
 	$(Q)install -m 755 $(SRCDIR)/utils/sb2-qemu-gdbserver-prepare $(DESTDIR)$(bindir)/sb2-qemu-gdbserver-prepare
+	$(Q)install -m 755 $(SRCDIR)/utils/sb2-lsp.lua $(DESTDIR)$(bindir)/sb2-lsp
 
 	$(Q)install -m 755 $(SRCDIR)/utils/sb2-cmp-checkbuilddeps-output.pl $(DESTDIR)$(datadir)/scratchbox2/lib/sb2-cmp-checkbuilddeps-output.pl
 

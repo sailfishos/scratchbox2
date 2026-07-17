@@ -255,6 +255,11 @@ extern int sb_log_initial_pid__; /* current PID will be recorded here
 
 extern int sb2_global_vars_initialized__;
 extern void sb2_initialize_global_variables(void);
+
+#define SB_INITIAlIZE_GLOBAL_VARIABLES \
+	if (!sb2_global_vars_initialized__) \
+		sb2_initialize_global_variables()
+
 extern char *sbox_session_dir;
 extern char *sbox_session_mode;
 extern char *sbox_vperm_ids;

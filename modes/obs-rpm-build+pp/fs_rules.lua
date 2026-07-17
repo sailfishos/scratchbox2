@@ -496,6 +496,8 @@ emulate_mode_rules_usr_bin = {
 		    use_orig_path = true, protection = readonly_fs_always},
 		{path = "/usr/bin/sb2-session", use_orig_path = true,
 		 protection = readonly_fs_always},
+		{path = "/usr/bin/sb2-lsp", use_orig_path = true,
+		protection = readonly_fs_always},
 
 		-- next, automatically generated rules for /usr/bin:
 		{name = "/usr/bin autorules", dir = "/usr/bin", rules = argvmods_rules_for_usr_bin,

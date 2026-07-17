@@ -11,6 +11,14 @@ luaif/libluaif.a: override CFLAGS := $(CFLAGS) $(LUA_CFLAGS) -O2 -g -fPIC -Wall 
 luaif/libluaif.a: override LDFLAGS := $(LDFLAGS)
 luaif/libluaif.a: override LIBS := $(LUA_LIBS)
 
+lua_modules := $(D)/sb_pathmap.so \
 
-targets := $(targets) $(D)/libluaif.a
+$(lua_modules): override LIBS := -lsb2
+$(lua_modules): override CFLAGS := $(CFLAGS) $(LUA_CFLAGS) -fPIC
+$(lua_modules): override LDFLAGS := $(LDFLAGS) -L $(OBJDIR)/preload
+$(lua_modules): CFLAGS += -Wno-error=missing-prototypes -Wno-missing-prototypes
+$(lua_modules): $(OBJDIR)/preload/libsb2.$(SHLIBEXT)
 
+$(D)/sb_pathmap.so: $(D)/lua_sb2_pathmap.o $(D)/lua_helpers.o
+
+targets := $(targets) $(D)/libluaif.a $(D)/sb_pathmap.so

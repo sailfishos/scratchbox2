@@ -23,6 +23,14 @@ dpkg_architecture = {
 argvmods[dpkg_architecture.name] = dpkg_architecture
 
 
+sb2_lsp = {
+	name = "sb2-lsp",
+	path_prefixes = {"/usr/bin"},
+	disable_mapping = 1,
+}
+
+argvmods[sb2_lsp.name] = sb2_lsp
+
 for _,m_name in pairs(all_modes) do
 
    for file in dirent.files(session_dir.."/wrappers."..m_name) do

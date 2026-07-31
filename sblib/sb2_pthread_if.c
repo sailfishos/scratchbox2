@@ -62,6 +62,7 @@ int (*pthread_once_fnptr)(pthread_once_t *, void (*)(void)) = NULL;
 pthread_t (*pthread_self_fnptr)(void) = NULL;
 int (*pthread_mutex_lock_fnptr)(pthread_mutex_t *mutex) = NULL;
 int (*pthread_mutex_unlock_fnptr)(pthread_mutex_t *mutex) = NULL;
+int (*pthread_atfork_fnptr)(void(*)(void),void(*)(void),void(*)(void),void*) = NULL;
 
 void check_pthread_library(void)
 {
@@ -80,6 +81,8 @@ void check_pthread_library(void)
 			"pthread_mutex_lock");
 		pthread_mutex_unlock_fnptr = dlsym(RTLD_DEFAULT,
 			"pthread_mutex_unlock");
+		pthread_atfork_fnptr = dlsym(RTLD_DEFAULT,
+			"register_atfork");
 
 		/* Linux/glibc: pthread_self seems to exist in both
 		 * glibc and libpthread. */

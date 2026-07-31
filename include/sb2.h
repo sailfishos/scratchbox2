@@ -276,6 +276,7 @@ extern int pthread_library_is_available; /* flag */
 extern pthread_t (*pthread_self_fnptr)(void);
 extern int (*pthread_mutex_lock_fnptr)(pthread_mutex_t *mutex);
 extern int (*pthread_mutex_unlock_fnptr)(pthread_mutex_t *mutex);
+extern int (*pthread_atfork_fnptr)(void(*)(void),void(*)(void),void(*)(void),void*);
 
 extern int pthread_detection_done;
 

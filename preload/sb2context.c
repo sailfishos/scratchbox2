@@ -119,6 +119,18 @@ static void increment_sb2if_usage_counter(volatile struct sb2context *ptr)
 	}
 }
 
+static void sb2_atfork_prepare(void)
+{
+}
+
+static void sb2_atfork_parent(void)
+{
+}
+
+static void sb2_atfork_child(void)
+{
+}
+
 void release_sb2context(struct sb2context *sb2if)
 {
 	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
@@ -158,7 +170,19 @@ struct sb2context *get_sb2context(void)
 
 	SB_LOG(SB_LOGLEVEL_NOISE, "get_sb2context()");
 
-	if (pthread_detection_done == 0) check_pthread_library();
+	if (pthread_detection_done == 0) {
+		check_pthread_library();
+		if (pthread_library_is_available && register_atfork_fnptr) {
+			if ((*register_atfork_fnptr)(sb2_atfork_prepare,
+			                             sb2_atfork_parent,
+			                             sb2_atfork_child,
+			                             NULL /*  __dso_handle */) == 0) {
+				SB_LOG(SB_LOGLEVEL_NOISE, "sb2: fork-safety handlers registered");
+			} else {
+				SB_LOG(SB_LOGLEVEL_WARNING, "sb2: register_atfork unavailable");
+			}
+		}
+	}
 
 	if (pthread_library_is_available) {
 		if (pthread_once_fnptr)

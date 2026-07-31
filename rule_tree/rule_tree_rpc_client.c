@@ -188,19 +188,42 @@ static int create_client_socket(void)
 */
 static pthread_mutex_t	client_socket_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+
+void ruletree_rpc_mutex_lock(void)
+{
+	if (pthread_library_is_available) {
+		SB_LOG(SB_LOGLEVEL_NOISE, "Going to lock client_socket_mutex");
+		(*pthread_mutex_lock_fnptr)(&client_socket_mutex);
+	}
+}
+
+void ruletree_rpc_mutex_unlock(void)
+{
+	if (pthread_library_is_available) {
+		(*pthread_mutex_unlock_fnptr)(&client_socket_mutex);
+		SB_LOG(SB_LOGLEVEL_NOISE, "unlocked client_socket_mutex");
+	}
+}
+
+void ruletree_rpc_mutex_reset(void)
+{
+	if (pthread_library_is_available) {
+		pthread_mutex_t fresh = PTHREAD_MUTEX_INITIALIZER;
+		client_socket_mutex = fresh;
+		client_socket = -1;
+	}
+}
+
 static int send_command_receive_reply(
 	ruletree_rpc_msg_command_t	*command,
 	ruletree_rpc_msg_reply_t	*reply)
 {
 	ssize_t	sent_msg_size;
 	ssize_t	received_msg_size;
-	int use_locking = 0;
+	int use_locking = pthread_library_is_available;
 
-	if (pthread_library_is_available) {
-		use_locking = 1;
-		SB_LOG(SB_LOGLEVEL_NOISE, "Going to lock client_socket_mutex");
-		(*pthread_mutex_lock_fnptr)(&client_socket_mutex);
-	}
+	if (use_locking)
+		ruletree_rpc_mutex_lock();
 
 	if (server_address_initialized == 0) {
 		if (initialize_server_address() < 0) {
@@ -257,19 +280,15 @@ static int send_command_receive_reply(
 		goto error_out;
 	}
 	/* FIXME: If message is too small... */
-	if (use_locking) {
-		(*pthread_mutex_unlock_fnptr)(&client_socket_mutex);
-		SB_LOG(SB_LOGLEVEL_NOISE, "unlocked client_socket_mutex");
-	}
+	if (use_locking)
+		ruletree_rpc_mutex_unlock();
 	SB_LOG(SB_LOGLEVEL_DEBUG,
 		"%s: Received reply type=%" PRIu32, __func__, reply->hdr.rimr_message_type);
 	return(0);
 
     error_out:
-	if (use_locking) {
-		(*pthread_mutex_unlock_fnptr)(&client_socket_mutex);
-		SB_LOG(SB_LOGLEVEL_NOISE, "unlocked client_socket_mutex");
-	}
+	if (use_locking)
+		ruletree_rpc_mutex_unlock();
 	return(-1);
 }
 

@@ -30,8 +30,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <dlfcn.h>
-#include <pthread.h>
 
 #include "libsb2.h"
 #include "exported.h"
@@ -49,7 +47,7 @@ static pthread_mutex_t	fd_path_db_mutex = PTHREAD_MUTEX_INITIALIZER;
  * If it isn't, this is used in a sigle-threaded program and we can
  * safely live without the mutex.
 */
-extern void fdpathdb_mutex_lock(void)
+void fdpathdb_mutex_lock(void)
 {
 	if (pthread_library_is_available) {
 		SB_LOG(SB_LOGLEVEL_NOISE2, "Going to lock fd_path_db_mutex");
@@ -58,7 +56,7 @@ extern void fdpathdb_mutex_lock(void)
 	}
 }
 
-extern void fdpathdb_mutex_unlock(void)
+void fdpathdb_mutex_unlock(void)
 {
 	if (pthread_library_is_available) {
 		/* NO logging here! */
@@ -67,7 +65,7 @@ extern void fdpathdb_mutex_unlock(void)
 	}
 }
 
-extern void fdpathdb_mutex_reset(void)
+void fdpathdb_mutex_reset(void)
 {
 	if (pthread_library_is_available) {
 		pthread_mutex_t fresh = PTHREAD_MUTEX_INITIALIZER;
@@ -119,7 +117,7 @@ static void fdpathdb_register_mapped_path(
 			path = orig_path;
 		} else {
 			/* Oops. Should not come here; "orig_path"
-			 * should be absolute. But if it isn't, 
+			 * should be absolute. But if it isn't,
 			 * try to use mapped_path. */
 			if (*mapped_path == '/') {
 				path = mapped_path;
@@ -209,7 +207,7 @@ static void fdpathdb_register_mapping_result(const char *realfnname,
 			free(abs_virtual_path);
 		} else {
 			/* virtual path is relative, and it can't
-			 * be converted to absolute. 
+			 * be converted to absolute.
 			 * fdpathdb_register_mapped_path() will try to
 			 * use the mapped path instead.
 			*/
@@ -393,5 +391,3 @@ void fcntl64_postprocess_(const char *realfnname, int ret,
 {
 	fcntl_postprocess_(realfnname, ret, fd, cmd, arg);
 }
-
-

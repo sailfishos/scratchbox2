@@ -128,6 +128,10 @@ extern void fdpathdb_mutex_lock(void);
 extern void fdpathdb_mutex_unlock(void);
 extern void fdpathdb_mutex_reset(void);
 
+extern void ruletree_rpc_mutex_lock(void);
+extern void ruletree_rpc_mutex_unlock(void);
+extern void ruletree_rpc_mutex_reset(void);
+
 extern char *prep_union_dir(const char *dst_path,
 		const char **src_paths, int num_real_dir_entries);
 

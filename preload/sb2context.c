@@ -122,16 +122,19 @@ static void increment_sb2if_usage_counter(volatile struct sb2context *ptr)
 static void sb2_atfork_prepare(void)
 {
 	fdpathdb_mutex_lock();
+	ruletree_rpc_mutex_lock();
 }
 
 static void sb2_atfork_parent(void)
 {
 	fdpathdb_mutex_unlock();
+	ruletree_rpc_mutex_unlock();
 }
 
 static void sb2_atfork_child(void)
 {
 	fdpathdb_mutex_reset();
+	ruletree_rpc_mutex_reset();
 }
 
 void release_sb2context(struct sb2context *sb2if)

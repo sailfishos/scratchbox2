@@ -30,6 +30,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <dlfcn.h>
+#include <pthread.h>
 
 #include "libsb2.h"
 #include "exported.h"
@@ -43,11 +45,11 @@ static int fd_path_db_slots = 0;
 
 static pthread_mutex_t	fd_path_db_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-/* Functions to lock/unlock the mutex, if libpthreads is available.
+/* Functions to lock/unlock/reset the mutex, if libpthreads is available.
  * If it isn't, this is used in a sigle-threaded program and we can
  * safely live without the mutex.
 */
-static void fdpathdb_mutex_lock(void)
+extern void fdpathdb_mutex_lock(void)
 {
 	if (pthread_library_is_available) {
 		SB_LOG(SB_LOGLEVEL_NOISE2, "Going to lock fd_path_db_mutex");
@@ -55,12 +57,21 @@ static void fdpathdb_mutex_lock(void)
 		/* NO logging here! */
 	}
 }
-static void fdpathdb_mutex_unlock(void)
+
+extern void fdpathdb_mutex_unlock(void)
 {
 	if (pthread_library_is_available) {
 		/* NO logging here! */
 		(*pthread_mutex_unlock_fnptr)(&fd_path_db_mutex);
 		SB_LOG(SB_LOGLEVEL_NOISE2, "unlocked fd_path_db_mutex");
+	}
+}
+
+extern void fdpathdb_mutex_reset(void)
+{
+	if (pthread_library_is_available) {
+		pthread_mutex_t fresh = PTHREAD_MUTEX_INITIALIZER;
+		fd_path_db_mutex = fresh;
 	}
 }
 

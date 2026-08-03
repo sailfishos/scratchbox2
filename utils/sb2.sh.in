@@ -75,6 +75,8 @@ Options:
     -q           quiet; don't print debugging details to stdout etc.
     -N           Do not delete the session dir even if sb2 script fails to
                  enter the session
+    -E           Don't execute stage2 setup, only initialize the minimum
+				 or "early" session setup. For debugging.
     -x OPTIONS   specify additional options for "sb2d"
 
 Examples:
@@ -1753,6 +1755,7 @@ do
 	(q) export SBOX_QUIET="q";;
 	(x) SB2D_OPTIONS="$SB2D_OPTIONS $OPTARG" ;;
 	(N) OPT_DONT_DELETE_SESSION="y" ;;
+	(E) EARLY_SESSION_ONLY="y" ;;
 	(*) show_usage_and_exit ;;
 	esac
 done
@@ -1996,7 +1999,7 @@ export LD_LIBRARY_PATH
 # from the exec config file, unless we are joining to an
 # existing session.
 
-if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
+if [ -z "$SBOX_JOIN_SESSION_FILE" ] && [ -z "$EARLY_SESSION_ONLY" ]; then
 	add_cputransparency_settings_to_exec_config_file 'target'
 	add_cputransparency_settings_to_exec_config_file 'native'
 

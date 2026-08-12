@@ -1690,67 +1690,79 @@ static int prepare_do_exec_or_spawn(int *result_errno_ptr,
 		       char *const *orig_argv, char *const *orig_envp,
 		       char **new_file, char ***new_argv, char ***new_envp)
 {
+	char *exec_policy = NULL; /*exec_policy_name: not yet known*/
+	int file_has_been_mapped = 0;
+
 	PROCESSCLOCK(clk1)
-
 	START_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "prepare_do_exec_or_spawn");
-	if (getenv("SBOX_DISABLE_MAPPING")) {
-		/* just run it, don't worry, be happy! */
-	} else {
-		int	r;
-		char	**my_envp_copy = NULL; /* used only for debug log */
-		char	*tmp, *binaryname;
-		enum binary_type type;
 
-		tmp = strdup(orig_file);
-		binaryname = strdup(basename(tmp)); /* basename may modify *tmp */
-		free(tmp);
+        if (getenv("SBOX_DISABLE_MAPPING")) {
+		/* Mapping is disabled but still modify envp */
+		exec_policy = sbox_active_exec_policy_name;
+		file_has_been_mapped = 1;
+        }
 
-		if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
-			char *buf = strvec_to_string(orig_argv);
+	int	r;
+	char	**my_envp_copy = NULL; /* used only for debug log */
+	char	*tmp, *binaryname;
+	enum binary_type type;
 
-			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"EXEC/Orig.args: %s : %s", orig_file, buf);
-			free(buf);
+	tmp = strdup(orig_file);
+	binaryname = strdup(basename(tmp)); /* basename may modify *tmp */
+	free(tmp);
 
-			/* create a copy of intended environment for logging,
-			 * before preprocessing */
-			my_envp_copy = prepare_envp_for_do_exec(orig_file,
-				binaryname, orig_envp);
-		}
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
+		char *buf = strvec_to_string(orig_argv);
 
-		*new_envp = prepare_envp_for_do_exec(orig_file, binaryname, orig_envp);
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+		       "EXEC/Orig.args: %s : %s", orig_file, buf);
+		free(buf);
 
-		r = prepare_exec(exec_fn_name, NULL/*exec_policy_name: not yet known*/,
-			orig_file, 0, orig_argv, orig_envp,
-			&type, new_file, new_argv, new_envp);
+		/* create a copy of intended environment for logging,
+		 * before preprocessing */
+		my_envp_copy = prepare_envp_for_do_exec(orig_file,
+							binaryname,
+							orig_envp);
+	}
 
-		if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
-			int saved_errno = errno;
-			/* find out and log if preprocessing did something */
-			compare_and_log_strvec_changes("argv", orig_argv, *new_argv);
-			compare_and_log_strvec_changes("envp", my_envp_copy, *new_envp);
-			errno = saved_errno;
-		}
+	*new_envp = prepare_envp_for_do_exec(orig_file, binaryname,
+					    orig_envp);
 
-		if (r < 0) {
-			*result_errno_ptr = errno;
-			SB_LOG(SB_LOGLEVEL_DEBUG,
-				"EXEC denied by prepare_exec(), %s", orig_file);
-			STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "Exec denied");
-			return(r); /* exec denied */
-		}
+	r = prepare_exec(exec_fn_name, exec_policy,
+			 orig_file, file_has_been_mapped, orig_argv,
+			 orig_envp, &type, new_file, new_argv,
+			 new_envp);
 
-		if (check_envp_has_ld_preload_and_ld_library_path(
-			*new_envp ? *new_envp : orig_envp) == 0) {
+	if (SB_LOG_IS_ACTIVE(SB_LOGLEVEL_DEBUG)) {
+		int saved_errno = errno;
+		/* find out and log if preprocessing did something */
+		compare_and_log_strvec_changes("argv", orig_argv,
+					       *new_argv);
+		compare_and_log_strvec_changes("envp", my_envp_copy,
+					       *new_envp);
+		errno = saved_errno;
+	}
 
-			SB_LOG(SB_LOGLEVEL_ERROR,
-				"exec(%s) failed, internal configuration error: "
-				"LD_LIBRARY_PATH and/or LD_PRELOAD were not set "
-				"by exec mapping logic", orig_file);
-			*result_errno_ptr = EINVAL;
-			STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, "Config error");
-			return(-1);
-		}
+	if (r < 0) {
+		*result_errno_ptr = errno;
+		SB_LOG(SB_LOGLEVEL_DEBUG,
+		       "EXEC denied by prepare_exec(), %s", orig_file);
+		STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1,
+					     "Exec denied");
+		return(r); /* exec denied */
+	}
+
+	if (check_envp_has_ld_preload_and_ld_library_path(
+		    *new_envp ? *new_envp : orig_envp) == 0) {
+
+		SB_LOG(SB_LOGLEVEL_ERROR,
+		       "exec(%s) failed, internal configuration error: "
+		       "LD_LIBRARY_PATH and/or LD_PRELOAD were not set "
+		       "by exec mapping logic", orig_file);
+		*result_errno_ptr = EINVAL;
+		STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1,
+					     "Config error");
+		return(-1);
 	}
 
 	errno = *result_errno_ptr; /* restore to orig.value */

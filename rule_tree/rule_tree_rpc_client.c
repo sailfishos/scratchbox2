@@ -189,7 +189,7 @@ static int create_client_socket(void)
 static pthread_mutex_t	client_socket_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
-extern void ruletree_rpc_mutex_lock(void)
+void ruletree_rpc_mutex_lock(void)
 {
 	if (pthread_library_is_available) {
 		SB_LOG(SB_LOGLEVEL_NOISE, "Going to lock client_socket_mutex");
@@ -197,7 +197,7 @@ extern void ruletree_rpc_mutex_lock(void)
 	}
 }
 
-extern void ruletree_rpc_mutex_unlock(void)
+void ruletree_rpc_mutex_unlock(void)
 {
 	if (pthread_library_is_available) {
 		(*pthread_mutex_unlock_fnptr)(&client_socket_mutex);
@@ -205,7 +205,7 @@ extern void ruletree_rpc_mutex_unlock(void)
 	}
 }
 
-extern void ruletree_rpc_mutex_reset(void)
+void ruletree_rpc_mutex_reset(void)
 {
 	if (pthread_library_is_available) {
 		pthread_mutex_t fresh = PTHREAD_MUTEX_INITIALIZER;

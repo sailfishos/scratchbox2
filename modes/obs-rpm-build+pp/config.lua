@@ -21,6 +21,30 @@ exec_policy_selection = {
 		{prefix = tools_prefix .. "/bin/python",
 		 exec_policy_name = "Tools-python"},
 
+		-- Tools. at least qemu might be used from there.
+		-- Rule isn't active if tools_root is not set.
+		{prefix = tools.."bin", exec_policy_name = "Tools"},
+
+		-- Tools. at least qemu might be used from there.
+		-- Rule isn't active if tools_root is not set.
+		{prefix = tools.."usr", exec_policy_name = "Tools"},
+
+		-- Tools. at least qemu might be used from there.
+		-- Rule isn't active if tools_root is not set.
+		{prefix = tools.."lib", exec_policy_name = "Tools"},
+
+		-- Tools. at least qemu might be used from there.
+		-- Rule isn't active if tools_root is not set.
+		{prefix = tools.."etc", exec_policy_name = "Tools"},
+
+		-- Tools. at least qemu might be used from there.
+		-- Rule isn't active if tools_root is not set.
+		{prefix = tools.."var", exec_policy_name = "Tools"},
+
+		-- Tools. at least qemu might be used from there.
+		-- Rule isn't active if tools_root is not set.
+		{prefix = tools.."opt", exec_policy_name = "Tools"},
+
 		-- the toolchain, if not from Tools:
 		{dir = sbox_target_toolchain_dir, exec_policy_name = "Toolchain"},
 
@@ -29,8 +53,6 @@ exec_policy_selection = {
 
 		-- the workspace directory is expected to contain target binaries:
 		{dir = sbox_user_workspace, exec_policy_name = "Target"},
-
-		{prefix = tools, exec_policy_name = "Tools"},
 
 		-- the /tmp is mapped to the session, it only contains target binaries
 		{dir= "/tmp", exec_policy_name = "Target" },

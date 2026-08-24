@@ -29,55 +29,59 @@ Usage:
 If no COMMAND is given, a bash shell in scratchbox2 environment is started.
 
 Options:
-    -v           display version
-    -L level     enable logging (levels=one of error,warning,notice,net,info,debug,noise,noise2,noise3)
-    -d           debug mode: log all redirections (logging level=debug)
-    -h           print this help
-    -t TARGET    target to use, use sb2-config -d TARGET to set a default
-    -e           emulation mode
-    -m MODE      use mapping mode MODE
-    -M file      read mapping rules from "file"
-    -n NET_MODE  use networking rules NET_MODE
-    -s DIRECTORY load mapping scripts from alternative location
-    -Q BUGLIST   emulate bugs of the old scratchbox 1 (BUGLIST consists of
-                 letters: 'x' enables exec permission checking bug emulation)
-    -O options   set options for the selected mapping mode ("options" is
-                 a mode-specific string)
-    -R           use simulated root permissions (activates the Vperm subsystem)
-    -U UID.GID   use UID and GID as owner and group of "unknown" files
-                 (for all files that are unknown to the Vperm subsystem)
-    -p           Do not simulate special FS privileges of the "root"
-                 user, when option -R is active
-    -S file      Write session information to "file" (see option -J)
-    -J file      Don't create a new session; join an existing one (see -S) 
-    -D file      delete an old session (see -S). Warning: this does not
-                 check if the session is still in use!
-    -P file      print all logs related to a persistent session (see -S)
-    -W dir       Use "dir" as the session directory when creating the session
-                 ("dir" must be absolute path and must not exist. N.B. long 
-                 pathnames here may cause trouble with socket operations) 
-    -c           When creating a session, also create a private copy
-                 of target_root (rootstrap). Note that this can be
-                 really slow, depending on the size of the orig.target_root
-    -C dir       When creating a session, create copy of "dir" and use it as the 
-                 target_root (rootstrap).
-    -T dir       use "dir" as tools_root (overriding the value from config file)
-    -u           Disable automatic configuration upgrade.
-    -g           Create a new session with setsid(); useful when executing
-                 commands in the background
-    -G file      Append process group number to "file"
-    -b dir       Produce graphs and log summaries to directory dir
-                 (implies '-L info', graphs are created by sb2-logz and 
-                 'dot', if the graphviz package is available)
-    -B dir       As -b, but also include process accounting data.
-                 (This may require special permissions, because acct(2)
-                 system call is used) 
-    -q           quiet; don't print debugging details to stdout etc.
-    -N           Do not delete the session dir even if sb2 script fails to
-                 enter the session
-    -E           Don't execute stage2 setup, only initialize the minimum
-				 or "early" session setup. For debugging.
-    -x OPTIONS   specify additional options for "sb2d"
+    -v                   Display version
+    -L level             Enable logging
+                         (levels=one of error,warning,notice,net,info,debug,noise,noise2,noise3)
+    -d                   Debug mode: log all redirections (logging level=debug)
+    -h, --help           Print this help
+    -t TARGET            Target to use, use sb2-config -d TARGET to set a default
+    -e                   Emulation mode
+    -m MODE              Use mapping mode MODE
+    -M file              Read mapping rules from "file"
+    -n NET_MODE          Use networking rules NET_MODE
+    -s DIRECTORY         Load mapping scripts from alternative location
+    -Q BUGLIST           Emulate bugs of the old scratchbox 1 (BUGLIST consists of
+                         letters: 'x' enables exec permission checking bug emulation)
+    -O options           Set options for the selected mapping mode ("options" is
+                         a mode-specific string)
+    -R                   Use simulated root permissions (activates the Vperm subsystem)
+    -U UID.GID           Use UID and GID as owner and group of "unknown" files
+                         (for all files that are unknown to the Vperm subsystem)
+    -p                   Do not simulate special FS privileges of the "root"
+                         user, when option -R is active
+    -S file              Write session information to "file" (see option -J)
+                         Create a persistent session.
+    -J file              Don't create a new session; join an existing one (see -S)
+    -D file              Delete an old session (see -S). Warning: this does not
+                         check if the session is still in use!
+    -P file              Print all logs related to a persistent session (see -S)
+    -W dir               Use "dir" as the session directory when creating the session
+                         ("dir" must be absolute path and must not exist. N.B. long
+                         pathnames here may cause trouble with socket operations)
+    -c                   When creating a session, also create a private copy
+                         of target_root (rootstrap). Note that this can be
+                         really slow, depending on the size of the orig.target_root
+    -C dir               When creating a session, create copy of "dir" and use it as the
+                         target_root (rootstrap).
+    -T dir               Use "dir" as tools_root (overriding the value from config file)
+    -u                   Disable automatic configuration upgrade.
+    -g                   Create a new session with setsid(); useful when executing
+                         commands in the background
+    -G file              Append process group number to "file"
+    -b dir               Produce graphs and log summaries to directory dir
+                         (implies '-L info', graphs are created by sb2-logz and
+                          'dot', if the graphviz package is available)
+    -B dir               As -b, but also include process accounting data.
+                         (This may require special permissions, because acct(2)
+                          system call is used)
+    -q                   quiet; don't print debugging details to stdout etc.
+    -N                   Do not delete the session directory if sb2 fails to initialize
+						 a session.
+    -E                   Don't execute stage2 setup, only initialize the minimum
+                         or "early" session setup. For debugging.
+    --init-session-only  Initialize session only, don't executed a command.
+                         Use with -S.
+    -x OPTIONS           Specify dditional options for "sb2d"
 
 Examples:
     sb2 ./configure
@@ -134,7 +138,7 @@ write_rules_to_session_dir()
 -- Automatically generated file, do not edit.
 --
 END
-	
+
 	for f in $input_files; do
 		if [ -r $f ]; then
 			echo "-- [ $f ]" >>$output_file_name
@@ -148,7 +152,7 @@ END
 # Determine location of the nsswitch.conf file and nscd sockets that
 # we should use;
 # * NSSWITCH_CONF_PATH and NSCD_SOCKET_PATH environment variables are
-#   effective only if the C library (glibc) has been patched (the patches 
+#   effective only if the C library (glibc) has been patched (the patches
 #   are available in "external_patches" subdirectory in Scratchbox 2
 #   source tree)
 #
@@ -269,7 +273,7 @@ load_configuration()
 	# "New" config system stores configuration to various files
 	# in sb2.config.d directory, and the configuration is automatically
 	# upgraded whenever needed (unless prohibited by a command-line option):
-	
+
 	# check if we need to upgrade configuration:
 	if [ -z "$OPT_DONT_UPGRADE_CONFIGURATION" ]; then
 	    if [ ! -f ~/.scratchbox2/$SBOX_TARGET/sb2.config.d/config-stamp.20 ]; then
@@ -332,7 +336,7 @@ load_configuration()
 		echo "Fatal: Failed to get components of LD_LIBRARY_PATH"
 		exit 1
 	fi
-	
+
 	. $HOME/.scratchbox2/$SBOX_TARGET/sb2.config.d/host-ld_library_path.conf
 
 	LD_LIBRARY_PATH="$HOST_LD_LIBRARY_PATH_PREFIX$HOST_LD_LIBRARY_PATH_LIBSB2$HOST_LD_LIBRARY_PATH_SUFFIX"
@@ -484,7 +488,7 @@ initialize_sb_logging()
 				MAPPING_LOGFILE=$SBOX_LOG_AND_GRAPH_DIR/sb2_$tstamp.log
 			else
 				if [ ! -d $HOME/sb2_logs ]; then
-					SBOX_DISABLE_MAPPING=1 mkdir $HOME/sb2_logs 
+					SBOX_DISABLE_MAPPING=1 mkdir $HOME/sb2_logs
 					echo "Created directory $HOME/sb2_logs for log files"
 				fi
 				MAPPING_LOGFILE=$HOME/sb2_logs/$cmd_param.$tstamp.log
@@ -539,7 +543,7 @@ EOF
 #
 # Write variables to $SBOX_SESSION_DIR/sb2-session.conf
 # NOTE: this file will be read by lua interpreter and the shell,
-# so only simple string assignments are allowed! 
+# so only simple string assignments are allowed!
 # (even comments are different in Lua and shell scripts..)
 #
 # Used during initialization stage 1 (while setting
@@ -923,7 +927,7 @@ locate_shell()
 #
 # NOTE:
 #   Debian seems to have scratchbox2 packages for ia64 and powerpc,
-#   however since I don't have access to these arches I'm leaving "linker chooser" unfixed 
+#   however since I don't have access to these arches I'm leaving "linker chooser" unfixed
 #   there (ia64 has /lib/ld-linux-ia64.so, powerpc has /lib/ld.so.1).
 #
 # Used during initialization stage 1 (while setting
@@ -973,7 +977,7 @@ write_libsb2_and_ld_so_state_to_exec_config()
 	ld_so_supports_rpath_prefix_varname=$8
 	ld_so_supports_nodefaultdirs_varname=$9
 
-	# Check if ld.so can be used from $rootdir by 
+	# Check if ld.so can be used from $rootdir by
 	# checking that libsb2 has been installed to tools
 
 	sbox_dir_2=""
@@ -1225,7 +1229,7 @@ END
 
 		if [ $ld_so_found != "yes" ]; then
 			# ld.so from tools can not be used. Add tools' shared
-			# library locations to the normal LD_LIBRARY_PATH;	
+			# library locations to the normal LD_LIBRARY_PATH;
 			# this is risky but the best what we can do now
 			# (these extra locations must be after other locations
 			# in LD_LIBRARY_PATH => ld_library_path_extras won't
@@ -1469,7 +1473,7 @@ initialize_new_sb2_session()
 	mkdir $SBOX_SESSION_DIR/uniondirs
 	mkdir $SBOX_SESSION_DIR/logs
 
-	# a trick for debootstrapping debian, which wants to 
+	# a trick for debootstrapping debian, which wants to
 	# replace /var/run with symlink to ../run - that
 	# conflicts with SB2's symlink resolution algorithm,
 	# because e.g. "emulate" mode has a separate rule for
@@ -1714,52 +1718,64 @@ OPT_DONT_DELETE_SESSION=""
 sbox_libdirs="$SBOX_LIBDIR $SBOX_DIR/lib64 $SBOX_DIR/lib /lib /lib64"
 sbox_liblocations="$SBOX_LIBSB2DIR $SBOX_DIR/lib/libsb2 /usr/lib/libsb2 $SBOX_DIR/lib64/libsb2 /usr/lib64/libsb2"
 
+# Set POSIXLY_CORRECT so that each parameter after the first non-option parameter
+# is interpreted as non-option parameter.
+# Basically an implicit "--".
+optspec="$(POSIXLY_CORRECT=y getopt --options vdht:em:n:s:L:Q:M:ZrRU:pS:J:D:P:W:O:cC:T:uf:gG:B:b:qx:NE \
+ --longoption init-session-only,help --name sb2 -- "$@")" || {
+	echo "Try 'sb2 --help' for more information" >&2
+	exit 2
+}
 
-while getopts vdht:em:n:s:L:Q:M:ZrRU:pS:J:D:P:W:O:cC:T:uf:gG:B:b:qx:N foo
+eval set -- "$optspec"
+
+while [ ! $# = 0 ]
 do
-	case $foo in
-	(v) show_version; exit 0;;
-	(d) export SBOX_MAPPING_DEBUG=1
+	case $1 in
+	(-v) show_version; exit 0;;
+	(-d) export SBOX_MAPPING_DEBUG=1
 	    export SBOX_MAPPING_LOGLEVEL=debug ;;
-	(L) export SBOX_MAPPING_DEBUG=1
-	    export SBOX_MAPPING_LOGLEVEL=$OPTARG ;;
-	(Q) SBOX_EMULATE_SB1_BUGS=$OPTARG ;;
-	(h) show_usage_and_exit ;;
-	(t) SBOX_TARGET=$OPTARG ;;
-	(e) add_map_mode emulate ;;
-	(m) add_map_mode $OPTARG ;;
-	(n) export SBOX_NETWORK_MODE=$OPTARG ;;
-	## (M) add_external_map_mode $OPTARG ;;
-	(M) echo "Option -M is disabled (temporarily)"; exit 1 ;;
-	(s) SBOX_LUA_SCRIPTS=$OPTARG;;
-	(Z) SBOX_OPT_Z_NO_LD_SO_EXEC="y";;
-	(r) show_usage_and_exit ;; # -r is not available anymore.
-	(R) SBOX_ROOT_SIMULATION="root";;
-	(U) VPERM_UIDGID_FOR_UNKNOWN_FILES=$OPTARG;;
-	(p) VPERM_ROOT_PRIVILEGE_FLAG=",p";;
-	(S) SBOX_WRITE_SESSION_INFO_TO_FILE=$OPTARG ;;
-	(J) SBOX_JOIN_SESSION_FILE=$OPTARG ;;
-	(P) SBOX_PRINT_SESSION_LOGS=$OPTARG ;;
-	(D) SBOX_DELETE_SESSION_FILE=$OPTARG ;;
-	(W) OPT_SESSION_DIR=$OPTARG ;;
-	(O) SBOX_MODE_SPECIFIC_OPTIONS=$OPTARG ;;
-	(c) OPT_CLONE_TARGET_ROOT="y" ;;
-	(C) OPT_CLONE_TARGET_ROOT_FROM=$OPTARG ;;
-	(T) SBOX_FORCED_TOOLS_ROOT=$OPTARG ;;
-	(u) OPT_DONT_UPGRADE_CONFIGURATION="y" ;;
-	(f) show_usage_and_exit ;; # -f is not available anymore.
-	(g) OPTS_FOR_SB2_MONITOR="$OPTS_FOR_SB2_MONITOR -g" ;;
-	(G) OPTS_FOR_SB2_MONITOR="$OPTS_FOR_SB2_MONITOR -G $OPTARG" ;;
-	(b) SBOX_LOG_AND_GRAPH_DIR="$OPTARG" ;;
-	(B) SBOX_LOG_AND_GRAPH_DIR="$OPTARG"; SBOX_COLLECT_ACCT_DATA="y" ;;
-	(q) export SBOX_QUIET="q";;
-	(x) SB2D_OPTIONS="$SB2D_OPTIONS $OPTARG" ;;
-	(N) OPT_DONT_DELETE_SESSION="y" ;;
-	(E) EARLY_SESSION_ONLY="y" ;;
+	(-L) export SBOX_MAPPING_DEBUG=1
+	    export SBOX_MAPPING_LOGLEVEL=$2; shift ;;
+	(-Q) SBOX_EMULATE_SB1_BUGS=$2; shift ;;
+	(-h|--help) show_usage_and_exit ;;
+	(-t) SBOX_TARGET=$2; shift ;;
+	(-e) add_map_mode emulate ;;
+	(-m) add_map_mode $2; shift ;;
+	(-n) export SBOX_NETWORK_MODE=$2; shift ;;
+	## (-M) add_external_map_mode $2; shift ;;
+	(-M) echo "Option -M is disabled (temporarily)"; exit 1 ;;
+	(-s) SBOX_LUA_SCRIPTS=$2;;
+	(-Z) SBOX_OPT_Z_NO_LD_SO_EXEC="y";;
+	(-r) show_usage_and_exit ;; # -r is not available anymore.
+	(-R) SBOX_ROOT_SIMULATION="root";;
+	(-U) VPERM_UIDGID_FOR_UNKNOWN_FILES=$2;;
+	(-p) VPERM_ROOT_PRIVILEGE_FLAG=",p";;
+	(-S) SBOX_WRITE_SESSION_INFO_TO_FILE=$2; shift ;;
+	(-J) SBOX_JOIN_SESSION_FILE=$2; shift ;;
+	(-P) SBOX_PRINT_SESSION_LOGS=$2; shift ;;
+	(-D) SBOX_DELETE_SESSION_FILE=$2; shift ;;
+	(-W) OPT_SESSION_DIR=$2; shift ;;
+	(-O) SBOX_MODE_SPECIFIC_OPTIONS=$2; shift ;;
+	(-c) OPT_CLONE_TARGET_ROOT="y" ;;
+	(-C) OPT_CLONE_TARGET_ROOT_FROM=$2; shift ;;
+	(-T) SBOX_FORCED_TOOLS_ROOT=$2; shift ;;
+	(-u) OPT_DONT_UPGRADE_CONFIGURATION="y" ;;
+	(-f) show_usage_and_exit ;; # -f is not available anymore.
+	(-g) OPTS_FOR_SB2_MONITOR="$OPTS_FOR_SB2_MONITOR -g" ;;
+	(-G) OPTS_FOR_SB2_MONITOR="$OPTS_FOR_SB2_MONITOR -G $2" ;;
+	(-b) SBOX_LOG_AND_GRAPH_DIR="$2" ;;
+	(-B) SBOX_LOG_AND_GRAPH_DIR="$2"; SBOX_COLLECT_ACCT_DATA="y" ;;
+	(-q) export SBOX_QUIET="q";;
+	(-x) SB2D_OPTIONS="$SB2D_OPTIONS $2" ;;
+	(-N) OPT_DONT_DELETE_SESSION="y" ;;
+	(-E) EARLY_SESSION_ONLY="y" ;;
+	(--init-session-only) OPT_INIT_SESSION_ONLY="y" OPT_DONT_DELETE_SESSION="y";;
+	(--) shift; break;;
 	(*) show_usage_and_exit ;;
 	esac
+	shift
 done
-shift $(($OPTIND - 1))
 
 
 if [ -n "$SBOX_SESSION_DIR" ] &&  [ -d "$SBOX_SESSION_DIR/rules" ]; then
@@ -2026,7 +2042,7 @@ fi
 # STAGE 3, GENERATION OF AUTOMATIC RULES:
 #
 # This is easy now. All rule files are nowadays created by sb2d,
-# from init.lua. Just one additional step is needed, if 
+# from init.lua. Just one additional step is needed, if
 # mapping method == "Lua" is still used:
 if [ -z "$SBOX_JOIN_SESSION_FILE" ]; then
 	# if needed, add path mapping rules for toolchain components
@@ -2088,6 +2104,11 @@ SBOX_CONFIG_DIR=$HOME/.scratchbox2/$SBOX_TARGET/sb2.config.d
 #
 __SB2_BINARYNAME="sb2:StartupTrampoline"
 export __SB2_BINARYNAME
+
+if [ -n "$OPT_INIT_SESSION_ONLY" ]; then
+	exit 0
+fi
+
 if [ $# -gt 0 ] || [ "$STDIN" = true ]; then
 	binary="$1"
 	shift 1
@@ -2097,16 +2118,16 @@ if [ $# -gt 0 ] || [ "$STDIN" = true ]; then
 	orig_args_array=("$@")
 
 	exec sb2-monitor $OPTS_FOR_SB2_MONITOR \
-		-L $SBOX_LIBSB2_SONAME \
-		-X $SBOX_DATADIR/scratchbox2/scripts/sb2-exitreport \
-		-e $SBOX_CONFIG_DIR/env_vars \
-		-- \
-		$SBOX_BINDIR/sb2-show start -- $binary "${orig_args_array[@]}"
+		 -L $SBOX_LIBSB2_SONAME \
+		 -X $SBOX_DATADIR/scratchbox2/scripts/sb2-exitreport \
+		 -e $SBOX_CONFIG_DIR/env_vars \
+		 -- \
+		 $SBOX_BINDIR/sb2-show start -- $binary "${orig_args_array[@]}"
 else
 	exec sb2-monitor $OPTS_FOR_SB2_MONITOR \
-		-L $SBOX_LIBSB2_SONAME \
-		-X $SBOX_DATADIR/scratchbox2/scripts/sb2-exitreport \
-		-e $SBOX_CONFIG_DIR/env_vars \
-		-- \
-		$SBOX_BINDIR/sb2-show start -- $SHELL --noprofile --norc
+		 -L $SBOX_LIBSB2_SONAME \
+		 -X $SBOX_DATADIR/scratchbox2/scripts/sb2-exitreport \
+		 -e $SBOX_CONFIG_DIR/env_vars \
+		 -- \
+		 $SBOX_BINDIR/sb2-show start -- $SHELL --noprofile --norc
 fi

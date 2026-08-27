@@ -94,12 +94,12 @@ EOF
 
 exit_error()
 {
-	echo "sb2: Error: $*"
+	echo "sb2: Error: $*" >&2
 	if [ ! -z "$SBOX_SESSION_DIR" ]; then
 	    if [ -z "$OPT_DONT_DELETE_SESSION" ]; then
-		rm -rf $SBOX_SESSION_DIR
+			rm -rf $SBOX_SESSION_DIR
 	    else
-		echo "sb2: Session directory not deleted ($SBOX_SESSION_DIR)"
+			echo "sb2: Session directory not deleted ($SBOX_SESSION_DIR)" >&2
 	    fi
 	fi
 	exit 1
@@ -1797,7 +1797,7 @@ case "$LD_PRELOAD" in
 		# Empty, ok.
 		;;
 	(*)
-		echo "Warning: LD_PRELOAD was not empty at startup"
+		echo "Warning: LD_PRELOAD was not empty at startup" >&2
 		;;
 esac
 

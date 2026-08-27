@@ -25,3 +25,7 @@ trim_trailing_whitespace = true
 [*.spec]
 indent_style = space
 indent_size = 4
+
+[.gdbinit]
+# GDB mishandles indentation with leading tabs when feeding it to Python.
+indent_style = space

@@ -1,9 +1,4 @@
 /*
- * Copyright (c) 2008 Nokia Corporation.
- * Author: Lauri T. Aarnio
- *
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
- *
  * ----------------
  *
  * /proc simulation for SB2.
@@ -16,6 +11,11 @@
  *       to the binary itself.
  *
  * (all other files under /proc are used directly)
+ *
+ * SPDX-FileCopyrightText: Copyright (c) 2008 Nokia Corporation.
+ * Author: Lauri T. Aarnio
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
 #include <sys/types.h>
@@ -221,7 +221,7 @@ static char *select_exe_path_for_sb2(
 				"select_exe_path_for_sb2(%s, %s):"
 				" error while determining real path: %s",
 				orig_binary_name,
-				real_binary_name,
+			        real_binary_name ?: "null",
 				strerror(errno));
 			return(NULL);
 		}
@@ -298,8 +298,8 @@ static char *procfs_mapping_request_for_other_files(
                 const char *orig_binary_name;
                 const char *real_binary_name;
 
-                /* Check the process environment to find out is this 
-		 * runned under sb2 
+                /* Check the process environment to find out is this
+		 * runned under sb2
 		 */
                 (void)snprintf(pathbuf, sizeof(pathbuf), "%s/environ",
 			       pid_path);
@@ -321,7 +321,7 @@ static char *procfs_mapping_request_for_other_files(
 
                 exe_path_inside_sb2 = select_exe_path_for_sb2(
 			orig_binary_name, real_binary_name);
-		
+
                 /* this is not under runned binary */
                 if (!exe_path_inside_sb2) {
                         return(NULL);
@@ -345,7 +345,7 @@ static char *procfs_mapping_request_for_other_files(
 			return(strdup(pathbuf));
 		}
 		/* oops, failed to create the replacement.
-                 * must use the real link, it points to wrong place.. 
+                 * must use the real link, it points to wrong place..
 		 */
 		free((void*)exe_path_inside_sb2);
 		return(NULL);
@@ -391,4 +391,3 @@ char *procfs_mapping_request(const char *path)
 	SB_LOG(SB_LOGLEVEL_DEBUG, "procfs_mapping_request: not mapped");
 	return(NULL);
 }
-

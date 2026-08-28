@@ -1,13 +1,15 @@
 /*
  * libsb2 -- scratchbox2 preload library
  *
- * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
+ * SPDX-FileCopyrightText:  Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
  * parts contributed by
- * 	Riku Voipio <riku.voipio@movial.com>
- *	Toni Timonen <toni.timonen@movial.com>
+ * SPDX-FileCopyrightText:  Riku Voipio <riku.voipio@movial.com>
+ * SPDX-FileCopyrightText:  Toni Timonen <toni.timonen@movial.com>
  *
  * Heavily based on the libfakechroot library by
- * Piotr Roszatycki <dexter@debian.org>
+ * SPDX-FileCopyrightText: Piotr Roszatycki <dexter@debian.org>
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 /*

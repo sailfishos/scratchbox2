@@ -1,5 +1,7 @@
-/* Copyright (C) 2011 Nokia Corporation.
+/* SPDX-FileCopyrightText: Copyright (C) 2011 Nokia Corporation.
  * Author: Lauri T. Aarnio
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
 /* A Rule Tree is a shared-memory repository of mapping-
@@ -11,7 +13,7 @@
  * to memory, and use it (R/O) without locking anything.
  *
  * Since the file may be mapped to any address, pointers
- * can not be used in the rule tree. Instead, offsets 
+ * can not be used in the rule tree. Instead, offsets
  * (relative to the beginning of the file) are used.
 */
 
@@ -19,9 +21,11 @@
 #define SB2_RULETREE_H__
 
 #include <stdint.h>
+#include <inttypes.h>
 
 /* object offset must be an unsigned type: */
 typedef uint32_t ruletree_object_offset_t;
+#define PRI_SB_RTOO PRIu32
 
 /* Every object in the rule tree begins with an object header:
  * (all structures contain this as the first member, etc) */
@@ -203,7 +207,7 @@ typedef struct ruletree_uint32_s {
 #define SB2_RULETREE_FSRULE_ACTION_UNION_DIR		251
 #define SB2_RULETREE_FSRULE_ACTION_IF_EXISTS_IN         252
 
-/* auxiliar conditions */ 
+/* auxiliar conditions */
 #define SB2_RULETREE_FSRULE_CONDITION_IF_ACTIVE_EXEC_POLICY_IS 301
 #define SB2_RULETREE_FSRULE_CONDITION_IF_REDIRECT_IGNORE_IS_ACTIVE 302
 #define SB2_RULETREE_FSRULE_CONDITION_IF_REDIRECT_FORCE_IS_ACTIVE 303
@@ -353,7 +357,7 @@ ruletree_object_offset_t add_exec_policy_selection_rule_to_ruletree(
         const char      *selector,
         const char      *exec_policy_name,
 	uint32_t	flags);
- 
+
 /* ------------ net rule maintenance routines ------------ */
 ruletree_object_offset_t add_net_rule_to_ruletree(
 	ruletree_net_rule_t	*rule);

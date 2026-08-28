@@ -1,8 +1,8 @@
 /*
- * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
- * Copyright (C) 2009 Nokia Corporation.
+ * SPDX-FileCopyrightText: Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
+ * SPDX-FileCopyrightText: Copyright (C) 2009 Nokia Corporation.
  *
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 #include <config.h>
 
@@ -225,7 +225,8 @@ static int lua_sb_ruletree_catalog_get_uint32(lua_State *l)
 		if (uip) res = *uip;
 	}
 	SB_LOG(SB_LOGLEVEL_NOISE,
-		"lua_sb_ruletree_catalog_get_uint32 @%u => %u", offs, res);
+		"lua_sb_ruletree_catalog_get_uint32 @%" PRI_SB_RTOO " => %" PRIu32,
+	       offs, res);
 	lua_pushnumber(l, res);
 	return 1;
 }
@@ -246,7 +247,8 @@ static int lua_sb_ruletree_catalog_get_boolean(lua_State *l)
 		if (uip) res = *uip;
 	}
 	SB_LOG(SB_LOGLEVEL_NOISE,
-		"lua_sb_ruletree_catalog_get_boolean @%u => %u", offs, res);
+		"lua_sb_ruletree_catalog_get_boolean @%" PRI_SB_RTOO " => %" PRIu32,
+	       offs, res);
 	lua_pushboolean(l, res);
 	return 1;
 }
@@ -264,7 +266,8 @@ static int lua_sb_ruletree_catalog_get_string(lua_State *l)
 		str = ruletree_catalog_get_string(catalog_name, object_name);
 	}
 	SB_LOG(SB_LOGLEVEL_NOISE,
-		"lua_sb_ruletree_catalog_get_string @%u => %s", offs, str);
+		"lua_sb_ruletree_catalog_get_string @%" PRI_SB_RTOO " => %s",
+	       offs, str);
 	lua_pushstring(l, str);
 	return 1;
 }
@@ -281,7 +284,7 @@ static int lua_sb_ruletree_catalog_set(lua_State *l)
 		ruletree_object_offset_t	value_offset = lua_tointeger(l, 3);
 		status = ruletree_catalog_set(catalog_name, object_name, value_offset);
 		SB_LOG(SB_LOGLEVEL_NOISE,
-			"lua_sb_ruletree_catalog_set(%s,%s,%d) => %d",
+			"lua_sb_ruletree_catalog_set(%s,%s,%" PRI_SB_RTOO ") => %d",
 			catalog_name, object_name, value_offset, status);
 	} else {
 		SB_LOG(SB_LOGLEVEL_NOISE,
@@ -375,7 +378,8 @@ static int lua_sb_ruletree_new_uint32(lua_State *l)
 		uint32_t	ui = lua_tointeger(l, 1);
 		ui32_offs = append_uint32_to_ruletree_file(ui);
 		SB_LOG(SB_LOGLEVEL_NOISE,
-			"%s(%u) => %d", __func__, ui, ui32_offs);
+			"%s(%" PRIu32 ") => %" PRI_SB_RTOO,
+		       __func__, ui, ui32_offs);
 	} else {
 		SB_LOG(SB_LOGLEVEL_NOISE,
 			"%s => %d", __func__, ui32_offs);
@@ -393,10 +397,11 @@ static int lua_sb_ruletree_new_boolean(lua_State *l)
 		uint32_t	ui = lua_toboolean(l, 1);
 		ui32_offs = append_boolean_to_ruletree_file(ui);
 		SB_LOG(SB_LOGLEVEL_NOISE,
-			"%s(%u) => %d", __func__, ui, ui32_offs);
+			"%s(%" PRIu32 ") => %" PRI_SB_RTOO, __func__, ui,
+		       ui32_offs);
 	} else {
-		SB_LOG(SB_LOGLEVEL_NOISE,
-			"%s => %d", __func__, ui32_offs);
+		SB_LOG(SB_LOGLEVEL_NOISE, "%s => %" PRI_SB_RTOO,
+		       __func__, ui32_offs);
 	}
 	lua_pushnumber(l, ui32_offs);
 	return 1;
@@ -429,9 +434,9 @@ static int lua_sb_add_net_rule_to_ruletree(lua_State *l)
 	int	n = lua_gettop(l);
 	uint32_t rule_location = 0;
 
-	/* params: 
+	/* params:
 	 *  1. ruletype (int),
-	 *  2. func_name (offset of a string) 
+	 *  2. func_name (offset of a string)
 	 *  3. binary_name (offset of a string)
 	 *  4. address (offset of a string)
 	 *  5. port (int)
@@ -445,7 +450,7 @@ static int lua_sb_add_net_rule_to_ruletree(lua_State *l)
 	if (n == 11) {
 		ruletree_net_rule_t	rule;
 		const char *errno_str;
-		
+
 		SB_LOG(SB_LOGLEVEL_NOISE, "%s:", __func__);
 
 		rule.rtree_net_ruletype = lua_tointeger(l, 1);
@@ -546,4 +551,3 @@ int lua_bind_ruletree_functions(lua_State *l)
 
 	return 0;
 }
-

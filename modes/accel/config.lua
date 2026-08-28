@@ -1,8 +1,9 @@
--- Copyright (c) 2012 Nokia Corporation.
--- Author: Lauri T. Aarnio
--- Licensed under MIT license.
---
 -- Common config for the "accel" mode
+--
+-- SPDX-FileCopyrightText: Copyright (c) 2012 Nokia Corporation.
+-- Author: Lauri T. Aarnio
+--
+-- SPDX-License-Identifier: MIT
 
 enable_cross_gcc_toolchain = true
 
@@ -37,8 +38,11 @@ exec_policy_selection = {
 	-- to contain target binaries:
 	{prefix = sbox_workdir, exec_policy_name = "Target"},
 
+	-- the /tmp is mapped to the session
+	-- it is expected to only contains target binaries
+	{dir= "/tmp", exec_policy_name = "Target" },
+
 	-- -----------------------------------------------
 	-- DEFAULT RULE (must exist):
 	{prefix = "/", exec_policy_name = "Host"}
 }
-

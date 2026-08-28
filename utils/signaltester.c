@@ -1,10 +1,13 @@
+/*
 /* signaltester, catch & print signals
  * This is used for testing out sb2-monitor.
  *
- * Copyright (c) 2008 Nokia Corporation. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (C) 2008 Nokia Corporation.
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ *
  * Author: Lauri T. Aarnio
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
-*/
+ */
 
 #include <stdio.h>
 #include <stdlib.h>

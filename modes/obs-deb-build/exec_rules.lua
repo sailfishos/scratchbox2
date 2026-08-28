@@ -1,6 +1,6 @@
--- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
--- Copyright (C) 2011 Nokia Corporation.
--- Licensed under MIT license.
+-- SPDX-FileCopyrightText:  Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
+-- SPDX-FileCopyrightText:  Copyright (C) 2011 Nokia Corporation.
+-- SPDX-License-Identifier: MIT
 
 -- ***************************************************
 -- NOTE: This is experimental, untested mapping mode!!
@@ -20,14 +20,14 @@ exec_policy_host = {
 
 exec_policy_toolchain = {
 	name = "Toolchain",
-	native_app_ld_preload_suffix = host_ld_preload_libsb2,
+	native_app_ld_preload_suffix = conf_tools_ld_preload_libsb2,
 }
 
 -- For target binaries:
 -- First, note that "foreign" binaries are easy to handle, no problem there.
 -- But if CPU transparency method has not been set, then host CPU == target CPU:
--- we have "target's native" and "host's native" binaries, that would look 
--- identical (and valid!) to the kernel. But they need to use different 
+-- we have "target's native" and "host's native" binaries, that would look
+-- identical (and valid!) to the kernel. But they need to use different
 -- loaders and dynamic libraries! The solution is that we use the location
 -- (as determined by the mapping engine) to decide the execution policy.
 
@@ -40,7 +40,7 @@ emulate_mode_target_ld_library_path_suffix = nil
 
 if (conf_target_sb2_installed) then
 	if (conf_target_ld_so ~= nil) then
-		-- use dynamic libraries from target, 
+		-- use dynamic libraries from target,
 		-- when executing native binaries!
 		emulate_mode_target_ld_so = conf_target_ld_so
 	end
@@ -68,7 +68,7 @@ local exec_policy_target = {
 	native_app_locale_path = conf_target_locale_path,
 	native_app_gconv_path = conf_target_gconv_path,
 
-	native_app_ld_preload_suffix = host_ld_preload,
+	native_app_ld_preload_suffix = conf_target_ld_preload_libsb2,
 }
 
 --
@@ -121,7 +121,7 @@ local exec_policy_tools = {
 	native_app_locale_path = conf_tools_locale_path,
 	native_app_gconv_path = conf_tools_gconv_path,
 
-	native_app_ld_preload_suffix = host_ld_preload,
+	native_app_ld_preload_suffix = conf_tools_ld_preload_libsb2,
 
 	script_log_level = "debug",
 	script_log_message = "SCRIPT from tools",
@@ -140,7 +140,7 @@ local exec_policy_tools_perl = {
 	native_app_ld_library_path_prefix = emulate_mode_tools_ld_library_path_prefix,
 	native_app_ld_library_path_suffix = emulate_mode_tools_ld_library_path_suffix,
 
-	native_app_ld_preload_suffix = host_ld_preload,
+	native_app_ld_preload_suffix = conf_tools_ld_preload_libsb2,
 
 	native_app_locale_path = conf_tools_locale_path,
 	native_app_gconv_path = conf_tools_gconv_path,
@@ -162,7 +162,7 @@ local exec_policy_tools_python = {
 	native_app_ld_library_path_prefix = emulate_mode_tools_ld_library_path_prefix,
 	native_app_ld_library_path_suffix = emulate_mode_tools_ld_library_path_suffix,
 
-	native_app_ld_preload_suffix = host_ld_preload,
+	native_app_ld_preload_suffix = conf_tools_ld_preload_libsb2,
 
 	native_app_locale_path = conf_tools_locale_path,
 	native_app_gconv_path = conf_tools_gconv_path,
@@ -184,4 +184,3 @@ all_exec_policies = {
 	exec_policy_tools_perl,
 	exec_policy_tools_python,
 }
-

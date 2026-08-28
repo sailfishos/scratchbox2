@@ -1,6 +1,6 @@
--- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
--- Copyright (C) 2011 Nokia Corporation.
--- Licensed under MIT license.
+-- SPDX-FileCopyrightText: Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
+-- SPDX-FileCopyrightText: Copyright (C) 2011 Nokia Corporation.
+-- SPDX-License-Identifier: MIT
 
 -- Rule file interface version, mandatory.
 --
@@ -417,6 +417,9 @@ emulate_mode_rules = {
 		{dir = session_dir, use_orig_path = true},
 
 		{path = sbox_cputransparency_cmd, use_orig_path = true,
+		 protection = readonly_fs_always},
+
+        {path = sbox_cputransparency_native_cmd, use_orig_path = true,
 		 protection = readonly_fs_always},
 
 		--{dir = target_root, use_orig_path = true,

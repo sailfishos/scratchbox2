@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
+ * SPDX-FileCopyrightText: Copyright (C) 2006,2007 Lauri Leukkunen <lle@rahina.org>
  *
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include <unistd.h>

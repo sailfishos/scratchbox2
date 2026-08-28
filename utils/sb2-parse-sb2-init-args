@@ -2,8 +2,10 @@
 # sb2-parse-sb2-init-args:
 #   Parses sb2-init's arguments and prints them out as assignments.
 #   Used from sb2-init and sb2-upgrade-config.
-# Copyright (C) 2009 Nokia Corporation.
-# Licensed under GPL version 2
+#
+# SPDX-FileCopyrightText: Copyright (c) 2008 Nokia Corporation.
+#
+# SPDX-License-Identifier: GPL-2.0-or-later
 
 # Use an array to preserve spaces in original arguments:
 declare -a init_orig_args_array

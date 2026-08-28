@@ -1,9 +1,9 @@
 # sb2.bash - bash completion for scratchbox2
 #
-# Copyright (C) 2013 Jolla Ltd.
+# SPDX-FileCopyrightText: Copyright (c) 2013      Jolla Ltd.
 # Contact: Juha Kallioinen <juha.kallioinen@jollamobile.com>
 #
-# Licensed under GPL version 2
+# SPDX-License-Identifier: GPL-2.0-or-later
 
 _sb2()
 {

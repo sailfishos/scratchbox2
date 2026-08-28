@@ -1,8 +1,8 @@
--- Copyright (c) 2012 Nokia Corporation.
--- Author: Lauri T. Aarnio
--- Licensed under MIT license.
---
 -- Common config for the "obs-rpm-build+pp" mode
+--
+-- SPDX-FileCopyrightText:  Copyright (c) 2012 Nokia Corporation.
+-- Author: Lauri T. Aarnio
+-- SPDX-License-Identifier: MIT
 
 enable_cross_gcc_toolchain = true
 
@@ -21,16 +21,19 @@ exec_policy_selection = {
 		{prefix = tools_prefix .. "/bin/python",
 		 exec_policy_name = "Tools-python"},
 
-                -- the toolchain, if not from Tools:
-                {dir = sbox_target_toolchain_dir, exec_policy_name = "Toolchain"},
+		-- the toolchain, if not from Tools:
+		{dir = sbox_target_toolchain_dir, exec_policy_name = "Toolchain"},
 
-                -- the home directory is expected to contain target binaries:
-                {dir = sbox_user_home_dir, exec_policy_name = "Target"},
+		-- the home directory is expected to contain target binaries:
+		{dir = sbox_user_home_dir, exec_policy_name = "Target"},
 
-                -- the workspace directory is expected to contain target binaries:
-                {dir = sbox_user_workspace, exec_policy_name = "Target"},
+		-- the workspace directory is expected to contain target binaries:
+		{dir = sbox_user_workspace, exec_policy_name = "Target"},
 
 		{prefix = tools, exec_policy_name = "Tools"},
+
+		-- the /tmp is mapped to the session, it only contains target binaries
+		{dir= "/tmp", exec_policy_name = "Target" },
 
 		-- DEFAULT RULE (must exist):
 		{prefix = "/", exec_policy_name = "Host"}

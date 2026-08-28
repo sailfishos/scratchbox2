@@ -1,9 +1,10 @@
--- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
--- Licensed under MIT license.
---
 -- "simple" mode, to be used for software development & building
 -- (as the name says, this is the simple solution; See/use the "devel"
 -- mode when a more full-featured environment is needed)
+
+-- SPDX-FileCopyrightText:  Copyright (c) 2007 Lauri Leukkunen <lle@rahina.org>
+-- Author: Lauri T. Aarnio
+-- SPDX-License-Identifier: MIT
 
 -- Rule file interface version, mandatory.
 --
@@ -22,6 +23,9 @@ simple_rules_usr = {
 		 use_orig_path = true, readonly = true},
 		{dir = "/usr/lib/libsb2", use_orig_path = true,
 		 readonly = true},
+		{dir = "/usr/lib64/libsb2", use_orig_path = true,
+		 protection = readonly_fs_always},
+
 
 		-- Qemu only:
 		{binary_name = qemu_binary_name,
@@ -99,4 +103,3 @@ fs_mapping_rules = {
 		{path = "/", use_orig_path = true},
 		{prefix = "/", map_to = tools}
 }
-

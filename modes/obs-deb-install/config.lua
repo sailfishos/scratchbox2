@@ -1,9 +1,9 @@
--- Copyright (c) 2012 Nokia Corporation.
--- Author: Lauri T. Aarnio
--- Licensed under MIT license.
---
 -- Common config for the "obs-deb-install" mode
 -- (based on "obs-rpm-install")
+--
+-- SPDX-FileCopyrightText: Copyright (c) 2012 Nokia Corporation.
+-- Author: Lauri T. Aarnio
+-- SPDX-License-Identifier: MIT
 
 -- ***************************************************
 -- NOTE: This is experimental, untested mapping mode!!
@@ -21,11 +21,15 @@ exec_policy_selection = {
 		-- Rule isn't active if tools_root is not set.
 		{prefix = tools_root, exec_policy_name = "Tools"},
 
-                -- the toolchain, if not from Tools:
-                {dir = sbox_target_toolchain_dir, exec_policy_name = "Toolchain"},
+		-- the toolchain, if not from Tools:
+		{dir = sbox_target_toolchain_dir, exec_policy_name = "Toolchain"},
 
-                -- the home directory is expected to contain target binaries:
-                {dir = sbox_user_home_dir, exec_policy_name = "Target"},
+		-- the home directory is expected to contain target binaries:
+		{dir = sbox_user_home_dir, exec_policy_name = "Target"},
+
+		-- the /tmp is mapped to the session
+		-- it is expected to only contains target binaries
+		{dir= "/tmp", exec_policy_name = "Target" },
 
 		-- DEFAULT RULE (must exist):
 		{prefix = "/", exec_policy_name = "Host"}

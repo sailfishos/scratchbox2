@@ -1,6 +1,6 @@
--- Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
--- Copyright (C) 2011 Nokia Corporation.
--- Licensed under MIT license.
+-- SPDX-FileCopyrightText:  Copyright (C) 2007 Lauri Leukkunen <lle@rahina.org>
+-- SPDX-FileCopyrightText:  Copyright (C) 2011 Nokia Corporation.
+-- SPDX-License-Identifier: MIT
 
 -- ***************************************************
 -- NOTE: This is experimental, untested mapping mode!!
@@ -429,8 +429,8 @@ emulate_mode_rules_usr_bin = {
 
 		-- perl & python:
 		-- 	processing depends on SBOX_REDIRECT_IGNORE,
-		--	SBOX_REDIRECT_FORCE and 
-		--	name of the current exec policy. 
+		--	SBOX_REDIRECT_FORCE and
+		--	name of the current exec policy.
 		--	(these are real prefixes, version number may
 		--	be included in the name (/usr/bin/python2.5 etc))
 		{prefix = "/usr/bin/perl", actions = perl_bin_test},
@@ -493,7 +493,7 @@ usr_share_rules = {
 		{prefix = "/usr/share/pygobject", actions = python_lib_test},
 
 		-- -----------------------------------------------
-		
+
 		{path = "/usr/share/aclocal",
 			union_dir = {
 				target_root.."/usr/share/aclocal",
@@ -522,6 +522,10 @@ emulate_mode_rules_usr = {
 		-- /usr/lib/libsb2/wrappers/*, etc.
 		{dir = "/usr/lib/libsb2", use_orig_path = true,
 		 protection = readonly_fs_always},
+		-- same for lib64
+		{dir = "/usr/lib64/libsb2", use_orig_path = true,
+		 protection = readonly_fs_always},
+
 
 		{dir = "/usr/lib/gcc", actions = test_first_tools_then_target_default_is_tools},
 
@@ -601,7 +605,7 @@ emulate_mode_rules_home = {
 
 emulate_mode_rules_opt = {
 		-- for rpmlint:
-		{dir = "/opt/testing", 
+		{dir = "/opt/testing",
 		 actions = test_first_tools_then_target_default_is_tools},
 		--
 
@@ -619,6 +623,9 @@ emulate_mode_rules = {
 		{dir = session_dir, use_orig_path = true},
 
 		{path = sbox_cputransparency_cmd, use_orig_path = true,
+		 protection = readonly_fs_always},
+
+        {path = sbox_cputransparency_native_cmd, use_orig_path = true,
 		 protection = readonly_fs_always},
 
 		{dir = sbox_target_toolchain_dir, use_orig_path = true,
@@ -641,7 +648,7 @@ emulate_mode_rules = {
 		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
 		 protection = readonly_fs_always},
 
-		-- 
+		--
 		{dir = "/tmp", replace_by = tmp_dir_dest},
 
 		{dir = "/dev", rules = import_from_fs_rule_library("dev")},
@@ -694,4 +701,3 @@ else
         -- No tools_root.
 	fs_mapping_rules = emulate_mode_rules
 end
-

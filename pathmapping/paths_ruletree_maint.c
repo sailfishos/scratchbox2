@@ -1,10 +1,11 @@
 /*
- * Copyright (C) 2011 Nokia Corporation.
+ * Mapping rule maintenance routines.
  *
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
+ * SPDX-FileCopyrightText: Copyright (C) 2011 Nokia Corporation.
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
-/* Mapping rule maintenance routines. */
 
 #include <unistd.h>
 #include <stdio.h>
@@ -67,7 +68,7 @@ ruletree_object_offset_t add_rule_to_ruletree(
 #endif
 
 	memset(&new_rule, 0, sizeof(new_rule));
-	
+
 	if (name) {
 		new_rule.rtree_fsr_name_offs = append_string_to_ruletree_file(name);
 	}
@@ -163,13 +164,12 @@ ruletree_object_offset_t add_rule_to_ruletree(
 
 	rule_location = append_struct_to_ruletree_file(&new_rule, sizeof(new_rule),
 		SB2_RULETREE_OBJECT_TYPE_FSRULE);
-	
+
 	SB_LOG(SB_LOGLEVEL_DEBUG,
-		"Added rule: %d (%s) / %d (%s), @ %u (link=%d)",
+		"Added rule: %d (%s) / %d (%s), @ %" PRI_SB_RTOO " (link=%d)",
 			selector_type, (selector ? selector : ""),
 			action_type, (action_str ? action_str : ""),
 			rule_location, rule_list_link);
 
 	return(rule_location);
 }
-

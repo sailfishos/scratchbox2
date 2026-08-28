@@ -1,14 +1,15 @@
 /* sb2-show:
  * SB2 Mapping rule testing utility
  *
- * Copyright (c) 2008 Nokia Corporation. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (C) 2008 Nokia Corporation.
  * Author: Lauri T. Aarnio
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
-*/
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ */
 
+#include <config.h>
 #include <unistd.h>
 #include <string.h>
-#include <config.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/resource.h>
@@ -18,7 +19,6 @@
 
 #include "exported.h"
 #include "sb2.h"
-#include "scratchbox2_version.h"
 
 #ifdef HAVE_CRT_EXTERNS_H
 #include <crt_externs.h>
@@ -39,9 +39,9 @@ typedef struct cmdline_options_s {
 	int		opt_verbose;
 	int		opt_ignore_directories;
 	const char	*binary_name;
-	const char	*function_name; 
-	int		function_name_set; 
-	const char	*debug_port; 
+	const char	*function_name;
+	int		function_name_set;
+	const char	*debug_port;
 
 	char	**additional_env; /* there can be multiple -E options */
 } cmdline_options_t;
@@ -150,7 +150,7 @@ void sblog_printf_line_to_logfile(
 static void usage_exit(const char *progname, const char *errmsg, int exitstatus,
 	const command_table_t *cmds)
 {
-	if (errmsg) 
+	if (errmsg)
 		fprintf(stderr, "%s: Error: %s\n", progname, errmsg);
 
 	fprintf(stderr, "\n%s: Usage:\n", progname);
@@ -175,7 +175,7 @@ static void usage_exit(const char *progname, const char *errmsg, int exitstatus,
 		while (cmds->cmd_name) {
 			fprintf(stderr, "%s\n", cmds->cmd_helptext);
 			if (!cmds->cmd_must_have_session) {
-				fprintf(stderr, 
+				fprintf(stderr,
 				  "\t                       "
 				  "(can be used without a session)\n");
 			}
@@ -202,7 +202,7 @@ static int cmd_var(const command_table_t *cmdp, const cmdline_options_t *opts,
 		else printf("%s\n", value);
 		free(value);
 		return(0);
-	} 
+	}
 	/* failed */
 	if (opts->opt_verbose) printf("%s: %s does not exist\n",
 		opts->progname, cmd_argv[1]);
@@ -399,7 +399,7 @@ static void print_exec(void *priv,
 
 /* Print exec parameters on a single line,
  * used for command "exec-cmdline". Note that this
- * will not print argv[0] at all or env.vars that 
+ * will not print argv[0] at all or env.vars that
  * were cleared. Only the "exec" command show all
  * information.
 */
@@ -476,7 +476,7 @@ static int cmd_net(const command_table_t *cmdp, const cmdline_options_t *opts,
 			cmd_argv[2]/*addr_type*/, cmd_argv[3]/*dst_addr*/,
 			atoi(cmd_argv[4])/*port*/, &new_addr, &new_port);
 
-		printf("Result = %d, address = %s port = %d\n", 
+		printf("Result = %d, address = %s port = %d\n",
 			res, new_addr, new_port);
 	} else {
 		usage_exit(opts->progname, "Subcommand must be 'addr'", 1, NULL);
@@ -508,7 +508,7 @@ static void command_show_exec(
 		/* function name was not specified by an option.
 		 * default to execvp(); some modes have rules which
 		 * depend on function name, and output may not be
-		 * correct if mapping is called with default 
+		 * correct if mapping is called with default
 		 * "anyfunction" tag.
 		*/
 		fn_name = "execvp";
@@ -558,14 +558,14 @@ static void command_show_path(const char *binary_name, const char *fn_name,
 	int	readonly_flag;
 
 	while (*argv) {
-		mapped_path = call_sb2show__map_path2__(binary_name, "", 
+		mapped_path = call_sb2show__map_path2__(binary_name, "",
 			fn_name, *argv, &readonly_flag);
 		if (!mapped_path) {
 			printf("%s: Mapping failed\n", *argv);
 		} else if (show_destination_only) {
 			printf("%s\n", mapped_path);
 		} else {
-			printf("%s => %s%s\n", 
+			printf("%s => %s%s\n",
 				*argv, mapped_path,
 				(readonly_flag ? " (readonly)" : ""));
 		}
@@ -838,7 +838,7 @@ static int cmd_path(const command_table_t *cmdp, const cmdline_options_t *opts,
 {
 	(void)cmdp;
 	(void)cmd_argc;
-	command_show_path(opts->binary_name, opts->function_name, 
+	command_show_path(opts->binary_name, opts->function_name,
 		0/*verbose output*/, cmd_argv + 1);
 	return(0);
 }
@@ -848,7 +848,7 @@ static int cmd_which(const command_table_t *cmdp, const cmdline_options_t *opts,
 {
 	(void)cmdp;
 	(void)cmd_argc;
-	command_show_path(opts->binary_name, opts->function_name, 
+	command_show_path(opts->binary_name, opts->function_name,
 		1/*show only dest.path*/, cmd_argv + 1);
 	return(0);
 }
@@ -1003,7 +1003,7 @@ int main(int argc, char *argv[])
 	const	command_table_t	*cmdp;
 	int	subcmd_argc = 0;
 	char	**subcmd_argv = NULL;
-	
+
 	memset(&opts, 0, sizeof(opts));
 	opts.progname = argv[0];
 	opts.function_name = "ANYFUNCTION";
@@ -1056,7 +1056,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* check parameters */
-	if (optind >= argc) 
+	if (optind >= argc)
 		usage_exit(opts.progname, "No command", 1, commands);
 
 	/* find the command. */
@@ -1108,7 +1108,7 @@ int main(int argc, char *argv[])
 		/* enable mapping */
 		unsetenv("SBOX_DISABLE_MAPPING");
 
-		if (!libsb2_handle) 
+		if (!libsb2_handle)
 			usage_exit(opts.progname, "This command can only be used "
 				"inside a session (e.g. 'sb2 sb2-show ...')", 1, commands);
 	}
@@ -1146,4 +1146,3 @@ int main(int argc, char *argv[])
 
 	return(ret);
 }
-

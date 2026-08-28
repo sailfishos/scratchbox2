@@ -1,15 +1,24 @@
-# Copyright (C) 2006 Lauri Leukkunen
+# SPDX-FileCopyrightText: Copyright (C) 2006 Lauri Leukkunen
 # Based on the configure.ac script from fakechroot package
 
 
 AC_PREREQ([2.59])
-AC_INIT([sb2],[1.99b],[lle@rahina.org])
-#AC_CANONICAL_TARGET
+AC_INIT([SB2],
+        m4_esyscmd([build-aux/git-version-gen --prefix '' .tarball-version]),
+        [https://docs.sailfishos.org/Develop/Collaborate],
+        [scratchbox2],
+        [https://github.com/sailfishos/scratchbox2])
+AC_CONFIG_AUX_DIR([build-aux])
+AC_CONFIG_MACRO_DIR([m4])
+AC_CANONICAL_TARGET
 #AM_INIT_AUTOMAKE
 #AM_MAINTAINER_MODE
 #AC_CONFIG_SRCDIR([src/libfakechroot.c])
 AC_CONFIG_HEADERS([include/config.h])
 AC_CONFIG_FILES([config.mak])
+dnl Generate timestamp so that configure output files timestamps are in sync
+AC_CONFIG_FILES([stamp-h], [echo timestamp > stamp-h])
+AC_CONFIG_FILES([stamp-mak], [echo timestamp > stamp-mak])
 AC_PROG_CC
 AC_PROG_CXX
 
@@ -42,6 +51,7 @@ PKG_CHECK_VAR(LUA_LIBDIR, [lua], [libdir],
 AC_HEADER_DIRENT
 AC_STRUCT_DIRENT_D_TYPE
 AC_CHECK_HEADERS([ \
+elf.h \
 fcntl.h \
 fts.h \
 ftw.h \
@@ -178,6 +188,8 @@ unlinkat \
 ulckpwdf \
 utime \
 utimes \
+wait3 \
+wait4
 ])
 
 AC_REPLACE_FUNCS([mempcpy])
@@ -231,10 +243,29 @@ freebsd*)
 	;;
 esac
 
-AC_C_BIGENDIAN()
 
+DYNAMIC_LIB_SUFFIX='.so'
+AC_DEFINE_UNQUOTED([DYNAMIC_LIB_SUFFIX], ["${DYNAMIC_LIB_SUFFIX}"], [Extension for dynamic libraries])
+
+
+AC_SUBST([LIBSB2_NAME], [lib]m4_tolower(AC_PACKAGE_NAME))
+AC_DEFINE_UNQUOTED([LIBSB2_NAME], ["${LIBSB2_NAME}"], AC_PACKAGE_NAME preloader name)
+
+AC_SUBST([LIBSB2_SOVER], [1])
+AC_DEFINE_UNQUOTED([LIBSB2_SOVER], ["${LIBSB2_SOVER}"] , preloader sover)
+
+LIBSB2_CONFIG
+
+AC_C_BIGENDIAN()
 AC_SUBST(WORDS_BIGENDIAN, ${WORDS_BIGENDIAN})
-AC_SUBST(PREFIX, ${prefix})
+
+AC_SUBST(prefix, ${prefix})
+AC_SUBST(exec_prefix, ${exec_prefix})
+AC_SUBST(bindir, ${bindir})
+AC_SUBST(libdir, ${libdir})
+AC_SUBST(datarootdir, ${datarootdir})
+AC_SUBST(datadir, ${datadir})
+
 AC_SUBST(CC, ${CC})
 AC_SUBST(CXX, ${CXX})
 AC_SUBST(CFLAGS, ${CFLAGS})

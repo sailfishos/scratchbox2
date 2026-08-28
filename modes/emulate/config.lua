@@ -1,8 +1,9 @@
--- Copyright (c) 2012 Nokia Corporation.
--- Author: Lauri T. Aarnio
--- Licensed under MIT license.
---
 -- Common config for the "emulate" mode
+--
+-- SPDX-FileCopyrightText: Copyright (c) 2012 Nokia Corporation.
+-- Author: Lauri T. Aarnio
+--
+-- SPDX-License-Identifier: MIT
 
 -- disable the gcc toolchain tricks. gcc & friends will be available, if
 -- those have been installed to target_root (but then they will probably run
@@ -18,8 +19,8 @@ exec_policy_selection = {
 		-- scratchbox2 binaries are expected from Host
 		{dir = sbox_dir .. "/bin", exec_policy_name = "Host"},
 
-                -- the home directory is expected to contain target binaries:
-                {dir = sbox_user_home_dir, exec_policy_name = "Target"},
+		-- the home directory is expected to contain target binaries:
+		{dir = sbox_user_home_dir, exec_policy_name = "Target"},
 
 		-- Target binaries:
 		{prefix = target_root, exec_policy_name = "Target"},
@@ -28,7 +29,10 @@ exec_policy_selection = {
 		-- to contain target binaries:
 		{prefix = sbox_workdir, exec_policy_name = "Target"},
 
+		-- the /tmp is mapped to the session
+		-- it is expected to only contains target binaries
+		{dir= "/tmp", exec_policy_name = "Target" },
+
 		-- DEFAULT RULE (must exist):
 		{prefix = "/", exec_policy_name = "Host"}
 }
-

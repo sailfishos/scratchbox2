@@ -1,14 +1,13 @@
-/*
- * Copyright (C) 2011 Nokia Corporation.
- * Author: Lauri T. Aarnio
- *
- * Licensed under LGPL version 2.1, see top level LICENSE file for details.
-*/
-
 /* Rule tree client-side library:
  * To be used from inside an active SB2 session for
  * connecting to sb2d, the rule tree db server process.
+ *
+ * SPDX-FileCopyrightText: Copyright (C) 2011 Nokia Corporation.
+ * Author: Lauri T. Aarnio
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
 */
+
 
 #include <stdio.h>
 #include <stdint.h>
@@ -157,7 +156,7 @@ static int create_client_socket(void)
 	unlink_nomap_nolog(client_socket_path); /* remove old socket, if any. */
 
 	client_addr_len = sizeof(sa_family_t) + sock_path_len + 1;
-	
+
 	if (bind_nomap_nolog(client_socket, (struct sockaddr*)&client_address, client_addr_len) < 0) {
 		SB_LOG(SB_LOGLEVEL_ERROR,
 			"ruletree_rpc: Failed to bind client socket address (%s)",
@@ -248,7 +247,7 @@ static int send_command_receive_reply(
 	}
 
 	SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_rpc: sendto => %d", (int)sent_msg_size);
-		
+
 	received_msg_size = recvfrom_nomap_nolog(client_socket, reply, sizeof(*reply), 0,
 		(struct sockaddr*)NULL, (socklen_t*)NULL);
 	SB_LOG(SB_LOGLEVEL_DEBUG, "ruletree_rpc: recvfrom => %d", (int)received_msg_size);
@@ -263,7 +262,7 @@ static int send_command_receive_reply(
 		SB_LOG(SB_LOGLEVEL_NOISE, "unlocked client_socket_mutex");
 	}
 	SB_LOG(SB_LOGLEVEL_DEBUG,
-		"%s: Received reply type=%u", __func__, reply->hdr.rimr_message_type);
+		"%s: Received reply type=%" PRIu32, __func__, reply->hdr.rimr_message_type);
 	return(0);
 
     error_out:
@@ -348,9 +347,9 @@ void ruletree_rpc__vperm_set_ids(uint64_t dev, uint64_t ino,
 	ruletree_rpc_msg_command_t	command;
 	ruletree_rpc_msg_reply_t	reply;
 
-	if (set_uid) 
+	if (set_uid)
 		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: uid=%d", __func__, uid);
-	if (set_gid) 
+	if (set_gid)
 		SB_LOG(SB_LOGLEVEL_DEBUG, "%s: gid=%d", __func__, gid);
 	memset(&command, 0, sizeof(command));
 	command.rimc_message_type = RULETREE_RPC_MESSAGE_COMMAND__SETFILEINFO;
@@ -395,7 +394,7 @@ void ruletree_rpc__vperm_set_mode(uint64_t dev, uint64_t ino,
 	command.rim_message.rimm_fileinfo.inodesimu_mode = virt_mode;
 	command.rim_message.rimm_fileinfo.inodesimu_suidsgid = suid_sgid_bits;
 
-	if ((real_mode & ~(S_ISUID | S_ISGID)) != 
+	if ((real_mode & ~(S_ISUID | S_ISGID)) !=
 	    (virt_mode & ~(S_ISUID | S_ISGID))) {
 		command.rim_message.rimm_fileinfo.inodesimu_active_fields |=
 			RULETREE_INODESTAT_SIM_MODE;
@@ -439,5 +438,3 @@ void ruletree_rpc__vperm_set_dev_node(uint64_t dev, uint64_t ino,
 	command.rim_message.rimm_fileinfo.inodesimu_rdev = rdev;
 	send_command_receive_reply(&command, &reply);
 }
-
-

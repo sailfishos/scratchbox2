@@ -1,0 +1,69 @@
+#+TITLE: Scratchbox debugging
+
+# Setup early debug session to debug libsb2 very early,
+# possibly in case it's crashing.
+#
+# To do this manually:
+
+# set env LD_LIBRARY_PATH=/usr/local/lib:/usr/lib/:/usr/lib64:/lib:/lib64:/usr/lib/libsb2:/usr/lib64/libsb2:/usr/lib32/libsb2:/emul/lib64/libsb2:/emul/lib32/libsb2:/home/bidar/dev/vms/jolla/toolings/Sailfish-devel/lib:/home/bidar/dev/vms/jolla/toolings/Sailfish-devel/usr/lib
+
+# Debugging sb2 before the initialization can be done but requires preparation:
+# Start sb2 with -N, this way the old session directory stays.
+#
+# After that edit the line below to update the session directory.
+# set env SBOX_SESSION_DIR=/tmp/sb2-bidar-20260512-210051.ctDH47
+# After that comment out this line:
+# set exec-wrapper sb2-monitor -L libsb2-x86_64.so.1 --
+
+Exclude sb2-debug from your Editors LSP file so it  will not try to add
+your host files to it's watch list.
+
+* Preliminaries
+  :PROPERTIES:
+  :CREATED:  [2026-08-28 Fri 14:44]
+  :END:
+  This section can be skipped if you are already familiar with building
+  Scratchbox with debug info, configuring and starting GDB, and simple GDB
+  debugging techniques.
+
+
+** Configuring GDB
+   :PROPERTIES:
+   :CREATED:  [2026-08-28 Fri 14:51]
+   :END:
+   To start debugging Scratchbox, you can simply type "gdb" at the shell
+   prompt.
+
+   When you debug Sb2 with the GDB, you should start in the directory
+   where the README file is located (the repository root).
+   That directory has a .gdbinit file that defines various
+   "user-defined" commands for debugging Scratchbox.
+
+   Recent GDB versions do not automatically load .gdbinit files in the
+   directory where you invoke GDB. With those versions of GDB, you willl
+   see a warning when GDB starts like this:
+
+   ~warning: File ".gdbinit" auto-loading has been declined by your `auto-load safe-path' set to "$debugdir:$datadir/auto-load".~
+
+   The simples way to fix his is to add the following line to your
+   ~~/.config/gdb/gdbinit~~ file (creating such a file if it doesn't
+   already exist):
+
+   ~add-auto-load-safe-path /path/to/scratchbox/.gdbinit~
+
+   There are other ways to overcome that difficulty, they are all
+   described in the node "Auto-loading safe path" in the GDB user manual.
+   If nothing else helps, type "source /path/to/.gdbinit RET" at the GDB
+   prompt, to unconditionally load the GDB init file.
+
+
+** Initializing a debug session to debug libsb2
+   :PROPERTIES:
+   :CREATED:  [2026-08-28 Fri 15:50]
+   :END:
+   Debugging of the libsb2 (the Scratchbox preloader) requires some
+   preparation.
+
+   The Scratchbox initialization script /sb2/ has to run as the execution
+   wrapper, to debug libsb2. Execution wrappers are more detailed in the GDB user manual
+   under the node "Starting" (info "(gdb) Starting").

@@ -301,6 +301,9 @@ emulate_mode_rules_usr = {
 		-- /usr/lib/libsb2/wrappers/*, etc.
 		{dir = "/usr/lib/libsb2", use_orig_path = true,
 		 protection = readonly_fs_always},
+		{dir = "/usr/lib64/libsb2", use_orig_path = true,
+		 protection = readonly_fs_always},
+
 
                 {path = "/usr/lib/rpm/elfdeps", func_class = FUNC_CLASS_EXEC,
 		 actions=rpm_program_actions},
@@ -511,4 +514,3 @@ else
         -- No tools_root.
 	fs_mapping_rules = emulate_mode_rules
 end
-

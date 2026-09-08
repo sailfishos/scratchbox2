@@ -9,22 +9,27 @@ enable_cross_gcc_toolchain = false
 
 -- Note that the real path (mapped path) is used when looking up rules!
 exec_policy_selection = {
-		-- Target binaries:
-		{prefix = target_root, exec_policy_name = "Target"},
+	-- Target binaries:
+	{prefix = target_root, exec_policy_name = "Target"},
 
-		-- Tools. at least qemu might be used from there.
-		-- Rule isn't active if tools_root is not set.
-		{prefix = tools_root, exec_policy_name = "Tools"},
+	-- Tools. at least qemu might be used from there.
+	-- Rule isn't active if tools_root is not set.
+	{prefix = tools_root, exec_policy_name = "Tools"},
 
-                -- the toolchain, if not from Tools:
-                {dir = sbox_target_toolchain_dir, exec_policy_name = "Toolchain"},
+	-- the toolchain, if not from Tools:
+	{dir = sbox_target_toolchain_dir, exec_policy_name = "Toolchain"},
 
-                -- the home directory is expected to contain target binaries:
-                {dir = sbox_user_home_dir, exec_policy_name = "Target"},
+	-- the home directory is expected to contain target binaries:
+	{dir = sbox_user_home_dir, exec_policy_name = "Target"},
 
-                -- the workspace directory is expected to contain target binaries:
-                {dir = sbox_user_workspace, exec_policy_name = "Target"},
+	-- the workspace directory is expected to contain target binaries:
+	{dir = sbox_user_workspace, exec_policy_name = "Target"},
 
-		-- DEFAULT RULE (must exist):
-		{prefix = "/", exec_policy_name = "Host"}
+
+	-- the /tmp is mapped to the session, it only contains target binaries
+	{dir= "/tmp", exec_policy_name = "Target" },
+
+
+	-- DEFAULT RULE (must exist):
+	{prefix = "/", exec_policy_name = "Host"}
 }

@@ -288,12 +288,12 @@ void sbox_map_path_at(
 		return;
 	}
 
-end:
 	/* name not found. Can't do much here, log a warning and return
 	 * the original relative path. That will work if we are lucky, but
 	 * not always..  */
 	SB_LOG(SB_LOGLEVEL_WARNING, "Path not found for FD %d, for %s(%s)",
 		dirfd, func_name, virtual_path);
+end:
 	res->mres_result_buf = res->mres_result_path = strdup(virtual_path);
 	res->mres_readonly = 0;
 }

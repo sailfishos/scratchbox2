@@ -14,7 +14,10 @@ gcc_compilers = {
 	"g++",
 	"cpp",
 	"f77",
-	"g77"
+	"g77",
+	"gccgo",
+	"go.gcc",
+	"gofmt.gcc"
 }
 
 compiler_alternative_name = {

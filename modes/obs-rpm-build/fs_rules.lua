@@ -396,13 +396,6 @@ emulate_mode_rules_usr_bin = {
 		 func_class = FUNC_CLASS_EXEC,
 		 actions=accelerated_program_actions},
 
-		{path = "/usr/bin/sb2-show", use_orig_path = true,
-		 protection = readonly_fs_always},
-		{path = "/usr/bin/sb2-qemu-gdbserver-prepare",
-		    use_orig_path = true, protection = readonly_fs_always},
-		{path = "/usr/bin/sb2-session", use_orig_path = true,
-		 protection = readonly_fs_always},
-
 		-- next, automatically generated rules for /usr/bin:
 		{name = "/usr/bin autorules", dir = "/usr/bin", rules = argvmods_rules_for_usr_bin,
 		 virtual_path = true}, -- don't reverse these.
@@ -482,14 +475,6 @@ emulate_mode_rules_usr = {
                  actions=accelerated_program_actions},
                 {path = "/usr/lib64/qt5/bin/qdoc", func_class = FUNC_CLASS_EXEC,
                  actions=accelerated_program_actions},
-
-		-- gdb wants to have access to our dynamic linker also,
-		-- /usr/lib/libsb2/wrappers/*, etc.
-		{dir = "/usr/lib/libsb2", use_orig_path = true,
-		 protection = readonly_fs_always},
-		-- same for lib64
-		{dir = "/usr/lib64/libsb2", use_orig_path = true,
-		 protection = readonly_fs_always},
 
 		{dir = "/usr/lib/gcc", actions = test_first_tools_then_target_default_is_tools},
 
@@ -612,33 +597,8 @@ emulate_mode_rules = {
 
 		{path = os.getenv("SSH_AUTH_SOCK"), use_orig_path = true},
 
-		-- ldconfig is static binary, and needs to be wrapped
-		-- Gdb needs some special parameters before it
-		-- can be run so we wrap it.
-		{dir = "/sb2/wrappers",
-		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
-		 protection = readonly_fs_always},
 
-		--
-		{dir = "/tmp", replace_by = tmp_dir_dest},
-
-		{dir = "/dev", rules = import_from_fs_rule_library("dev")},
-
-		{dir = "/proc", rules = import_from_fs_rule_library("proc")},
-		{dir = "/sys", rules = sys_rules},
-
-		{dir = sbox_dir .. "/share/scratchbox2",
-		 use_orig_path = true},
-
-		-- The real sbox_dir.."/lib/libsb2" must be available:
-		--
-		-- When libsb2 is installed to target we don't want to map
-		-- the path where it is found.  For example gdb needs access
-		-- to the library and dynamic linker, and these may be in
-		-- target_root, or under sbox_dir.."/lib/libsb2", or
-		-- under ~/.scratchbox2.
-		{dir = sbox_dir .. "/lib/libsb2",
-		 actions = test_first_target_then_host_default_is_target},
+		table.unpack(import_from_fs_rule_library("sbox_utils")),
 
 		-- -----------------------------------------------
 		-- home directories:

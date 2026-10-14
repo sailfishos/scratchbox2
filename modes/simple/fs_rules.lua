@@ -19,13 +19,6 @@ end
 qemu_binary_name = basename(sbox_cputransparency_cmd)
 
 simple_rules_usr = {
-		{path = "/usr/bin/sb2-show",
-		 use_orig_path = true, readonly = true},
-		{dir = "/usr/lib/libsb2", use_orig_path = true,
-		 readonly = true},
-		{dir = "/usr/lib64/libsb2", use_orig_path = true,
-		 protection = readonly_fs_always},
-
 
 		-- Qemu only:
 		{binary_name = qemu_binary_name,
@@ -50,25 +43,9 @@ simple_rules_usr = {
 }
 
 fs_mapping_rules = {
-		-- -----------------------------------------------
-		-- 1. The session directory
-		{dir = session_dir, use_orig_path = true},
 
 		-- -----------------------------------------------
 		-- 2. Development environment special destinations:
-
-		{prefix = "/sb2/wrappers",
-		 replace_by = sbox_dir.."/share/scratchbox2/wrappers",
-		 readonly = true},
-
-		{prefix = "/sb2/scripts",
-		 replace_by = sbox_dir.."/share/scratchbox2/scripts",
-		 readonly = true},
-
-		{prefix = sbox_user_home_dir, use_orig_path = true},
-
-		{prefix = sbox_dir .. "/share/scratchbox2",
-		 use_orig_path = true},
 
 		{dir = "/usr", rules = simple_rules_usr},
 
@@ -103,3 +80,5 @@ fs_mapping_rules = {
 		{path = "/", use_orig_path = true},
 		{prefix = "/", map_to = tools}
 }
+
+import_from_fs_rule_library("sbox_utils", fs_mapping_rules)

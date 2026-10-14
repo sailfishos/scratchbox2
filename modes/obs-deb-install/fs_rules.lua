@@ -295,15 +295,6 @@ sys_rules = {
 
 
 emulate_mode_rules = {
-		-- First paths that should never be mapped:
-		{dir = session_dir, use_orig_path = true},
-
-		{path = sbox_cputransparency_cmd, use_orig_path = true,
-		 protection = readonly_fs_always},
-
-        {path = sbox_cputransparency_native_cmd, use_orig_path = true,
-		 protection = readonly_fs_always},
-
 		--{dir = target_root, use_orig_path = true,
 		-- protection = readonly_fs_if_not_root},
 		{dir = target_root, use_orig_path = true,
@@ -356,6 +347,8 @@ emulate_mode_rules = {
 		{prefix = "/", map_to = target_root,
 		 protection = readonly_fs_if_not_root}
 }
+
+insert_import_from_fs_rule_library("sbox_utils", emulate_mode_rules)
 
 -- This allows access to tools with full host paths,
 -- this is needed for example to be able to

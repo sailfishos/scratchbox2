@@ -244,13 +244,6 @@ emulate_mode_rules_usr_bin = {
 		 func_class = FUNC_CLASS_EXEC,
 		 actions = accelerated_program_actions},
 
-		{path = "/usr/bin/sb2-show", use_orig_path = true,
-		 protection = readonly_fs_always},
-		{path = "/usr/bin/sb2-qemu-gdbserver-prepare",
-		    use_orig_path = true, protection = readonly_fs_always},
-		{path = "/usr/bin/sb2-session", use_orig_path = true,
-		 protection = readonly_fs_always},
-
 		-- rpm rules
 		{path = "/usr/bin/zypper",
 		 func_class = FUNC_CLASS_EXEC,
@@ -296,13 +289,6 @@ emulate_mode_rules_usr_bin = {
 
 emulate_mode_rules_usr = {
 		{name = "/usr/bin branch", dir = "/usr/bin", rules = emulate_mode_rules_usr_bin},
-
-		-- gdb wants to have access to our dynamic linker also,
-		-- /usr/lib/libsb2/wrappers/*, etc.
-		{dir = "/usr/lib/libsb2", use_orig_path = true,
-		 protection = readonly_fs_always},
-		{dir = "/usr/lib64/libsb2", use_orig_path = true,
-		 protection = readonly_fs_always},
 
 
                 {path = "/usr/lib/rpm/elfdeps", func_class = FUNC_CLASS_EXEC,
@@ -448,19 +434,6 @@ emulate_mode_rules = {
 
 		{dir = "/proc", rules = import_from_fs_rule_library("proc")},
 		{dir = "/sys", rules = sys_rules},
-
-		{dir = sbox_dir .. "/share/scratchbox2",
-		 use_orig_path = true},
-
-		-- The real sbox_dir.."/lib/libsb2" must be available:
-		--
-		-- When libsb2 is installed to target we don't want to map
-		-- the path where it is found.  For example gdb needs access
-		-- to the library and dynamic linker, and these may be in
-		-- target_root, or under sbox_dir.."/lib/libsb2", or
-		-- under ~/.scratchbox2.
-		{dir = sbox_dir .. "/lib/libsb2",
-		 actions = test_first_target_then_host_default_is_target},
 
 		-- -----------------------------------------------
 		-- home directories:

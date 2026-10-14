@@ -10,7 +10,7 @@
 session_dir = os.getenv("SBOX_SESSION_DIR")
 debug_messages_enabled = sblib.debug_messages_enabled()
 
--- This version string is used to check that the lua scripts offer 
+-- This version string is used to check that the lua scripts offer
 -- what sb2d expects, and v.v.
 -- Increment the number whenever the interface beween Lua and C is changed.
 --
@@ -32,7 +32,7 @@ function do_file(filename)
 	end
 	local f, err = loadfile(filename)
 	if (f == nil) then
-		error("\nError while loading " .. filename .. ": \n" 
+		error("\nError while loading " .. filename .. ": \n"
 			.. err .. "\n")
 		-- "error()" never returns
 	else
@@ -49,6 +49,38 @@ function import_from_fs_rule_library(libname)
 		return fs_rules
 	end
 	error("\nIncorrect fs_rule_lib_interface_version while loading FS rule library "..libname.."\n")
+end
+
+--- insert values into a table.
+-- similar to `table.insert` but inserts values from given table `values`,
+-- not the object itself, into table `t` at position `pos`.
+-- @within Copying
+-- @array t the list
+-- @int[opt] position (default is at end)
+-- @array values
+-- Copied from Penlight, LICENSED MIT.
+local function tablex_insertvalues(t, ...)
+    local pos, values
+    if select('#', ...) == 1 then
+        pos,values = #t+1, ...
+    else
+        pos,values = ...
+    end
+    if #values > 0 then
+        for i=#t,pos,-1 do
+            t[i+#values] = t[i]
+        end
+        local offset = 1 - pos
+        for i=pos,pos+#values-1 do
+            t[i] = values[i + offset]
+        end
+    end
+    return t
+end
+
+function insert_import_from_fs_rule_library(libname, rules)
+	local fs_rule = import_from_fs_rule_library(libname)
+	return tablex.insertvalues(rules, 1, fs_rule)
 end
 
 -- A dummy sb2_procfs_mapper function is needed for the rules,

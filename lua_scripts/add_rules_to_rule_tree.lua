@@ -93,7 +93,7 @@ function add_one_rule_to_rule_tree(rule, modename)
 	local rule_list_link = 0
 
 	if (rule.name == nil) then
-		name = ""
+		name = "<not set>"
 	else
 		name = rule.name
 	end
@@ -181,7 +181,7 @@ function add_one_rule_to_rule_tree(rule, modename)
 		condition_str = rule.if_exists_in
 	end
 
-	-- Selectors. 
+	-- Selectors.
 	local selector_type = 0
 	local selector = nil
 	if (rule.dir) then

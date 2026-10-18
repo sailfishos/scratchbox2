@@ -573,6 +573,8 @@ sys_rules = {
 		{dir = "/sys", use_orig_path = true},
 }
 
+-- emulate_mode_rules
+
 
 emulate_mode_rules = {
 		-- First paths that should never be mapped:
@@ -597,8 +599,13 @@ emulate_mode_rules = {
 
 		{path = os.getenv("SSH_AUTH_SOCK"), use_orig_path = true},
 
+		{dir = "/tmp", replace_by = tmp_dir_dest},
 
-		table.unpack(import_from_fs_rule_library("sbox_utils")),
+		{dir = "/dev", rules = import_from_fs_rule_library("dev")},
+
+		{dir = "/proc", rules = import_from_fs_rule_library("proc")},
+		{dir = "/sys", rules = sys_rules},
+
 
 		-- -----------------------------------------------
 		-- home directories:
@@ -625,6 +632,9 @@ local tools_rules = {
 		{prefix = "/", rules = emulate_mode_rules},
 }
 
+-- Import internal rules
+insert_import_from_fs_rule_library("sbox_utils", emulate_mode_rules)
+
 -- allow user to extend these rules with a ~/.sbrules file
 import_from_fs_rule_library("user_rules")
 
@@ -644,6 +654,10 @@ end
 
 -- Now run ~/.sbrules
 run_user_sbrules()
+
+-- require"pl.pretty"(utils)
+
+-- emulate_mode_rules =
 
 if (tools_root ~= nil) and (tools_root ~= "/") then
         -- Tools root is set.

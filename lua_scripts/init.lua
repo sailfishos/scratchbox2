@@ -7,10 +7,12 @@
 -- initializes the rule tree database (which is empty
 -- but attached when this script is started)
 
+tablex = require 'pl.tablex'
+
 session_dir = os.getenv("SBOX_SESSION_DIR")
 debug_messages_enabled = sblib.debug_messages_enabled()
 
--- This version string is used to check that the lua scripts offer 
+-- This version string is used to check that the lua scripts offer
 -- what sb2d expects, and v.v.
 -- Increment the number whenever the interface beween Lua and C is changed.
 --
@@ -32,7 +34,7 @@ function do_file(filename)
 	end
 	local f, err = loadfile(filename)
 	if (f == nil) then
-		error("\nError while loading " .. filename .. ": \n" 
+		error("\nError while loading " .. filename .. ": \n"
 			.. err .. "\n")
 		-- "error()" never returns
 	else
@@ -49,6 +51,11 @@ function import_from_fs_rule_library(libname)
 		return fs_rules
 	end
 	error("\nIncorrect fs_rule_lib_interface_version while loading FS rule library "..libname.."\n")
+end
+
+function insert_import_from_fs_rule_library(libname, rules)
+	local fs_rule = import_from_fs_rule_library(libname)
+	return tablex.insertvalues(rules, 1, fs_rule)
 end
 
 -- A dummy sb2_procfs_mapper function is needed for the rules,

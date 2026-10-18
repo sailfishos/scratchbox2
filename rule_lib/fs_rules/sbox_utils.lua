@@ -11,6 +11,22 @@ fs_rule_lib_interface_version = "105"
 --[[
 	Scratchbox file system rules for internal directories and utilities
 ]]--
+local test_first_target_then_host_default_is_target = {
+	{ if_exists_then_map_to = target_root, protection = readonly_fs_always },
+	{ if_exists_then_map_to = "/", protection = readonly_fs_always },
+	{ map_to = target_root, protection = readonly_fs_always }
+}
+
+local test_first_usr_bin_default_is_bin__replace = {
+	{ if_exists_then_replace_by = target_root.."/usr/bin", protection = readonly_fs_always },
+	{ replace_by = target_root.."/bin", protection = readonly_fs_always }
+}
+
+local test_first_tools_then_target_default_is_tools = {
+	{ if_exists_then_map_to = tools, protection = readonly_fs_always },
+	{ if_exists_then_map_to = target_root, protection = readonly_fs_always },
+	{ map_to = tools, protection = readonly_fs_always }
+}
 
 local sbox_internal_rules = {
 	-- Scratchbox directory, always host
@@ -53,7 +69,6 @@ local sbox_internal_rules = {
 	 protection = readonly_fs_always},
 	{path = "/usr/bin/sb2-session", use_orig_path = true,
 	 protection = readonly_fs_always},
-
 }
 
 return sbox_internal_rules

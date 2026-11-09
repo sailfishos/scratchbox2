@@ -37,25 +37,8 @@ var_lib_dpkg_status_actions = {
 
 -- These rules are used only if there is a separate tools_root
 tools_in_subdir_mapping_rules = {
-		{dir = session_dir, use_orig_path = true},
-
-		{path = sbox_cputransparency_cmd, use_orig_path = true,
-		 readonly = true},
-
-		{path = "/usr/bin/sb2-show", use_orig_path = true,
-		 readonly = true},
-		{dir = "/usr/lib/libsb2", use_orig_path = true,
-		 readonly = true},
-		{dir = "/usr/lib64/libsb2", use_orig_path = true,
-		 protection = readonly_fs_always},
-
 		-- tools_root should not be mapped twice.
 		{prefix = tools_root, use_orig_path = true, readonly = true},
-
-		-- ldconfig is static binary, and needs to be wrapped
-		{prefix = "/sb2/wrappers",
-		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
-		 readonly = true},
 
 		--
 		{prefix = "/var/run", map_to = session_dir},
@@ -68,11 +51,6 @@ tools_in_subdir_mapping_rules = {
 		{dir = "/proc", custom_map_funct = sb2_procfs_mapper,
 		 virtual_path = true},
 		{prefix = "/sys", use_orig_path = true},
-
-		{prefix = sbox_user_home_dir .. "/.scratchbox2",
-		 use_orig_path = true},
-		{prefix = sbox_dir .. "/share/scratchbox2",
-		 use_orig_path = true},
 
 		--
 		-- Following 3 rules are needed because package
@@ -125,6 +103,9 @@ if (tools_root == nil) or (tools_root == "") or (tools_root == "/") then
 		{prefix = "/", use_orig_path = true},
 	}
 else
+	-- Import internal rules
+	insert_import_from_fs_rule_library("sbox_utils", tools_in_subdir_mapping_rules)
+
 	-- Tools in a subdir.
 	fs_mapping_rules = tools_in_subdir_mapping_rules
 end

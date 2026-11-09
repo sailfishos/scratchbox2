@@ -577,19 +577,6 @@ sys_rules = {
 
 
 emulate_mode_rules = {
-		-- First paths that should never be mapped:
-		{dir = session_dir, use_orig_path = true},
-
-		{path = sbox_cputransparency_cmd, use_orig_path = true,
-		 protection = readonly_fs_always},
-
-        {path = sbox_cputransparency_native_cmd, use_orig_path = true,
-		 protection = readonly_fs_always},
-
-		{dir = sbox_target_toolchain_dir, use_orig_path = true,
-		 virtual_path = true, -- don't try to reverse this
-		  protection = readonly_fs_always},
-
 		--{dir = target_root, use_orig_path = true,
 		-- protection = readonly_fs_if_not_root},
 		{dir = target_root, use_orig_path = true,

@@ -402,15 +402,6 @@ sys_rules = {
 
 
 emulate_mode_rules = {
-		-- First paths that should never be mapped:
-		{dir = session_dir, use_orig_path = true},
-
-		{path = sbox_cputransparency_cmd, use_orig_path = true,
-		 protection = readonly_fs_always},
-
-        {path = sbox_cputransparency_native_cmd, use_orig_path = true,
-		 protection = readonly_fs_always},
-
 		--{dir = target_root, use_orig_path = true,
 		-- protection = readonly_fs_if_not_root},
 		{dir = target_root, use_orig_path = true,
@@ -419,13 +410,6 @@ emulate_mode_rules = {
 		},
 
 		{path = os.getenv("SSH_AUTH_SOCK"), use_orig_path = true},
-
-		-- ldconfig is static binary, and needs to be wrapped
-		-- Gdb needs some special parameters before it
-		-- can be run so we wrap it.
-		{dir = "/sb2/wrappers",
-		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
-		 protection = readonly_fs_always},
 
 		--
 		{dir = "/tmp", replace_by = tmp_dir_dest},
@@ -459,6 +443,8 @@ local tools_rules = {
 		{dir = tools_root, use_orig_path = true},
 		{prefix = "/", rules = emulate_mode_rules},
 }
+
+insert_import_from_fs_rule_library("sbox_utils", emulate_mode_rules)
 
 -- allow user to extend these rules with a ~/.sbrules file
 import_from_fs_rule_library("user_rules")

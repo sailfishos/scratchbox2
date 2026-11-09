@@ -281,12 +281,6 @@ devel_mode_rules_usr_lib = {
 			readonly = true,
 		},
 
-		-- wrappers etc.
-		{dir = "/usr/lib/libsb2", force_orig_path = true},
-		-- same for lib64
-		{dir = "/usr/lib64/libsb2", use_orig_path = true,
-		 protection = readonly_fs_always},
-
 
 		-- If a program from tools loads plugins,
 		-- they should be dlopened from tools as well.
@@ -509,14 +503,6 @@ fs_mapping_rules = {
 
 		-- -----------------------------------------------
 		-- 2. Development environment special destinations:
-
-		{prefix = "/sb2/wrappers",
-		 replace_by = session_dir .. "/wrappers." .. active_mapmode,
-		 readonly = true},
-
-		{prefix = "/sb2/scripts",
-		 replace_by = sbox_dir.."/share/scratchbox2/scripts",
-		 readonly = true},
 
 		-- tools_root should not be mapped twice.
 		{prefix = tools_root, use_orig_path = true, readonly = true},

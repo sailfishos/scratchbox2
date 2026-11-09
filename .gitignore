@@ -1,6 +1,7 @@
 *.o
 .*.d
 *.so*
+a.out
 *.dylib*
 .*.swp
 *.*~
@@ -33,4 +34,5 @@ preload/privatewrappers.c
 preload/privatewrappers.h
 include/scratchbox2_version.h
 build/
+build-*/
 compile_commands.json

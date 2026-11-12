@@ -573,8 +573,6 @@ sys_rules = {
 		{dir = "/sys", use_orig_path = true},
 }
 
--- emulate_mode_rules
-
 
 emulate_mode_rules = {
 		--{dir = target_root, use_orig_path = true,
@@ -641,10 +639,6 @@ end
 
 -- Now run ~/.sbrules
 run_user_sbrules()
-
--- require"pl.pretty"(utils)
-
--- emulate_mode_rules =
 
 if (tools_root ~= nil) and (tools_root ~= "/") then
         -- Tools root is set.

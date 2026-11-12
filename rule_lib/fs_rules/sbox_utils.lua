@@ -4,13 +4,14 @@
 --]]
 
 --[[ Rule file interface version, mandatory.
-]]--
+  ]]--
+
 fs_rule_lib_interface_version = "105"
 ----------------------------------
 
 --[[
 	Scratchbox file system rules for internal directories and utilities
-]]--
+  ]]--
 local test_first_target_then_host_default_is_target = {
 	{ if_exists_then_map_to = target_root, protection = readonly_fs_always },
 	{ if_exists_then_map_to = "/", protection = readonly_fs_always },
@@ -22,6 +23,22 @@ local test_first_tools_then_target_default_is_tools = {
 	{ if_exists_then_map_to = target_root, protection = readonly_fs_always },
 	{ map_to = tools, protection = readonly_fs_always }
 }
+
+--[[
+	Scratchbox preloader mapping test:
+	Mapping is based of the active exec policy.
+	A goal is that the session can survive an update of the preloader
+	without breakage.
+	Another one is that the session can transition cleanly between environments.
+	This is especially important if the architecture of any of them is different
+	but still compatible.
+	I.e. x86_64 host, but x86_32 target.
+
+	If libsb2 is updated by a binary of a exec policy different to the destination
+	library which is supposed to be updated, then the binary has to be aware.
+	I.e. if RPM comes from tooling then it knowns about the destination root,
+	thus the destination libsb2 dir.
+]]--
 
 local  libsb2_exec_policy_test = {
 	{ if_active_exec_policy_is = "Target",
@@ -62,9 +79,9 @@ local sbox_internal_rules = {
 	-- target_root, or under sbox_dir.."/lib/libsb2", or
 	-- under ~/.scratchbox2.
 	{dir = sbox_dir .. "/lib/libsb2",
-	 actions = test_first_target_then_host_default_is_target},
+	 actions = libsb2_exec_policy_test},
 	{dir = sbox_dir .. "/lib64/libsb2",
-	 actions = test_},
+	 actions = libsb2_exec_policy_test},
 
 	-- gdb wants to have access to our dynamic linker also,
 	-- /usr/lib/libsb2/wrappers/*, etc.

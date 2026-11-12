@@ -80,7 +80,7 @@ end
 
 function insert_import_from_fs_rule_library(libname, rules)
 	local fs_rule = import_from_fs_rule_library(libname)
-	return tablex.insertvalues(rules, 1, fs_rule)
+	return tablex_insertvalues(rules, 1, fs_rule)
 end
 
 -- A dummy sb2_procfs_mapper function is needed for the rules,

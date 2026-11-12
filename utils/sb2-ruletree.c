@@ -819,7 +819,7 @@ int main(int argc, char *argv[])
 	char	*rule_tree_path = NULL;
 	int	opt;
 
-	while ((opt = getopt(argc, argv, "d:")) != -1) {
+	while ((opt = getopt(argc, argv, "d:o")) != -1) {
 		switch (opt) {
 		case 'd':
 			sb_loglevel__ = atoi(optarg);

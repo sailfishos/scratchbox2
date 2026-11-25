@@ -526,7 +526,7 @@ static char *execute_std_action(
 		SB_LOG(SB_LOGLEVEL_DEBUG,
 			"execute_std_action: union_dir: %s", abs_clean_virtual_path);
 		{
-			ruletree_object_offset_t union_dir_list_offs = rule_selector->rtree_fsr_rule_list_link;
+			ruletree_object_offset_t union_dir_list_offs = action->rtree_fsr_rule_list_link;
 			int	num_real_dir_entries;
 			const char	**src_paths = NULL;
 			int	i;

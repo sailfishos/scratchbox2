@@ -837,9 +837,6 @@ char *ruletree_translate_path(
 			host_path = new_host_path;
 		}
 	} else {
-		SB_LOG(result_log_level,
-			"Mapping failed: Fallback to Lua mapping ('%s')",
-			abs_clean_virtual_path);
 		*errormsgp = "No result from C mapping";
 	}
 	STOP_AND_REPORT_PROCESSCLOCK(SB_LOGLEVEL_INFO, &clk1, host_path);
